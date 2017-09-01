@@ -1,0 +1,7 @@
+[package]
+name = "flattiverse"
+version = "0.9.5"
+authors = ["Michael Watzko <michael@watzko.de>"]
+
+[dependencies]
+byteorder = "1.1.0"
