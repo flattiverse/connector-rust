@@ -4,47 +4,47 @@ use std::fmt::Debug;
 use std::fmt::Result;
 use std::fmt::Formatter;
 
-const MODIFIER_MAJOR : u64 = 16777216;
-const MODIFIER_MINOR : u64 = 65536;
-const MODIFIER_BUILD : u64 = 256;
+const MODIFIER_MAJOR : u32 = 16777216;
+const MODIFIER_MINOR : u32 = 65536;
+const MODIFIER_BUILD : u32 = 256;
 
 
 pub struct Version {
-    raw_version: u64
+    raw_version: u32
 }
 
 impl Version {
-    pub const fn new(major: u16, minor: u16, build: u16, revision: u16) -> Version {
+    pub const fn new(major: u8, minor: u8, build: u8, revision: u8) -> Version {
         Version {
-            raw_version: major as u64 * MODIFIER_MAJOR
-                + minor as u64 * MODIFIER_MINOR
-                + build as u64 * MODIFIER_BUILD
-                + revision as u64
+            raw_version: major as u32 * MODIFIER_MAJOR
+                + minor as u32 * MODIFIER_MINOR
+                + build as u32 * MODIFIER_BUILD
+                + revision as u32
         }
     }
 
     /// The decoded major value of this [Version]
-    pub fn major(&self) -> u16 {
-        (self.raw_version / MODIFIER_MAJOR) as u16 % 256u16
+    pub fn major(&self) -> u8 {
+        ((self.raw_version / MODIFIER_MAJOR) % 256) as u8
     }
 
     /// The decoded minor value of this [Version]
-    pub fn minor(&self) -> u16 {
-        (self.raw_version / MODIFIER_MINOR) as u16 % 256u16
+    pub fn minor(&self) -> u8 {
+        ((self.raw_version / MODIFIER_MINOR) % 256) as u8
     }
 
     /// The decoded build value of this [Version]
-    pub fn build(&self) -> u16 {
-        (self.raw_version / MODIFIER_BUILD) as u16 % 256u16
+    pub fn build(&self) -> u8 {
+        ((self.raw_version / MODIFIER_BUILD) % 256) as u8
     }
 
     /// The decoded revision value of this [Version]
-    pub fn revision(&self) -> u16 {
-        self.raw_version as u16 % 256u16
+    pub fn revision(&self) -> u8 {
+        (self.raw_version % 256) as u8
     }
 
     /// The raw version information
-    pub fn raw(&self) -> u64 {
+    pub fn raw(&self) -> u32 {
         self.raw_version
     }
 }

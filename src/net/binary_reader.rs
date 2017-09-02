@@ -7,10 +7,10 @@ use std::io::Read;
 use std::cmp;
 use std::str;
 
-use byteorder::BigEndian;
+use byteorder::LittleEndian;
 use byteorder::ByteOrder;
 
-pub trait BinaryReader {
+pub trait BinaryReader: Read {
 
     fn read_7bit_encoded_int(&mut self) -> Result<u32>;
 
@@ -106,19 +106,19 @@ impl<T: Read> BinaryReader for T {
     fn read_u32(&mut self) -> Result<u32> {
         let mut b = [0u8; 4];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_u32(&b))
+        Ok(LittleEndian::read_u32(&b))
     }
 
     fn read_long(&mut self) -> Result<i64> {
         let mut b = [0u8; 8];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_i64(&b))
+        Ok(LittleEndian::read_i64(&b))
     }
 
     fn read_short(&mut self) -> Result<i16> {
         let mut b = [0u8; 2];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_i16(&b))
+        Ok(LittleEndian::read_i16(&b))
     }
 
     fn read_bytes(&mut self, size: usize) -> Result<Vec<u8>> {
@@ -137,25 +137,25 @@ impl<T: Read> BinaryReader for T {
     fn read_u16(&mut self) -> Result<u16> {
         let mut b = [0u8; 2];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_u16(&b))
+        Ok(LittleEndian::read_u16(&b))
     }
 
     fn read_int(&mut self) -> Result<i32> {
         let mut b = [0u8; 4];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_i32(&b))
+        Ok(LittleEndian::read_i32(&b))
     }
 
     fn read_single(&mut self) -> Result<f32> {
         let mut b = [0u8; 4];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_f32(&b))
+        Ok(LittleEndian::read_f32(&b))
     }
 
     fn read_double(&mut self) -> Result<f64> {
         let mut b = [0u8; 8];
         self.read_exact(&mut b)?;
-        Ok(BigEndian::read_f64(&b))
+        Ok(LittleEndian::read_f64(&b))
     }
 }
 

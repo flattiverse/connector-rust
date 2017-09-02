@@ -1,6 +1,8 @@
 
 use std::rc::Rc;
 
+use Error;
+
 pub struct IndexList<T> {
     index: usize,
     values: Vec<Option<Rc<T>>>,
@@ -49,7 +51,7 @@ impl<T> IndexList<T> {
         }
     }
 
-    pub fn insert(&mut self, val: Rc<T>) -> Result<usize, &'static str> {
+    pub fn insert(&mut self, val: Rc<T>) -> Result<usize, Error> {
         for _ in 0..self.values.len() {
             if self.avoid_zero && self.index == 0 {
                 self.index += 1;
@@ -63,7 +65,7 @@ impl<T> IndexList<T> {
 
             self.index = (self.index+1) % self.values.len();
         }
-        Err("No free slot")
+        Err(Error::NoFreeSlots)
     }
 
     pub fn count(&mut self) -> usize {
