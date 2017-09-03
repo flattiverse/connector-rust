@@ -122,7 +122,7 @@ impl<T: Read> BinaryReader for T {
     }
 
     fn read_bytes(&mut self, size: usize) -> Result<Vec<u8>> {
-        let mut v = Vec::with_capacity(size);
+        let mut v = vec!(0u8; size);
         self.read_exact(&mut v)?;
         Ok(v)
     }

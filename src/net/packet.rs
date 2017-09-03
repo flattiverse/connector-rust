@@ -90,7 +90,7 @@ impl Packet {
                 packet.data = reader.read_bytes(data_length as usize)?;
             },
             0x03 => {
-                let data_length = reader.read_u32()? + 65793;
+                let data_length = reader.read_int()? as u32 + 65793;
                 if data_length > max_packet_size {
                     return Err(Error::RequestedPacketSizeIsInvalid {
                         max: max_packet_size,
