@@ -14,7 +14,8 @@ pub enum Error {
         exception_type: String,
         message: String,
         stack_trace: String
-    }
+    },
+    UnknownMessageType
 }
 
 impl From<std::io::Error> for Error {

@@ -15,14 +15,34 @@ use Version;
 use Error;
 use Block;
 use BlockManager;
+use IndexList;
+use Player;
+
 use net::Packet;
 use net::Connection;
 use net::BinaryWriter;
 
+use message::from_reader;
+use message::FlattiverseMessage;
+
 pub const PROTOCOL_VERSION  : u32       = 34;
 pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 
+pub struct ConnectorData {
+    players: Mutex<IndexList<Player>>
+}
+
+impl ConnectorData {
+    pub fn player(&self, index: u16) -> Option<Arc<Player>> {
+        self.players
+            .lock()
+            .expect("Failed to acquire lock")
+            .get(index as usize)
+    }
+}
+
 pub struct Connector {
+    data: Arc<ConnectorData>,
     connection: Arc<Mutex<Connection>>,
     block_manager: Arc<Mutex<BlockManager>>
 }
@@ -51,16 +71,21 @@ impl Connector {
         let (tx, rx) = channel();
 
         let mut connector = Connector {
+            data: Arc::new(ConnectorData{
+                players: Mutex::new(IndexList::new(false, 512))
+            }),
             connection: Arc::new(Mutex::new(Connection::new(&addr, 262144, tx)?)),
             block_manager: Arc::new(Mutex::new(BlockManager::new()))
         };
 
         let block_manager = connector.block_manager.clone();
         let connection = connector.connection.clone();
+        let data = connector.data.clone();
         thread::spawn(move || {
             // capture
             let block_manager = block_manager;
             let connection = connection;
+            let data = data;
             let rx = rx;
 
             loop {
@@ -84,6 +109,14 @@ impl Connector {
                         println!("Received ping request");
                         let mut lock = connection.lock().expect("Failed to acquire lock");
                         lock.send(&packet).expect("Failed to respond to ping");
+                    },
+                    0x30 => { // new message
+                        match from_reader(data.clone(), &packet) {
+                            Err(e) => println!("Failed to decode message: {:?}", e),
+                            Ok(message) => {
+                                println!("{}", message);
+                            }
+                        };
                     },
                     _ => {
                         println!("Received packet with unimplemented command: {:?}", packet);

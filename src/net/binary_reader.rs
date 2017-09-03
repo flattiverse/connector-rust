@@ -24,7 +24,7 @@ pub trait BinaryReader: Read {
 
     fn read_u32(&mut self) -> Result<u32>;
 
-    fn read_long(&mut self) -> Result<i64>;
+    fn read_i64(&mut self) -> Result<i64>;
 
     fn read_short(&mut self) -> Result<i16>;
 
@@ -109,7 +109,7 @@ impl<T: Read> BinaryReader for T {
         Ok(LittleEndian::read_u32(&b))
     }
 
-    fn read_long(&mut self) -> Result<i64> {
+    fn read_i64(&mut self) -> Result<i64> {
         let mut b = [0u8; 8];
         self.read_exact(&mut b)?;
         Ok(LittleEndian::read_i64(&b))

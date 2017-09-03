@@ -1,12 +1,13 @@
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use Error;
 
+
 pub struct IndexList<T> {
     index: usize,
-    values: Vec<Option<Rc<T>>>,
-    value: Option<Rc<T>>,
+    values: Vec<Option<Arc<T>>>,
+    value: Option<Arc<T>>,
     avoid_zero: bool,
 }
 
@@ -27,7 +28,7 @@ impl<T> IndexList<T> {
         list
     }
 
-    pub fn get(&self, index: usize) -> Option<Rc<T>> {
+    pub fn get(&self, index: usize) -> Option<Arc<T>> {
         match self.values.get(index) {
             None => None,
             Some(rc) => match rc {
@@ -37,7 +38,7 @@ impl<T> IndexList<T> {
         }
     }
 
-    pub fn set(&mut self, index: usize, value: Option<Rc<T>>) {
+    pub fn set(&mut self, index: usize, value: Option<Arc<T>>) {
         self.values[index] = value;
     }
 
@@ -51,7 +52,7 @@ impl<T> IndexList<T> {
         }
     }
 
-    pub fn insert(&mut self, val: Rc<T>) -> Result<usize, Error> {
+    pub fn insert(&mut self, val: Arc<T>) -> Result<usize, Error> {
         for _ in 0..self.values.len() {
             if self.avoid_zero && self.index == 0 {
                 self.index += 1;
