@@ -17,7 +17,16 @@ pub enum Error {
     },
     UnknownMessageType,
     InvalidHash,
-    InvalidHostState
+    InvalidHostState,
+    YouBrokeSomethingBro,
+    InvalidChatMessage,
+    CannotSendMessageIntoAnotherUniverseGroup,
+    InvalidControllableInfo(u8),
+    InvalidCargoItem(u8),
+    InvalidCrystalKind(u8),
+    CannotRenameCrystalKind(super::itemCrystalKind),
+    YouCanOnlyRenameCrystalsNotInUse(String),
+    YouAreNotTheCrystalMaster(String),
 }
 
 impl From<std::io::Error> for Error {

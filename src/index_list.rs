@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::ops::Index;
 
 use Error;
 
@@ -77,5 +78,17 @@ impl<T> IndexList<T> {
             }
         }
         counter
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.capacity()
+    }
+}
+
+impl<T> Index<Idx=usize> for IndexList<T> {
+    type Output = Option<Arc<T>>;
+
+    fn index(&self, index: Idx) -> &Self::Output {
+        self.get(index)
     }
 }

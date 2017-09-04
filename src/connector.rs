@@ -32,6 +32,8 @@ pub struct Connector {
     players: Mutex<IndexList<Player>>,
     connection: Mutex<Connection>,
     block_manager: BlockManager,
+    player: Option<Arc<RwLock<Player>>>,
+    sync_account_queries: Mutex<()>,
 }
 
 impl Connector {
@@ -60,7 +62,9 @@ impl Connector {
         let mut connector = Connector {
             players: Mutex::new(IndexList::new(false, 512)),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
-            block_manager: BlockManager::new()
+            block_manager: BlockManager::new(),
+            player: None,
+            sync_account_queries: Mutex::new(())
         };
 
         let connector = Arc::new(connector);
@@ -157,11 +161,26 @@ impl Connector {
         self.connection.lock().unwrap().send(packet)
     }
 
-    pub fn player(&self, index: u16) -> Option<Arc<Player>> {
+    pub fn player(&self) -> Option<Arc<RwLock<Player>>> {
+        match self.player {
+            Some(arc) => Some(arc.clone()),
+            None      => None
+        }
+    }
+
+    pub fn player_for(&self, index: u16) -> Option<Arc<Player>> {
         self.players
             .lock()
             .unwrap()
             .get(index as usize)
+    }
+
+    pub fn block_manager(&self) -> &BlockManager {
+        self.block_manager
+    }
+
+    pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
+        self.sync_account_queries
     }
 
     pub fn hostname() -> String {

@@ -1,0 +1,55 @@
+
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub enum UnitKind {
+    Unknown = 0xFFu8,
+    Sun = 1,
+    Planet = 2,
+    Moon = 3,
+    Meteoroid = 4,
+    Buoy = 5,
+    Nebula = 24,
+    BlackHole = 32,
+    WormHole = 33,
+    MissionTarget = 48,
+    PlayerShip = 64,
+    PlayerPlatform = 65,
+    PlayerProbe = 66,
+    PlayerDrone = 67,
+    PlayerBase = 68,
+    Switch = 96,
+    Gate = 97,
+    /// Plasma storm
+    Storm = 98,
+    StormWhirl = 99,
+    /// A commencing whirl, which will
+    /// become a storm-whirl
+    StormCommencingWhirl = 100,
+    Pixel = 104,
+    /// A cluster of 16x16 pixels
+    PixelCluster = 105,
+    EnergyPowerUp = 112,
+    ParticlesPowerUp = 113,
+    IonsPowerUp = 114,
+    HullPowerUp = 115,
+    ShieldPowerUp = 116,
+    ShotProductionPowerUp = 117,
+    TotalRefreshPowerUp = 120,
+    HastePowerUp = 121,
+    DoubleDamagePowerUp = 122,
+    QuadDamagePowerUp = 123,
+    CloakPowerUp = 124,
+    /// This is an internal unit for administrative purpose,
+    /// which will never by received by a regular player.
+    Spawner = 127,
+    Explosion = 128,
+    Shot = 129,
+    SpaceJellyFish = 160,
+    SpaceJellyFishSlime = 161,
+    Asteroid = 162,
+    AiShip = 168,
+    AiPlatform = 169,
+    AiProbe = 170,
+    AiDrone = 171,
+    AiBase = 172,
+}

@@ -5,8 +5,17 @@ extern crate sha2;
 extern crate chrono;
 extern crate hostname;
 
+#[macro_use]
+#[macro_reexport]
+extern crate downcast_rs;
 
 mod net;
+mod unit;
+mod item;
+mod dotnet;
+mod message;
+
+
 mod error;
 mod connector;
 mod version;
@@ -15,21 +24,41 @@ mod block;
 mod index_list;
 mod block_manager;
 
-mod message;
+mod color;
+mod scores;
 mod player;
 mod platform_kind;
 mod performance_mark;
+
+mod team;
+mod game_type;
+mod universe_group;
+mod universal_holder;
+
+
+
+pub use dotnet::*;
 
 
 pub use error::*;
 pub use connector::*;
 pub use version::*;
 
+pub use color::*;
 pub use block::*;
 pub use index_list::*;
 pub use block_manager::*;
 
+pub use scores::*;
 pub use message::*;
 pub use player::*;
+pub use time_span::*;
 pub use platform_kind::*;
 pub use performance_mark::*;
+
+pub use team::*;
+pub use game_type::*;
+pub use universe_group::*;
+pub use universal_holder::*;
+
+pub use downcast_rs::Downcast;
