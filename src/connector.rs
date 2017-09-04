@@ -6,14 +6,13 @@ use std::thread;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
 
 use sha2::Digest;
 use sha2::Sha512;
+use hostname;
 
 use Version;
 use Error;
-use Block;
 use BlockManager;
 use IndexList;
 use Player;
@@ -28,27 +27,15 @@ use message::FlattiverseMessage;
 pub const PROTOCOL_VERSION  : u32       = 34;
 pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 
-pub struct ConnectorData {
-    players: Mutex<IndexList<Player>>
-}
-
-impl ConnectorData {
-    pub fn player(&self, index: u16) -> Option<Arc<Player>> {
-        self.players
-            .lock()
-            .expect("Failed to acquire lock")
-            .get(index as usize)
-    }
-}
 
 pub struct Connector {
-    data: Arc<ConnectorData>,
-    connection: Arc<Mutex<Connection>>,
-    block_manager: Arc<Mutex<BlockManager>>
+    players: Mutex<IndexList<Player>>,
+    connection: Mutex<Connection>,
+    block_manager: BlockManager,
 }
 
 impl Connector {
-    pub fn new(email: &str, password: &str, compression_enabled: bool) -> Result<Connector, Error> {
+    pub fn new(email: &str, password: &str, compression_enabled: bool) -> Result<Arc<Connector>, Error> {
         // param check
         if email.len() < 6 || email.len() > 256 || password.is_empty() {
             return Err(Error::EmailAndOrPasswordInvalid);
@@ -71,47 +58,36 @@ impl Connector {
         let (tx, rx) = channel();
 
         let mut connector = Connector {
-            data: Arc::new(ConnectorData{
-                players: Mutex::new(IndexList::new(false, 512))
-            }),
-            connection: Arc::new(Mutex::new(Connection::new(&addr, 262144, tx)?)),
-            block_manager: Arc::new(Mutex::new(BlockManager::new()))
+            players: Mutex::new(IndexList::new(false, 512)),
+            connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
+            block_manager: BlockManager::new()
         };
 
-        let block_manager = connector.block_manager.clone();
-        let connection = connector.connection.clone();
-        let data = connector.data.clone();
+        let connector = Arc::new(connector);
+        let connector_thread = connector.clone();
+
         thread::spawn(move || {
             // capture
-            let block_manager = block_manager;
-            let connection = connection;
-            let data = data;
+            let connector = connector_thread;
             let rx = rx;
 
             loop {
-                let packet = match rx.recv() {
-                    Ok(packet) => packet,
-                    Err(e) => {
-                        println!("Receiving failed: {:?}", e);
-                        break;
-                    }
-                };
+                let packet = rx.recv().expect("Failed to retrieve packet");
                 println!("Received packet: {:?}", packet);
 
+                // answer the ping beforehand
                 if packet.session() != 0x00 {
-                    let mut lock = block_manager.lock().expect("Failed to acquire lock");
-                    lock.answer(packet);
+                    connector.answer(packet);
                     continue;
                 }
 
                 match packet.command() {
                     0x01 => {
                         println!("Received ping request");
-                        let mut lock = connection.lock().expect("Failed to acquire lock");
-                        lock.send(&packet).expect("Failed to respond to ping");
+                        connector.send(&packet).expect("Failed to respond to ping");
                     },
                     0x30 => { // new message
-                        match from_reader(data.clone(), &packet) {
+                        match from_reader(connector.clone(), &packet) {
                             Err(e) => println!("Failed to decode message: {:?}", e),
                             Ok(message) => {
                                 println!("{}", message);
@@ -129,12 +105,9 @@ impl Connector {
         Ok(connector)
     }
 
-    fn login(&mut self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
-        let mut lock = self.block_manager.lock().expect("Failed to acquire lock");
-        let mut block = lock.block()?;
+    fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
+        let mut block = self.block_manager.block()?;
         let mut packet = Packet::new();
-
-        drop(lock);
 
         {
             let writer = (&mut packet.write()) as &mut BinaryWriter;
@@ -167,12 +140,31 @@ impl Connector {
         {
             let mut block = block.lock().expect("Failed to acquire lock");
             packet.set_session(block.id());
-            self.connection.lock().expect("Failed to acquire lock").send(&packet)?;
+            self.send(&packet)?;
             let response = block.wait()?;
             println!("Response: {:?}", response);
         }
 
         Ok(())
 
+    }
+
+    fn answer(&self, answer: Box<Packet>) {
+        self.block_manager.answer(answer)
+    }
+
+    fn send(&self, packet: &Packet) -> Result<(), Error> {
+        self.connection.lock().unwrap().send(packet)
+    }
+
+    pub fn player(&self, index: u16) -> Option<Arc<Player>> {
+        self.players
+            .lock()
+            .unwrap()
+            .get(index as usize)
+    }
+
+    pub fn hostname() -> String {
+        hostname::get_hostname().expect("Failed to retrieve hostname")
     }
 }

@@ -2,11 +2,10 @@
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::Mutex;
 
 use Error;
 use DateTime;
-use ConnectorData;
+use Connector;
 use FlattiverseMessage;
 
 use net::Packet;
@@ -25,7 +24,7 @@ impl FlattiverseMessage for SystemMessageData {
     fn timestamp(&self) -> &DateTime {
         &self.timestamp
     }
-    fn from_packet(data: Arc<ConnectorData>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
+    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
         Ok(SystemMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
             message:   reader.read_string()?

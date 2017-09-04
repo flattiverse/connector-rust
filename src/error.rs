@@ -15,7 +15,9 @@ pub enum Error {
         message: String,
         stack_trace: String
     },
-    UnknownMessageType
+    UnknownMessageType,
+    InvalidHash,
+    InvalidHostState
 }
 
 impl From<std::io::Error> for Error {

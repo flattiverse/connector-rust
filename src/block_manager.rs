@@ -28,10 +28,10 @@ impl BlockManager {
         }
     }
 
-    pub fn block(&mut self) -> Result<Arc<Mutex<Box<Block>>>, Error> {
+    pub fn block(&self) -> Result<Arc<Mutex<Box<Block>>>, Error> {
         let (tx, rx) = channel();
-        let index = self.find_next_free()?;
         let mut lock = self.blocks.lock().expect("Failed to acquire lock");
+        let index = Self::find_next_free(&lock)?;
         lock[index] = Some(tx);
         Ok(Arc::new(Mutex::new(Box::new(Block {
             blocks: self.blocks.clone(),
@@ -41,17 +41,16 @@ impl BlockManager {
         }))))
     }
 
-    fn find_next_free(&mut self) -> Result<usize, Error> {
-        let lock = self.blocks.lock().expect("Failed to acquire lock");
+    fn find_next_free(vec: &Vec<Option<Sender<Box<Packet>>>>) -> Result<usize, Error> {
         for i in 0..BLOCK_COUNT {
-            if lock[i].is_none() {
+            if vec[i].is_none() {
                 return Ok(i);
             }
         }
         Err(Error::NoFreeSlots)
     }
 
-    pub fn answer(&mut self, response: Box<Packet>) {
+    pub fn answer(&self, response: Box<Packet>) {
         let mut lock = self.blocks.lock().expect("Failed to acquire lock");
         let id = response.session() as usize;
         match lock[id-BLOCK_OFFSET] {

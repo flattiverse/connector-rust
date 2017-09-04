@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use Error;
 use Player;
 use DateTime;
-use ConnectorData;
+use Connector;
 use FlattiverseMessage;
 
 use net::Packet;
@@ -26,10 +26,10 @@ impl FlattiverseMessage for ChatMessageData {
         &self.timestamp
     }
 
-    fn from_packet(data: Arc<ConnectorData>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
+    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
         Ok(ChatMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
-            from:      data.player(reader.read_u16()?).expect("Player data missing")
+            from:      connector.player(reader.read_u16()?).expect("Player data missing")
         })
     }
 }

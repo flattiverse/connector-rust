@@ -1,6 +1,6 @@
 
 use Error;
-use ConnectorData;
+use Connector;
 use net::Packet;
 use net::BinaryReader;
 use message::DateTime;
@@ -9,9 +9,7 @@ use message::SystemMessage;
 use message::SystemMessageData;
 
 use std::fmt;
-use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::Mutex;
 
 pub struct MOTDMessageData {
     system_message: SystemMessageData
@@ -26,9 +24,9 @@ impl FlattiverseMessage for MOTDMessageData {
         &self.system_message.timestamp()
     }
 
-    fn from_packet(data: Arc<ConnectorData>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
+    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
         Ok(MOTDMessageData {
-            system_message: SystemMessageData::from_packet(data, packet, reader)?
+            system_message: SystemMessageData::from_packet(connector, packet, reader)?
         })
     }
 }
