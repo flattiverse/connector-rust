@@ -117,10 +117,10 @@ impl Packet {
         &mut self.data
     }
 
-    pub fn compile(&self) -> Vec<u8> {
+    pub fn compile(&self) -> Result<Vec<u8>, Error> {
         let mut dest = Vec::new();
-        self.write_to(&mut &mut dest);
-        dest
+        self.write_to(&mut &mut dest)?;
+        Ok(dest)
     }
 
     pub(crate) fn write_to(&self, writer: &mut BinaryWriter) -> Result<(), Error> {

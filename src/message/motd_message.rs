@@ -3,7 +3,7 @@ use Error;
 use Connector;
 use net::Packet;
 use net::BinaryReader;
-use message::DateTime;
+use dotnet::DateTime;
 use message::FlattiverseMessage;
 use message::SystemMessage;
 use message::SystemMessageData;

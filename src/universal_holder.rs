@@ -1,5 +1,5 @@
 
-use std::ops::Index;
+use std::sync::Arc;
 use std::sync::RwLock;
 
 use IndexList;
@@ -22,9 +22,9 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
     pub fn list(&self) -> Vec<Arc<RwLock<T>>> {
         let mut list = Vec::new();
 
-        for i in 0..self.list.capacity() {
-            match self.list[i] {
-                Some(arc) => list.push(arc.clone()),
+        for i in 0..self.list.len() {
+            match self.list.get(i) {
+                Some(arc) => list.push(arc),
                 _ => {}
             }
         }
@@ -32,13 +32,17 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
         list
     }
 
-    pub fn get(&self, name: &str) -> Option<Arc<RwLock<T>>> {
-        for i in 0..self.list.capacity() {
-            match list[i] {
+    pub fn get_for_index(&self, index: u8) -> Option<Arc<RwLock<T>>> {
+        self.list.get(index as usize)
+    }
+
+    pub fn get_for_name(&self, name: &str) -> Option<Arc<RwLock<T>>> {
+        for i in 0..self.list.len() {
+            match self.list.get(i) {
                 None => {},
                 Some(arc) => {
-                    if arc.read().unwrap().name().eq(&name) {
-                        return Some(arc.clone())
+                    if arc.read().unwrap().name().eq(name) {
+                        return Some(arc)
                     }
                 }
             }
@@ -51,10 +55,8 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
     }
 }
 
-impl<T: UniversalEnumerable> Index<Idx=usize> for UniversalHolder<T> {
-    type Output = Option<Arc<RwLock<T>>>;
-
-    fn index(&self, index: Idx) -> &Self::Output {
-        self.list[index]
+impl<T: UniversalEnumerable> UniversalEnumerable for Box<T> {
+    fn name(&self) -> &str {
+        self.as_ref().name()
     }
 }

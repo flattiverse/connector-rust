@@ -1,4 +1,8 @@
 
+use std::sync::Weak;
+
+use Error;
+use Connector;
 use item::CargoItem;
 use item::CargoItemData;
 use item::CargoItemKind;

@@ -1,14 +1,18 @@
 
+use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
+use Team;
 use Scores;
 use Version;
 use Connector;
 use PlatformKind;
 use PerformanceMark;
 use UniversalHolder;
+use UniverseGroup;
 use dotnet::TimeSpan;
+use unit::ControllableInfo;
 
 pub struct Player {
     name:        String,
@@ -35,13 +39,13 @@ pub struct Player {
     active: bool,
     online: bool,
 
-    controllables: RwLock<UniversalHolder<ControllableInfo>>
+    controllables: RwLock<UniversalHolder<Box<ControllableInfo>>>
 }
 
 impl Player {
 
-    pub fn controllable_info(&self, index: u8) -> Option<Arc<RwLock<ControllableInfo>>> {
-
+    pub fn controllable_info(&self, index: u8) -> Option<Arc<RwLock<Box<ControllableInfo>>>> {
+        self.controllables.read().unwrap().get_for_index(index)
     }
 
     pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {

@@ -12,21 +12,21 @@ use item::CrystalCargoItemData;
 use item::MissionTargetCargoItemData;
 
 impl_downcast!(CargoItem);
-pub trait CargoItem : Downcast {
+pub trait CargoItem : Downcast + Sync + Send {
     fn weight(&self) -> f32;
 
     fn kind(&self) -> CargoItemKind;
-
-    fn from_stream(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
-        Ok(match reader.read_byte()? {
-            0x00 => Box::new(NebulaCargoItemData::new(connector, master, reader)?),
-            0x01 => Box::new(CrystalCargoItemData::new(connector, master, reader)?),
-            0x02 => Box::new(MissionTargetCargoItemData::new(connector, master, reader)?),
-            id@_ => return Err(Error::InvalidCargoItem(id))
-        })
-    }
 }
 
+
+pub(crate) fn cargo_item_from_stream(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
+    Ok(match reader.read_byte()? {
+        0x00 => Box::new(NebulaCargoItemData::new(connector, master, reader)?),
+        0x01 => Box::new(CrystalCargoItemData::new(connector, master, reader)?),
+        0x02 => Box::new(MissionTargetCargoItemData::new(connector, master, reader)?),
+        id@_ => return Err(Error::InvalidCargoItem(id))
+    })
+}
 
 
 pub(crate) struct CargoItemData {

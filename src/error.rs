@@ -8,7 +8,7 @@ pub enum Error {
     RequestedPacketSizeIsInvalid{max: u32, was: u32},
     NoFreeSlots,
     FailedToFetchBlock,
-    Timeout,
+    Timeout(::std::sync::mpsc::RecvTimeoutError),
     ErrorCode(u8),
     ServerError {
         exception_type: String,
@@ -24,7 +24,7 @@ pub enum Error {
     InvalidControllableInfo(u8),
     InvalidCargoItem(u8),
     InvalidCrystalKind(u8),
-    CannotRenameCrystalKind(super::itemCrystalKind),
+    CannotRenameCrystalKind(super::item::CrystalKind),
     YouCanOnlyRenameCrystalsNotInUse(String),
     YouAreNotTheCrystalMaster(String),
 }

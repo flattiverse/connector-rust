@@ -1,10 +1,8 @@
 
-mod date_time;
 mod motd_message;
 mod system_message;
 mod chat_message;
 
-pub use self::date_time::*;
 pub use self::motd_message::*;
 pub use self::system_message::*;
 pub use self::chat_message::*;
@@ -18,7 +16,7 @@ use Error;
 use Connector;
 use net::Packet;
 use net::BinaryReader;
-
+use dotnet::DateTime;
 
 
 pub trait FlattiverseMessage : Display {

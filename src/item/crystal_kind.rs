@@ -2,7 +2,7 @@
 use Error;
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub enum CrystalKind {
     /// The crystal has a low grade, 60% of all crystals produced are
     /// low grade, meaning the crystal has some major negative effects

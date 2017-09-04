@@ -6,7 +6,6 @@ extern crate chrono;
 extern crate hostname;
 
 #[macro_use]
-#[macro_reexport]
 extern crate downcast_rs;
 
 mod net;
@@ -52,7 +51,6 @@ pub use block_manager::*;
 pub use scores::*;
 pub use message::*;
 pub use player::*;
-pub use time_span::*;
 pub use platform_kind::*;
 pub use performance_mark::*;
 

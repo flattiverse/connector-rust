@@ -1,6 +1,9 @@
 
+use std::sync::Weak;
+
 use Color;
 use Error;
+use Connector;
 use UniversalEnumerable;
 use item::CargoItem;
 use item::CrystalKind;
@@ -155,42 +158,42 @@ impl CrystalCargoItemData {
     pub(crate) fn new(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<CrystalCargoItemData, Error> {
 
         let mut data = CrystalCargoItemData {
-            cargo_item_data: CrystalCargoItemData::new(connector, master, reader)?,
+            cargo_item_data: CargoItemData::new(connector, master, reader)?,
             crystal_kind:    CrystalKind::from_id(reader.read_byte()?)?,
             name:            reader.read_string()?,
             color:           Color::new_transparent(),
 
             // default values
-            level: 0,
-            energy_critical_strike_chance_offset: 0,
-            shield_critical_strike_chance_offset: 0,
-            hull_critical_strike_chance_offset: 0,
-            energy_critical_strike_damage_offset: 0,
-            shield_critical_strike_damage_offset: 0,
-            hull_critical_strike_damage_offset: 0,
-            shots_refresh_rate_offset: 0,
-            shots_maximum_offset: 0,
-            maximum_speed_offset: 0,
-            visible_range_multiplier: 0,
-            weight_multiplier: 0,
-            energy_offset: 0,
-            particles_offset: 0,
-            ions_offset: 0,
-            hull_offset: 0,
-            shield_offset: 0,
-            hull_armor_offset: 0,
-            shield_armor_offset: 0,
-            special_produced_energy: 0,
-            special_produced_particles: 0,
-            special_produced_ions: 0,
-            special_autoregenerating_hull: 0,
-            special_autoregenerating_shield: 0,
+            level: 0i32,
+            energy_critical_strike_chance_offset: 0f32,
+            shield_critical_strike_chance_offset: 0f32,
+            hull_critical_strike_chance_offset: 0f32,
+            energy_critical_strike_damage_offset: 0f32,
+            shield_critical_strike_damage_offset: 0f32,
+            hull_critical_strike_damage_offset: 0f32,
+            shots_refresh_rate_offset: 0f32,
+            shots_maximum_offset: 0f32,
+            maximum_speed_offset: 0f32,
+            visible_range_multiplier: 0f32,
+            weight_multiplier: 0f32,
+            energy_offset: 0f32,
+            particles_offset: 0f32,
+            ions_offset: 0f32,
+            hull_offset: 0f32,
+            shield_offset: 0f32,
+            hull_armor_offset: 0f32,
+            shield_armor_offset: 0f32,
+            special_produced_energy: 0f32,
+            special_produced_particles: 0f32,
+            special_produced_ions: 0f32,
+            special_autoregenerating_hull: 0f32,
+            special_autoregenerating_shield: 0f32,
         };
 
-        let mut hue = 0f32;
+        let hue;
 
         if data.crystal_kind == CrystalKind::Special {
-            hue                                         = f32::Nan;
+            hue                                         = ::std::f32::NAN;
             data.level                                  = 1337;
             data.special_produced_energy                = reader.read_single()?;
             data.special_produced_particles             = reader.read_single()?;
@@ -200,7 +203,7 @@ impl CrystalCargoItemData {
 
         } else {
             hue                                         = reader.read_single()?;
-            data.level                                  = reader.read_single()?;
+            data.level                                  = reader.read_byte()? as i32;
             data.energy_critical_strike_chance_offset   = reader.read_single()?;
             data.shield_critical_strike_chance_offset   = reader.read_single()?;
             data.hull_critical_strike_chance_offset     = reader.read_single()?;
@@ -352,14 +355,15 @@ impl CrystalCargoItem for CrystalCargoItemData {
             return Err(Error::CannotRenameCrystalKind(self.crystal_kind));
         }
 
-        if !master {
+        if !self.cargo_item_data.master {
             return Err(Error::YouCanOnlyRenameCrystalsNotInUse(self.name.clone()));
         }
 
         // lock account queries for the rest of this function
         let connector = self.cargo_item_data.connector.upgrade().unwrap();
         let lock = connector.sync_account_queries().lock().unwrap();
-        let mut block = connector.block_manager().block()?.lock().unwrap();
+        let manager = connector.block_manager().block()?;
+        let mut block = manager.lock().unwrap();
 
         let mut packet = Packet::new();
 
@@ -377,14 +381,15 @@ impl CrystalCargoItem for CrystalCargoItemData {
     }
 
     fn destroy(&mut self) -> Result<(), Error> {
-        if !master {
+        if !self.cargo_item_data.master {
             return Err(Error::YouAreNotTheCrystalMaster(self.name.clone()));
         }
 
         // lock account queries for the rest of this function
         let connector = self.cargo_item_data.connector.upgrade().unwrap();
         let lock = connector.sync_account_queries().lock().unwrap();
-        let mut block = connector.block_manager().block()?.lock().unwrap();
+        let manager = connector.block_manager().block()?;
+        let mut block = manager.lock().unwrap();
 
         let mut packet = Packet::new();
 
@@ -399,5 +404,11 @@ impl CrystalCargoItem for CrystalCargoItemData {
         connector.send(&packet)?;
         block.wait()?;
         Ok(())
+    }
+}
+
+impl UniversalEnumerable for CrystalCargoItemData {
+    fn name(&self) -> &str {
+        &self.name
     }
 }

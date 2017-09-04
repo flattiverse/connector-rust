@@ -1,6 +1,6 @@
 
 use std::sync::Arc;
-use std::ops::Index;
+use std::sync::Weak;
 
 use Error;
 
@@ -32,9 +32,19 @@ impl<T> IndexList<T> {
     pub fn get(&self, index: usize) -> Option<Arc<T>> {
         match self.values.get(index) {
             None => None,
-            Some(rc) => match rc {
-                &None => None,
-                &Some(ref v) => Some(v.clone())
+            Some(ref option) => match option {
+                &&Some(ref arc) => Some(arc.clone()),
+                &&None => None
+            }
+        }
+    }
+
+    pub fn get_weak(&self, index: usize) -> Option<Weak<T>> {
+        match self.values.get(index) {
+            None => None,
+            Some(ref option) => match option {
+                &&Some(ref arc) => Some(Arc::downgrade(arc)),
+                &&None => None
             }
         }
     }
@@ -53,23 +63,6 @@ impl<T> IndexList<T> {
         }
     }
 
-    pub fn insert(&mut self, val: Arc<T>) -> Result<usize, Error> {
-        for _ in 0..self.values.len() {
-            if self.avoid_zero && self.index == 0 {
-                self.index += 1;
-            }
-
-            if self.values[self.index].is_none() {
-                let ret = self.index;
-                self.index += 1;
-                return Ok(ret);
-            }
-
-            self.index = (self.index+1) % self.values.len();
-        }
-        Err(Error::NoFreeSlots)
-    }
-
     pub fn count(&mut self) -> usize {
         let mut counter = 0;
         for i in 0..self.values.len() {
@@ -82,13 +75,5 @@ impl<T> IndexList<T> {
 
     pub fn len(&self) -> usize {
         self.values.capacity()
-    }
-}
-
-impl<T> Index<Idx=usize> for IndexList<T> {
-    type Output = Option<Arc<T>>;
-
-    fn index(&self, index: Idx) -> &Self::Output {
-        self.get(index)
     }
 }

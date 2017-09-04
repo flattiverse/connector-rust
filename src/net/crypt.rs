@@ -4,7 +4,6 @@ use std::io::Write;
 use std::io::Result;
 
 const DEFAULT_LFSR : u32   = 0x1337_1337;
-const CACHE_SIZE   : usize = 1024 * 15; // 15 * 1 kb
 
 pub struct CryptStream {
     lfsr: u32,
@@ -121,7 +120,7 @@ impl<T: Write> Write for CryptWrite<T> {
         self.sink.flush()
     }
 
-    fn write_all(&mut self, mut buf: &[u8]) -> Result<()> {
+    fn write_all(&mut self, buf: &[u8]) -> Result<()> {
         let mut encrypted = vec!(0u8; buf.len());
         self.crypt.crypt_to(&buf, &mut encrypted);
         self.sink.write_all(&encrypted)

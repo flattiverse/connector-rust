@@ -121,7 +121,7 @@ impl Default for Scores {
             enemy_targets: 0,
             own_targets: 0,
             mission_targets: 0,
-            pvp_score: 0,
+            pvp_score: 0f32,
         }
     }
 }
@@ -188,7 +188,7 @@ impl Scores {
         self.own_targets            = reader.read_u32()?;
         self.mission_targets        = reader.read_u32()?;
 
-        self.pvp_score              = reader.read_f32()?;
+        self.pvp_score              = reader.read_single()?;
 
         Ok(())
     }

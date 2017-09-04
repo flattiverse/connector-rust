@@ -15,23 +15,23 @@ impl TimeSpan {
 
     pub fn from_dhmsm(days: i32, hours: i32, minutes: i32, seconds: i32, millis: i32) -> TimeSpan {
         Self::new(
-            days               as i64 * 864_000_000_000_i64 // * ticks per day
-                + hours        as i64 *  36_000_000_000_i64 // * ticks per hour
-                + minutes      as i64 *     600_000_000_i64 // * ticks per minute
-                + seconds      as i64 *      10_000_000_i64 // * ticks per seconds
-                + milliseconds as i64 *          10_000_i64 // * ticks per milliseconds
+            days            as i64 * 864_000_000_000_i64 // * ticks per day
+                + hours     as i64 *  36_000_000_000_i64 // * ticks per hour
+                + minutes   as i64 *     600_000_000_i64 // * ticks per minute
+                + seconds   as i64 *      10_000_000_i64 // * ticks per seconds
+                + millis    as i64 *          10_000_i64 // * ticks per milliseconds
         )
     }
 
     pub fn from_reader(reader: &mut BinaryReader) -> Result<TimeSpan, Error> {
         let mut time_span = Self::default();
-        time_span.update(&mut reader)?;
-        time_span
+        time_span.update(reader)?;
+        Ok(time_span)
     }
 
     pub fn from_millis(millis: i64) -> TimeSpan {
         // 1ms * 1000 -> us * 10 -> 100ns
-        Self::new(millils * 100_000_i64)
+        Self::new(millis * 100_000_i64)
     }
 
     pub fn from_seconds(seconds: i64) -> TimeSpan {

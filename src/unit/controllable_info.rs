@@ -1,4 +1,5 @@
 
+use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
@@ -8,6 +9,8 @@ use Scores;
 use UniversalEnumerable;
 
 use unit::UnitKind;
+
+use item::CrystalCargoItem;
 
 use net::Packet;
 use net::BinaryReader;
@@ -31,14 +34,14 @@ pub struct ControllableInfo {
     crystal_slots: u8,
     has_tractor_beam: bool,
 
-    crystals: Vec<CrystalCargoItem>,
+    crystals: Vec<Weak<RwLock<Box<CrystalCargoItem>>>>,
     scores:   Scores,
 
     hull:           f32,
     shield:         f32,
     build_progress: f32,
-    is_building:    Option<Arc<RwLock<ControllableInfo>>>,
-    is_built_by:    Option<Arc<RwLock<ControllableInfo>>>,
+    is_building:    Option<Weak<RwLock<Box<ControllableInfo>>>>,
+    is_built_by:    Option<Weak<RwLock<Box<ControllableInfo>>>>,
 
     active:             bool,
     pending_shutdown:   bool,
@@ -74,7 +77,7 @@ impl ControllableInfo {
             revision:               reader.read_i64()?,
             class:                  reader.read_string()?,
             name:                   reader.read_string()?,
-            level:                  reader.read_u16()?,
+            level:                  reader.read_unsigned_byte()? as i32,
             efficiency_tactical:    reader.read_single()?,
             efficiency_economical:  reader.read_single()?,
             hull_max:               reader.read_single()?,
@@ -88,9 +91,9 @@ impl ControllableInfo {
 
             crystals:               Vec::new(),
             scores:                 Scores::default(),
-            hull:                   0,
-            shield:                 0,
-            build_progress:         0,
+            hull:                   0f32,
+            shield:                 0f32,
+            build_progress:         0f32,
             is_building:            None,
             is_built_by:            None,
             active:                 false,
@@ -114,16 +117,36 @@ impl ControllableInfo {
         let header = reader.read_byte()?;
 
         if !is_set_u8(header, 0x03) {
-            self.build_progress = 0;
+            self.build_progress = 0f32;
         }
 
         if is_set_u8(header, 0x01) {
-            self.build_progress = reader.read_single()?;
-            self.is_built_by    = self.player.upgrade().unwrap().read().unwrap().controllable_info(reader.read_unsigned_byte()?);
+            let player = self.player.upgrade().unwrap();
+            let player = player.read().unwrap();
 
+            self.build_progress = reader.read_single()?;
+            self.is_building    = match player.controllable_info(reader.read_unsigned_byte()?) {
+                Some(ref arc) => Some(Arc::downgrade(arc)),
+                None => None
+            }
+
+        } else {
+            self.is_building    = None;
+        }
+
+        if is_set_u8(header, 0x02) {
+            let player = self.player.upgrade().unwrap();
+            let player = player.read().unwrap();
+
+            self.build_progress = reader.read_single()?;
+            self.is_built_by    = match player.controllable_info(reader.read_unsigned_byte()?) {
+                Some(ref arc) => Some(Arc::downgrade(arc)),
+                None => None
+            }
         } else {
             self.is_built_by    = None;
         }
+
 
         self.has_power_up_haste         = is_set_u8(header, 0x10);
         self.has_power_up_double_damage = is_set_u8(header, 0x20);
@@ -146,7 +169,7 @@ impl ControllableInfo {
     }
 
     pub fn alive(&self) -> bool {
-        self.hull > 0
+        self.hull > 0f32
     }
 
     /// Whether this [ControllableInfo] is
@@ -163,13 +186,13 @@ impl ControllableInfo {
 
     /// The [ControllableInfo] currently built
     /// by this [ControllableInfo]
-    pub fn build_target(&self) -> &Option<Arc<RwLock<ControllableInfo>>> {
+    pub fn build_target(&self) -> &Option<Weak<RwLock<Box<ControllableInfo>>>> {
         &self.is_building
     }
 
     /// The [ControllableInfo] currently
     /// building this [ControllableInfo]
-    pub fn built_by(&self) -> Option<Arc<RwLock<ControllableInfo>>> {
+    pub fn built_by(&self) -> &Option<Weak<RwLock<Box<ControllableInfo>>>> {
         &self.is_built_by
     }
 
@@ -226,7 +249,7 @@ impl ControllableInfo {
     }
 
     pub fn scores(&self) -> &Scores {
-        self.scores
+        &self.scores
     }
 
     pub fn hash_pending_shutdown(&self) -> bool {
@@ -265,11 +288,11 @@ impl ControllableInfo {
         self.kind
     }
 
-    pub fn crystals(&self) -> &Vec<CrystalCargoItem> {
+    pub fn crystals(&self) -> &Vec<Weak<RwLock<Box<CrystalCargoItem>>>> {
         &self.crystals
     }
 
-    pub(crate) fn set_crystals(&mut self, crystals: Vec<CrystalCargoItem>) {
+    pub(crate) fn set_crystals(&mut self, crystals: Vec<Weak<RwLock<Box<CrystalCargoItem>>>>) {
         self.crystals = crystals;
     }
 }

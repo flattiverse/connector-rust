@@ -27,13 +27,14 @@ pub struct Team {
 impl Team {
     pub fn new(connector: Weak<Connector>, universe_group: Weak<RwLock<UniverseGroup>>, packet: &Packet) -> Result<Team, Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        let scores = if let Some(GameType::Mission) = universe_group.upgrade().unwrap().read().unwrap().game_type() {
+        let ug = universe_group.upgrade().unwrap();
+        let scores = if let Some(GameType::Mission) = ug.read().unwrap().game_type() {
             Some(RwLock::new(Scores::default()))
         } else {
             None
         };
 
-        Team {
+        Ok(Team {
             universe_group: universe_group,
             connector: connector,
             id: packet.path_sub(),
@@ -44,7 +45,7 @@ impl Team {
             ),
             name: reader.read_string()?,
             scores: scores,
-        }
+        })
     }
 
     pub fn id(&self) -> u8 {
@@ -52,11 +53,11 @@ impl Team {
     }
 
     pub fn scores(&self) -> &Option<RwLock<Scores>> {
-        self.scores
+        &self.scores
     }
 
     pub fn color(&self) -> &Color {
-        self.color
+        &self.color
     }
 
     pub fn chat(&self, message: &str) -> Result<(), Error> {
@@ -67,10 +68,21 @@ impl Team {
         }
 
         {
-            let uni_group = &self.universe_group.upgrade().unwrap().read().unwrap();
+            let uni_group = &self.universe_group.upgrade().unwrap();
+            let uni_group = uni_group.read().unwrap();
             let player = connector.player();
-            if player.is_none() || player.unwrap().universe_group().eq(&uni_group) {
-                return Err(Error::CannotSendMessageIntoAnotherUniverseGroup)
+
+            match player {
+                &None => return Err(Error::CannotSendMessageIntoAnotherUniverseGroup),
+                &Some(ref player) => {
+                    let player = player.clone();
+                    let player = player.read().unwrap();
+                    let player_uni = player.universe_group().upgrade().unwrap();
+                    let player_uni = player_uni.read().unwrap();
+                    if player_uni.eq(&uni_group) {
+                        return Err(Error::CannotSendMessageIntoAnotherUniverseGroup)
+                    }
+                }
             }
         }
 
@@ -82,7 +94,7 @@ impl Team {
         packet.set_session(block.lock().unwrap().id());
 
         {
-            let mut writer = &mut packet.write() as &BinaryWriter;
+            let writer = &mut packet.write() as &mut BinaryWriter;
             writer.write_string(&message)?;
         }
 
@@ -96,7 +108,7 @@ impl Team {
     }
 
     pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
-        self.universe_group
+        &self.universe_group
     }
 }
 
@@ -106,13 +118,18 @@ impl fmt::Display for Team {
     }
 }
 
-impl PartialEq<Rhs=Team> for Team {
+impl PartialEq for Team {
     fn eq(&self, other: &Team) -> bool {
         let me = self.universe_group().upgrade();
         let ot = other.universe_group().upgrade();
 
         if me.is_some() && ot.is_some() {
-            self.id == other.id && me.unwrap().read().unwrap().eq(&ot.unwrap().read().unwrap())
+            let me = me.unwrap();
+            let ot = ot.unwrap();
+            let me = me.read().unwrap();
+            let ot = ot.read().unwrap();
+
+            self.id == other.id && me.eq(&ot)
         } else {
             self.id == other.id && me.is_none() == ot.is_none()
         }

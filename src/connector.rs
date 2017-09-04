@@ -4,7 +4,9 @@ use std::net::ToSocketAddrs;
 use std::thread;
 
 use std::sync::Arc;
+use std::sync::Weak;
 use std::sync::Mutex;
+use std::sync::RwLock;
 use std::sync::mpsc::channel;
 
 use sha2::Digest;
@@ -59,7 +61,7 @@ impl Connector {
 
         let (tx, rx) = channel();
 
-        let mut connector = Connector {
+        let connector = Connector {
             players: Mutex::new(IndexList::new(false, 512)),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
@@ -110,7 +112,7 @@ impl Connector {
     }
 
     fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
-        let mut block = self.block_manager.block()?;
+        let block = self.block_manager.block()?;
         let mut packet = Packet::new();
 
         {
@@ -138,7 +140,7 @@ impl Connector {
             let mut hasher = Sha512::default();
             hasher.input(password.as_bytes());
             println!("Hasher result: {:?}", &hasher.result()[..]);
-            writer.write_all(&hasher.result()[..]);
+            writer.write_all(&hasher.result()[..])?;
         }
 
         {
@@ -157,15 +159,12 @@ impl Connector {
         self.block_manager.answer(answer)
     }
 
-    fn send(&self, packet: &Packet) -> Result<(), Error> {
+    pub fn send(&self, packet: &Packet) -> Result<(), Error> {
         self.connection.lock().unwrap().send(packet)
     }
 
-    pub fn player(&self) -> Option<Arc<RwLock<Player>>> {
-        match self.player {
-            Some(arc) => Some(arc.clone()),
-            None      => None
-        }
+    pub fn player(&self) -> &Option<Arc<RwLock<Player>>> {
+        &self.player
     }
 
     pub fn player_for(&self, index: u16) -> Option<Arc<Player>> {
@@ -175,12 +174,19 @@ impl Connector {
             .get(index as usize)
     }
 
+    pub fn weak_player_for(&self, index: u16) -> Option<Weak<Player>> {
+        self.players
+            .lock()
+            .unwrap()
+            .get_weak(index as usize)
+    }
+
     pub fn block_manager(&self) -> &BlockManager {
-        self.block_manager
+        &self.block_manager
     }
 
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
-        self.sync_account_queries
+        &self.sync_account_queries
     }
 
     pub fn hostname() -> String {

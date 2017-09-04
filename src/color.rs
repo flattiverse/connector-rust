@@ -11,11 +11,11 @@ pub struct Color {
 
 impl Color {
     pub fn new_transparent() -> Color {
-        Self::from_rgba(f32::NAN, f32::NAN, f32::NAN, 0f32)
+        Self::from_rgba(::std::f32::NAN, ::std::f32::NAN, ::std::f32::NAN, 0f32)
     }
 
     pub fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Self::from_rgba(r, g, b, 1f64)
+        Self::from_rgba(r, g, b, 1f32)
     }
 
     pub fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
@@ -32,12 +32,12 @@ impl Color {
         let hs = (hue % 60f32) / 60f32;
 
         Ok(match hi {
-            0|6 => Color::from_rgb(1, hs, 0),
-            1 => Color::from_rgb(1-hs, 1, 0),
-            2 => Color::from_rgb(0, 1, hs),
-            3 => Color::from_rgb(0, 1-hs, 1),
-            4 => Color::from_rgb(hs, 0, 1),
-            5 => Color::from_rgb(1, 0, 1-hs),
+            0|6 => Color::from_rgb(1f32, hs, 0f32),
+            1 => Color::from_rgb(1f32-hs, 1f32, 0f32),
+            2 => Color::from_rgb(0f32, 1f32, hs),
+            3 => Color::from_rgb(0f32, 1f32-hs, 1f32),
+            4 => Color::from_rgb(hs, 0f32, 1f32),
+            5 => Color::from_rgb(1f32, 0f32, 1f32-hs),
             _ => return Err(Error::YouBrokeSomethingBro)
         })
     }

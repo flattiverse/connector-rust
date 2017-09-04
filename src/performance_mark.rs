@@ -116,7 +116,7 @@ impl PerformanceMark {
                 + base_hash[7] as u32
         );
 
-        let mut reader = &mut crypt as &mut BinaryReader;
+        let reader = &mut crypt as &mut BinaryReader;
 
         let single_threaded_mark = reader.read_double()?;
         let multi_threaded_mark  = reader.read_double()?;
@@ -196,7 +196,7 @@ impl PerformanceMark {
                     + base_hash[7] as u32
             );
 
-            let mut writer = &mut crypt as &mut BinaryWriter;
+            let writer = &mut crypt as &mut BinaryWriter;
 
             writer.write_all(&base_hash)?;
             writer.write_f64(self.single_threaded_mark)?;

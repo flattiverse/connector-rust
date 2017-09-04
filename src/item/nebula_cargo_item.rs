@@ -1,5 +1,9 @@
 
+use std::sync::Weak;
+
 use Color;
+use Error;
+use Connector;
 use item::CargoItem;
 use item::CargoItemData;
 use item::CargoItemKind;

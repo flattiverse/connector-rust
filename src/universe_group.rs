@@ -1,5 +1,4 @@
 
-use std::cmp::Eq;
 
 use GameType;
 
@@ -14,7 +13,7 @@ impl UniverseGroup {
     }
 }
 
-impl PartialEq<Rhs=UniverseGroup> for UniverseGroup {
+impl PartialEq for UniverseGroup {
     fn eq(&self, other: &UniverseGroup) -> bool {
         self.id == other.id
     }

@@ -1,7 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::sync::Mutex;
 
 use Error;
 use Player;
@@ -29,7 +28,7 @@ impl FlattiverseMessage for ChatMessageData {
     fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
         Ok(ChatMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
-            from:      connector.player(reader.read_u16()?).expect("Player data missing")
+            from:      connector.player_for(reader.read_u16()?).expect("Player data missing")
         })
     }
 }
@@ -41,7 +40,7 @@ impl ChatMessage for ChatMessageData {
 }
 
 impl fmt::Display for ChatMessageData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
         unimplemented!()
     }
 }

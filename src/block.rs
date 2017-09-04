@@ -41,12 +41,9 @@ impl Block {
             max_time_wait.sub(time_passed)
         };
 
-        let mut packet : Box<Packet> = match self.receiver.recv_timeout(time_wait) {
+        let packet : Box<Packet> = match self.receiver.recv_timeout(time_wait) {
             Ok(packet) => packet,
-            Err(e) => {
-                panic!("Error: {:?}", e);
-                return Err(Error::Timeout)
-            }
+            Err(e) => return Err(Error::Timeout(e))
         };
 
         if packet.command() == 0xFF { // error
