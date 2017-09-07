@@ -1,5 +1,8 @@
 
+use std::sync::Arc;
+use std::sync::RwLock;
 
+use Team;
 use GameType;
 
 pub struct UniverseGroup {
@@ -9,6 +12,10 @@ pub struct UniverseGroup {
 impl UniverseGroup {
 
     pub fn game_type(&self) -> Option<GameType> {
+        None
+    }
+
+    pub fn team(&self, index: u8) -> &Option<Arc<RwLock<Team>>> {
         None
     }
 }

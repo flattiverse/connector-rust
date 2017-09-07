@@ -27,6 +27,7 @@ pub enum Error {
     CannotRenameCrystalKind(super::item::CrystalKind),
     YouCanOnlyRenameCrystalsNotInUse(String),
     YouAreNotTheCrystalMaster(String),
+    UnknownUnitType(u8)
 }
 
 impl From<std::io::Error> for Error {

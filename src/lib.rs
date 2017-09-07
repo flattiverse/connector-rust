@@ -19,6 +19,9 @@ mod error;
 mod connector;
 mod version;
 
+mod task;
+mod vector;
+
 mod block;
 mod index_list;
 mod block_manager;
@@ -42,6 +45,9 @@ pub use dotnet::*;
 pub use error::*;
 pub use connector::*;
 pub use version::*;
+
+pub use task::*;
+pub use vector::*;
 
 pub use color::*;
 pub use block::*;

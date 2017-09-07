@@ -13,6 +13,7 @@ use sha2::Digest;
 use sha2::Sha512;
 use hostname;
 
+use Task;
 use Version;
 use Error;
 use BlockManager;
@@ -36,6 +37,7 @@ pub struct Connector {
     block_manager: BlockManager,
     player: Option<Arc<RwLock<Player>>>,
     sync_account_queries: Mutex<()>,
+    tasks: RwLock<IndexList<bool>>
 }
 
 impl Connector {
@@ -66,7 +68,8 @@ impl Connector {
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
             player: None,
-            sync_account_queries: Mutex::new(())
+            sync_account_queries: Mutex::new(()),
+            tasks: RwLock::new(IndexList::new(false, 32)),
         };
 
         let connector = Arc::new(connector);
@@ -183,6 +186,43 @@ impl Connector {
 
     pub fn block_manager(&self) -> &BlockManager {
         &self.block_manager
+    }
+
+    pub fn register_task_quitely_if_unknown(self, task: Task) {
+        match self.register_task_if_unknown(task) {
+            Ok(_) => {}, // fine
+            Error(ref e) => {
+                println!("'register_task_if_unknown' failed: {:?}", e);
+            }
+        }
+    }
+
+    pub fn register_task_if_unknown(&self, task: Task) -> Result<(), Error> {
+        let read = self.tasks.read()?;
+        let option = read.get(task as usize);
+        if option.is_none() || !option.unwrap() {
+            self.register_task(task)?;
+        }
+        Ok(())
+    }
+
+    pub fn register_task(&self, task: Task) -> Result<(), Error> {
+        let block = self.block_manager().block()?;
+
+        let mut packet = Packet::new();
+
+        {
+            let block = block.lock()?;
+            packet.set_session(block.id());
+            packet.set_command(0x07u8);
+            packet.set_path_sub(task as u8);
+        }
+
+        self.send(&packet)?;
+        block.lock()?.wait()?;
+
+        self.tasks.write()?.set(task as usize, Some(Arc::new(true)));
+        Ok(())
     }
 
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
