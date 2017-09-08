@@ -17,8 +17,10 @@ use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
+use downcast_rs::Downcast;
 
-pub trait Unit {
+impl_downcast!(Unit);
+pub trait Unit : Downcast {
     fn name(&self) -> &str;
 
     fn position(&self) -> &Vector;
@@ -147,7 +149,7 @@ impl UnitData {
     }
 }
 
-impl<T: Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
+impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
     fn name(&self) -> &str {
         &self.borrow().name
     }

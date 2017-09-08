@@ -14,6 +14,7 @@ use net::Packet;
 use net::BinaryReader;
 
 
+impl_downcast!(Sun);
 pub trait Sun : Unit {
     fn coronas(&self) -> &Vec<Corona>;
 
@@ -56,7 +57,7 @@ impl BorrowMut<UnitData> for SunData {
     }
 }
 
-impl<T: Borrow<SunData> + BorrowMut<SunData> + Unit> Sun for T {
+impl<T: 'static + Borrow<SunData> + BorrowMut<SunData> + Unit> Sun for T {
     fn coronas(&self) -> &Vec<Corona> {
         &self.borrow().coronas
     }

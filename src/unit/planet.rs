@@ -12,8 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-
-
+impl_downcast!(Planet);
 pub trait Planet : Unit {
     fn kind(&self) -> UnitKind {
         UnitKind::Planet
@@ -45,6 +44,6 @@ impl BorrowMut<UnitData> for PlanetData {
     }
 }
 
-impl<T: Borrow<PlanetData> + BorrowMut<PlanetData> + Unit> Planet for  T {
+impl<T: 'static + Borrow<PlanetData> + BorrowMut<PlanetData> + Unit> Planet for  T {
 
 }
