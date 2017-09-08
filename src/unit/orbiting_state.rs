@@ -6,19 +6,19 @@ pub struct OrbitingState {
     distance: f32,
     start_angle: f32,
     angle: f32,
-    rotation_interval: u16,
-    rotation: u16
+    rotation_interval: i16,
+    rotation: i16
 }
 
 impl OrbitingState {
     pub fn from_reader(reader: &mut BinaryReader) -> Result<OrbitingState, Error> {
         let distance = reader.read_single()?;
         let start_angle = reader.read_single()?;
-        let rotation_interval = reader.read_u16()?;
-        let rotation = reader.read_u16()?;
+        let rotation_interval = reader.read_short()?;
+        let rotation = reader.read_short()?;
         let angle;
 
-        if rotation_interval < 0u16 {
+        if rotation_interval < 0i16 {
             angle = (0f32-rotation as f32) / (rotation_interval as f32 * 360f32 + start_angle);
         } else {
             angle = (rotation as f32) / (rotation_interval as f32 * 360f32 + start_angle);
@@ -45,11 +45,11 @@ impl OrbitingState {
         self.angle
     }
 
-    pub fn rotation_interval(&self) -> u16 {
+    pub fn rotation_interval(&self) -> i16 {
         self.rotation_interval
     }
 
-    pub fn rotation(&self) -> u16 {
+    pub fn rotation(&self) -> i16 {
         self.rotation
     }
 }

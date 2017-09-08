@@ -1,6 +1,6 @@
 
 #[repr(u8)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum UnitKind {
     Unknown = 0xFFu8,
     Sun = 1,
@@ -52,4 +52,57 @@ pub enum UnitKind {
     AiProbe = 170,
     AiDrone = 171,
     AiBase = 172,
+}
+
+impl UnitKind {
+    pub fn from_id(id: u8) -> UnitKind {
+        match id {
+            1 => UnitKind::Sun,
+            2 => UnitKind::Planet,
+            3 => UnitKind::Moon,
+            4 => UnitKind::Meteoroid,
+            5 => UnitKind::Buoy,
+
+            24 => UnitKind::Nebula,
+            32 => UnitKind::BlackHole,
+            33 => UnitKind::WormHole,
+            48 => UnitKind::MissionTarget,
+            64 => UnitKind::PlayerShip,
+            65 => UnitKind::PlayerPlatform,
+            66 => UnitKind::PlayerProbe,
+            67 => UnitKind::PlayerDrone,
+            68 => UnitKind::PlayerBase,
+            96 => UnitKind::Switch,
+            97 => UnitKind::Gate,
+            98 => UnitKind::Storm,
+            99 => UnitKind::StormWhirl,
+
+            100 => UnitKind::StormCommencingWhirl,
+            104 => UnitKind::Pixel,
+            112 => UnitKind::EnergyPowerUp,
+            113 => UnitKind::ParticlesPowerUp,
+            114 => UnitKind::IonsPowerUp,
+            115 => UnitKind::HullPowerUp,
+            116 => UnitKind::ShieldPowerUp,
+            117 => UnitKind::ShotProductionPowerUp,
+            120 => UnitKind::TotalRefreshPowerUp,
+            121 => UnitKind::HastePowerUp,
+            122 => UnitKind::DoubleDamagePowerUp,
+            123 => UnitKind::QuadDamagePowerUp,
+            124 => UnitKind::CloakPowerUp,
+            127 => UnitKind::Spawner,
+            128 => UnitKind::Explosion,
+            129 => UnitKind::Shot,
+            160 => UnitKind::SpaceJellyFish,
+            161 => UnitKind::SpaceJellyFishSlime,
+            162 => UnitKind::Asteroid,
+            168 => UnitKind::AiShip,
+            169 => UnitKind::AiPlatform,
+            170 => UnitKind::AiProbe,
+            171 => UnitKind::AiDrone,
+            172 => UnitKind::AiBase,
+
+            _ => UnitKind::Unknown
+        }
+    }
 }

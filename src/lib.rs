@@ -12,6 +12,7 @@ extern crate downcast_rs;
 mod net;
 mod unit;
 mod item;
+mod event;
 mod dotnet;
 mod message;
 

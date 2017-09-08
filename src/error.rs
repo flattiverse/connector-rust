@@ -35,7 +35,11 @@ pub enum Error {
     InvalidMessageList,
     InvalidMessageAtIndex(u8),
     CantSendMessageToInactivePlayer,
-    MissingPlayer(u16)
+    MissingPlayer(u16),
+    InvalidFromDegree(f32),
+    InvalidToDegree(f32),
+    InvalidRange(f32),
+    InvalidEvent(u8)
 }
 
 impl From<std::io::Error> for Error {
