@@ -1,5 +1,6 @@
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum Task {
     DidAvatar = 0,
     DidConnect = 1,

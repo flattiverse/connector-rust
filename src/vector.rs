@@ -1,7 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::f32::consts::PI;
 
 use Task;
 use Error;
@@ -11,7 +10,7 @@ use net::BinaryWriter;
 
 const TOLERANCE : f32 = 0.25f32;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Vector {
     x: f32,
     y: f32,
@@ -31,8 +30,8 @@ impl Vector {
 
     pub fn from_reader(reader: &mut BinaryReader) -> Result<Vector, Error> {
         Ok(Vector {
-            x: reader.read_single(),
-            y: reader.read_single(),
+            x: reader.read_single()?,
+            y: reader.read_single()?,
             last_angle: 0f32,
             connector: None,
         })
@@ -40,8 +39,8 @@ impl Vector {
 
     pub fn from_reader_with_connector(reader: &mut BinaryReader, connector: &Arc<Connector>) -> Result<Vector, Error> {
         Ok(Vector {
-            x: reader.read_single(),
-            y: reader.read_single(),
+            x: reader.read_single()?,
+            y: reader.read_single()?,
             last_angle: 0f32,
             connector: Some(connector.clone()),
         })
@@ -64,7 +63,7 @@ impl Vector {
 
     pub fn x(&self) -> f32 {
         if let Some(ref connector) = self.connector {
-            connector.register_task_if_unknown_quietly(Task::UsedVector);
+            connector.register_task_quitely_if_unknown(Task::UsedVector);
         }
         self.x
     }
@@ -74,7 +73,7 @@ impl Vector {
         self
     }
 
-    pub fn y(&self) {
+    pub fn y(&self) -> f32 {
         self.y
     }
 
@@ -87,7 +86,7 @@ impl Vector {
         if self.x == 0f32 && self.y == 0f32 {
             self.last_angle
         } else {
-            (self.x.atan2(x).to_degrees() + 360f32) % 360f32
+            (self.y.atan2(self.x).to_degrees() + 360f32) % 360f32
         }
     }
 
@@ -135,7 +134,7 @@ impl Vector {
     pub fn get_angle_from(&self, other: &Vector) -> f32 {
         let mut deg = other.angle() - self.angle();
 
-        if deg < 0 {
+        if deg < 0f32 {
             deg += 360f32;
         }
 
@@ -198,7 +197,7 @@ impl Vector {
 
 impl PartialEq for Vector {
     fn eq(&self, other: &Vector) -> bool {
-        Vector::eq(self, other.length())
+        Vector::equals(self, other.length())
     }
 }
 
@@ -209,7 +208,7 @@ impl fmt::Display for Vector {
         }
 
         if self.x.is_infinite() {
-            write!(f, "{}INV", if self.x > 0 {"+"} else {"-"})?;
+            write!(f, "{}INV", if self.x > 0f32 {"+"} else {"-"})?;
 
         } else if self.x.is_nan() {
             write!(f, "NAN")?;
@@ -221,7 +220,7 @@ impl fmt::Display for Vector {
         write!(f, "/")?;
 
         if self.y.is_infinite() {
-            write!(f, "{}INV", if self.y > 0 {"+"} else {"-"})?;
+            write!(f, "{}INV", if self.y > 0f32 {"+"} else {"-"})?;
 
         } else if self.y.is_nan() {
             write!(f, "NAN")?;

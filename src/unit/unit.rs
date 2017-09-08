@@ -1,6 +1,8 @@
 
 use std::sync::Arc;
 use std::sync::RwLock;
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 
 use Task;
 use Team;
@@ -15,12 +17,13 @@ use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
+
 pub trait Unit {
     fn name(&self) -> &str;
 
     fn position(&self) -> &Vector;
 
-    fn movement(&self) -> Vector;
+    fn movement(&self) -> &Vector;
 
     fn radius(&self) -> f32;
 
@@ -48,7 +51,7 @@ pub trait Unit {
 }
 
 
-pub(crate) struct UnitData {
+pub struct UnitData {
     pub(crate) name: String,
     pub(crate) position: Vector,
     pub(crate) movement: Vector,
@@ -72,8 +75,8 @@ impl UnitData {
         let name = reader.read_string()?;
         let radius = reader.read_single()?;
         let gravity = reader.read_single()?;
-        let position = reader.read_single()?;
-        let movement = reader.read_single()?;
+        let position = Vector::from_reader(reader)?;
+        let movement = Vector::from_reader(reader)?;
 
         let header = reader.read_unsigned_byte()?;
 
@@ -87,15 +90,15 @@ impl UnitData {
         let orbiting_list;
 
         if orbiting {
-            orbiting_center = Vector::from_reader_with_connector(reader, connector);
+            orbiting_center = Some(Vector::from_reader_with_connector(reader, connector)?);
             let count = reader.read_unsigned_byte()?;
             let mut list = Vec::new();
 
-            for i in 0..count {
+            for _ in 0..count {
                 list.push(OrbitingState::from_reader(reader)?);
             }
 
-            orbiting_list = list;
+            orbiting_list = Some(list);
 
         } else {
             orbiting_center = None;
@@ -114,13 +117,13 @@ impl UnitData {
             visible,
             orbiting,
             orbiting_center,
-            orbiting_state,
+            orbiting_state: orbiting_list,
             mobility,
             connector: connector.clone()
         })
     }
 
-    pub fn new(connector: &Arc<Connector>, universe_group: &UniverseGroup, name: String, radius: f32,
+    pub fn new(connector: &Arc<Connector>, _: &UniverseGroup, name: String, radius: f32,
                gravity: f32, position: Vector, movement: Vector, solid: bool, masking: bool,
                visible: bool, mobility: Mobility) -> UnitData {
         UnitData {
@@ -144,62 +147,62 @@ impl UnitData {
     }
 }
 
-impl Unit for UnitData {
+impl<T: Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
     fn name(&self) -> &str {
-        &self.name
+        &self.borrow().name
     }
 
     fn position(&self) -> &Vector {
-        &self.position
+        &self.borrow().position
     }
 
-    fn movement(&self) -> Vector {
-        &self.movement
+    fn movement(&self) -> &Vector {
+        &self.borrow().movement
     }
 
     fn radius(&self) -> f32 {
-        &self.radius
+        self.borrow().radius
     }
 
     fn gravity(&self) -> f32 {
-        &self.gravity
+        self.borrow().gravity
     }
 
     fn team(&self) -> &Option<Arc<RwLock<Team>>> {
-        &self.team
+        &self.borrow().team
     }
 
     fn solid(&self) -> bool {
-        self.solid
+        self.borrow().solid
     }
 
     fn masking(&self) -> bool {
-        self.masking
+        self.borrow().masking
     }
 
     fn visible(&self) -> bool {
-        self.visible
+        self.borrow().visible
     }
 
     fn orbiting(&self) -> bool {
-        self.orbiting
+        self.borrow().orbiting
     }
 
     fn orbiting_center(&self) -> &Option<Vector> {
-        &self.orbiting_center
+        &self.borrow().orbiting_center
     }
 
     fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
-        self.connector.register_task_quitely_if_unknown(Task::UsedOrbits);
-        &self.orbiting_state
+        self.borrow().connector.register_task_quitely_if_unknown(Task::UsedOrbits);
+        &self.borrow().orbiting_state
     }
 
     fn mobility(&self) -> Mobility {
-        self.mobility
+        self.borrow().mobility
     }
 
     fn connector(&self) -> &Arc<Connector> {
-        &self.connector
+        &self.borrow().connector
     }
 
     fn kind(&self) -> UnitKind {

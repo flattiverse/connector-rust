@@ -2,8 +2,6 @@
 use std::sync::Arc;
 use std::sync::Weak;
 
-use Error;
-
 
 pub struct IndexList<T> {
     index: usize,

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
+use Error;
 use Connector;
 use UniverseGroup;
 use unit::Unit;
@@ -11,14 +12,15 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
+
+
 pub trait Planet : Unit {
     fn kind(&self) -> UnitKind {
         UnitKind::Planet
     }
 }
 
-
-pub(crate) struct PlanetData {
+pub struct PlanetData {
     unit: UnitData,
 }
 
@@ -31,14 +33,14 @@ impl PlanetData {
 }
 
 
-impl Borrow<Unit> for PlanetData {
-    fn borrow(&self) -> &Unit {
+// implicitly implement Unit
+impl Borrow<UnitData> for PlanetData {
+    fn borrow(&self) -> &UnitData {
         &self.unit
     }
 }
-
-impl BorrowMut<Unit> for PlanetData {
-    fn borrow_mut(&mut self) -> &mut Unit {
+impl BorrowMut<UnitData> for PlanetData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
         &mut self.unit
     }
 }

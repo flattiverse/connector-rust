@@ -25,7 +25,7 @@ impl FlattiverseMessage for ChatMessageData {
         &self.timestamp
     }
 
-    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
+    fn from_packet(connector: Arc<Connector>, _: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
         Ok(ChatMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
             from:      connector.player_for(reader.read_u16()?).expect("Player data missing")

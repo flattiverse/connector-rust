@@ -23,7 +23,7 @@ impl FlattiverseMessage for SystemMessageData {
     fn timestamp(&self) -> &DateTime {
         &self.timestamp
     }
-    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
+    fn from_packet(_: Arc<Connector>, _: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
         Ok(SystemMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
             message:   reader.read_string()?

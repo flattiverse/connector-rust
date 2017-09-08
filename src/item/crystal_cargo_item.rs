@@ -361,7 +361,7 @@ impl CrystalCargoItem for CrystalCargoItemData {
 
         // lock account queries for the rest of this function
         let connector = self.cargo_item_data.connector.upgrade().unwrap();
-        let lock = connector.sync_account_queries().lock().unwrap();
+        let _ = connector.sync_account_queries().lock().unwrap();
         let manager = connector.block_manager().block()?;
         let mut block = manager.lock().unwrap();
 
@@ -372,7 +372,7 @@ impl CrystalCargoItem for CrystalCargoItemData {
 
         {
             let writer = &mut packet.write() as &mut BinaryWriter;
-            writer.write_string(&self.name)?;
+            writer.write_string(new_name)?;
         }
 
         connector.send(&packet)?;
@@ -387,7 +387,7 @@ impl CrystalCargoItem for CrystalCargoItemData {
 
         // lock account queries for the rest of this function
         let connector = self.cargo_item_data.connector.upgrade().unwrap();
-        let lock = connector.sync_account_queries().lock().unwrap();
+        let _ = connector.sync_account_queries().lock().unwrap();
         let manager = connector.block_manager().block()?;
         let mut block = manager.lock().unwrap();
 

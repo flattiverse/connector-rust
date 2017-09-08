@@ -1,5 +1,6 @@
 
 use std;
+use std::sync::PoisonError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -27,11 +28,18 @@ pub enum Error {
     CannotRenameCrystalKind(super::item::CrystalKind),
     YouCanOnlyRenameCrystalsNotInUse(String),
     YouAreNotTheCrystalMaster(String),
-    UnknownUnitType(u8)
+    UnknownUnitType(u8),
+    PoisonError,
 }
 
 impl From<std::io::Error> for Error {
     fn from(ioe: std::io::Error) -> Self {
         Error::IoError(ioe)
+    }
+}
+
+impl<T> From<PoisonError<T>> for Error {
+    fn from(_: PoisonError<T>) -> Self {
+        Error::PoisonError
     }
 }

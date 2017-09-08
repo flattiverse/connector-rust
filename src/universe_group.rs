@@ -16,7 +16,7 @@ impl UniverseGroup {
     }
 
     pub fn team(&self, index: u8) -> &Option<Arc<RwLock<Team>>> {
-        None
+        &None
     }
 }
 

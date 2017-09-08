@@ -188,10 +188,10 @@ impl Connector {
         &self.block_manager
     }
 
-    pub fn register_task_quitely_if_unknown(self, task: Task) {
+    pub fn register_task_quitely_if_unknown(&self, task: Task) {
         match self.register_task_if_unknown(task) {
             Ok(_) => {}, // fine
-            Error(ref e) => {
+            Err(ref e) => {
                 println!("'register_task_if_unknown' failed: {:?}", e);
             }
         }
@@ -200,7 +200,7 @@ impl Connector {
     pub fn register_task_if_unknown(&self, task: Task) -> Result<(), Error> {
         let read = self.tasks.read()?;
         let option = read.get(task as usize);
-        if option.is_none() || !option.unwrap() {
+        if option.is_none() || !*option.unwrap() {
             self.register_task(task)?;
         }
         Ok(())
