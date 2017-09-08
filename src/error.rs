@@ -30,6 +30,11 @@ pub enum Error {
     YouAreNotTheCrystalMaster(String),
     UnknownUnitType(u8),
     PoisonError,
+    ConnectorNotAvailable,
+    InvalidMessage,
+    InvalidMessageList,
+    InvalidMessageAtIndex(u8),
+    CantSendMessageToInactivePlayer,
 }
 
 impl From<std::io::Error> for Error {

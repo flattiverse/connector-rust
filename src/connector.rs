@@ -19,6 +19,7 @@ use Error;
 use BlockManager;
 use IndexList;
 use Player;
+use UniversalHolder;
 
 use net::Packet;
 use net::Connection;
@@ -32,10 +33,10 @@ pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 
 
 pub struct Connector {
-    players: Mutex<IndexList<Player>>,
     connection: Mutex<Connection>,
     block_manager: BlockManager,
-    player: Option<Arc<RwLock<Player>>>,
+    player:     Option<Arc<RwLock<Player>>>,
+    players:    RwLock<UniversalHolder<Player>>,
     sync_account_queries: Mutex<()>,
     tasks: RwLock<IndexList<bool>>
 }
@@ -64,7 +65,7 @@ impl Connector {
         let (tx, rx) = channel();
 
         let connector = Connector {
-            players: Mutex::new(IndexList::new(false, 512)),
+            players: RwLock::new(UniversalHolder::new(IndexList::new(false, 512))),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
             player: None,
@@ -163,25 +164,33 @@ impl Connector {
     }
 
     pub fn send(&self, packet: &Packet) -> Result<(), Error> {
-        self.connection.lock().unwrap().send(packet)
+        self.connection.lock()?.send(packet)
+    }
+
+    pub fn send_many(&self, packets: &[Packet]) -> Result<(), Error> {
+        let mut connection = self.connection.lock()?;
+        for i in 0..packets.len() {
+            connection.send(&packets[i])?;
+        }
+        connection.flush()
     }
 
     pub fn player(&self) -> &Option<Arc<RwLock<Player>>> {
         &self.player
     }
 
-    pub fn player_for(&self, index: u16) -> Option<Arc<Player>> {
+    pub fn player_for(&self, index: u16) -> Option<Arc<RwLock<Player>>> {
         self.players
-            .lock()
+            .read()
             .unwrap()
-            .get(index as usize)
+            .get_for_index(index as usize)
     }
 
-    pub fn weak_player_for(&self, index: u16) -> Option<Weak<Player>> {
+    pub fn weak_player_for(&self, index: u16) -> Option<Weak<RwLock<Player>>> {
         self.players
-            .lock()
+            .read()
             .unwrap()
-            .get_weak(index as usize)
+            .get_for_index_weak(index as usize)
     }
 
     pub fn block_manager(&self) -> &BlockManager {

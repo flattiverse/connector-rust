@@ -75,10 +75,12 @@ impl Team {
             match player {
                 &None => return Err(Error::CannotSendMessageIntoAnotherUniverseGroup),
                 &Some(ref player) => {
+                    // TODO lots of unwrap...
                     let player = player.clone();
-                    let player = player.read().unwrap();
-                    let player_uni = player.universe_group().upgrade().unwrap();
-                    let player_uni = player_uni.read().unwrap();
+                    let player = player.read()?;
+                    let player_uni = player.universe_group().clone();
+                    let player_uni = player_uni.unwrap().upgrade().unwrap();
+                    let player_uni = player_uni.read()?;
                     if player_uni.eq(&uni_group) {
                         return Err(Error::CannotSendMessageIntoAnotherUniverseGroup)
                     }

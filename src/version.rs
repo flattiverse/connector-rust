@@ -23,6 +23,12 @@ impl Version {
         }
     }
 
+    pub const fn from_raw(raw: u32) -> Version {
+        Version {
+            raw_version: raw
+        }
+    }
+
     /// The decoded major value of this [Version]
     pub fn major(&self) -> u8 {
         ((self.raw_version / MODIFIER_MAJOR) % 256) as u8

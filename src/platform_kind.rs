@@ -1,5 +1,6 @@
 
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum PlatformKind {
     Unknown = 0,
     DotNet = 16,

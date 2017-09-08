@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::sync::Weak;
 use std::sync::RwLock;
 
 use IndexList;
@@ -19,6 +20,10 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
         }
     }
 
+    pub(crate) fn set(&mut self, index: usize, value: Option<Arc<RwLock<T>>>) {
+        self.list.set(index, value);
+    }
+
     pub fn list(&self) -> Vec<Arc<RwLock<T>>> {
         let mut list = Vec::new();
 
@@ -32,8 +37,12 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
         list
     }
 
-    pub fn get_for_index(&self, index: u8) -> Option<Arc<RwLock<T>>> {
-        self.list.get(index as usize)
+    pub fn get_for_index(&self, index: usize) -> Option<Arc<RwLock<T>>> {
+        self.list.get(index)
+    }
+
+    pub fn get_for_index_weak(&self, index: usize) -> Option<Weak<RwLock<T>>> {
+        self.list.get_weak(index)
     }
 
     pub fn get_for_name(&self, name: &str) -> Option<Arc<RwLock<T>>> {

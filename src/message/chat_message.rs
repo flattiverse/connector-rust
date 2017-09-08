@@ -1,6 +1,7 @@
 
 use std::fmt;
 use std::sync::Arc;
+use std::sync::RwLock;
 
 use Error;
 use Player;
@@ -13,11 +14,11 @@ use net::BinaryReader;
 
 pub struct ChatMessageData {
     timestamp: DateTime,
-    from: Arc<Player>
+    from: Arc<RwLock<Player>>
 }
 
 pub trait ChatMessage : FlattiverseMessage {
-    fn from(&self) -> &Arc<Player>;
+    fn from(&self) -> &Arc<RwLock<Player>>;
 }
 
 impl FlattiverseMessage for ChatMessageData {
@@ -34,7 +35,7 @@ impl FlattiverseMessage for ChatMessageData {
 }
 
 impl ChatMessage for ChatMessageData {
-    fn from(&self) -> &Arc<Player> {
+    fn from(&self) -> &Arc<RwLock<Player>> {
         &self.from
     }
 }
