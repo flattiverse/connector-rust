@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::sync::Weak;
 use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
@@ -47,7 +48,7 @@ pub trait Unit : Downcast {
 
     fn mobility(&self) -> Mobility;
 
-    fn connector(&self) -> &Arc<Connector>;
+    fn connector(&self) -> &Weak<Connector>;
 
     fn kind(&self) -> UnitKind;
 }
@@ -67,7 +68,7 @@ pub struct UnitData {
     pub(crate) orbiting_center: Option<Vector>,
     pub(crate) orbiting_state: Option<Vec<OrbitingState>>,
     pub(crate) mobility: Mobility,
-    pub(crate) connector: Arc<Connector>,
+    pub(crate) connector: Weak<Connector>,
 }
 
 impl UnitData {
@@ -121,7 +122,7 @@ impl UnitData {
             orbiting_center,
             orbiting_state: orbiting_list,
             mobility,
-            connector: connector.clone()
+            connector: Arc::downgrade(connector)
         })
     }
 
@@ -129,7 +130,7 @@ impl UnitData {
                gravity: f32, position: Vector, movement: Vector, solid: bool, masking: bool,
                visible: bool, mobility: Mobility) -> UnitData {
         UnitData {
-            connector: connector.clone(),
+            connector: Arc::downgrade(connector),
             name,
             radius,
             gravity,
@@ -195,7 +196,10 @@ impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
     }
 
     fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
-        self.borrow().connector.register_task_quitely_if_unknown(Task::UsedOrbits);
+        match self.borrow().connector.upgrade() {
+            None => println!("Connector reference invalid"),
+            Some(ref arc) => arc.register_task_quitely_if_unknown(Task::UsedOrbits),
+        };
         &self.borrow().orbiting_state
     }
 
@@ -203,7 +207,7 @@ impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
         self.borrow().mobility
     }
 
-    fn connector(&self) -> &Arc<Connector> {
+    fn connector(&self) -> &Weak<Connector> {
         &self.borrow().connector
     }
 
