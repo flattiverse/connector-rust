@@ -4,6 +4,7 @@ use std::fmt;
 use Error;
 use net::BinaryReader;
 
+#[derive(Debug)]
 pub struct Scores {
     kill_enemy_ai_platform: u32,
     kill_enemy_ai_probe: u32,

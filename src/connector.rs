@@ -24,6 +24,7 @@ use UniversalHolder;
 use net::Packet;
 use net::Connection;
 use net::BinaryWriter;
+use net::BinaryReader;
 
 use message::from_reader;
 use message::FlattiverseMessage;
@@ -35,7 +36,7 @@ pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 pub struct Connector {
     connection: Mutex<Connection>,
     block_manager: BlockManager,
-    player:     Option<Arc<RwLock<Player>>>,
+    player:     RwLock<Option<Arc<RwLock<Player>>>>,
     players:    RwLock<UniversalHolder<Player>>,
     sync_account_queries: Mutex<()>,
     tasks: RwLock<IndexList<bool>>
@@ -68,7 +69,7 @@ impl Connector {
             players: RwLock::new(UniversalHolder::new(IndexList::new(false, 512))),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
-            player: None,
+            player: RwLock::new(None),
             sync_account_queries: Mutex::new(()),
             tasks: RwLock::new(IndexList::new(false, 32)),
         };
@@ -91,23 +92,12 @@ impl Connector {
                     continue;
                 }
 
-                match packet.command() {
-                    0x01 => {
-                        println!("Received ping request");
-                        connector.send(&packet).expect("Failed to respond to ping");
-                    },
-                    0x30 => { // new message
-                        match from_reader(connector.clone(), &packet) {
-                            Err(e) => println!("Failed to decode message: {:?}", e),
-                            Ok(message) => {
-                                println!("{}", message);
-                            }
-                        };
-                    },
-                    _ => {
-                        println!("Received packet with unimplemented command: {:?}", packet);
+                match Connector::handle_packet(&connector, &packet) {
+                    Ok(_) => {},
+                    Err(ref e) => {
+                        println!("Failed to handle message {:?}: {:?}", e, packet);
                     }
-                }
+                };
             }
         });
 
@@ -159,6 +149,75 @@ impl Connector {
 
     }
 
+    fn handle_packet(connector: &Arc<Connector>, packet: &Packet) -> Result<(), Error> {
+        match packet.command() {
+            0x01 => {
+                println!("Received ping request");
+                connector.send(&packet).expect("Failed to respond to ping");
+            },
+            0x0F => { // assign player
+                let mut player_slot = connector.player.write()?;
+                *player_slot = connector.players.read()?.get_for_index(packet.path_player() as usize);
+                println!("Player assigned: {:?} (id: {})", *player_slot, packet.path_player());
+            },
+            0x10 => { // new player
+                let reader = &mut packet.read() as &mut BinaryReader;
+                connector.players.write()?.set(
+                    packet.path_player() as usize,
+                    Some(Arc::new(RwLock::new(Player::from_reader(connector, packet, reader)?)))
+                );
+            },
+            0x11 => { // player status update
+                match connector.players.read()?.get_for_index(packet.path_player() as usize) {
+                    None => return Err(Error::MissingPlayer(packet.path_player())),
+                    Some(player) => {
+                        println!("Updating player status of {}", player.read()?);
+                        player.write()?.update_stats(packet)?;
+                    }
+                }
+            },
+            0x12 => { // player ping update
+                match connector.players.read()?.get_for_index(packet.path_player() as usize) {
+                    None => return Err(Error::MissingPlayer(packet.path_player())),
+                    Some(player) => {
+                        println!("Updating player ping of {}", player.read()?);
+                        player.write()?.update_ping(&packet)?;
+                        println!("Ping of {} is now {}ms", player.read()?, player.read()?.ping().millis());
+                    }
+                }
+            },
+            // TODO 0x13 missing
+            0x14 => { // player timing information
+                let player = connector.player_for(packet.path_player())?;
+                player.write()?.update_timing(&packet)?;
+            },
+            // TODO 0x15 missing
+            0x16 => { // player isn't online anymore
+                let player = connector.player_for(packet.path_player())?;
+                player.write()?.set_online(false);
+            },
+            0x17 => { // player isn't active anymore
+                {
+                    let player = connector.player_for(packet.path_player())?;
+                    player.write()?.set_active(false);
+                }
+                connector.players.write()?.set(packet.path_player() as usize, None);
+            },
+            0x30 => { // new message
+                match from_reader(connector.clone(), &packet) {
+                    Err(e) => println!("Failed to decode message: {:?}", e),
+                    Ok(message) => {
+                        println!("{}", message);
+                    }
+                };
+            },
+            _ => {
+                println!("Received packet with unimplemented command: {:?}", packet);
+            }
+        };
+        Ok(())
+    }
+
     fn answer(&self, answer: Box<Packet>) {
         self.block_manager.answer(answer)
     }
@@ -175,22 +234,22 @@ impl Connector {
         connection.flush()
     }
 
-    pub fn player(&self) -> &Option<Arc<RwLock<Player>>> {
-        &self.player
+    pub fn player(&self) -> Option<Arc<RwLock<Player>>> {
+        self.player.read().unwrap().clone()
     }
 
-    pub fn player_for(&self, index: u16) -> Option<Arc<RwLock<Player>>> {
-        self.players
-            .read()
-            .unwrap()
-            .get_for_index(index as usize)
+    pub fn player_for(&self, index: u16) -> Result<Arc<RwLock<Player>>, Error> {
+        match self.players.read()?.get_for_index(index as usize) {
+            None => Err(Error::MissingPlayer(index)),
+            Some(arc) => Ok(arc)
+        }
     }
 
-    pub fn weak_player_for(&self, index: u16) -> Option<Weak<RwLock<Player>>> {
-        self.players
-            .read()
-            .unwrap()
-            .get_for_index_weak(index as usize)
+    pub fn weak_player_for(&self, index: u16) -> Result<Weak<RwLock<Player>>, Error> {
+        match self.players.read()?.get_for_index_weak(index as usize) {
+            None => Err(Error::MissingPlayer(index)),
+            Some(weak) => Ok(weak)
+        }
     }
 
     pub fn block_manager(&self) -> &BlockManager {

@@ -56,6 +56,7 @@ impl PerformanceDiscreteMark {
     }
 }
 
+#[derive(Debug)]
 pub struct PerformanceMark {
     single_threaded_mark: f64,
     multi_threaded_mark: f64,

@@ -2,6 +2,7 @@
 use Error;
 use net::BinaryReader;
 
+#[derive(Debug)]
 pub struct TimeSpan {
     ticks: i64
 }
@@ -51,6 +52,10 @@ impl TimeSpan {
     pub fn seconds_exact(&self) -> f64 {
         // 100ns / 10 -> 1us / 1000 -> 1ms / 1000 -> 1s
         self.ticks as f64 / 10_000_000_f64
+    }
+
+    pub fn millis(&self) -> u64 {
+        (self.seconds_exact() * 1_000f64) as u64
     }
 
     pub fn update(&mut self, reader: &mut BinaryReader) -> Result<(), Error> {

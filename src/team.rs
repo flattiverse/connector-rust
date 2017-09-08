@@ -73,8 +73,8 @@ impl Team {
             let player = connector.player();
 
             match player {
-                &None => return Err(Error::CannotSendMessageIntoAnotherUniverseGroup),
-                &Some(ref player) => {
+                None => return Err(Error::CannotSendMessageIntoAnotherUniverseGroup),
+                Some(ref player) => {
                     // TODO lots of unwrap...
                     let player = player.clone();
                     let player = player.read()?;

@@ -113,8 +113,8 @@ impl Player {
                 let response = block.lock()?.wait()?;
 
                 match connector.player() {
-                    &None => {},
-                    &Some(ref arc) => {
+                    None => {},
+                    Some(ref arc) => {
                         if arc.read()?.id() != self.id() {
                             connector.register_task_quitely_if_unknown(Task::UsedAvatar);
                         }
@@ -301,8 +301,8 @@ impl Player {
             None => {},
             Some(connector) => {
                 match connector.player() {
-                    &None => {},
-                    &Some(ref player) => {
+                    None => {},
+                    Some(ref player) => {
                         match player.read() {
                             Err(_) => {},
                             Ok(ref player) => {
@@ -359,8 +359,8 @@ impl Player {
             None => {},
             Some(connector) => {
                 match connector.player() {
-                    &None => {},
-                    &Some(ref player) => {
+                    None => {},
+                    Some(ref player) => {
                         match player.read() {
                             Err(_) => {},
                             Ok(ref player) => {
@@ -440,5 +440,18 @@ impl Player {
 impl UniversalEnumerable for Player {
     fn name(&self) -> &str {
         &self.name
+    }
+}
+
+use std::fmt;
+impl fmt::Display for Player {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}({}) {:?} {}", self.name, self.id, self.platform, self.version)
+    }
+}
+
+impl fmt::Debug for Player {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
     }
 }

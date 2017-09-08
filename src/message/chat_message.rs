@@ -29,7 +29,7 @@ impl FlattiverseMessage for ChatMessageData {
     fn from_packet(connector: Arc<Connector>, _: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
         Ok(ChatMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
-            from:      connector.player_for(reader.read_u16()?).expect("Player data missing")
+            from:      connector.player_for(reader.read_u16()?)?
         })
     }
 }
