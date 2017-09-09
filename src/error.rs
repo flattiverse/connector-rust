@@ -2,6 +2,8 @@
 use std;
 use std::sync::PoisonError;
 
+use Connector;
+
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
@@ -39,7 +41,13 @@ pub enum Error {
     InvalidFromDegree(f32),
     InvalidToDegree(f32),
     InvalidRange(f32),
-    InvalidEvent(u8)
+    InvalidEvent(u8),
+    InvalidDifficulty(u8),
+    InvalidPerformanceRequirement(u8),
+    InvalidTournamentStage(u8),
+    InvalidTournamentSet(u8),
+    AccessFromWrongThreadAllowedOnly(std::thread::ThreadId),
+    TickIsGone,
 }
 
 impl From<std::io::Error> for Error {

@@ -20,6 +20,7 @@ use BlockManager;
 use IndexList;
 use Player;
 use UniversalHolder;
+use UniverseGroupFlowControl;
 
 use net::Packet;
 use net::Connection;
@@ -39,7 +40,10 @@ pub struct Connector {
     player:     RwLock<Option<Arc<RwLock<Player>>>>,
     players:    RwLock<UniversalHolder<Player>>,
     sync_account_queries: Mutex<()>,
-    tasks: RwLock<IndexList<bool>>
+
+    tick:       RwLock<u16>,
+    tasks:      RwLock<IndexList<bool>>,
+    flows:      RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
 }
 
 impl Connector {
@@ -71,7 +75,9 @@ impl Connector {
             block_manager: BlockManager::new(),
             player: RwLock::new(None),
             sync_account_queries: Mutex::new(()),
+            tick:  RwLock::new(0_u16),
             tasks: RwLock::new(IndexList::new(false, 32)),
+            flows: RwLock::new(Vec::new()),
         };
 
         let connector = Arc::new(connector);
@@ -293,11 +299,75 @@ impl Connector {
         Ok(())
     }
 
+    pub fn unregister_flow_control(&self, flow: &Arc<UniverseGroupFlowControl>) -> Result<bool, Error> {
+        let mut vec = self.flows.write()?;
+        for i in 0..vec.len() {
+            if vec[i].eq(flow) {
+                vec.remove(i);
+                return Ok(true);
+            }
+        }
+        return Ok(false);
+    }
+
+    pub fn flow_controls(&self) -> Result<bool, Error> {
+        Ok(self.flows.read()?.len() > 0)
+    }
+
+    pub fn flow_control_check(&self, tick: u16) -> Result<bool, Error> {
+        let self_tick = *self.tick.read()?;
+        if tick != self_tick && tick != 0_u16 {
+            return Ok(false);
+        }
+
+        {
+            let lock = self.flows.read()?;
+            for ref flow in lock.iter() {
+                if flow.ready()? {
+                    return Ok(true);
+                }
+            }
+        }
+
+
+        let block = self.block_manager.block()?;
+        let mut packet = Packet::new();
+
+        {
+            let block = block.lock()?;
+            packet.set_command(0x05);
+            packet.set_session(block.id());
+
+            // !!?!?!?!
+            packet.set_path_sub(tick as u8);
+        }
+
+        self.send(&packet)?;
+        let mut block = block.lock()?;
+        match block.wait() {
+            Ok(_) => Ok(true),
+            Err(Error::TickIsGone) => Ok(false),
+            Err(e) => Err(e)
+        }
+    }
+
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
         &self.sync_account_queries
     }
 
     pub fn hostname() -> String {
         hostname::get_hostname().expect("Failed to retrieve hostname")
+    }
+}
+
+pub trait ConnectorArc {
+    fn register_flow_control(&self) -> Result<Arc<UniverseGroupFlowControl>, Error>;
+}
+
+impl ConnectorArc for Arc<Connector> {
+    fn register_flow_control(&self) -> Result<Arc<UniverseGroupFlowControl>, Error> {
+        let flow = Arc::new(UniverseGroupFlowControl::new(Arc::downgrade(self)));
+        self.flows.write()?.push(flow.clone());
+        Ok(flow)
     }
 }

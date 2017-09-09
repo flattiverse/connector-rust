@@ -11,6 +11,8 @@ use Scores;
 use GameType;
 use Connector;
 use UniverseGroup;
+use UniversalEnumerable;
+
 use net::Packet;
 use net::BinaryReader;
 use net::BinaryWriter;
@@ -111,6 +113,12 @@ impl Team {
 
     pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
         &self.universe_group
+    }
+}
+
+impl UniversalEnumerable for Team {
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 

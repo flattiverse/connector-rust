@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result;
 
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::naive::NaiveDateTime;
 
@@ -37,6 +38,11 @@ impl DateTime {
             secs,
             0u32 // TODO
         )
+    }
+
+    pub fn elapsed_millis(&self) -> i64 {
+        let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        self.millis() - (time.as_secs() as i64 * 1_000_i64 + (time.subsec_nanos() as i64 / 1_000_000_i64))
     }
 }
 
