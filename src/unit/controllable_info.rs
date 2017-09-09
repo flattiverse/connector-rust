@@ -40,8 +40,8 @@ pub struct ControllableInfo {
     hull:           f32,
     shield:         f32,
     build_progress: f32,
-    is_building:    Option<Weak<RwLock<Box<ControllableInfo>>>>,
-    is_built_by:    Option<Weak<RwLock<Box<ControllableInfo>>>>,
+    is_building:    Weak<RwLock<Box<ControllableInfo>>>,
+    is_built_by:    Weak<RwLock<Box<ControllableInfo>>>,
 
     active:             bool,
     pending_shutdown:   bool,
@@ -94,8 +94,8 @@ impl ControllableInfo {
             hull:                   0f32,
             shield:                 0f32,
             build_progress:         0f32,
-            is_building:            None,
-            is_built_by:            None,
+            is_building:            Weak::new(),
+            is_built_by:            Weak::new(),
             active:                 false,
             pending_shutdown:       false,
             player:                 player,
@@ -126,12 +126,12 @@ impl ControllableInfo {
 
             self.build_progress = reader.read_single()?;
             self.is_building    = match player.controllable_info(reader.read_unsigned_byte()?) {
-                Some(ref arc) => Some(Arc::downgrade(arc)),
-                None => None
+                Some(ref arc) => Arc::downgrade(arc),
+                None          => Weak::new()
             }
 
         } else {
-            self.is_building    = None;
+            self.is_building    = Weak::new();
         }
 
         if is_set_u8(header, 0x02) {
@@ -140,11 +140,11 @@ impl ControllableInfo {
 
             self.build_progress = reader.read_single()?;
             self.is_built_by    = match player.controllable_info(reader.read_unsigned_byte()?) {
-                Some(ref arc) => Some(Arc::downgrade(arc)),
-                None => None
+                Some(ref arc) => Arc::downgrade(arc),
+                None          => Weak::new()
             }
         } else {
-            self.is_built_by    = None;
+            self.is_built_by    = Weak::new();
         }
 
 
@@ -175,24 +175,24 @@ impl ControllableInfo {
     /// Whether this [ControllableInfo] is
     /// building another [ControllableInfo]
     pub fn building(&self) -> bool {
-        self.is_building.is_some()
+        self.is_building.upgrade().is_some()
     }
 
     /// Whether this [ControllableInfo] is
     /// currently built by another [ControllableInfo]
     pub fn built(&self) -> bool {
-        self.is_built_by.is_some()
+        self.is_built_by.upgrade().is_some()
     }
 
     /// The [ControllableInfo] currently built
     /// by this [ControllableInfo]
-    pub fn build_target(&self) -> &Option<Weak<RwLock<Box<ControllableInfo>>>> {
+    pub fn build_target(&self) -> &Weak<RwLock<Box<ControllableInfo>>> {
         &self.is_building
     }
 
     /// The [ControllableInfo] currently
     /// building this [ControllableInfo]
-    pub fn built_by(&self) -> &Option<Weak<RwLock<Box<ControllableInfo>>>> {
+    pub fn built_by(&self) -> &Weak<RwLock<Box<ControllableInfo>>> {
         &self.is_built_by
     }
 

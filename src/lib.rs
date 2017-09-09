@@ -15,12 +15,14 @@ mod item;
 mod event;
 mod dotnet;
 mod message;
+mod controllable;
 
 
 mod error;
 mod version;
 mod connector;
 mod difficulty;
+mod polynominal;
 
 mod task;
 mod vector;
@@ -56,6 +58,7 @@ pub use error::*;
 pub use version::*;
 pub use connector::*;
 pub use difficulty::*;
+pub use polynominal::*;
 
 pub use task::*;
 pub use vector::*;

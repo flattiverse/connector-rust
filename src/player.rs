@@ -41,8 +41,8 @@ pub struct Player {
     ping:                TimeSpan,
 
     connector:      Weak<Connector>,
-    universe_group: Option<Weak<RwLock<UniverseGroup>>>,
-    team:           Option<Weak<RwLock<Team>>>,
+    universe_group: Weak<RwLock<UniverseGroup>>,
+    team:           Weak<RwLock<Team>>,
 
     active: bool,
     online: bool,
@@ -79,8 +79,8 @@ impl Player {
             clan:           None,
             rank:           0u32,
             level:          0u8,
-            universe_group: None,
-            team:           None,
+            universe_group: Weak::new(),
+            team:           Weak::new(),
             active:         false,
             online:         false,
             elo:            0i32,
@@ -388,11 +388,11 @@ impl Player {
         &self.connector
     }
 
-    pub fn team(&self) -> &Option<Weak<RwLock<Team>>> {
+    pub fn team(&self) -> &Weak<RwLock<Team>> {
         &self.team
     }
 
-    pub(crate) fn set_team(&mut self, team: Option<Weak<RwLock<Team>>>) -> &mut Self {
+    pub(crate) fn set_team(&mut self, team: Weak<RwLock<Team>>) -> &mut Self {
         self.team = team;
         self
     }
@@ -432,7 +432,7 @@ impl Player {
         &self.name
     }
 
-    pub fn universe_group(&self) -> &Option<Weak<RwLock<UniverseGroup>>> {
+    pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
         &self.universe_group
     }
 }

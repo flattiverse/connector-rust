@@ -46,6 +46,7 @@ pub enum Error {
     InvalidPerformanceRequirement(u8),
     InvalidTournamentStage(u8),
     InvalidTournamentSet(u8),
+    InvalidControllable(u8),
     AccessFromWrongThreadAllowedOnly(std::thread::ThreadId),
     TickIsGone,
 }

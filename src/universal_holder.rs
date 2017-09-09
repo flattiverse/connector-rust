@@ -41,7 +41,7 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
         self.list.get(index)
     }
 
-    pub fn get_for_index_weak(&self, index: usize) -> Option<Weak<RwLock<T>>> {
+    pub fn get_for_index_weak(&self, index: usize) -> Weak<RwLock<T>> {
         self.list.get_weak(index)
     }
 

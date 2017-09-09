@@ -252,10 +252,7 @@ impl Connector {
     }
 
     pub fn weak_player_for(&self, index: u16) -> Result<Weak<RwLock<Player>>, Error> {
-        match self.players.read()?.get_for_index_weak(index as usize) {
-            None => Err(Error::MissingPlayer(index)),
-            Some(weak) => Ok(weak)
-        }
+        Ok(self.players.read()?.get_for_index_weak(index as usize))
     }
 
     pub fn block_manager(&self) -> &BlockManager {

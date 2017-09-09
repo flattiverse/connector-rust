@@ -81,7 +81,7 @@ impl Team {
                     let player = player.clone();
                     let player = player.read()?;
                     let player_uni = player.universe_group().clone();
-                    let player_uni = player_uni.unwrap().upgrade().unwrap();
+                    let player_uni = player_uni.upgrade().unwrap();
                     let player_uni = player_uni.read()?;
                     if player_uni.eq(&uni_group) {
                         return Err(Error::CannotSendMessageIntoAnotherUniverseGroup)

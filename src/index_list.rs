@@ -37,12 +37,12 @@ impl<T> IndexList<T> {
         }
     }
 
-    pub fn get_weak(&self, index: usize) -> Option<Weak<T>> {
+    pub fn get_weak(&self, index: usize) -> Weak<T> {
         match self.values.get(index) {
-            None => None,
+            None => Weak::new(),
             Some(ref option) => match option {
-                &&Some(ref arc) => Some(Arc::downgrade(arc)),
-                &&None => None
+                &&Some(ref arc) => Arc::downgrade(arc),
+                &&None => Weak::new()
             }
         }
     }
