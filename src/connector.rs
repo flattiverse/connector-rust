@@ -16,11 +16,12 @@ use sha2::Sha512;
 use hostname;
 
 use Task;
-use Version;
+use Team;
 use Error;
-use BlockManager;
-use IndexList;
 use Player;
+use Version;
+use IndexList;
+use BlockManager;
 use UniverseGroup;
 use UniversalHolder;
 use UniverseGroupFlowControl;
@@ -358,6 +359,10 @@ impl Connector {
     }
 
     pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
+        unimplemented!()
+    }
+
+    pub fn team(&self, index: u16) -> Result<Arc<RwLock<Team>>, Error> {
         unimplemented!()
     }
 

@@ -17,6 +17,7 @@ use IndexList;
 use Difficulty;
 use Tournament;
 use UniversalHolder;
+use UniversalEnumerable;
 use UniverseGroupFlowControl;
 use PerformanceRequirement;
 
@@ -210,6 +211,12 @@ impl UniverseGroup {
 
     pub fn team_weak(&self, index: u8) -> Weak<RwLock<Team>> {
         Weak::default()
+    }
+}
+
+impl UniversalEnumerable for UniverseGroup {
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 

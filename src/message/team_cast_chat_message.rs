@@ -5,8 +5,8 @@ use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
+use Team;
 use Error;
-use Player;
 use Connector;
 use net::Packet;
 use net::BinaryReader;
@@ -18,14 +18,14 @@ use message::FlattiverseMessageData;
 
 pub trait TeamCastChatMessage: ChatMessage {
 
-    fn to(&self) -> &Arc<RwLock<Player>>;
+    fn to(&self) -> &Arc<RwLock<Team>>;
 
     fn message(&self) -> &str;
 }
 
 pub struct TeamCastChatMessageData {
     data:   ChatMessageData,
-    to:     Arc<RwLock<Player>>,
+    to:     Arc<RwLock<Team>>,
     message:String,
 }
 
@@ -33,7 +33,7 @@ impl TeamCastChatMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TeamCastChatMessageData, Error> {
         Ok(TeamCastChatMessageData {
             data:   ChatMessageData::from_packet(connector, packet, reader)?,
-            to:     connector.player_for(reader.read_u16()?)?,
+            to:     connector.team(reader.read_u16()?)?,
             message:reader.read_string()?,
         })
     }
@@ -62,7 +62,7 @@ impl BorrowMut<FlattiverseMessageData> for TeamCastChatMessageData {
 
 
 impl<T: 'static + Borrow<TeamCastChatMessageData> + BorrowMut<TeamCastChatMessageData> + ChatMessage> TeamCastChatMessage for T {
-    fn to(&self) -> &Arc<RwLock<Player>> {
+    fn to(&self) -> &Arc<RwLock<Team>> {
         &self.borrow().to
     }
 
@@ -75,9 +75,9 @@ impl fmt::Display for TeamCastChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] <T: {}> {}",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &ChatMessage).from().read() {
+               match (self as &TeamCastChatMessage).to().read() {
                    Err(_) => "",
-                   Ok(ref player) => player.name()
+                   Ok(ref to) => to.name()
                },
                self.message
         )

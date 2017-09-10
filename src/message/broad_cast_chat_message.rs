@@ -8,6 +8,7 @@ use std::borrow::BorrowMut;
 use Error;
 use Connector;
 use UniverseGroup;
+use UniversalEnumerable;
 
 use net::Packet;
 use net::BinaryReader;
