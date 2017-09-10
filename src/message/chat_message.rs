@@ -19,12 +19,12 @@ use net::BinaryReader;
 
 
 pub trait ChatMessage : FlattiverseMessage {
-    fn from(&self) -> &Weak<RwLock<Player>>;
+    fn from(&self) -> &Arc<RwLock<Player>>;
 }
 
 pub struct ChatMessageData {
     data: FlattiverseMessageData,
-    from: Weak<RwLock<Player>>
+    from: Arc<RwLock<Player>>
 }
 
 
@@ -32,7 +32,7 @@ impl ChatMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<ChatMessageData, Error> {
         Ok(ChatMessageData {
             data:   FlattiverseMessageData::from_packet(connector, packet, reader)?,
-            from:   connector.weak_player_for(reader.read_u16()?)?
+            from:   connector.player_for(reader.read_u16()?)?
         })
     }
 }
@@ -49,7 +49,7 @@ impl BorrowMut<FlattiverseMessageData> for ChatMessageData {
 }
 
 impl<T: 'static + Borrow<ChatMessageData> + FlattiverseMessage> ChatMessage for T {
-    fn from(&self) -> &Weak<RwLock<Player>> {
+    fn from(&self) -> &Arc<RwLock<Player>> {
         &self.borrow().from
     }
 }
