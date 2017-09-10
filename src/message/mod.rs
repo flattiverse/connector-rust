@@ -3,11 +3,13 @@ mod motd_message;
 mod system_message;
 mod chat_message;
 mod unicast_chat_message;
+mod team_cast_chat_message;
 
 pub use self::motd_message::*;
 pub use self::system_message::*;
 pub use self::chat_message::*;
 pub use self::unicast_chat_message::*;
+pub use self::team_cast_chat_message::*;
 
 
 use std::fmt;
@@ -60,6 +62,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
     match path_sub {
         0x00 => Ok(Box::new(SystemMessageData       ::from_packet(connector, packet, reader)?)),
         0x01 => Ok(Box::new(UnicastChatMessageData  ::from_packet(connector, packet, reader)?)),
+        0x02 => Ok(Box::new(TeamCastChatMessageData ::from_packet(connector, packet, reader)?)),
         0x08 => Ok(Box::new(MOTDMessageData         ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
