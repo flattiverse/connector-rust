@@ -1,50 +1,72 @@
 
-use Error;
-use Connector;
-use net::Packet;
-use net::BinaryReader;
-use dotnet::DateTime;
-use message::FlattiverseMessage;
-use message::SystemMessage;
-use message::SystemMessageData;
-
 use std::fmt;
 use std::sync::Arc;
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 
-pub struct MOTDMessageData {
-    system_message: SystemMessageData
-}
+use Error;
+use DateTime;
+use Connector;
+
+
+use message::SystemMessage;
+use message::SystemMessageData;
+use message::FlattiverseMessage;
+use message::FlattiverseMessageData;
+
+use net::Packet;
+use net::BinaryReader;
+
 
 pub trait MOTDMessage : SystemMessage {
 
 }
 
-impl FlattiverseMessage for MOTDMessageData {
-    fn timestamp(&self) -> &DateTime {
-        &self.system_message.timestamp()
-    }
+pub struct MOTDMessageData {
+    data: SystemMessageData,
+    message: String,
+}
 
-    fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> {
+impl MOTDMessageData {
+    pub fn from_packet(arc: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<MOTDMessageData, Error> {
         Ok(MOTDMessageData {
-            system_message: SystemMessageData::from_packet(connector, packet, reader)?
+            data:       SystemMessageData::from_packet(arc, packet, reader)?,
+            message:    reader.read_string()?,
         })
     }
 }
 
-impl SystemMessage for MOTDMessageData {
-    fn message(&self) -> &String {
-        &self.system_message.message()
+impl Borrow<SystemMessageData> for MOTDMessageData {
+    fn borrow(&self) -> &SystemMessageData {
+        &self.data
+    }
+}
+impl BorrowMut<SystemMessageData> for MOTDMessageData {
+    fn borrow_mut(&mut self) -> &mut SystemMessageData {
+        &mut self.data
+    }
+}
+impl Borrow<FlattiverseMessageData> for MOTDMessageData {
+    fn borrow(&self) -> &FlattiverseMessageData {
+        self.data.borrow()
+    }
+}
+impl BorrowMut<FlattiverseMessageData> for MOTDMessageData {
+    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
+        self.data.borrow_mut()
     }
 }
 
-impl MOTDMessage for MOTDMessageData {
+
+
+impl<T: 'static + Borrow<MOTDMessageData> + BorrowMut<MOTDMessageData> + SystemMessage> MOTDMessage for T {
 
 }
 
 impl fmt::Display for MOTDMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for line in self.message().lines() {
-            writeln!(f, "[{}] -MOTD- {}", self.timestamp(), line)?
+        for line in self.message.lines() {
+            writeln!(f, "[{}] -MOTD- {}", (self.borrow() as &FlattiverseMessageData).timestamp(), line)?
         }
         Ok(())
     }

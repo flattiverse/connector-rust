@@ -217,7 +217,7 @@ impl Connector {
                 connector.players.write()?.set(packet.path_player() as usize, None);
             },
             0x30 => { // new message
-                match from_reader(connector.clone(), &packet) {
+                match from_reader(&connector, &packet) {
                     Err(e) => println!("Failed to decode message: {:?}", e),
                     Ok(message) => {
                         // println!("{}", message);

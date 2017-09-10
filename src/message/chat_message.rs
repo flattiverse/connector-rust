@@ -1,44 +1,59 @@
 
 use std::fmt;
 use std::sync::Arc;
+use std::sync::Weak;
 use std::sync::RwLock;
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 
 use Error;
 use Player;
 use DateTime;
 use Connector;
-use FlattiverseMessage;
+
+use message::FlattiverseMessage;
+use message::FlattiverseMessageData;
 
 use net::Packet;
 use net::BinaryReader;
 
-pub struct ChatMessageData {
-    timestamp: DateTime,
-    from: Arc<RwLock<Player>>
-}
 
 pub trait ChatMessage : FlattiverseMessage {
-    fn from(&self) -> &Arc<RwLock<Player>>;
+    fn from(&self) -> &Weak<RwLock<Player>>;
 }
 
-impl FlattiverseMessage for ChatMessageData {
-    fn timestamp(&self) -> &DateTime {
-        &self.timestamp
-    }
+pub struct ChatMessageData {
+    data: FlattiverseMessageData,
+    from: Weak<RwLock<Player>>
+}
 
-    fn from_packet(connector: Arc<Connector>, _: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self: Sized {
+
+impl ChatMessageData {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<ChatMessageData, Error> {
         Ok(ChatMessageData {
-            timestamp: DateTime::from_ticks(reader.read_i64()?),
-            from:      connector.player_for(reader.read_u16()?)?
+            data:   FlattiverseMessageData::from_packet(connector, packet, reader)?,
+            from:   connector.weak_player_for(reader.read_u16()?)?
         })
     }
 }
 
-impl ChatMessage for ChatMessageData {
-    fn from(&self) -> &Arc<RwLock<Player>> {
-        &self.from
+impl Borrow<FlattiverseMessageData> for ChatMessageData {
+    fn borrow(&self) -> &FlattiverseMessageData {
+        &self.data
     }
 }
+impl BorrowMut<FlattiverseMessageData> for ChatMessageData {
+    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
+        &mut self.data
+    }
+}
+
+impl<T: 'static + Borrow<ChatMessageData> + FlattiverseMessage> ChatMessage for T {
+    fn from(&self) -> &Weak<RwLock<Player>> {
+        &self.borrow().from
+    }
+}
+
 
 impl fmt::Display for ChatMessageData {
     fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
