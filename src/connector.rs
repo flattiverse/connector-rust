@@ -220,7 +220,13 @@ impl Connector {
             },
             0x30 => { // new message
                 match from_reader(&connector, &packet) {
-                    Err(e) => println!("Failed to decode message: {:?}", e),
+                    Err(e) => {
+                        match e {
+                            Error::IoError(ref backtrace, ref ioe) => println!("Backtrace {:?}", backtrace),
+                            _ => {}
+                        }
+                        println!("Failed to decode message: {:?}", e)
+                    },
                     Ok(message) => {
                         // println!("{}", message);
                         messages.send(message)?;

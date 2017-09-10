@@ -3,9 +3,11 @@ use std;
 use std::sync::PoisonError;
 use std::sync::mpsc::SendError;
 
+use backtrace::Backtrace;
+
 #[derive(Debug)]
 pub enum Error {
-    IoError(std::io::Error),
+    IoError(Backtrace, std::io::Error),
     SendError,
     EmailAndOrPasswordInvalid,
     RequestedPacketSizeIsInvalid{max: u32, was: u32},
@@ -74,7 +76,7 @@ pub enum Error {
 
 impl From<std::io::Error> for Error {
     fn from(ioe: std::io::Error) -> Self {
-        Error::IoError(ioe)
+        Error::IoError(Backtrace::new(), ioe)
     }
 }
 

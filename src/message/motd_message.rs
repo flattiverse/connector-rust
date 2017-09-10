@@ -23,14 +23,12 @@ pub trait MOTDMessage : SystemMessage {
 
 pub struct MOTDMessageData {
     data: SystemMessageData,
-    message: String,
 }
 
 impl MOTDMessageData {
     pub fn from_packet(arc: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<MOTDMessageData, Error> {
         Ok(MOTDMessageData {
             data:       SystemMessageData::from_packet(arc, packet, reader)?,
-            message:    reader.read_string()?,
         })
     }
 }
@@ -64,8 +62,14 @@ impl<T: 'static + Borrow<MOTDMessageData> + BorrowMut<MOTDMessageData> + SystemM
 
 impl fmt::Display for MOTDMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for line in self.message.lines() {
-            writeln!(f, "[{}] -MOTD- {}", (self.borrow() as &FlattiverseMessageData).timestamp(), line)?
+        let mut first = true;
+        for line in (self as &MOTDMessage).message().lines() {
+            if first {
+               first = false;
+            } else {
+                writeln!(f)?;
+            }
+            write!(f, "[{}] -MOTD- {}", (self.borrow() as &FlattiverseMessageData).timestamp(), line)?
         }
         Ok(())
     }

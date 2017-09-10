@@ -6,6 +6,7 @@ extern crate sha2;
 extern crate chrono;
 extern crate hostname;
 extern crate flate2;
+extern crate backtrace;
 
 #[macro_use]
 extern crate downcast_rs;
