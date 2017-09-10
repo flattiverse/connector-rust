@@ -2,6 +2,7 @@
 mod motd_message;
 mod system_message;
 mod chat_message;
+mod binary_chat_message;
 mod unicast_chat_message;
 mod team_cast_chat_message;
 mod broad_cast_chat_message;
@@ -9,6 +10,7 @@ mod broad_cast_chat_message;
 pub use self::motd_message::*;
 pub use self::system_message::*;
 pub use self::chat_message::*;
+pub use self::binary_chat_message::*;
 pub use self::unicast_chat_message::*;
 pub use self::team_cast_chat_message::*;
 pub use self::broad_cast_chat_message::*;
@@ -67,6 +69,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x01 => Ok(Box::new(UnicastChatMessageData      ::from_packet(connector, packet, reader)?)),
         0x02 => Ok(Box::new(TeamCastChatMessageData     ::from_packet(connector, packet, reader)?)),
         0x03 => Ok(Box::new(BroadCastChatMessageData    ::from_packet(connector, packet, reader)?)),
+        0x04 => Ok(Box::new(BroadCastChatMessageData    ::from_packet(connector, packet, reader)?)),
         0x08 => Ok(Box::new(MOTDMessageData             ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
