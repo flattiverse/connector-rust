@@ -4,6 +4,7 @@ mod unit_kind;
 mod scan_info;
 mod gravity_well;
 mod orbiting_state;
+mod gate_switch_info;
 mod controllable_info;
 
 
@@ -64,6 +65,7 @@ pub use self::unit_kind::*;
 pub use self::scan_info::*;
 pub use self::gravity_well::*;
 pub use self::orbiting_state::*;
+pub use self::gate_switch_info::*;
 pub use self::controllable_info::*;
 
 pub use self::sun::*;

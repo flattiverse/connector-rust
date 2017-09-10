@@ -5,6 +5,7 @@ mod chat_message;
 mod system_message;
 mod binary_chat_message;
 mod unicast_chat_message;
+mod gate_switched_message;
 mod team_cast_chat_message;
 mod broad_cast_chat_message;
 mod player_unit_reset_message;
@@ -32,6 +33,7 @@ pub use self::chat_message::*;
 pub use self::system_message::*;
 pub use self::binary_chat_message::*;
 pub use self::unicast_chat_message::*;
+pub use self::gate_switched_message::*;
 pub use self::team_cast_chat_message::*;
 pub use self::broad_cast_chat_message::*;
 pub use self::player_unit_reset_message::*;
@@ -129,6 +131,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x35 => Ok(Box::new(TargetDominationFinishedMessageData         ::from_packet(connector, packet, reader)?)),
         0x36 => Ok(Box::new(TargetDominationScoredMessageData           ::from_packet(connector, packet, reader)?)),
         0x37 => Ok(Box::new(TargetDedominationStartedMessageData        ::from_packet(connector, packet, reader)?)),
+        0x38 => Ok(Box::new(GateSwitchedMessageData                     ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
