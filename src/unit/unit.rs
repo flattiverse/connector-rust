@@ -21,7 +21,7 @@ use net::is_set_u8;
 use downcast_rs::Downcast;
 
 impl_downcast!(Unit);
-pub trait Unit : Downcast {
+pub trait Unit : Downcast + Send + Sync {
     fn name(&self) -> &str;
 
     fn position(&self) -> &Vector;
@@ -150,7 +150,7 @@ impl UnitData {
     }
 }
 
-impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
+impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData> + Send + Sync> Unit for T {
     fn name(&self) -> &str {
         &self.borrow().name
     }

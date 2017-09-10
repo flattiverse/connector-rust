@@ -40,7 +40,7 @@ use net::BinaryWriter;
 use net::is_set_u8;
 
 impl_downcast!(Controllable);
-pub trait Controllable : Downcast {
+pub trait Controllable : Downcast + Send + Sync {
 
     fn id(&self) -> u8;
 
@@ -930,7 +930,7 @@ impl ControllableData {
     }
 }
 
-impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData>> Controllable for T {
+impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send + Sync> Controllable for T {
     fn id(&self) -> u8 {
         self.borrow().id
     }
