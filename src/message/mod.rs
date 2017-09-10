@@ -17,6 +17,7 @@ mod universe_group_reset_message;
 mod player_unit_continued_message;
 mod player_unit_logged_off_message;
 mod player_unit_build_start_message;
+mod player_unit_build_cancel_message;
 mod mission_target_available_message;
 mod player_unit_shot_by_unit_message;
 mod target_domination_scored_message;
@@ -55,6 +56,7 @@ pub use self::universe_group_reset_message::*;
 pub use self::player_unit_continued_message::*;
 pub use self::player_unit_logged_off_message::*;
 pub use self::player_unit_build_start_message::*;
+pub use self::player_unit_build_cancel_message::*;
 pub use self::mission_target_available_message::*;
 pub use self::player_unit_shot_by_unit_message::*;
 pub use self::target_domination_scored_message::*;
@@ -161,6 +163,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x61 => Ok(Box::new(UniverseGroupResetMessageData               ::from_packet(connector, packet, reader)?)),
         0x62 => Ok(Box::new(TournamentStatusMessageData                 ::from_packet(connector, packet, reader)?)),
         0x70 => Ok(Box::new(PlayerUnitBuildStartMessageData             ::from_packet(connector, packet, reader)?)),
+        0x71 => Ok(Box::new(PlayerUnitBuildCancelledMessageData         ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
