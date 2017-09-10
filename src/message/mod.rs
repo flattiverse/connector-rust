@@ -25,6 +25,7 @@ mod target_domination_started_message;
 mod target_domination_finished_message;
 mod player_unit_shot_by_player_message;
 mod player_unit_hit_own_target_message;
+mod player_unit_build_finished_message;
 mod target_dedomination_started_message;
 mod player_joined_universe_group_message;
 mod player_parted_universe_group_message;
@@ -64,6 +65,7 @@ pub use self::target_domination_started_message::*;
 pub use self::target_domination_finished_message::*;
 pub use self::player_unit_shot_by_player_message::*;
 pub use self::player_unit_hit_own_target_message::*;
+pub use self::player_unit_build_finished_message::*;
 pub use self::target_dedomination_started_message::*;
 pub use self::player_joined_universe_group_message::*;
 pub use self::player_parted_universe_group_message::*;
@@ -164,6 +166,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x62 => Ok(Box::new(TournamentStatusMessageData                 ::from_packet(connector, packet, reader)?)),
         0x70 => Ok(Box::new(PlayerUnitBuildStartMessageData             ::from_packet(connector, packet, reader)?)),
         0x71 => Ok(Box::new(PlayerUnitBuildCancelledMessageData         ::from_packet(connector, packet, reader)?)),
+        0x72 => Ok(Box::new(PlayerUnitBuildFinishedMessageData          ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
