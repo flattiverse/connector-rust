@@ -76,7 +76,7 @@ impl fmt::Display for BroadCastChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] <U: {}> {}",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &ChatMessage).from().read() {
+               match (self as &BroadCastChatMessage).to().read() {
                    Err(_) => "",
                    Ok(ref group) => group.name()
                },
