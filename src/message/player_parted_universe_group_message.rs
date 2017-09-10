@@ -97,7 +97,7 @@ impl fmt::Display for PlayerPartedUniverseGroupMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let player = self.player.read().unwrap();
         let team = self.team.read().unwrap();
-        write!(f, "[{}] Player {} from Team {} parted the game",
+        write!(f, "[{}] Player {} from Team {} parted the game.",
             (self as &FlattiverseMessage).timestamp(),
             player.name(),
             team.name(),

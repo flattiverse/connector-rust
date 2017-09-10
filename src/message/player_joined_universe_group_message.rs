@@ -97,7 +97,7 @@ impl fmt::Display for PlayerJoinedUniverseGroupMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let player = self.player.read().unwrap();
         let team = self.team.read().unwrap();
-        write!(f, "[{}] Player {} from Team {} joined the game",
+        write!(f, "[{}] Player {} from Team {} joined the game.",
             (self as &FlattiverseMessage).timestamp(),
             player.name(),
             team.name(),
