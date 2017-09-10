@@ -13,6 +13,7 @@ mod player_unit_continued_message;
 mod player_unit_logged_off_message;
 mod mission_target_available_message;
 mod player_unit_shot_by_unit_message;
+mod target_domination_scored_message;
 mod target_domination_started_message;
 mod target_domination_finished_message;
 mod player_unit_shot_by_player_message;
@@ -38,6 +39,7 @@ pub use self::player_unit_continued_message::*;
 pub use self::player_unit_logged_off_message::*;
 pub use self::mission_target_available_message::*;
 pub use self::player_unit_shot_by_unit_message::*;
+pub use self::target_domination_scored_message::*;
 pub use self::target_domination_started_message::*;
 pub use self::target_domination_finished_message::*;
 pub use self::player_unit_shot_by_player_message::*;
@@ -123,6 +125,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x33 => Ok(Box::new(MissionTargetAvailableMessageData           ::from_packet(connector, packet, reader)?)),
         0x34 => Ok(Box::new(TargetDominationStartedMessageData          ::from_packet(connector, packet, reader)?)),
         0x35 => Ok(Box::new(TargetDominationFinishedMessageData         ::from_packet(connector, packet, reader)?)),
+        0x36 => Ok(Box::new(TargetDominationScoredMessageData           ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }

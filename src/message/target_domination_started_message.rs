@@ -101,7 +101,7 @@ impl fmt::Display for TargetDominationStartedMessageData {
             if let Ok(ref team) = team.read() {
                 write!(f, "Team \"{}\" ", team.name())?;
             } else {
-                write!(f, "<defekt Team> ")?;
+                write!(f, "<defect Team> ")?;
             }
         } else {
             write!(f, "Unknown Team ")?;

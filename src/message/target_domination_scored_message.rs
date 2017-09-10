@@ -24,22 +24,22 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(TargetDominationFinishedMessage);
-pub trait TargetDominationFinishedMessage : GameMessage {
+impl_downcast!(TargetDominationScoredMessage);
+pub trait TargetDominationScoredMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 
     fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>>;
 }
 
-pub struct TargetDominationFinishedMessageData {
+pub struct TargetDominationScoredMessageData {
     data:   GameMessageData,
     name:   String,
     team:   Option<Arc<RwLock<Team>>>,
 }
 
-impl TargetDominationFinishedMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TargetDominationFinishedMessageData, Error> {
-        Ok(TargetDominationFinishedMessageData {
+impl TargetDominationScoredMessageData {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TargetDominationScoredMessageData, Error> {
+        Ok(TargetDominationScoredMessageData {
             data:   GameMessageData::from_packet(connector, packet, reader)?,
             team:   {
                 let id = reader.read_unsigned_byte()?;
@@ -60,29 +60,29 @@ impl TargetDominationFinishedMessageData {
     }
 }
 
-impl Borrow<GameMessageData> for TargetDominationFinishedMessageData {
+impl Borrow<GameMessageData> for TargetDominationScoredMessageData {
     fn borrow(&self) -> &GameMessageData {
         &self.data
     }
 }
-impl BorrowMut<GameMessageData> for TargetDominationFinishedMessageData {
+impl BorrowMut<GameMessageData> for TargetDominationScoredMessageData {
     fn borrow_mut(&mut self) -> &mut GameMessageData {
         &mut self.data
     }
 }
-impl Borrow<FlattiverseMessageData> for TargetDominationFinishedMessageData {
+impl Borrow<FlattiverseMessageData> for TargetDominationScoredMessageData {
     fn borrow(&self) -> &FlattiverseMessageData {
         (self.borrow() as &GameMessageData).borrow()
     }
 }
-impl BorrowMut<FlattiverseMessageData> for TargetDominationFinishedMessageData {
+impl BorrowMut<FlattiverseMessageData> for TargetDominationScoredMessageData {
     fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
         (self.borrow_mut() as &mut GameMessageData).borrow_mut()
     }
 }
 
 
-impl<T: 'static + Borrow<TargetDominationFinishedMessageData> + BorrowMut<TargetDominationFinishedMessageData> + GameMessage> TargetDominationFinishedMessage for T {
+impl<T: 'static + Borrow<TargetDominationScoredMessageData> + BorrowMut<TargetDominationScoredMessageData> + GameMessage> TargetDominationScoredMessage for T {
 
     fn mission_target_name(&self) -> &str {
         &self.borrow().name
@@ -93,7 +93,7 @@ impl<T: 'static + Borrow<TargetDominationFinishedMessageData> + BorrowMut<Target
     }
 }
 
-impl fmt::Display for TargetDominationFinishedMessageData {
+impl fmt::Display for TargetDominationScoredMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] ", (self as &FlattiverseMessage).timestamp())?;
 
@@ -106,6 +106,6 @@ impl fmt::Display for TargetDominationFinishedMessageData {
         } else {
             write!(f, "Unknown Team ")?;
         }
-        write!(f, "finished the domination of MissionTarget \"{}\". 350 tick counter is running now.", self.name)
+        write!(f, "scored on MissionTarget \"{}\".", self.name)
     }
 }
