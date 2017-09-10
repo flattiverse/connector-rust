@@ -4,6 +4,9 @@ use std::mem;
 use std::fmt;
 use std::fmt::Display;
 
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
+
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
@@ -197,6 +200,10 @@ pub trait Controllable : Downcast {
     fn active(&self) -> bool;
 
     fn pending_shutdown(&self) -> bool;
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::Unknown
+    }
 
     fn close(&self) -> Result<(), Error> {
         let connector = match self.connector().upgrade() {
@@ -923,326 +930,326 @@ impl ControllableData {
     }
 }
 
-impl Controllable for ControllableData {
+impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData>> Controllable for T {
     fn id(&self) -> u8 {
-        self.id
+        self.borrow().id
     }
 
     fn revision(&self) -> i64 {
-        self.revision
+        self.borrow().revision
     }
     
     fn class(&self) -> &str {
-        &self.class
+        &self.borrow().class
     }
     
     fn name(&self) -> &str {
-        &self.name
+        &self.borrow().name
     }
 
     fn level(&self) -> u8 {
-        self.level
+        self.borrow().level
     }
 
     fn radius(&self) -> f32 {
-        self.radius
+        self.borrow().radius
     }
 
 
     fn gravity(&self) -> f32 {
-        self.gravity
+        self.borrow().gravity
     }
 
     fn efficiency_tactical(&self) -> f32 {
-        self.efficiency_tactical
+        self.borrow().efficiency_tactical
     }
 
     fn efficiency_economical(&self) -> f32 {
-        self.efficiency_economical
+        self.borrow().efficiency_economical
     }
 
     fn visible_range_multiplier(&self) -> f32 {
-        self.visible_range_multiplier
+        self.borrow().visible_range_multiplier
     }
 
     fn energy_max(&self) -> f32 {
-        self.energy_max
+        self.borrow().energy_max
     }
 
     fn particles_max(&self) -> f32 {
-        self.particles_max
+        self.borrow().particles_max
     }
 
     fn ions_max(&self) -> f32 {
-        self.ions_max
+        self.borrow().ions_max
     }
 
     fn energy_cells(&self) -> f32 {
-        self.energy_cells
+        self.borrow().energy_cells
     }
 
     fn particles_cells(&self) -> f32 {
-        self.particles_cells
+        self.borrow().particles_cells
     }
 
     fn ions_cells(&self) -> f32 {
-        self.ions_cells
+        self.borrow().ions_cells
     }
 
     fn energy_reactor(&self) -> f32 {
-        self.energy_reactor
+        self.borrow().energy_reactor
     }
 
     fn particles_reactor(&self) -> f32 {
-        self.particles_reactor
+        self.borrow().particles_reactor
     }
 
     fn ions_reactor(&self) -> f32 {
-        self.ions_reactor
+        self.borrow().ions_reactor
     }
 
     fn hull_max(&self) -> f32 {
-        self.hull_max
+        self.borrow().hull_max
     }
 
     fn hull_armor(&self) -> f32 {
-        self.hull_armor
+        self.borrow().hull_armor
     }
 
     fn hull_repair(&self) -> &EnergyCost {
-        &self.hull_repair
+        &self.borrow().hull_repair
     }
 
     fn shield_max(&self) -> f32 {
-        self.shield_max
+        self.borrow().shield_max
     }
 
     fn shield_armor(&self) -> f32 {
-        self.shield_armor
+        self.borrow().shield_armor
     }
 
     fn shield_load(&self) -> &EnergyCost {
-        &self.shield_load
+        &self.borrow().shield_load
     }
 
     fn engine_speed(&self) -> f32 {
-        self.engine_speed
+        self.borrow().engine_speed
     }
 
     fn engine_acceleration(&self) -> &EnergyCost {
-        &self.engine_acceleration
+        &self.borrow().engine_acceleration
     }
 
     fn scanner_degree_per_scan(&self) -> f32 {
-        self.scanner_degree_per_scan
+        self.borrow().scanner_degree_per_scan
     }
 
     fn scanner_count(&self) -> u8 {
-        self.scanner_count
+        self.borrow().scanner_count
     }
 
     fn scanner_area(&self) -> &ScanEnergyCost {
-        &self.scanner_area
+        &self.borrow().scanner_area
     }
 
     fn weapon_shot(&self) -> &WeaponEnergyCost {
-        &self.weapon_shot
+        &self.borrow().weapon_shot
     }
 
     fn weapon_hull(&self) -> f32 {
-        self.weapon_hull
+        self.borrow().weapon_hull
     }
 
     fn weapon_hull_armor(&self) -> f32 {
-        self.weapon_hull_armor
+        self.borrow().weapon_hull_armor
     }
 
     fn weapon_shield(&self) -> f32 {
-        self.weapon_shield
+        self.borrow().weapon_shield
     }
 
     fn weapon_shield_armor(&self) -> f32 {
-        self.weapon_shield_armor
+        self.borrow().weapon_shield_armor
     }
 
     fn weapon_visible_range_multiplier(&self) -> f32 {
-        self.weapon_visible_range_multiplier
+        self.borrow().weapon_visible_range_multiplier
     }
 
     fn weapon_gravity(&self) -> f32 {
-        self.weapon_gravity
+        self.borrow().weapon_gravity
     }
 
     fn weapon_size(&self) -> f32 {
-        self.weapon_size
+        self.borrow().weapon_size
     }
 
     fn weapon_production(&self) -> f32 {
-        self.weapon_production
+        self.borrow().weapon_production
     }
 
     fn weapon_production_load(&self) -> f32 {
-        self.weapon_production_load
+        self.borrow().weapon_production_load
     }
 
     fn weapon_sub_directions(&self) -> u8 {
-        self.weapon_sub_directions
+        self.borrow().weapon_sub_directions
     }
 
     fn weapon_sub_directions_length(&self) -> f32 {
-        self.weapon_sub_directions_length
+        self.borrow().weapon_sub_directions_length
     }
 
     fn builder_time(&self) -> f32 {
-        self.builder_time
+        self.borrow().builder_time
     }
 
     fn builder_time_factory_energy(&self) -> f32 {
-        self.builder_time_factory_energy
+        self.borrow().builder_time_factory_energy
     }
 
     fn builder_time_factory_particles(&self) -> f32 {
-        self.builder_time_factory_particles
+        self.borrow().builder_time_factory_particles
     }
 
     fn builder_time_factory_ions(&self) -> f32 {
-        self.builder_time_factory_ions
+        self.borrow().builder_time_factory_ions
     }
 
     fn builder_capabilities(&self) -> &Vec<UnitKind> {
-        &self.builder_capabilities
+        &self.borrow().builder_capabilities
     }
 
     fn energy_transfer_energy(&self) -> &EnergyCost {
-        &self.energy_transfer_energy
+        &self.borrow().energy_transfer_energy
     }
 
     fn energy_transfer_particles(&self) -> &EnergyCost {
-        &self.energy_transfer_particles
+        &self.borrow().energy_transfer_particles
     }
 
     fn energy_transfer_ions(&self) -> &EnergyCost {
-        &self.energy_transfer_ions
+        &self.borrow().energy_transfer_ions
     }
 
     fn cargo_slots(&self) -> u8 {
-        self.cargo_slots
+        self.borrow().cargo_slots
     }
 
     fn cargo_amount(&self) -> f32 {
-        self.cargo_amount
+        self.borrow().cargo_amount
     }
 
     fn crystal_converter(&self) -> &EnergyCost {
-        &self.crystal_converter
+        &self.borrow().crystal_converter
     }
 
     fn crystal_slots(&self) -> u8 {
-        self.crystal_slots
+        self.borrow().crystal_slots
     }
 
     fn tractor_beam(&self) -> &EnergyCost {
-        &self.tractor_beam
+        &self.borrow().tractor_beam
     }
 
     fn tractor_beam_range(&self) -> f32 {
-        self.tractor_beam_range
+        self.borrow().tractor_beam_range
     }
 
     fn scores(&self) -> &Arc<Scores> {
-        &self.scores
+        &self.borrow().scores
     }
 
     fn energy(&self) -> f32 {
-        self.energy
+        self.borrow().energy
     }
 
     fn particles(&self) -> f32 {
-        self.particles
+        self.borrow().particles
     }
 
     fn ions(&self) -> f32 {
-        self.ions
+        self.borrow().ions
     }
 
     fn hull(&self) -> f32 {
-        self.hull
+        self.borrow().hull
     }
 
     fn shield(&self) -> f32 {
-        self.shield
+        self.borrow().shield
     }
 
     fn build_position(&self) -> &Option<Vector> {
-        &self.build_position
+        &self.borrow().build_position
     }
 
     fn build_progress(&self) -> f32 {
-        self.build_progress
+        self.borrow().build_progress
     }
 
     fn is_building(&self) -> &Option<Weak<RwLock<Controllable>>> {
-        &self.is_building
+        &self.borrow().is_building
     }
 
     fn is_built_by(&self) -> &Option<Weak<RwLock<Controllable>>> {
-        &self.is_built_by
+        &self.borrow().is_built_by
     }
 
     fn weapon_production_status(&self) -> f32 {
-        self.weapon_production_status
+        self.borrow().weapon_production_status
     }
 
     fn crystals(&self) -> Arc<Vec<Box<CrystalCargoItem>>> {
-        self.crystals.read().unwrap().clone()
+        self.borrow().crystals.read().unwrap().clone()
     }
 
     fn set_crystals(&self, crystals: Arc<Vec<Box<CrystalCargoItem>>>) {
-        *self.crystals.write().unwrap() = crystals;
+        *self.borrow().crystals.write().unwrap() = crystals;
     }
 
     fn cargo_items(&self) -> Arc<Vec<Box<CargoItem>>> {
-        self.cargo_items.read().unwrap().clone()
+        self.borrow().cargo_items.read().unwrap().clone()
     }
 
     fn set_cargo_items(&self, items: Arc<Vec<Box<CargoItem>>>) {
-        *self.cargo_items.write().unwrap() = items;
+        *self.borrow().cargo_items.write().unwrap() = items;
     }
 
     fn universe(&self) -> &Weak<RwLock<Universe>> {
-        &self.universe
+        &self.borrow().universe
     }
 
     fn haste_time(&self) -> u16 {
-        self.haste_time
+        self.borrow().haste_time
     }
 
     fn double_damage_time(&self) -> u16 {
-        self.double_damage_time
+        self.borrow().double_damage_time
     }
 
     fn quad_damage_time(&self) -> u16 {
-        self.quad_damage_time
+        self.borrow().quad_damage_time
     }
 
     fn cloak_time(&self) -> u16 {
-        self.cloak_time
+        self.borrow().cloak_time
     }
 
     fn connector(&self) -> &Weak<Connector> {
-        &self.connector
+        &self.borrow().connector
     }
 
     fn active(&self) -> bool {
-        self.active
+        self.borrow().active
     }
 
     fn pending_shutdown(&self) -> bool {
-        self.pending_shutdown
+        self.borrow().pending_shutdown
     }
 
     fn scan_list(&self) -> &RwLock<Vec<Box<Unit>>> {
-        &self.scan_list
+        &self.borrow().scan_list
     }
 }
 
