@@ -7,7 +7,6 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
-use std::sync::RwLockReadGuard;
 
 use Downcast;
 
@@ -17,6 +16,7 @@ use Scores;
 use Vector;
 use Universe;
 use Connector;
+use UniversalEnumerable;
 
 use unit::Unit;
 use unit::UnitKind;
@@ -28,8 +28,8 @@ use item::CrystalCargoItem;
 use controllable::EnergyCost;
 use controllable::ScanEnergyCost;
 use controllable::WeaponEnergyCost;
-
 use controllable::SubDirection;
+
 
 use net::Packet;
 use net::BinaryReader;
@@ -1249,5 +1249,11 @@ impl Controllable for ControllableData {
 impl Display for Controllable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}@{}, rev: {}, id: {}", self.name(), self.class(), self.revision(), self.id())
+    }
+}
+
+impl UniversalEnumerable for Controllable {
+    fn name(&self) -> &str {
+        self.name()
     }
 }

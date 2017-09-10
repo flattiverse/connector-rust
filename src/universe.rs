@@ -8,10 +8,8 @@ use Connector;
 use UniverseGroup;
 use UniversalEnumerable;
 
-use unit::Unit;
 use net::Packet;
 use net::BinaryReader;
-use event::UniverseEvent;
 
 
 /// This implementation does not provide administrative
