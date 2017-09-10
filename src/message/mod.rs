@@ -7,6 +7,7 @@ mod binary_chat_message;
 mod unicast_chat_message;
 mod team_cast_chat_message;
 mod broad_cast_chat_message;
+mod player_unit_reset_message;
 mod player_unit_deceased_message;
 mod player_unit_logged_off_message;
 mod player_unit_shot_by_unit_message;
@@ -23,6 +24,7 @@ pub use self::binary_chat_message::*;
 pub use self::unicast_chat_message::*;
 pub use self::team_cast_chat_message::*;
 pub use self::broad_cast_chat_message::*;
+pub use self::player_unit_reset_message::*;
 pub use self::player_unit_deceased_message::*;
 pub use self::player_unit_logged_off_message::*;
 pub use self::player_unit_shot_by_unit_message::*;
@@ -93,6 +95,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x13 => Ok(Box::new(PlayerUnitShotByUnitMessageData             ::from_packet(connector, packet, reader)?)),
         0x14 => Ok(Box::new(PlayerUnitShotByPlayerUnitMessageData       ::from_packet(connector, packet, reader)?)),
         0x15 => Ok(Box::new(PlayerUnitLoggedOffMessageData              ::from_packet(connector, packet, reader)?)),
+        0x16 => Ok(Box::new(PlayerUnitResetMessageData                  ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
