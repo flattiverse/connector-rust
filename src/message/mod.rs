@@ -9,8 +9,10 @@ mod gate_switched_message;
 mod team_cast_chat_message;
 mod broad_cast_chat_message;
 mod player_unit_reset_message;
+mod tournament_status_message;
 mod player_unit_jumped_message;
 mod player_unit_deceased_message;
+mod universe_group_reset_message;
 mod player_unit_continued_message;
 mod player_unit_logged_off_message;
 mod mission_target_available_message;
@@ -43,8 +45,10 @@ pub use self::gate_switched_message::*;
 pub use self::team_cast_chat_message::*;
 pub use self::broad_cast_chat_message::*;
 pub use self::player_unit_reset_message::*;
+pub use self::tournament_status_message::*;
 pub use self::player_unit_jumped_message::*;
 pub use self::player_unit_deceased_message::*;
+pub use self::universe_group_reset_message::*;
 pub use self::player_unit_continued_message::*;
 pub use self::player_unit_logged_off_message::*;
 pub use self::mission_target_available_message::*;
@@ -150,6 +154,8 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x52 => Ok(Box::new(PlayerDroppedFromUniverseGroupMessageData   ::from_packet(connector, packet, reader)?)),
         0x53 => Ok(Box::new(PlayerKickedFromUniverseGroupMessageData    ::from_packet(connector, packet, reader)?)),
         0x60 => Ok(Box::new(UniverseGroupResetPendingMessageData        ::from_packet(connector, packet, reader)?)),
+        0x61 => Ok(Box::new(UniverseGroupResetMessageData               ::from_packet(connector, packet, reader)?)),
+        0x62 => Ok(Box::new(TournamentStatusMessageData                 ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
