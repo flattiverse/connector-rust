@@ -24,6 +24,7 @@ mod target_dedomination_started_message;
 mod player_joined_universe_group_message;
 mod player_parted_universe_group_message;
 mod player_unit_hit_enemy_target_message;
+mod universe_group_reset_pending_message;
 mod player_unit_committed_suicide_message;
 mod player_dropped_universe_group_message;
 mod player_unit_hit_mission_target_message;
@@ -57,6 +58,7 @@ pub use self::target_dedomination_started_message::*;
 pub use self::player_joined_universe_group_message::*;
 pub use self::player_parted_universe_group_message::*;
 pub use self::player_unit_hit_enemy_target_message::*;
+pub use self::universe_group_reset_pending_message::*;
 pub use self::player_unit_committed_suicide_message::*;
 pub use self::player_dropped_universe_group_message::*;
 pub use self::player_unit_hit_mission_target_message::*;
@@ -147,6 +149,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x51 => Ok(Box::new(PlayerPartedUniverseGroupMessageData        ::from_packet(connector, packet, reader)?)),
         0x52 => Ok(Box::new(PlayerDroppedFromUniverseGroupMessageData   ::from_packet(connector, packet, reader)?)),
         0x53 => Ok(Box::new(PlayerKickedFromUniverseGroupMessageData    ::from_packet(connector, packet, reader)?)),
+        0x60 => Ok(Box::new(UniverseGroupResetPendingMessageData        ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
