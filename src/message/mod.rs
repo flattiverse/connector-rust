@@ -34,7 +34,7 @@ pub struct FlattiverseMessageData {
 }
 
 impl FlattiverseMessageData {
-    fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<FlattiverseMessageData, Error> {
+    fn from_packet(_: &Arc<Connector>, _: &Packet, reader: &mut BinaryReader) -> Result<FlattiverseMessageData, Error> {
         Ok(FlattiverseMessageData {
             timestamp: DateTime::from_ticks(reader.read_i64()?),
         })
