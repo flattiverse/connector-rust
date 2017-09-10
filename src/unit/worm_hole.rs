@@ -40,16 +40,17 @@ impl WormHoleData {
         let vector;
         let dest;
 
-        if reader.read_byte() == 0x00 {
-            vector = Some(Vector::from_reader(reader));
+        if reader.read_byte()? == 0x00 {
+            vector = Some(Vector::from_reader(reader)?);
             dest   = Weak::default();
 
         } else {
             vector = None;
-            dest   = connector
-                .player().upgrade().ok_or(Error::PlayerNotAvailable)?.read()?
-                .universe_group().upgrade().ok_or(Error::PlayerNotAvailable)?.read()?
-                .universe(reader.read_unsigned_byte()?);
+            let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+            let player = player.read()?;
+            let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotAvailable)?;
+            let group  = group.read()?;
+            dest   = group.universe(reader.read_unsigned_byte()?)
         }
 
         Ok(WormHoleData {

@@ -32,7 +32,6 @@ pub use self::controllable::*;
 
 
 use std::sync::Arc;
-use std::sync::RwLock;
 
 use Error;
 use Connector;

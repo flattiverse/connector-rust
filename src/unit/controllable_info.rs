@@ -40,8 +40,8 @@ pub struct ControllableInfo {
     hull:           f32,
     shield:         f32,
     build_progress: f32,
-    is_building:    Weak<RwLock<Box<ControllableInfo>>>,
-    is_built_by:    Weak<RwLock<Box<ControllableInfo>>>,
+    is_building:    Weak<RwLock<ControllableInfo>>,
+    is_built_by:    Weak<RwLock<ControllableInfo>>,
 
     active:             bool,
     pending_shutdown:   bool,
@@ -186,13 +186,13 @@ impl ControllableInfo {
 
     /// The [ControllableInfo] currently built
     /// by this [ControllableInfo]
-    pub fn build_target(&self) -> &Weak<RwLock<Box<ControllableInfo>>> {
+    pub fn build_target(&self) -> &Weak<RwLock<ControllableInfo>> {
         &self.is_building
     }
 
     /// The [ControllableInfo] currently
     /// building this [ControllableInfo]
-    pub fn built_by(&self) -> &Weak<RwLock<Box<ControllableInfo>>> {
+    pub fn built_by(&self) -> &Weak<RwLock<ControllableInfo>> {
         &self.is_built_by
     }
 

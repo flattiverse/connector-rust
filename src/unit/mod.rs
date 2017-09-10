@@ -34,6 +34,7 @@ mod storm_whirl;
 mod ai_platform;
 mod player_unit;
 mod player_ship;
+mod player_base;
 mod player_probe;
 mod player_drone;
 mod pixel_cluster;
@@ -92,6 +93,7 @@ pub use self::storm_whirl::*;
 pub use self::ai_platform::*;
 pub use self::player_unit::*;
 pub use self::player_ship::*;
+pub use self::player_base::*;
 pub use self::player_probe::*;
 pub use self::player_drone::*;
 pub use self::pixel_cluster::*;
@@ -148,7 +150,7 @@ pub fn unit_from_packet(connector: &Arc<Connector>, universe_group: &UniverseGro
         0x61 /*  97 */ => Arc::new(RwLock::new(GateData             ::from_reader(connector, universe_group, packet, reader)?)),
         0x62 /*  98 */ => Arc::new(RwLock::new(StormData            ::from_reader(connector, universe_group, packet, reader)?)),
         0x63 /*  99 */ => Arc::new(RwLock::new(StormWhirlData       ::from_reader(connector, universe_group, packet, reader)?)),
-        0x64 /* 100 */ => Arc::new(RwLock::new(StormCommencingWhirl ::from_reader(connector, universe_group, packet, reader)?)),
+        0x64 /* 100 */ => Arc::new(RwLock::new(StormCommencingWhirlData      ::from_reader(connector, universe_group, packet, reader)?)),
         0x68 /* 104 */ => Arc::new(RwLock::new(PixelData            ::from_reader(connector, universe_group, packet, reader)?)),
         0x69 /* 105 */ => Arc::new(RwLock::new(PixelClusterData     ::from_reader(connector, universe_group, packet, reader)?)),
         0x70 /* 112 */ => Arc::new(RwLock::new(EnergyRefreshingPowerUpData          ::from_reader(connector, universe_group, packet, reader)?)),
@@ -170,7 +172,7 @@ pub fn unit_from_packet(connector: &Arc<Connector>, universe_group: &UniverseGro
         0xA8 /* 168 */ => Arc::new(RwLock::new(AiShipData                   ::from_reader(connector, universe_group, packet, reader)?)),
         0xA9 /* 169 */ => Arc::new(RwLock::new(AiPlatformData               ::from_reader(connector, universe_group, packet, reader)?)),
         0xAA /* 170 */ => Arc::new(RwLock::new(AiProbeData                  ::from_reader(connector, universe_group, packet, reader)?)),
-        0xAB /* 171 */ => Arc::new(RwLock::new(AiDronData                   ::from_reader(connector, universe_group, packet, reader)?)),
+        0xAB /* 171 */ => Arc::new(RwLock::new(AiDroneData                  ::from_reader(connector, universe_group, packet, reader)?)),
         0xAC /* 172 */ => Arc::new(RwLock::new(AiBaseData                   ::from_reader(connector, universe_group, packet, reader)?)),
         id@_ => return Err(Error::UnknownUnitType(id)),
     })

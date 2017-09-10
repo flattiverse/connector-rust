@@ -32,7 +32,7 @@ impl NebulaData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<NebulaData, Error> {
         Ok(NebulaData {
             unit:  UnitData::from_reader(connector, universe_group, packet, reader)?,
-            color: Color::from_hue(reader.read_single()?),
+            color: Color::from_hue(reader.read_single()?)?,
         })
     }
 }

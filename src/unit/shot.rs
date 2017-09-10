@@ -9,10 +9,16 @@ use Error;
 use Player;
 use Connector;
 use UniverseGroup;
+use UniversalEnumerable;
+
 use unit::Unit;
 use unit::UnitData;
 use unit::UnitKind;
+use unit::ControllableInfo;
+
+use controllable;
 use controllable::SubDirection;
+
 use net::Packet;
 use net::BinaryReader;
 
@@ -23,7 +29,7 @@ pub trait Shot : Unit {
     fn player(&self) -> &Weak<RwLock<Player>>;
 
     /// The [ControllableInfo] the fired the shot
-    fn controllable_info(&self) -> &Weak<RwLock<Player>>;
+    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>>;
 
     /// The [UnitKind] that fired the shot
     fn originator_kind(&self) -> UnitKind;
@@ -104,30 +110,30 @@ impl ShotData {
         let kind;
         let name;
         let player;
-        let info;
+        let info : Weak<RwLock<ControllableInfo>>;
 
         match reader.read_unsigned_byte()? {
             _|0 => {
                 kind    = UnitKind::Unknown;
                 name    = String::new();
                 player  = Weak::default();
-                info    = (Weak::new() as Weak<controllable::Empty>);
+                info    = Weak::new();
             },
             1 => {
                 kind    = UnitKind::from_id(reader.read_unsigned_byte()?);
                 name    = reader.read_string()?;
                 player  = Weak::default();
-                info    = (Weak::new() as Weak<controllable::Empty>);
+                info    = Weak::new();
             },
             2 => {
-                let p_strong = connector.player_for(reader.read_u16())?;
-                player  = Arc::downgrade(p_strong);
+                let p_strong = connector.player_for(reader.read_u16()?)?;
+                player  = Arc::downgrade(&p_strong);
                 let id  = reader.read_unsigned_byte()?;
                 let i_strong = p_strong.read()?.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
-                info = Arc::downgrade(i_strong);
+                info = Arc::downgrade(&i_strong);
                 let i_read = i_strong.read()?;
                 kind    = i_read.kind();
-                name    = i_read.name().into_string();
+                name    = String::from(i_read.name());
             }
         }
 
@@ -184,7 +190,7 @@ impl<T: 'static + Borrow<ShotData> + BorrowMut<ShotData> + Unit> Shot for  T {
         &self.borrow().player
     }
 
-    fn controllable_info(&self) -> &Weak<RwLock<Player>> {
+    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>> {
         &self.borrow().info
     }
 

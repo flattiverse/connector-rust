@@ -1,29 +1,15 @@
 
-use std::mem;
-
-use std::fmt;
-use std::fmt::Display;
-
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
-use Downcast;
-
-
-use Error;
 use Scores;
 use Vector;
 use Universe;
 use Connector;
-use UniversalEnumerable;
 
 use unit::Unit;
 use unit::UnitKind;
-use unit::ScanInfo;
 
 use item::CargoItem;
 use item::CrystalCargoItem;
@@ -32,7 +18,6 @@ use controllable::Controllable;
 use controllable::EnergyCost;
 use controllable::ScanEnergyCost;
 use controllable::WeaponEnergyCost;
-use controllable::SubDirection;
 
 
 

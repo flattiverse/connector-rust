@@ -6,6 +6,7 @@ use std::borrow::BorrowMut;
 use Error;
 use Connector;
 use UniverseGroup;
+use unit::UnitData;
 use unit::PlayerUnit;
 use unit::PlayerUnitData;
 use unit::UnitKind;
@@ -43,7 +44,17 @@ impl BorrowMut<PlayerUnitData> for PlayerShipData {
         &mut self.unit
     }
 }
+impl Borrow<UnitData> for PlayerShipData {
+    fn borrow(&self) -> &UnitData {
+        self.borrow()
+    }
+}
+impl BorrowMut<UnitData> for PlayerShipData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.borrow_mut()
+    }
+}
 
-impl<T: 'static + Borrow<PlayerShipData> + BorrowMut<PlayerShipData> + PlayerUnit> PlayerShip for  T {
+impl<T: Borrow<PlayerShipData> + BorrowMut<PlayerShipData> + PlayerUnit> PlayerShip for  T {
 
 }

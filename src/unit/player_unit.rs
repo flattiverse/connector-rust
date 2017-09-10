@@ -6,12 +6,12 @@ use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
 use Error;
+use Player;
 use Connector;
 use UniverseGroup;
 
 use unit::Unit;
 use unit::UnitData;
-use unit::UnitKind;
 use unit::ControllableInfo;
 use unit::PlayerUnitTractorbeamInfo;
 
@@ -31,7 +31,7 @@ pub trait PlayerUnit : Unit {
 pub struct PlayerUnitData {
     unit:   UnitData,
     player: Weak<RwLock<Player>>,
-    c_info:   Option<ControllableInfo>,
+    c_info:   Weak<RwLock<ControllableInfo>>,
     b_info:   Option<PlayerUnitTractorbeamInfo>,
 }
 
@@ -44,11 +44,11 @@ impl PlayerUnitData {
                 let player = connector.player_for(reader.read_u16()?)?;
                 let player = player.read()?;
                 let id = reader.read_unsigned_byte()?;
-                let info = player.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?
-                Arc::downgrade(info)
+                let info = player.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
+                Arc::downgrade(&info)
             },
             b_info:   {
-                if reader.read_byte() == 1 {
+                if reader.read_byte()? == 1 {
                     Some(PlayerUnitTractorbeamInfo::for_reader(reader)?)
                 } else {
                     None
@@ -77,10 +77,10 @@ impl<T: 'static + Borrow<PlayerUnitData> + BorrowMut<PlayerUnitData> + Unit> Pla
     }
 
     fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>> {
-
+        &self.borrow().c_info
     }
 
     fn tractorbam_info(&self) -> &Option<PlayerUnitTractorbeamInfo> {
-
+        &self.borrow().b_info
     }
 }

@@ -60,7 +60,7 @@ pub struct UnitData {
     pub(crate) movement: Vector,
     pub(crate) radius: f32,
     pub(crate) gravity: f32,
-    pub(crate) team: Option<Arc<RwLock<Team>>>,
+    pub(crate) team: Weak<RwLock<Team>>,
     pub(crate) solid: bool,
     pub(crate) masking: bool,
     pub(crate) visible: bool,
@@ -73,7 +73,7 @@ pub struct UnitData {
 
 impl UnitData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<UnitData, Error> {
-        let team = universe_group.team(packet.path_sub()).clone();
+        let team = universe_group.team_weak(packet.path_sub());
 
         let name = reader.read_string()?;
         let radius = reader.read_single()?;
@@ -142,7 +142,7 @@ impl UnitData {
             mobility,
 
             // hardcoded
-            team: None,
+            team: Weak::default(),
             orbiting: false,
             orbiting_center: None,
             orbiting_state:  None,
@@ -171,7 +171,7 @@ impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData>> Unit for T {
         self.borrow().gravity
     }
 
-    fn team(&self) -> &Option<Arc<RwLock<Team>>> {
+    fn team(&self) -> &Weak<RwLock<Team>> {
         &self.borrow().team
     }
 

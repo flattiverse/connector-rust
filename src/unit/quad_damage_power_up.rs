@@ -7,6 +7,7 @@ use Error;
 use Connector;
 use UniverseGroup;
 use unit::PowerUp;
+use unit::UnitData;
 use unit::PowerUpData;
 use unit::UnitKind;
 use net::Packet;
@@ -41,6 +42,16 @@ impl Borrow<PowerUpData> for QuadDamagePowerUpData {
 impl BorrowMut<PowerUpData> for QuadDamagePowerUpData {
     fn borrow_mut(&mut self) -> &mut PowerUpData {
         &mut self.unit
+    }
+}
+impl Borrow<UnitData> for QuadDamagePowerUpData {
+    fn borrow(&self) -> &UnitData {
+        self.borrow()
+    }
+}
+impl BorrowMut<UnitData> for QuadDamagePowerUpData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.borrow_mut()
     }
 }
 

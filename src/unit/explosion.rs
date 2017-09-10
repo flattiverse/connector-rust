@@ -9,6 +9,8 @@ use Error;
 use Player;
 use Connector;
 use UniverseGroup;
+use UniversalEnumerable;
+
 use unit::Unit;
 use unit::UnitData;
 use unit::UnitKind;
@@ -82,23 +84,23 @@ impl ExplosionData {
                 kind    = UnitKind::Unknown;
                 name    = String::new();
                 player  = Weak::default();
-                info    = (Weak::new() as Weak<controllable::Empty>);
+                info    = Weak::new();
             },
             1 => {
                 kind    = UnitKind::from_id(reader.read_unsigned_byte()?);
                 name    = reader.read_string()?;
                 player  = Weak::default();
-                info    = (Weak::new() as Weak<controllable::Empty>);
+                info    = Weak::new();
             },
             2 => {
-                let p_strong = connector.player_for(reader.read_u16())?;
-                player  = Arc::downgrade(p_strong);
+                let p_strong = connector.player_for(reader.read_u16()?)?;
+                player  = Arc::downgrade(&p_strong);
                 let id  = reader.read_unsigned_byte()?;
                 let i_strong = p_strong.read()?.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
-                info = Arc::downgrade(i_strong);
+                info = Arc::downgrade(&i_strong);
                 let i_read = i_strong.read()?;
                 kind    = i_read.kind();
-                name    = i_read.name().into_string();
+                name    = String::from(i_read.name());
             }
         }
 
@@ -146,7 +148,7 @@ impl<T: 'static + Borrow<ExplosionData> + BorrowMut<ExplosionData> + Unit> Explo
     }
 
     fn originator_name(&self) -> &str {
-        self.borrow().originator_name
+        &self.borrow().originator_name
     }
 
     fn damage_hull(&self) -> f32 {

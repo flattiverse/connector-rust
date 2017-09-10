@@ -6,6 +6,7 @@ use std::borrow::BorrowMut;
 use Error;
 use Connector;
 use UniverseGroup;
+use unit::UnitData;
 use unit::PowerUp;
 use unit::PowerUpData;
 use unit::UnitKind;
@@ -41,6 +42,16 @@ impl Borrow<PowerUpData> for HastePowerUpData {
 impl BorrowMut<PowerUpData> for HastePowerUpData {
     fn borrow_mut(&mut self) -> &mut PowerUpData {
         &mut self.unit
+    }
+}
+impl Borrow<UnitData> for HastePowerUpData {
+    fn borrow(&self) -> &UnitData {
+        self.borrow()
+    }
+}
+impl BorrowMut<UnitData> for HastePowerUpData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.borrow_mut()
     }
 }
 

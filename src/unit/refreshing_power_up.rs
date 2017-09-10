@@ -8,7 +8,6 @@ use Connector;
 use UniverseGroup;
 use unit::PowerUp;
 use unit::PowerUpData;
-use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 

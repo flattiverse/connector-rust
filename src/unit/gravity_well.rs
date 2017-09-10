@@ -13,10 +13,10 @@ pub struct GravityWell {
 
 impl GravityWell {
     pub fn from_reader(reader: &mut BinaryReader) -> Result<GravityWell, Error> {
-        GravityWell {
+        Ok(GravityWell {
             radius:     reader.read_single()?,
             movement:   reader.read_single()?,
-        }
+        })
     }
 
     pub fn radius(&self) -> f32 {
@@ -29,7 +29,7 @@ impl GravityWell {
 }
 
 impl fmt::Display for GravityWell {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmg::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} [G:{}]", self.radius, self.movement)
     }
 }

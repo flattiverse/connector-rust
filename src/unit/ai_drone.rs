@@ -7,6 +7,7 @@ use Error;
 use Connector;
 use UniverseGroup;
 use unit::AiUnit;
+use unit::UnitData;
 use unit::AiUnitData;
 use unit::UnitKind;
 use net::Packet;
@@ -41,6 +42,16 @@ impl Borrow<AiUnitData> for AiDroneData {
 impl BorrowMut<AiUnitData> for AiDroneData {
     fn borrow_mut(&mut self) -> &mut AiUnitData {
         &mut self.unit
+    }
+}
+impl Borrow<UnitData> for AiDroneData {
+    fn borrow(&self) -> &UnitData {
+        self.borrow()
+    }
+}
+impl BorrowMut<UnitData> for AiDroneData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.borrow_mut()
     }
 }
 

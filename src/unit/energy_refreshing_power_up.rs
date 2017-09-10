@@ -6,6 +6,7 @@ use std::borrow::BorrowMut;
 use Error;
 use Connector;
 use UniverseGroup;
+use unit::UnitData;
 use unit::RefreshingPowerUp;
 use unit::RefreshingPowerUpData;
 use unit::UnitKind;
@@ -14,7 +15,7 @@ use net::BinaryReader;
 
 impl_downcast!(EnergyRefreshingPowerUp);
 pub trait EnergyRefreshingPowerUp : RefreshingPowerUp {
-    fn kind(&self) -> RefreshingPowerUpKind {
+    fn kind(&self) -> UnitKind {
         UnitKind::EnergyPowerUp
     }
 }
@@ -41,6 +42,16 @@ impl Borrow<RefreshingPowerUpData> for EnergyRefreshingPowerUpData {
 impl BorrowMut<RefreshingPowerUpData> for EnergyRefreshingPowerUpData {
     fn borrow_mut(&mut self) -> &mut RefreshingPowerUpData {
         &mut self.unit
+    }
+}
+impl Borrow<UnitData> for EnergyRefreshingPowerUpData {
+    fn borrow(&self) -> &UnitData {
+        self.borrow()
+    }
+}
+impl BorrowMut<UnitData> for EnergyRefreshingPowerUpData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.borrow_mut()
     }
 }
 

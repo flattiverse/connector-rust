@@ -47,7 +47,7 @@ pub struct Player {
     active: bool,
     online: bool,
 
-    controllables: RwLock<UniversalHolder<Box<ControllableInfo>>>
+    controllables: RwLock<UniversalHolder<ControllableInfo>>
 }
 
 impl Player {

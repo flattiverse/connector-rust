@@ -207,6 +207,10 @@ impl UniverseGroup {
     pub fn team(&self, index: u8) -> &Option<Arc<RwLock<Team>>> {
         &None
     }
+
+    pub fn team_weak(&self, index: u8) -> Weak<RwLock<Team>> {
+        Weak::default()
+    }
 }
 
 impl PartialEq for UniverseGroup {

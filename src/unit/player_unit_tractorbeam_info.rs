@@ -12,12 +12,12 @@ pub struct PlayerUnitTractorbeamInfo {
 
 impl PlayerUnitTractorbeamInfo {
     pub fn for_reader(reader: &mut BinaryReader) -> Result<PlayerUnitTractorbeamInfo, Error> {
-        PlayerUnitTractorbeamInfo {
+        Ok(PlayerUnitTractorbeamInfo {
             direction:      reader.read_single()?,
             range:          reader.read_single()?,
             force:          reader.read_single()?,
             self_affected:  reader.read_byte()? == 1,
-        }
+        })
     }
 
     /// The direction of the tractor-beam. The tractor-beam is

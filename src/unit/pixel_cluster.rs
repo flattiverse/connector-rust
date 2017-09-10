@@ -1,4 +1,5 @@
 
+use std::io::Read;
 use std::sync::Arc;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
@@ -37,11 +38,13 @@ impl PixelClusterData {
                 let count = reader.read_unsigned_byte()?;
                 if count == 0 {
                     let mut vec = vec!(0u8; 768);
-                    reader.read_exact(&vec[..])?;
+                    reader.read_exact(&mut vec[..])?;
                     vec
 
                 } else {
-                    let mut decoder = GzDecoder::new(reader.read_bytes_available(count)?)?;
+                    let bytes = reader.read_bytes_available(count as usize)?;
+                    let mut read = &mut &bytes[..] as &mut Read;
+                    let mut decoder = GzDecoder::new(read)?;
                     let mut vec = Vec::new();
                     decoder.read_to_end(&mut vec)?;
                     vec
@@ -66,6 +69,6 @@ impl BorrowMut<UnitData> for PixelClusterData {
 
 impl<T: 'static + Borrow<PixelClusterData> + BorrowMut<PixelClusterData> + Unit> PixelCluster for  T {
     fn data(&self) -> &Vec<u8> {
-        &mut
+        &self.borrow().data
     }
 }
