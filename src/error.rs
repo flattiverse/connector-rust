@@ -36,6 +36,7 @@ pub enum Error {
     ControllableNotAvailable,
     PlayerNotAvailable,
     PlayerNotInUniverseGroup,
+    TeamNotAvailable,
     ControllableInfoNotAvailable,
     InvalidMessage,
     InvalidMessageList,
