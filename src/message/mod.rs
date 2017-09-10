@@ -13,6 +13,7 @@ mod player_unit_continued_message;
 mod player_unit_logged_off_message;
 mod mission_target_available_message;
 mod player_unit_shot_by_unit_message;
+mod target_domination_started_message;
 mod player_unit_shot_by_player_message;
 mod player_unit_hit_own_target_message;
 mod player_unit_hit_enemy_target_message;
@@ -36,6 +37,7 @@ pub use self::player_unit_continued_message::*;
 pub use self::player_unit_logged_off_message::*;
 pub use self::mission_target_available_message::*;
 pub use self::player_unit_shot_by_unit_message::*;
+pub use self::target_domination_started_message::*;
 pub use self::player_unit_shot_by_player_message::*;
 pub use self::player_unit_hit_own_target_message::*;
 pub use self::player_unit_hit_enemy_target_message::*;
@@ -117,6 +119,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x31 => Ok(Box::new(PlayerUnitHitOwnTargetMessageData           ::from_packet(connector, packet, reader)?)),
         0x32 => Ok(Box::new(PlayerUnitHitEnemyTargetMessageData         ::from_packet(connector, packet, reader)?)),
         0x33 => Ok(Box::new(MissionTargetAvailableMessageData           ::from_packet(connector, packet, reader)?)),
+        0x34 => Ok(Box::new(TargetDominationStartedMessageData          ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
