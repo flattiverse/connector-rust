@@ -16,7 +16,8 @@ use message::ChatMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-pub trait UnicastChatMessage: ChatMessage {
+impl_downcast!(UnicastChatMessage);
+pub trait UnicastChatMessage : ChatMessage {
 
     fn to(&self) -> &Arc<RwLock<Player>>;
 

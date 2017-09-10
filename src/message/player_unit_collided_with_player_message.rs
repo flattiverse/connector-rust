@@ -24,6 +24,7 @@ use message::PlayerUnitDeceasedMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
+impl_downcast!(PlayerUnitCollidedWithPlayerUnitMessage);
 pub trait PlayerUnitCollidedWithPlayerUnitMessage : PlayerUnitDeceasedMessage {
 
     fn collider_unit_player(&self) -> &Arc<RwLock<Player>>;

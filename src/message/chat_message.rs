@@ -16,6 +16,7 @@ use net::Packet;
 use net::BinaryReader;
 
 
+impl_downcast!(ChatMessage);
 pub trait ChatMessage : FlattiverseMessage {
     fn from(&self) -> &Arc<RwLock<Player>>;
 }

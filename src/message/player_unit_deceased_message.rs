@@ -21,6 +21,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
+impl_downcast!(PlayerUnitDeceasedMessage);
 pub trait PlayerUnitDeceasedMessage : GameMessage {
 
     fn deceased_player_unit_player(&self) -> &Arc<RwLock<Player>>;
