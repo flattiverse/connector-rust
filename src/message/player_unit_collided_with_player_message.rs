@@ -9,10 +9,8 @@ use std::borrow::BorrowMut;
 use Error;
 use Player;
 use Connector;
-use UniverseGroup;
 use UniversalEnumerable;
 
-use unit::UnitKind;
 use unit::ControllableInfo;
 
 use net::Packet;

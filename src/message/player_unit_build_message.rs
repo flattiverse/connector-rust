@@ -1,8 +1,6 @@
 
 use std::fmt;
-use std::fmt::Write;
 use std::sync::Arc;
-use std::sync::Weak;
 use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
@@ -17,7 +15,6 @@ use net::BinaryReader;
 
 use message::GameMessage;
 use message::GameMessageData;
-use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
 impl_downcast!(PlayerUnitBuildMessage);
@@ -96,7 +93,7 @@ impl<T: 'static + Borrow<PlayerUnitBuildMessageData> + BorrowMut<PlayerUnitBuild
 }
 
 impl fmt::Display for PlayerUnitBuildMessageData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
         unimplemented!();
     }
 }

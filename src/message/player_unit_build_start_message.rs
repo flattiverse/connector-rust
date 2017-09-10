@@ -1,24 +1,17 @@
 
 use std::fmt;
-use std::fmt::Write;
 use std::sync::Arc;
-use std::sync::Weak;
-use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
-use Player;
 use UniversalEnumerable;
-use unit::ControllableInfo;
 
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
 use message::GameMessageData;
-use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 use message::PlayerUnitBuildMessage;
 use message::PlayerUnitBuildMessageData;

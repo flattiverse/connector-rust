@@ -1,12 +1,10 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
 use Error;
-use Player;
 use Connector;
 
 use message::FlattiverseMessage;

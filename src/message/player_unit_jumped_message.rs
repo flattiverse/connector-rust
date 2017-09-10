@@ -1,18 +1,12 @@
 
 use std::fmt;
-use std::fmt::Write;
 use std::sync::Arc;
-use std::sync::Weak;
 use std::sync::RwLock;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 
-use Team;
 use Error;
-use Player;
 use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
 
 use controllable::Controllable;
 

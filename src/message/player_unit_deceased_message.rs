@@ -8,8 +8,6 @@ use std::borrow::BorrowMut;
 use Error;
 use Player;
 use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
 
 use unit::ControllableInfo;
 
@@ -18,7 +16,6 @@ use net::BinaryReader;
 
 use message::GameMessage;
 use message::GameMessageData;
-use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
 impl_downcast!(PlayerUnitDeceasedMessage);
@@ -83,7 +80,7 @@ impl<T: 'static + Borrow<PlayerUnitDeceasedMessageData> + BorrowMut<PlayerUnitDe
 }
 
 impl fmt::Display for PlayerUnitDeceasedMessageData {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
         unimplemented!()
     }
 }

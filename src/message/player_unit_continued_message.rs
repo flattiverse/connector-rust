@@ -9,7 +9,6 @@ use std::borrow::BorrowMut;
 use Error;
 use Player;
 use Connector;
-use UniverseGroup;
 use UniversalEnumerable;
 
 use unit::ControllableInfo;
