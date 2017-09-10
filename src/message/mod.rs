@@ -19,7 +19,7 @@ use net::BinaryReader;
 use dotnet::DateTime;
 
 
-pub trait FlattiverseMessage : Display {
+pub trait FlattiverseMessage : Display + Send + Sync {
     fn timestamp(&self) -> &DateTime;
 
     fn from_packet(connector: Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Self, Error> where Self:Sized;

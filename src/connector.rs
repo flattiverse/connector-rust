@@ -8,6 +8,8 @@ use std::sync::Weak;
 use std::sync::Mutex;
 use std::sync::RwLock;
 use std::sync::mpsc::channel;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::Receiver;
 
 use sha2::Digest;
 use sha2::Sha512;
@@ -50,7 +52,7 @@ pub struct Connector {
 }
 
 impl Connector {
-    pub fn new(email: &str, password: &str, compression_enabled: bool) -> Result<Arc<Connector>, Error> {
+    pub fn new(email: &str, password: &str, compression_enabled: bool) -> Result<(Arc<Connector>, Receiver<Box<FlattiverseMessage>>), Error> {
         // param check
         if email.len() < 6 || email.len() > 256 || password.is_empty() {
             return Err(Error::EmailAndOrPasswordInvalid);
@@ -71,6 +73,7 @@ impl Connector {
         */
 
         let (tx, rx) = channel();
+        let (message_sender, message_receiver) = channel();
 
         let connector = Connector {
             players: RwLock::new(UniversalHolder::new(IndexList::new(false, 512))),
@@ -89,6 +92,7 @@ impl Connector {
         thread::spawn(move || {
             // capture
             let connector = connector_thread;
+            let messages = message_sender;
             let rx = rx;
 
             loop {
@@ -101,7 +105,7 @@ impl Connector {
                     continue;
                 }
 
-                match Connector::handle_packet(&connector, &packet) {
+                match Connector::handle_packet(&connector, &packet, &messages) {
                     Ok(_) => {},
                     Err(ref e) => {
                         println!("Failed to handle message {:?}: {:?}", e, packet);
@@ -111,7 +115,7 @@ impl Connector {
         });
 
         connector.login(email, password, compression_enabled)?;
-        Ok(connector)
+        Ok((connector, message_receiver))
     }
 
     fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
@@ -158,7 +162,7 @@ impl Connector {
 
     }
 
-    fn handle_packet(connector: &Arc<Connector>, packet: &Packet) -> Result<(), Error> {
+    fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
         match packet.command() {
             0x01 => {
                 println!("Received ping request");
@@ -216,7 +220,8 @@ impl Connector {
                 match from_reader(connector.clone(), &packet) {
                     Err(e) => println!("Failed to decode message: {:?}", e),
                     Ok(message) => {
-                        println!("{}", message);
+                        // println!("{}", message);
+                        messages.send(message)?;
                     }
                 };
             },

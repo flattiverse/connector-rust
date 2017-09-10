@@ -1,10 +1,12 @@
 
 use std;
 use std::sync::PoisonError;
+use std::sync::mpsc::SendError;
 
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
+    SendError,
     EmailAndOrPasswordInvalid,
     RequestedPacketSizeIsInvalid{max: u32, was: u32},
     NoFreeSlots,
@@ -78,5 +80,11 @@ impl From<std::io::Error> for Error {
 impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Self {
         Error::PoisonError
+    }
+}
+
+impl<T> From<SendError<T>> for Error {
+    fn from(_: SendError<T>) -> Self {
+        Error::SendError
     }
 }
