@@ -21,6 +21,7 @@ use Error;
 use BlockManager;
 use IndexList;
 use Player;
+use UniverseGroup;
 use UniversalHolder;
 use UniverseGroupFlowControl;
 
@@ -354,6 +355,10 @@ impl Connector {
             Err(Error::TickIsGone) => Ok(false),
             Err(e) => Err(e)
         }
+    }
+
+    pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
+        unimplemented!()
     }
 
     pub fn crystals(&self, name: &str) -> Option<Arc<CrystalCargoItem>> {
