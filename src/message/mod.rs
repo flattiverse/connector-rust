@@ -10,6 +10,7 @@ mod broad_cast_chat_message;
 mod player_unit_deceased_message;
 mod player_unit_committed_suicide_message;
 mod player_unit_collided_with_unit_message;
+mod player_unit_collided_with_player_message;
 
 pub use self::motd_message::*;
 pub use self::game_message::*;
@@ -22,6 +23,7 @@ pub use self::broad_cast_chat_message::*;
 pub use self::player_unit_deceased_message::*;
 pub use self::player_unit_committed_suicide_message::*;
 pub use self::player_unit_collided_with_unit_message::*;
+pub use self::player_unit_collided_with_player_message::*;
 
 
 
@@ -73,14 +75,15 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
     let reader = &mut packet.read() as &mut BinaryReader;
 
     match path_sub {
-        0x00 => Ok(Box::new(SystemMessageData                       ::from_packet(connector, packet, reader)?)),
-        0x01 => Ok(Box::new(UnicastChatMessageData                  ::from_packet(connector, packet, reader)?)),
-        0x02 => Ok(Box::new(TeamCastChatMessageData                 ::from_packet(connector, packet, reader)?)),
-        0x03 => Ok(Box::new(BroadCastChatMessageData                ::from_packet(connector, packet, reader)?)),
-        0x04 => Ok(Box::new(BroadCastChatMessageData                ::from_packet(connector, packet, reader)?)),
-        0x08 => Ok(Box::new(MOTDMessageData                         ::from_packet(connector, packet, reader)?)),
-        0x10 => Ok(Box::new(PlayerUnitCommittedSuicideMessageData   ::from_packet(connector, packet, reader)?)),
-        0x11 => Ok(Box::new(PlayerUnitCollidedWithUnitMessageData   ::from_packet(connector, packet, reader)?)),
+        0x00 => Ok(Box::new(SystemMessageData                           ::from_packet(connector, packet, reader)?)),
+        0x01 => Ok(Box::new(UnicastChatMessageData                      ::from_packet(connector, packet, reader)?)),
+        0x02 => Ok(Box::new(TeamCastChatMessageData                     ::from_packet(connector, packet, reader)?)),
+        0x03 => Ok(Box::new(BroadCastChatMessageData                    ::from_packet(connector, packet, reader)?)),
+        0x04 => Ok(Box::new(BroadCastChatMessageData                    ::from_packet(connector, packet, reader)?)),
+        0x08 => Ok(Box::new(MOTDMessageData                             ::from_packet(connector, packet, reader)?)),
+        0x10 => Ok(Box::new(PlayerUnitCommittedSuicideMessageData       ::from_packet(connector, packet, reader)?)),
+        0x11 => Ok(Box::new(PlayerUnitCollidedWithUnitMessageData       ::from_packet(connector, packet, reader)?)),
+        0x12 => Ok(Box::new(PlayerUnitCollidedWithPlayerUnitMessageData ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
