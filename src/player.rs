@@ -415,15 +415,15 @@ impl Player {
         self
     }
 
-    pub fn controllable_info_list(&self) -> &RwLock<UniversalHolder<Box<ControllableInfo>>> {
+    pub fn controllable_info_list(&self) -> &RwLock<UniversalHolder<ControllableInfo>> {
         &self.controllables
     }
 
-    pub fn controllable_info(&self, index: u8) -> Option<Arc<RwLock<Box<ControllableInfo>>>> {
+    pub fn controllable_info(&self, index: u8) -> Option<Arc<RwLock<ControllableInfo>>> {
         self.controllables.read().unwrap().get_for_index(index as usize)
     }
 
-    pub(crate) fn set_controllable_info(&mut self, index: u8, value: Option<Arc<RwLock<Box<ControllableInfo>>>>) -> &mut Self {
+    pub(crate) fn set_controllable_info(&mut self, index: u8, value: Option<Arc<RwLock<ControllableInfo>>>) -> &mut Self {
         self.controllables.write().unwrap().set(index as usize, value);
         self
     }

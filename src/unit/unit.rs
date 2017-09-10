@@ -32,7 +32,7 @@ pub trait Unit : Downcast {
 
     fn gravity(&self) -> f32;
 
-    fn team(&self) -> &Option<Arc<RwLock<Team>>>;
+    fn team(&self) -> &Weak<RwLock<Team>>;
 
     fn solid(&self) -> bool;
 

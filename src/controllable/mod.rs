@@ -9,6 +9,7 @@ mod base;
 mod ship;
 mod drone;
 mod probe;
+mod empty;
 mod platform;
 mod controllable;
 
@@ -23,6 +24,7 @@ pub use self::base::*;
 pub use self::ship::*;
 pub use self::drone::*;
 pub use self::probe::*;
+pub use self::empty::*;
 pub use self::platform::*;
 pub use self::controllable::*;
 
