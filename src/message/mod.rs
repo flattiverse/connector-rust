@@ -15,6 +15,7 @@ mod player_unit_shot_by_player_message;
 mod player_unit_committed_suicide_message;
 mod player_unit_collided_with_unit_message;
 mod player_unit_collided_with_player_message;
+mod player_unit_deceased_by_bad_hull_refreshing_power_up_message;
 
 pub use self::motd_message::*;
 pub use self::game_message::*;
@@ -32,6 +33,7 @@ pub use self::player_unit_shot_by_player_message::*;
 pub use self::player_unit_committed_suicide_message::*;
 pub use self::player_unit_collided_with_unit_message::*;
 pub use self::player_unit_collided_with_player_message::*;
+pub use self::player_unit_deceased_by_bad_hull_refreshing_power_up_message::*;
 
 
 
@@ -96,6 +98,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x14 => Ok(Box::new(PlayerUnitShotByPlayerUnitMessageData       ::from_packet(connector, packet, reader)?)),
         0x15 => Ok(Box::new(PlayerUnitLoggedOffMessageData              ::from_packet(connector, packet, reader)?)),
         0x16 => Ok(Box::new(PlayerUnitResetMessageData                  ::from_packet(connector, packet, reader)?)),
+        0x17 => Ok(Box::new(PlayerUnitDeceasedByBadHullRefreshingPowerUpMessageData ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
