@@ -300,7 +300,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn set_crystals(&self, crystals: Arc<Vec<Box<CrystalCargoItem>>>) {
+    fn set_crystals(&self, _: Arc<Vec<Box<CrystalCargoItem>>>) {
         unimplemented!()
     }
 
@@ -308,7 +308,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn set_cargo_items(&self, items: Arc<Vec<Box<CargoItem>>>) {
+    fn set_cargo_items(&self, _: Arc<Vec<Box<CargoItem>>>) {
         unimplemented!()
     }
 

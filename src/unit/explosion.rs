@@ -17,7 +17,6 @@ use unit::UnitKind;
 use unit::ControllableInfo;
 use net::Packet;
 use net::BinaryReader;
-use controllable;
 
 impl_downcast!(Explosion);
 pub trait Explosion : Unit {
@@ -80,12 +79,6 @@ impl ExplosionData {
         let info;
 
         match reader.read_unsigned_byte()? {
-            _|0 => {
-                kind    = UnitKind::Unknown;
-                name    = String::new();
-                player  = Weak::default();
-                info    = Weak::new();
-            },
             1 => {
                 kind    = UnitKind::from_id(reader.read_unsigned_byte()?);
                 name    = reader.read_string()?;
@@ -101,7 +94,13 @@ impl ExplosionData {
                 let i_read = i_strong.read()?;
                 kind    = i_read.kind();
                 name    = String::from(i_read.name());
-            }
+            },
+            _ => {
+                kind    = UnitKind::Unknown;
+                name    = String::new();
+                player  = Weak::default();
+                info    = Weak::new();
+            },
         }
 
 

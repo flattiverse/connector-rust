@@ -46,12 +46,12 @@ impl BorrowMut<AiUnitData> for AiBaseData {
 }
 impl Borrow<UnitData> for AiBaseData {
     fn borrow(&self) -> &UnitData {
-        self.borrow()
+        self.unit.borrow()
     }
 }
 impl BorrowMut<UnitData> for AiBaseData {
     fn borrow_mut(&mut self) -> &mut UnitData {
-        self.borrow_mut()
+        self.unit.borrow_mut()
     }
 }
 

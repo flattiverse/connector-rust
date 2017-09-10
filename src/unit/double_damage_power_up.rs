@@ -46,12 +46,12 @@ impl BorrowMut<PowerUpData> for DoubleDamagePowerUpData {
 }
 impl Borrow<UnitData> for DoubleDamagePowerUpData {
     fn borrow(&self) -> &UnitData {
-        self.borrow()
+        self.unit.borrow()
     }
 }
 impl BorrowMut<UnitData> for DoubleDamagePowerUpData {
     fn borrow_mut(&mut self) -> &mut UnitData {
-        self.borrow_mut()
+        self.unit.borrow_mut()
     }
 }
 

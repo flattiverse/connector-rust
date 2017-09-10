@@ -15,8 +15,6 @@ use unit::Unit;
 use unit::UnitData;
 use unit::UnitKind;
 use unit::ControllableInfo;
-
-use controllable;
 use controllable::SubDirection;
 
 use net::Packet;
@@ -113,12 +111,6 @@ impl ShotData {
         let info : Weak<RwLock<ControllableInfo>>;
 
         match reader.read_unsigned_byte()? {
-            _|0 => {
-                kind    = UnitKind::Unknown;
-                name    = String::new();
-                player  = Weak::default();
-                info    = Weak::new();
-            },
             1 => {
                 kind    = UnitKind::from_id(reader.read_unsigned_byte()?);
                 name    = reader.read_string()?;
@@ -134,7 +126,13 @@ impl ShotData {
                 let i_read = i_strong.read()?;
                 kind    = i_read.kind();
                 name    = String::from(i_read.name());
-            }
+            },
+            _ => {
+                kind    = UnitKind::Unknown;
+                name    = String::new();
+                player  = Weak::default();
+                info    = Weak::new();
+            },
         }
 
         Ok(ShotData {

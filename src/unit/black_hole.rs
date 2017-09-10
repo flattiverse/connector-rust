@@ -35,7 +35,7 @@ impl BlackHoleData {
             wells: {
                 let mut vec = Vec::new();
                 let count = reader.read_unsigned_byte()?;
-                for i in 0..count {
+                for _ in 0..count {
                     vec.push(GravityWell::from_reader(reader)?);
                 }
                 vec

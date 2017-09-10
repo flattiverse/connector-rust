@@ -46,12 +46,12 @@ impl BorrowMut<RefreshingPowerUpData> for EnergyRefreshingPowerUpData {
 }
 impl Borrow<UnitData> for EnergyRefreshingPowerUpData {
     fn borrow(&self) -> &UnitData {
-        self.borrow()
+        self.unit.borrow()
     }
 }
 impl BorrowMut<UnitData> for EnergyRefreshingPowerUpData {
     fn borrow_mut(&mut self) -> &mut UnitData {
-        self.borrow_mut()
+        self.unit.borrow_mut()
     }
 }
 

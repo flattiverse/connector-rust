@@ -211,7 +211,7 @@ pub trait Controllable : Downcast {
             Some(connector) => connector,
         };
 
-        let group = match connector.player().upgrade() {
+        let _ = match connector.player().upgrade() {
             None => return Err(Error::PlayerNotAvailable),
             Some(player) => {
                 match player.read()?.universe_group().upgrade() {
@@ -278,7 +278,7 @@ pub trait Controllable : Downcast {
             let mut block = block.lock()?;
             packet.set_session(block.id());
 
-            connector.send(&packet);
+            connector.send(&packet)?;
             block.wait()?;
 
             let mut vec = Vec::new(); // replacement list
@@ -334,7 +334,7 @@ pub trait Controllable : Downcast {
             let mut block = block.lock()?;
 
             packet.set_session(block.id());
-            connector.send(&packet);
+            connector.send(&packet)?;
             block.wait()?.path_ship()
         };
 
@@ -605,7 +605,7 @@ pub trait Controllable : Downcast {
         let mut block = block.lock()?;
 
         packet.set_session(block.id());
-        connector.send(&packet);
+        connector.send(&packet)?;
 
         block.wait()?;
         Ok(())

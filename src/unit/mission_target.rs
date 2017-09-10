@@ -60,7 +60,7 @@ impl MissionTargetData {
             hints: {
                 let mut vec = Vec::new();
                 let count = reader.read_u16()?;
-                for i in 0..count {
+                for _ in 0..count {
                     vec.push(Vector::from_reader(reader)?);
                 }
                 vec

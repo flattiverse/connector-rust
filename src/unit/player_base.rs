@@ -46,12 +46,12 @@ impl BorrowMut<PlayerUnitData> for PlayerBaseData {
 }
 impl Borrow<UnitData> for PlayerBaseData {
     fn borrow(&self) -> &UnitData {
-        self.borrow()
+        self.unit.borrow()
     }
 }
 impl BorrowMut<UnitData> for PlayerBaseData {
     fn borrow_mut(&mut self) -> &mut UnitData {
-        self.borrow_mut()
+        self.unit.borrow_mut()
     }
 }
 

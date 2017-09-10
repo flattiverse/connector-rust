@@ -7,6 +7,7 @@ use Error;
 use Connector;
 use UniverseGroup;
 use unit::PowerUp;
+use unit::UnitData;
 use unit::PowerUpData;
 use net::Packet;
 use net::BinaryReader;
@@ -40,6 +41,16 @@ impl Borrow<PowerUpData> for RefreshingPowerUpData {
 impl BorrowMut<PowerUpData> for RefreshingPowerUpData {
     fn borrow_mut(&mut self) -> &mut PowerUpData {
         &mut self.unit
+    }
+}
+impl Borrow<UnitData> for RefreshingPowerUpData {
+    fn borrow(&self) -> &UnitData {
+        self.unit.borrow()
+    }
+}
+impl BorrowMut<UnitData> for RefreshingPowerUpData {
+    fn borrow_mut(&mut self) -> &mut UnitData {
+        self.unit.borrow_mut()
     }
 }
 

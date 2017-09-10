@@ -46,12 +46,12 @@ impl BorrowMut<RefreshingPowerUpData> for ShotProductionRefreshingPowerUpData {
 }
 impl Borrow<UnitData> for ShotProductionRefreshingPowerUpData {
     fn borrow(&self) -> &UnitData {
-        self.borrow()
+        self.unit.borrow()
     }
 }
 impl BorrowMut<UnitData> for ShotProductionRefreshingPowerUpData {
     fn borrow_mut(&mut self) -> &mut UnitData {
-        self.borrow_mut()
+        self.unit.borrow_mut()
     }
 }
 
