@@ -35,7 +35,7 @@ pub struct ControllableInfo {
     has_tractor_beam: bool,
 
     crystals: Vec<Weak<RwLock<Box<CrystalCargoItem>>>>,
-    scores:   Scores,
+    scores:   Arc<Scores>,
 
     hull:           f32,
     shield:         f32,
@@ -90,7 +90,7 @@ impl ControllableInfo {
             has_tractor_beam:       reader.read_bool()?,
 
             crystals:               Vec::new(),
-            scores:                 Scores::default(),
+            scores:                 Arc::new(Scores::default()),
             hull:                   0f32,
             shield:                 0f32,
             build_progress:         0f32,
@@ -248,7 +248,7 @@ impl ControllableInfo {
         self.has_tractor_beam
     }
 
-    pub fn scores(&self) -> &Scores {
+    pub fn scores(&self) -> &Arc<Scores> {
         &self.scores
     }
 

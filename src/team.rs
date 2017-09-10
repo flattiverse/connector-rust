@@ -74,7 +74,7 @@ impl Team {
             let uni_group = uni_group.read().unwrap();
             let player = connector.player();
 
-            match player {
+            match player.upgrade() {
                 None => return Err(Error::CannotSendMessageIntoAnotherUniverseGroup),
                 Some(ref player) => {
                     // TODO lots of unwrap...

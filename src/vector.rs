@@ -201,6 +201,13 @@ impl PartialEq for Vector {
     }
 }
 
+impl fmt::Debug for Vector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Vector: ")?;
+        (&self as &fmt::Display).fmt(f)
+    }
+}
+
 impl fmt::Display for Vector {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.damaged() {

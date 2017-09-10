@@ -112,7 +112,7 @@ impl Player {
                 connector.send(&packet)?;
                 let response = block.lock()?.wait()?;
 
-                match connector.player() {
+                match connector.player().upgrade() {
                     None => {},
                     Some(ref arc) => {
                         if arc.read()?.id() != self.id() {
@@ -300,7 +300,7 @@ impl Player {
         match self.connector.upgrade() {
             None => {},
             Some(connector) => {
-                match connector.player() {
+                match connector.player().upgrade() {
                     None => {},
                     Some(ref player) => {
                         match player.read() {
@@ -358,7 +358,7 @@ impl Player {
         match self.connector.upgrade() {
             None => {},
             Some(connector) => {
-                match connector.player() {
+                match connector.player().upgrade() {
                     None => {},
                     Some(ref player) => {
                         match player.read() {

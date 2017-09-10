@@ -7,7 +7,6 @@ use Team;
 use Error;
 use Connector;
 use UniverseGroup;
-use UniversalHolder;
 use net::Packet;
 use net::BinaryReader;
 

@@ -2,8 +2,6 @@
 use std;
 use std::sync::PoisonError;
 
-use Connector;
-
 #[derive(Debug)]
 pub enum Error {
     IoError(std::io::Error),
@@ -33,6 +31,10 @@ pub enum Error {
     UnknownUnitType(u8),
     PoisonError,
     ConnectorNotAvailable,
+    ControllableNotAvailable,
+    PlayerNotAvailable,
+    PlayerNotInUniverseGroup,
+    ControllableInfoNotAvailable,
     InvalidMessage,
     InvalidMessageList,
     InvalidMessageAtIndex(u8),
@@ -47,8 +49,23 @@ pub enum Error {
     InvalidTournamentStage(u8),
     InvalidTournamentSet(u8),
     InvalidControllable(u8),
+    InvalidName,
+    InvalidClass,
+    InvalidDirection,
+    InvalidValue(f32),
     AccessFromWrongThreadAllowedOnly(std::thread::ThreadId),
     TickIsGone,
+    VectorIsDamaged,
+    ScanRequestExceedsScannerCount{got: u8, max: u8},
+    TooManySubDirections(usize),
+    InvalidDestination,
+    InvalidEnergyValue(f32),
+    InvalidParticlesValue(f32),
+    InvalidIonsValue(f32),
+    InvalidDirectionValue(f32),
+    InvalidRangeValue(f32),
+    InvalidForceValue(f32),
+    InvalidCrystalName(String),
 }
 
 impl From<std::io::Error> for Error {

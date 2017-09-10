@@ -63,8 +63,14 @@ impl Block {
         Ok(packet)
     }
 
-    pub fn close(&mut self) {
+    fn close(&mut self) {
         let mut lock = self.blocks.lock().expect("Failed to acquire lock");
         lock[self.id as usize-BLOCK_OFFSET] = None;
+    }
+}
+
+impl Drop for Block {
+    fn drop(&mut self) {
+        self.close()
     }
 }

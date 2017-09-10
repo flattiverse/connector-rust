@@ -27,6 +27,9 @@ use net::Connection;
 use net::BinaryWriter;
 use net::BinaryReader;
 
+use controllable::Controllable;
+use item::CrystalCargoItem;
+
 use message::from_reader;
 use message::FlattiverseMessage;
 
@@ -37,7 +40,7 @@ pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 pub struct Connector {
     connection: Mutex<Connection>,
     block_manager: BlockManager,
-    player:     RwLock<Option<Arc<RwLock<Player>>>>,
+    player:     RwLock<Weak<RwLock<Player>>>,
     players:    RwLock<UniversalHolder<Player>>,
     sync_account_queries: Mutex<()>,
 
@@ -73,7 +76,7 @@ impl Connector {
             players: RwLock::new(UniversalHolder::new(IndexList::new(false, 512))),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
-            player: RwLock::new(None),
+            player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
             tick:  RwLock::new(0_u16),
             tasks: RwLock::new(IndexList::new(false, 32)),
@@ -163,7 +166,7 @@ impl Connector {
             },
             0x0F => { // assign player
                 let mut player_slot = connector.player.write()?;
-                *player_slot = connector.players.read()?.get_for_index(packet.path_player() as usize);
+                *player_slot = connector.players.read()?.get_for_index_weak(packet.path_player() as usize);
                 println!("Player assigned: {:?} (id: {})", *player_slot, packet.path_player());
             },
             0x10 => { // new player
@@ -240,7 +243,7 @@ impl Connector {
         connection.flush()
     }
 
-    pub fn player(&self) -> Option<Arc<RwLock<Player>>> {
+    pub fn player(&self) -> Weak<RwLock<Player>> {
         self.player.read().unwrap().clone()
     }
 
@@ -348,8 +351,47 @@ impl Connector {
         }
     }
 
+    pub fn crystals(&self, name: &str) -> Option<Arc<CrystalCargoItem>> {
+        unimplemented!();
+    }
+
+    pub fn controllable(&self, index: u8) -> Option<Arc<RwLock<Controllable>>> {
+        unimplemented!();
+    }
+
+    pub fn controllable_weak(&self, index: u8) -> Option<Weak<RwLock<Controllable>>> {
+        unimplemented!();
+    }
+
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
         &self.sync_account_queries
+    }
+
+    pub fn check_name(name: &str) -> bool {
+        if name.is_empty() || name.len() < 2 || name.len() > 64 {
+            return false;
+        }
+
+        if name.starts_with(" ") || name.ends_with(" ") {
+            return false;
+        }
+
+        for char in name.chars() {
+            match char {
+                'a'...'z' => continue,
+                'A'...'Z' => continue,
+                '0'...'9' => continue,
+                '\u{192}'...'\u{214}' => continue,
+                '\u{216}'...'\u{246}' => continue,
+                '\u{248}'...'\u{687}' => continue,
+                '\u{63696}'...'\u{63721}' => continue,
+                '\u{63728}'...'\u{63737}' => continue,
+                '\u{63741}'...'\u{63743}' => continue,
+                ' '|'.'|'_'|'-' => continue,
+                _ => return false,
+            };
+        }
+        return true;
     }
 
     pub fn hostname() -> String {

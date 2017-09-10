@@ -22,7 +22,6 @@ use PerformanceRequirement;
 
 use net::Packet;
 use net::BinaryReader;
-use net::BinaryWriter;
 use net::is_set_u8;
 
 pub struct UniverseGroup {
@@ -193,6 +192,9 @@ impl UniverseGroup {
         }
     }
 
+    pub fn universe(&self, index: u8) -> Weak<RwLock<Universe>> {
+        self.universes.read().unwrap().get_for_index_weak(index as usize)
+    }
 
     pub fn connector(&self) -> &Weak<Connector> {
         &self.connector
