@@ -66,6 +66,7 @@ pub enum Error {
     InvalidRangeValue(f32),
     InvalidForceValue(f32),
     InvalidCrystalName(String),
+    PendingShutdown,
 }
 
 impl From<std::io::Error> for Error {

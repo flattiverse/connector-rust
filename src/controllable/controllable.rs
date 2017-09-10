@@ -261,7 +261,7 @@ pub trait Controllable : Downcast {
         {
             let writer = &mut packet.write() as &mut BinaryWriter;
             writer.write_u8(info.len() as u8)?;
-            for &i in info.iter() {
+            for i in info.iter() {
                 i.write(writer)?;
             }
         }
