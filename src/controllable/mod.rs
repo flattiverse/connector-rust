@@ -5,6 +5,7 @@ mod weapon_energy_cost;
 
 mod sub_direction;
 
+mod base;
 mod drone;
 mod probe;
 mod platform;
@@ -17,6 +18,7 @@ pub use self::weapon_energy_cost::*;
 
 pub use self::sub_direction::*;
 
+pub use self::base::*;
 pub use self::drone::*;
 pub use self::probe::*;
 pub use self::platform::*;
@@ -39,7 +41,7 @@ pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut Bin
         0 => Arc::new(PlatformData  ::from_reader(connector, packet, reader)?), // platform
         1 => Arc::new(ProbeData     ::from_reader(connector, packet, reader)?), // probe
         2 => Arc::new(DroneData     ::from_reader(connector, packet, reader)?), // drone
-        3 => , // ship
+        3 => Arc::new(BaseData      ::from_reader(connector, packet, reader)?), // ship
         4 => , // base
         _ => return Err(Error::InvalidControllable(packet.path_sub()))
     })
