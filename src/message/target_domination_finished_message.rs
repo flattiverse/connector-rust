@@ -41,6 +41,7 @@ impl TargetDominationFinishedMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TargetDominationFinishedMessageData, Error> {
         Ok(TargetDominationFinishedMessageData {
             data:   GameMessageData::from_packet(connector, packet, reader)?,
+            name:   reader.read_string()?,
             team:   {
                 let id = reader.read_unsigned_byte()?;
                 if id != 255  {
@@ -55,7 +56,6 @@ impl TargetDominationFinishedMessageData {
                     None
                 }
             },
-            name:   reader.read_string()?,
         })
     }
 }
