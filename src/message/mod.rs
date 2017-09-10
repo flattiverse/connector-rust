@@ -25,6 +25,7 @@ mod player_joined_universe_group_message;
 mod player_parted_universe_group_message;
 mod player_unit_hit_enemy_target_message;
 mod player_unit_committed_suicide_message;
+mod player_dropped_universe_group_message;
 mod player_unit_hit_mission_target_message;
 mod player_unit_collided_with_unit_message;
 mod player_unit_collided_with_player_message;
@@ -56,6 +57,7 @@ pub use self::player_joined_universe_group_message::*;
 pub use self::player_parted_universe_group_message::*;
 pub use self::player_unit_hit_enemy_target_message::*;
 pub use self::player_unit_committed_suicide_message::*;
+pub use self::player_dropped_universe_group_message::*;
 pub use self::player_unit_hit_mission_target_message::*;
 pub use self::player_unit_collided_with_unit_message::*;
 pub use self::player_unit_collided_with_player_message::*;
@@ -141,6 +143,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x40 => Ok(Box::new(PlayerUnitJumpedMessageData                 ::from_packet(connector, packet, reader)?)),
         0x50 => Ok(Box::new(PlayerJoinedUniverseGroupMessageData        ::from_packet(connector, packet, reader)?)),
         0x51 => Ok(Box::new(PlayerPartedUniverseGroupMessageData        ::from_packet(connector, packet, reader)?)),
+        0x52 => Ok(Box::new(PlayerDroppedFromUniverseGroupMessageData   ::from_packet(connector, packet, reader)?)),
         _ => Err(Error::UnknownMessageType)
     }
 }
