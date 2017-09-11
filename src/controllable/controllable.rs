@@ -928,6 +928,10 @@ impl ControllableData {
 
         Ok(())
     }
+
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+    }
 }
 
 impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send + Sync> Controllable for T {

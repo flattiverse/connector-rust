@@ -522,6 +522,16 @@ impl Connector {
                         controllable.write()?.downcast_mut::<ControllableData>().unwrap().update(packet)?;
                     }
                 }
+            },
+            0x82 => {
+                let mut controllables = connector.controllables.write()?;
+                match controllables.get(packet.path_ship() as usize) {
+                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    &Some(ref controllable) => {
+                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().set_active(false);
+                    }
+                };
+                controllables.wipe_index(packet.path_ship() as usize);
             }
             // TODO missing entries
             _ => {
