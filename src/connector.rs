@@ -21,6 +21,7 @@ use hostname;
 use Task;
 use Team;
 use Error;
+use Scores;
 use Player;
 use Version;
 use Universe;
@@ -445,6 +446,24 @@ impl Connector {
                 println!("New Team: {}", team.name());
                 group.write()?.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
             },
+            0x2B => { // team score update
+                let group = connector.universe_group(packet.path_universe_group())?;
+                let team = group
+                    .read()?
+                    .team(packet.path_sub())
+                    .clone()
+                    .ok_or(Error::InvalidTeam(packet.path_sub()))?;
+
+                let team = team.read()?;
+                match team.scores() {
+                    &None => return Err(Error::ScoresNotAvailable),
+                    &Some(ref scores) => {
+                        scores
+                            .write()?
+                            .update(&mut packet.read() as &mut BinaryReader)?;
+                    }
+                };
+            }
             0x30 => { // new message
                 match from_reader(&connector, &packet) {
                     Err(e) => {

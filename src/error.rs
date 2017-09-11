@@ -36,6 +36,7 @@ pub enum Error {
     PoisonError,
     ConnectorNotAvailable,
     ControllableNotAvailable,
+    ScoresNotAvailable,
     PlayerNotAvailable,
     PlayerNotInUniverseGroup,
     TeamNotAvailable,
@@ -72,6 +73,7 @@ pub enum Error {
     InvalidForceValue(f32),
     InvalidCrystalName(String),
     InvalidUniverseGroup(u16),
+    InvalidTeam(u8),
     PendingShutdown,
 }
 
