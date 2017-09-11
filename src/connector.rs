@@ -28,6 +28,7 @@ use Universe;
 use DateTime;
 use TimeSpan;
 use IndexList;
+use Tournament;
 use BlockManager;
 use ManagedArray;
 use UniverseGroup;
@@ -317,7 +318,7 @@ impl Connector {
 
                 {
                     let mut group = group.write()?;
-                    group.players().write()?.insert(player.clone());
+                    group.players().write()?.insert(player.clone())?;
                 }
 
                 {
@@ -479,6 +480,18 @@ impl Connector {
                     }
                 };
             },
+            0x60 => { // create tournament
+                let group = connector.universe_group(packet.path_universe_group())?;
+                let reader = &mut packet.read() as &mut BinaryReader;
+                let tournament = Tournament::from_reader(
+                    Arc::downgrade(connector),
+                    Arc::downgrade(&group),
+                    packet,
+                    reader
+                )?;
+
+                group.write()?.set_tournament(Some(Arc::new(Mutex::new(tournament))));
+            }
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
             }

@@ -89,8 +89,7 @@ pub struct Tournament {
 }
 
 impl Tournament {
-    pub fn new(connector: Weak<Connector>, universe_group: Weak<RwLock<UniverseGroup>>, packet: &Packet) -> Result<Tournament, Error> {
-        let reader = &mut packet.read() as &mut BinaryReader;
+    pub fn from_reader(connector: Weak<Connector>, universe_group: Weak<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
         Ok(Tournament {
             connector,
             universe_group,
