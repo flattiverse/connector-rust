@@ -12,7 +12,6 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 
 use std::cmp::min;
-use std::cmp::max;
 
 use sha2::Digest;
 use sha2::Sha512;
@@ -45,6 +44,7 @@ use message::FlattiverseMessage;
 pub const PROTOCOL_VERSION  : u32       = 34;
 pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
 
+pub const TASK_COUNT : usize   = 32;
 
 pub struct Connector {
     connection: Mutex<Connection>,
@@ -55,7 +55,7 @@ pub struct Connector {
     sync_control_flow:      Mutex<()>,
 
     tick:       RwLock<u16>,
-    tasks:      RwLock<IndexList<bool>>,
+    tasks:      RwLock<[bool; TASK_COUNT]>,
     flows:      RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
 }
 
@@ -91,7 +91,7 @@ impl Connector {
             sync_account_queries: Mutex::new(()),
             sync_control_flow:    Mutex::new(()),
             tick:  RwLock::new(0_u16),
-            tasks: RwLock::new(IndexList::new(false, 32)),
+            tasks: RwLock::new([false; TASK_COUNT]),
             flows: RwLock::new(Vec::new()),
         };
 
@@ -201,7 +201,7 @@ impl Connector {
                     flow.set_pre_wait(time.clone(), tick)?;
                 }
             },
-            0x03 => {
+            0x03 => { // wait
                 // sync flow control
                 let lock = connector.sync_control_flow.lock()?;
                 let flows= connector.flows.read()?;
@@ -254,6 +254,15 @@ impl Connector {
                 }
 
 
+            },
+            0x07 => { // TaskList
+                let mut tasks = connector.tasks.write()?;
+                let read = packet.read();
+                for i in 0..32 {
+                    if read[i] == 1 {
+                        tasks[i] = true;
+                    }
+                }
             },
             0x0F => { // assign player
                 let mut player_slot = connector.player.write()?;
@@ -370,9 +379,8 @@ impl Connector {
     }
 
     pub fn register_task_if_unknown(&self, task: Task) -> Result<(), Error> {
-        let read = self.tasks.read()?;
-        let option = read.get(task as usize);
-        if option.is_none() || !*option.unwrap() {
+        let known = self.tasks.read()?[task as usize];
+        if !known {
             self.register_task(task)?;
         }
         Ok(())
@@ -393,7 +401,7 @@ impl Connector {
         self.send(&packet)?;
         block.lock()?.wait()?;
 
-        self.tasks.write()?.set(task as usize, Some(Arc::new(true)));
+        self.tasks.write()?[task as usize] = true;
         Ok(())
     }
 
