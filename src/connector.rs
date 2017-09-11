@@ -43,6 +43,7 @@ use net::BinaryReader;
 
 use controllable;
 use controllable::Controllable;
+use controllable::ControllableData;
 
 use item;
 use item::CargoItem;
@@ -69,7 +70,7 @@ pub struct Connector {
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
     crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
-    controllables:  RwLock<ManagedArray<Arc<Controllable>>>,
+    controllables:  RwLock<ManagedArray<Arc<RwLock<Controllable>>>>,
 }
 
 impl Connector {
@@ -514,6 +515,14 @@ impl Connector {
                     Some(controllable::from_packet(&connector, packet, &mut packet.read() as &mut BinaryReader)?)
                 );
             },
+            0x81 => { // 'ControllableDynamicPacket'
+                match connector.controllables.read()?.get(packet.path_ship() as usize) {
+                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    &Some(ref controllable) => {
+                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().update(packet)?;
+                    }
+                }
+            }
             // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
