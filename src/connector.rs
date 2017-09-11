@@ -431,17 +431,19 @@ impl Connector {
                 write.set(packet.path_universe_group() as usize, Some(Arc::new(RwLock::new(group))));
             },
             0x24 => { // new universe
-                let group = connector.uni_groups.read()?;
-                let group = group
-                    .get(packet.path_universe_group() as usize)
-                    .clone()
-                    .ok_or(Error::InvalidUniverseGroup(packet.path_universe_group()))?;
-
+                let group = connector.universe_group(packet.path_universe_group())?;
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let universe = Universe::from_reader(&group, packet, reader)?;
                 println!("New Universe: {}", universe.name());
 
                 group.write()?.set_universe(packet.path_universe(), Some(Arc::new(RwLock::new(universe))));
+            },
+            0x28 => { // new team
+                let group = connector.universe_group(packet.path_universe_group())?;
+                let reader = &mut packet.read() as &mut BinaryReader;
+                let team = Team::from_reader(Arc::downgrade(connector), &group, packet, reader)?;
+                println!("New Team: {}", team.name());
+                group.write()?.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
             },
             0x30 => { // new message
                 match from_reader(&connector, &packet) {

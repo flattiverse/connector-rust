@@ -2,6 +2,7 @@
 use std::fmt;
 use std::cmp::PartialEq;
 
+use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
@@ -27,17 +28,15 @@ pub struct Team {
 }
 
 impl Team {
-    pub fn new(connector: Weak<Connector>, universe_group: Weak<RwLock<UniverseGroup>>, packet: &Packet) -> Result<Team, Error> {
-        let reader = &mut packet.read() as &mut BinaryReader;
-        let ug = universe_group.upgrade().unwrap();
-        let scores = if let Some(GameType::Mission) = ug.read().unwrap().game_type() {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Team, Error> {
+        let scores = if let Some(GameType::Mission) = universe_group.read().unwrap().game_type() {
             Some(RwLock::new(Scores::default()))
         } else {
             None
         };
 
         Ok(Team {
-            universe_group: universe_group,
+            universe_group: Arc::downgrade(&universe_group),
             connector: connector,
             id: packet.path_sub(),
             color: Color::from_rgb(

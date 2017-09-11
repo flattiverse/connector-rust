@@ -218,6 +218,10 @@ impl UniverseGroup {
         Weak::default()
     }
 
+    pub(crate) fn set_team(&mut self, index: u8, team: Option<Arc<RwLock<Team>>>) {
+        self.teams.write().unwrap().set(index as usize, team);
+    }
+
     pub fn avg_tick_time(&self) -> &TimeSpan {
         &self.avg_tick_time
     }
