@@ -45,6 +45,9 @@ use controllable;
 use controllable::Controllable;
 use controllable::ControllableData;
 
+use unit;
+use unit::ControllableInfo;
+
 use item;
 use item::CargoItem;
 use item::CrystalCargoItem;
@@ -523,7 +526,7 @@ impl Connector {
                     }
                 }
             },
-            0x82 => {
+            0x82 => { // 'ControllableRemoved'
                 let mut controllables = connector.controllables.write()?;
                 match controllables.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
@@ -532,7 +535,22 @@ impl Connector {
                     }
                 };
                 controllables.wipe_index(packet.path_ship() as usize);
-            }
+            },
+            0x83 => { // 'ControllableDynamicExtendedPacket'
+                match connector.controllables.read()?.get(packet.path_ship() as usize) {
+                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    &Some(ref controllable) => {
+                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().update_extended(packet)?;
+                    }
+                }
+            },
+            0x84 => { // 'ControllableInfoStaticPacket'
+                let player = connector.player_for(packet.path_player())?;
+                player.write()?.set_controllable_info(
+                    packet.path_ship(),
+                    Some(Arc::new(RwLock::new(ControllableInfo::from_packet(packet, Arc::downgrade(&player))?))),
+                );
+            },
             // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
