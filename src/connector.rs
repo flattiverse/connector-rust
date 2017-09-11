@@ -551,6 +551,15 @@ impl Connector {
                     Some(Arc::new(RwLock::new(ControllableInfo::from_packet(packet, Arc::downgrade(&player))?))),
                 );
             },
+            0x85 => { // 'ControllableInfoDynamicPacket'
+                let player = connector.player_for(packet.path_player())?;
+                match player.read()?.controllable_info(packet.path_ship()) {
+                    None => return Err(Error::InvalidControllableInfo(packet.path_ship())),
+                    Some(ref info) => {
+                        info.write()?.update(packet)?;
+                    }
+                };
+            },
             // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
