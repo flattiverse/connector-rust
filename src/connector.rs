@@ -74,7 +74,7 @@ pub struct Connector {
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
     crystals:       RwLock<ManagedArray<Arc<RwLock<Box<CrystalCargoItem>>>>>,
-    controllables:  RwLock<ManagedArray<Arc<RwLock<Controllable>>>>,
+    controllables:  RwLock<ManagedArray<Arc<RwLock<Box<Controllable>>>>>,
 }
 
 impl Connector {
@@ -624,6 +624,44 @@ impl Connector {
                 let info   = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllableInfo(packet.path_ship()))?;
                 info.write()?.set_crystals(crystals);
             },
+            0x89 => { // 'ControllableCrystalPacket'
+                let mut crystals = Vec::new();
+
+                {
+                    let reader = &mut packet.read() as &mut BinaryReader;
+                    loop {
+                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
+                            Ok(item) => item,
+                            Err(e) => {
+                                let ok = match e {
+                                    Error::IoError(ref bt, ref inner_e) => {
+                                        match inner_e.kind() {
+                                            io::ErrorKind::UnexpectedEof => {
+                                                // end of stream? --> no more items
+                                                true
+                                            }
+                                            _ => false,
+                                        }
+                                    },
+                                    _ => false
+                                };
+                                if !ok {
+                                    return Err(e);
+                                } else {
+                                    break;
+                                }
+                            }
+                        };
+
+                        let crystal : Box<CrystalCargoItem> = crystal.downcast::<CrystalCargoItemData>().unwrap();
+
+                        crystals.push(Arc::new(RwLock::new(crystal)));
+                    }
+                }
+
+                let controllable = connector.controllable(packet.path_ship())?;
+                controllable.write()?.set_crystals(crystals);
+            },
             // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
@@ -764,20 +802,30 @@ impl Connector {
         lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
     }
 
-    pub fn team(&self, index: u16) -> Result<Arc<RwLock<Team>>, Error> {
-        unimplemented!()
+    pub fn crystals(&self, name: &str) -> Result<Arc<RwLock<Box<CrystalCargoItem>>>, Error> {
+        let crystals = self.crystals.read()?;
+        for i in 0..crystals.len() {
+            match crystals.get(i) {
+                &None => {},
+                &Some(ref arc) => {
+                    if arc.read()?.name().eq(name) {
+                        return Ok(arc.clone());
+                    }
+                },
+            };
+        };
+        Err(Error::InvalidCrystalName(String::from(name)))
     }
 
-    pub fn crystals(&self, name: &str) -> Option<Arc<CrystalCargoItem>> {
-        unimplemented!();
+    pub fn controllable(&self, index: u8) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+        self.controllables.read()?.get(index as usize).clone().ok_or(Error::InvalidControllable(index))
     }
 
-    pub fn controllable(&self, index: u8) -> Option<Arc<RwLock<Controllable>>> {
-        unimplemented!();
-    }
-
-    pub fn controllable_weak(&self, index: u8) -> Option<Weak<RwLock<Controllable>>> {
-        unimplemented!();
+    pub fn controllable_weak(&self, index: u8) -> Weak<RwLock<Box<Controllable>>> {
+        match self.controllables.read().unwrap().get(index as usize) {
+            &None => Weak::default(),
+            &Some(ref arc) => Arc::downgrade(arc),
+        }
     }
 
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {

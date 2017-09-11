@@ -21,14 +21,14 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitJumpedMessage);
 pub trait PlayerUnitJumpedMessage : GameMessage {
 
-    fn controllable(&self) -> &Arc<RwLock<Controllable>>;
+    fn controllable(&self) -> &Arc<RwLock<Box<Controllable>>>;
 
     fn inter_universe(&self) -> bool;
 }
 
 pub struct PlayerUnitJumpedMessageData {
     data:   GameMessageData,
-    info:   Arc<RwLock<Controllable>>,
+    info:   Arc<RwLock<Box<Controllable>>>,
     inter:  bool,
 }
 
@@ -39,7 +39,7 @@ impl PlayerUnitJumpedMessageData {
             inter:  reader.read_bool()?,
             info:   {
                 let index = reader.read_unsigned_byte()?;
-                connector.controllable(index).ok_or(Error::InvalidControllableInfo(index))?
+                connector.controllable(index)?
             }
         })
     }
@@ -68,7 +68,7 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitJumpedMessageData {
 
 
 impl<T: 'static + Borrow<PlayerUnitJumpedMessageData> + BorrowMut<PlayerUnitJumpedMessageData> + GameMessage> PlayerUnitJumpedMessage for T {
-    fn controllable(&self) -> &Arc<RwLock<Controllable>> {
+    fn controllable(&self) -> &Arc<RwLock<Box<Controllable>>> {
         &self.borrow().info
     }
 

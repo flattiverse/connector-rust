@@ -34,7 +34,12 @@ impl TeamCastChatMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TeamCastChatMessageData, Error> {
         Ok(TeamCastChatMessageData {
             data:   ChatMessageData::from_packet(connector, packet, reader)?,
-            to:     connector.team(reader.read_u16()?)?,
+            to:     {
+                let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+                let group = player.read()?.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let group = group.read()?;
+                group.team(reader.read_unsigned_byte()?).clone().ok_or(Error::TeamNotAvailable)?
+            },
             message:reader.read_string()?,
         })
     }

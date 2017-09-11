@@ -284,11 +284,11 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn is_building(&self) -> &Option<Weak<RwLock<Controllable>>> {
+    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>> {
         unimplemented!()
     }
 
-    fn is_built_by(&self) -> &Option<Weak<RwLock<Controllable>>> {
+    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>> {
         unimplemented!()
     }
 
@@ -296,19 +296,19 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn crystals(&self) -> Arc<Vec<Box<CrystalCargoItem>>> {
+    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>> {
         unimplemented!()
     }
 
-    fn set_crystals(&self, _: Arc<Vec<Box<CrystalCargoItem>>>) {
+    fn set_crystals(&self, _: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
         unimplemented!()
     }
 
-    fn cargo_items(&self) -> Arc<Vec<Box<CargoItem>>> {
+    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>> {
         unimplemented!()
     }
 
-    fn set_cargo_items(&self, _: Arc<Vec<Box<CargoItem>>>) {
+    fn set_cargo_items(&self, _: Vec<Arc<RwLock<Box<CargoItem>>>>) {
         unimplemented!()
     }
 

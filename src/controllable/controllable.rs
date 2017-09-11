@@ -171,19 +171,19 @@ pub trait Controllable : Any + Send + Sync {
 
     fn build_progress(&self) -> f32;
 
-    fn is_building(&self) -> &Option<Weak<RwLock<Controllable>>>;
+    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>>;
 
-    fn is_built_by(&self) -> &Option<Weak<RwLock<Controllable>>>;
+    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>>;
 
     fn weapon_production_status(&self) -> f32;
 
-    fn crystals(&self) -> Arc<Vec<Box<CrystalCargoItem>>>;
+    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>>;
 
-    fn set_crystals(&self, crystals: Arc<Vec<Box<CrystalCargoItem>>>);
+    fn set_crystals(&self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>);
 
-    fn cargo_items(&self) -> Arc<Vec<Box<CargoItem>>>;
+    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>>;
 
-    fn set_cargo_items(&self, items: Arc<Vec<Box<CargoItem>>>);
+    fn set_cargo_items(&self, items: Vec<Arc<RwLock<Box<CargoItem>>>>);
 
     fn universe(&self) -> &Weak<RwLock<Universe>>;
 
@@ -288,7 +288,7 @@ pub trait Controllable : Any + Send + Sync {
         }
     }
 
-    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<RwLock<Controllable>>, Error> {
+    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
         if !Connector::check_name(class) {
             return Err(Error::InvalidName);
         }
@@ -338,10 +338,7 @@ pub trait Controllable : Any + Send + Sync {
             block.wait()?.path_ship()
         };
 
-        match connector.controllable(id) {
-            None => Err(Error::InvalidControllable(id)),
-            Some(arc) => Ok(arc)
-        }
+        Ok(connector.controllable(id)?)
     }
 
     fn kill(&self) -> Result<(), Error> {
@@ -464,7 +461,7 @@ pub trait Controllable : Any + Send + Sync {
         Ok(())
     }
 
-    fn produce_crystal(&self, name: &str) -> Result<Arc<CrystalCargoItem>, Error> {
+    fn produce_crystal(&self, name: &str) -> Result<Arc<RwLock<Box<CrystalCargoItem>>>, Error> {
         if !Connector::check_name(name) {
             return Err(Error::InvalidName);
         }
@@ -490,10 +487,7 @@ pub trait Controllable : Any + Send + Sync {
         connector.send(&packet)?;
 
         block.wait()?;
-        match connector.crystals(name) {
-            None => Err(Error::InvalidCrystalName(name.to_string())),
-            Some(arc) => Ok(arc)
-        }
+        Ok(connector.crystals(name)?)
     }
 
     fn shoot_full_load(&self, direction: &Vector, time: u16) -> Result<String, Error> {
@@ -727,11 +721,11 @@ pub struct ControllableData {
     shield: f32,
     build_position: Option<Vector>,
     build_progress: f32,
-    is_building: Option<Weak<RwLock<Controllable>>>,
-    is_built_by: Option<Weak<RwLock<Controllable>>>,
+    is_building: Weak<RwLock<Box<Controllable>>>,
+    is_built_by: Weak<RwLock<Box<Controllable>>>,
     weapon_production_status: f32,
-    crystals:       RwLock<Arc<Vec<Box<CrystalCargoItem>>>>,
-    cargo_items:    RwLock<Arc<Vec<Box<CargoItem>>>>,
+    crystals:       Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>>,
+    cargo_items:    Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>>,
     universe: Weak<RwLock<Universe>>,
     haste_time: u16,
     double_damage_time: u16,
@@ -849,11 +843,11 @@ impl ControllableData {
             shield:                 0f32,
             build_position:         None,
             build_progress:         0f32,
-            is_building:            None,
-            is_built_by:            None,
+            is_building:            Weak::default(),
+            is_built_by:            Weak::default(),
             weapon_production_status:0f32,
-            crystals:               RwLock::new(Arc::new(Vec::new())),
-            cargo_items:            RwLock::new(Arc::new(Vec::new())),
+            crystals:               Arc::new(RwLock::new(Vec::new())),
+            cargo_items:            Arc::new(RwLock::new(Vec::new())),
             cloak_time:             0u16,
             pending_shutdown:       false,
             scan_list:              RwLock::new(Vec::new())
@@ -893,7 +887,7 @@ impl ControllableData {
             };
         } else {
             self.build_position = None;
-            self.is_building    = None;
+            self.is_building    = Weak::default();
         }
 
         if is_set_u8(header, 0x02) {
@@ -905,7 +899,7 @@ impl ControllableData {
                 }
             };
         } else {
-            self.is_built_by = None;
+            self.is_built_by = Weak::default();
         }
 
         if is_set_u8(header, 0x10) {
@@ -1192,11 +1186,11 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         self.borrow().build_progress
     }
 
-    fn is_building(&self) -> &Option<Weak<RwLock<Controllable>>> {
+    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>> {
         &self.borrow().is_building
     }
 
-    fn is_built_by(&self) -> &Option<Weak<RwLock<Controllable>>> {
+    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>> {
         &self.borrow().is_built_by
     }
 
@@ -1204,19 +1198,19 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         self.borrow().weapon_production_status
     }
 
-    fn crystals(&self) -> Arc<Vec<Box<CrystalCargoItem>>> {
-        self.borrow().crystals.read().unwrap().clone()
+    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>> {
+        &self.borrow().crystals
     }
 
-    fn set_crystals(&self, crystals: Arc<Vec<Box<CrystalCargoItem>>>) {
+    fn set_crystals(&self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
         *self.borrow().crystals.write().unwrap() = crystals;
     }
 
-    fn cargo_items(&self) -> Arc<Vec<Box<CargoItem>>> {
-        self.borrow().cargo_items.read().unwrap().clone()
+    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>> {
+        &self.borrow().cargo_items
     }
 
-    fn set_cargo_items(&self, items: Arc<Vec<Box<CargoItem>>>) {
+    fn set_cargo_items(&self, items: Vec<Arc<RwLock<Box<CargoItem>>>>) {
         *self.borrow().cargo_items.write().unwrap() = items;
     }
 
