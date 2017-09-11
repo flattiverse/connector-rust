@@ -30,6 +30,7 @@ use BlockManager;
 use ManagedArray;
 use UniverseGroup;
 use UniversalHolder;
+use UniversalEnumerable;
 use UniverseGroupFlowControl;
 
 use net::Packet;
@@ -421,6 +422,12 @@ impl Connector {
                     crystal_position += 1;
                 }
 
+            },
+            0x20 => { // new universe group
+                let group = UniverseGroup::from_reader(&connector, &packet)?;
+                println!("New UniverseGroup: {}", group.name());
+                let mut write = connector.uni_groups.write()?;
+                write.set(packet.path_universe_group() as usize, Some(Arc::new(RwLock::new(group))));
             },
             0x30 => { // new message
                 match from_reader(&connector, &packet) {
