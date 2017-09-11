@@ -41,6 +41,7 @@ use net::Connection;
 use net::BinaryWriter;
 use net::BinaryReader;
 
+use controllable;
 use controllable::Controllable;
 
 use item;
@@ -63,11 +64,12 @@ pub struct Connector {
     sync_account_queries:   Mutex<()>,
     sync_control_flow:      Mutex<()>,
 
-    tick:       RwLock<u16>,
-    tasks:      RwLock<[bool; TASK_COUNT]>,
-    flows:      RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
-    uni_groups: RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
-    crystals:   RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
+    tick:           RwLock<u16>,
+    tasks:          RwLock<[bool; TASK_COUNT]>,
+    flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
+    uni_groups:     RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
+    crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
+    controllables:  RwLock<ManagedArray<Arc<Controllable>>>,
 }
 
 impl Connector {
@@ -101,11 +103,12 @@ impl Connector {
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
             sync_control_flow:    Mutex::new(()),
-            tick:       RwLock::new(0_u16),
-            tasks:      RwLock::new([false; TASK_COUNT]),
-            flows:      RwLock::new(Vec::new()),
-            uni_groups: RwLock::new(ManagedArray::with_capacity(128)),
-            crystals:   RwLock::new(ManagedArray::with_capacity(64)),
+            tick:           RwLock::new(0_u16),
+            tasks:          RwLock::new([false; TASK_COUNT]),
+            flows:          RwLock::new(Vec::new()),
+            uni_groups:     RwLock::new(ManagedArray::with_capacity(128)),
+            crystals:       RwLock::new(ManagedArray::with_capacity(64)),
+            controllables:  RwLock::new(ManagedArray::with_capacity(256)),
         };
 
         let connector = Arc::new(connector);
@@ -504,6 +507,12 @@ impl Connector {
                 if packet.read().len() == 0 {
                     group.write()?.set_tournament(None);
                 }
+            },
+            0x80 => { // 'ControllableStaticPacket'
+                connector.controllables.write()?.set(
+                    packet.path_ship() as usize,
+                    Some(controllable::from_packet(&connector, packet, &mut packet.read() as &mut BinaryReader)?)
+                );
             },
             // TODO missing entries
             _ => {
