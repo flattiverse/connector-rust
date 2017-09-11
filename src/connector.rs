@@ -11,6 +11,9 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 
+use std::cmp::min;
+use std::cmp::max;
+
 use sha2::Digest;
 use sha2::Sha512;
 use hostname;
@@ -20,6 +23,8 @@ use Team;
 use Error;
 use Player;
 use Version;
+use DateTime;
+use TimeSpan;
 use IndexList;
 use BlockManager;
 use UniverseGroup;
@@ -46,7 +51,8 @@ pub struct Connector {
     block_manager: BlockManager,
     player:     RwLock<Weak<RwLock<Player>>>,
     players:    RwLock<UniversalHolder<Player>>,
-    sync_account_queries: Mutex<()>,
+    sync_account_queries:   Mutex<()>,
+    sync_control_flow:      Mutex<()>,
 
     tick:       RwLock<u16>,
     tasks:      RwLock<IndexList<bool>>,
@@ -83,6 +89,7 @@ impl Connector {
             block_manager: BlockManager::new(),
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
+            sync_control_flow:    Mutex::new(()),
             tick:  RwLock::new(0_u16),
             tasks: RwLock::new(IndexList::new(false, 32)),
             flows: RwLock::new(Vec::new()),
@@ -169,6 +176,30 @@ impl Connector {
             0x01 => {
                 println!("Received ping request");
                 connector.send(&packet).expect("Failed to respond to ping");
+            },
+            0x02 => { // pre-wait
+                let tick = packet.path_sub() as u16;
+                *connector.tick.write()? = tick;
+
+                // sync flow control
+                let lock = connector.sync_control_flow.lock()?;
+
+                let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
+                let player = player.read()?;
+                let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let group = group.read()?;
+
+                let time = DateTime::now() + TimeSpan::new(
+                    group.avg_tick_time().ticks()
+                        - min(
+                            player.ping().ticks() +384_000_i64,
+                            group.avg_tick_time().ticks()
+                        )
+                );
+
+                for flow in connector.flows.read()?.iter() {
+                    flow.set_pre_wait(time.clone(), tick)?;
+                }
             },
             0x0F => { // assign player
                 let mut player_slot = connector.player.write()?;

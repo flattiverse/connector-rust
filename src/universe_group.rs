@@ -212,6 +212,10 @@ impl UniverseGroup {
     pub fn team_weak(&self, index: u8) -> Weak<RwLock<Team>> {
         Weak::default()
     }
+
+    pub fn avg_tick_time(&self) -> &TimeSpan {
+        &self.avg_tick_time
+    }
 }
 
 impl UniversalEnumerable for UniverseGroup {
