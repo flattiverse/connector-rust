@@ -64,6 +64,10 @@ impl<T: Clone> ManagedArray<T> {
         }
         count
     }
+
+    pub fn len(&self) -> usize {
+        self.array.len()
+    }
 }
 
 impl<T: Clone> AsRef<[Option<T>]> for ManagedArray<T> {

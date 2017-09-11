@@ -62,7 +62,7 @@ pub struct UniverseGroup {
     teams:      RwLock<UniversalHolder<Team>>,
     players:    RwLock<ManagedArray<Arc<RwLock<Player>>>>,
 
-    tournament: Option<Arc<Mutex<Tournament>>>
+    tournament: Option<Arc<RwLock<Tournament>>>
 }
 
 impl UniverseGroup {
@@ -144,7 +144,7 @@ impl UniverseGroup {
         })
     }
 
-    pub fn tournament(&self) -> &Option<Arc<Mutex<Tournament>>> {
+    pub fn tournament(&self) -> &Option<Arc<RwLock<Tournament>>> {
         if self.tournament.is_some() {
             match self.connector.upgrade() {
                 None => {},
@@ -156,7 +156,7 @@ impl UniverseGroup {
         &self.tournament
     }
 
-    pub fn set_tournament(&mut self, tournament: Option<Arc<Mutex<Tournament>>>) {
+    pub fn set_tournament(&mut self, tournament: Option<Arc<RwLock<Tournament>>>) {
         self.tournament = tournament;
     }
 
@@ -208,6 +208,10 @@ impl UniverseGroup {
 
     pub fn game_type(&self) -> Option<GameType> {
         None
+    }
+
+    pub fn teams(&self) -> &RwLock<UniversalHolder<Team>> {
+        &self.teams
     }
 
     pub fn team(&self, index: u8) -> &Option<Arc<RwLock<Team>>> {

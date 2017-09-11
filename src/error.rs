@@ -36,6 +36,7 @@ pub enum Error {
     PoisonError,
     ConnectorNotAvailable,
     ControllableNotAvailable,
+    TournamentNotAvailable,
     ScoresNotAvailable,
     PlayerNotAvailable,
     PlayerNotInUniverseGroup,

@@ -485,13 +485,27 @@ impl Connector {
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let tournament = Tournament::from_reader(
                     Arc::downgrade(connector),
-                    Arc::downgrade(&group),
+                    &group,
                     packet,
                     reader
                 )?;
 
-                group.write()?.set_tournament(Some(Arc::new(Mutex::new(tournament))));
-            }
+                group.write()?.set_tournament(Some(Arc::new(RwLock::new(tournament))));
+            },
+            0x61 => { // update tournament
+                let group = connector.universe_group(packet.path_universe_group())?;
+                match group.read()?.tournament() {
+                    &None => return Err(Error::TeamNotAvailable),
+                    &Some(ref tournament) => {
+                        tournament.write()?.update(packet)?;
+                    }
+                };
+
+                if packet.read().len() == 0 {
+                    group.write()?.set_tournament(None);
+                }
+            },
+            // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
             }

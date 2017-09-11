@@ -1,4 +1,5 @@
 
+use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 use std::borrow::Borrow;
@@ -9,6 +10,9 @@ use Connector;
 use UniverseGroup;
 use net::Packet;
 use net::BinaryReader;
+
+use ManagedArray;
+use TournamentTeam;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
@@ -63,40 +67,44 @@ impl TournamentSet {
     }
 }
 
-
-
-pub struct TournamentTeam {
-    pub(crate) team: Team,
-    pub(crate) wins: u32,
-    pub(crate) accounts: () // TODO missing
-}
-
-impl Borrow<Team> for TournamentTeam {
-    fn borrow(&self) -> &Team {
-        &self.team
-    }
-}
-
 // TODO incomplete implementation
 pub struct Tournament {
     connector:      Weak<Connector>,
     universe_group: Weak<RwLock<UniverseGroup>>,
     stage:          TournamentStage,
     set:            TournamentSet,
-    // TODO missing teams
+    teams:          ManagedArray<Arc<RwLock<TournamentTeam>>>,
     test_mode:      bool,
     loaded:         bool,
 }
 
 impl Tournament {
-    pub fn from_reader(connector: Weak<Connector>, universe_group: Weak<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
         Ok(Tournament {
             connector,
-            universe_group,
+            universe_group: Arc::downgrade(universe_group),
+            loaded:     false,
             test_mode:  reader.read_byte()? == 0x01,
             stage:      TournamentStage ::from_id(reader.read_byte()?)?,
             set:        TournamentSet   ::from_id(reader.read_byte()?)?,
-            loaded:     false,
+            teams: {
+                let group = universe_group.read()?;
+                let len = group.teams().read()?.len();
+                let teams: ManagedArray<Arc<RwLock<TournamentTeam>>> = ManagedArray::with_capacity(len);
+
+                for i in 0..len {
+                    match teams.get(i) {
+                        &None => break,
+                        &Some(ref team) => {
+                            team.write()?.set_wins(reader.read_unsigned_byte()?);
+                        }
+                    }
+                }
+
+                // TODO entries missing
+
+                teams
+            }
         })
     }
 
@@ -122,5 +130,25 @@ impl Tournament {
 
     pub fn loaded(&self) -> bool {
         self.loaded
+    }
+
+    pub fn update(&mut self, packet: &Packet) -> Result<(), Error> {
+        if packet.read().len() == 0 {
+            self.stage = TournamentStage::Ended;
+            return Ok(());
+        }
+
+        let reader = &mut packet.read() as &mut BinaryReader;
+        self.test_mode  = reader.read_byte()? == 0x01;
+        self.stage      = TournamentStage::from_id(reader.read_byte()?)?;
+        self.set        = TournamentSet  ::from_id(reader.read_byte()?)?;
+
+        for i in 0..self.teams.len() {
+            if let &Some(ref team) = self.teams.get(i) {
+                team.write()?.set_wins(reader.read_byte()?);
+            }
+        }
+
+        Ok(())
     }
 }
