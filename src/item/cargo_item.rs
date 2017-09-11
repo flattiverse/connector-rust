@@ -1,4 +1,5 @@
 
+use std::sync::Arc;
 use std::sync::Weak;
 
 use Error;
@@ -20,7 +21,7 @@ pub trait CargoItem : Any + Sync + Send {
 downcast!(CargoItem);
 
 
-pub(crate) fn cargo_item_from_stream(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
+pub(crate) fn cargo_item_from_reader(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
     Ok(match reader.read_byte()? {
         0x00 => Box::new(NebulaCargoItemData        ::new(connector, master, reader)?),
         0x01 => Box::new(CrystalCargoItemData       ::new(connector, master, reader)?),

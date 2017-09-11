@@ -51,6 +51,7 @@ use unit::ControllableInfo;
 use item;
 use item::CargoItem;
 use item::CrystalCargoItem;
+use item::CrystalCargoItemData;
 
 use message::from_reader;
 use message::FlattiverseMessage;
@@ -72,7 +73,7 @@ pub struct Connector {
     tasks:          RwLock<[bool; TASK_COUNT]>,
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
-    crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
+    crystals:       RwLock<ManagedArray<Arc<RwLock<Box<CrystalCargoItem>>>>>,
     controllables:  RwLock<ManagedArray<Arc<RwLock<Controllable>>>>,
 }
 
@@ -398,7 +399,7 @@ impl Connector {
 
                 while crystal_position < 64 {
                     // TODO WTF
-                    let cargo_item = match item::cargo_item_from_stream(Arc::downgrade(&connector), true, reader) {
+                    let cargo_item = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
                         Ok(item) => item,
                         Err(e) => {
                             let ok = match e {
@@ -421,9 +422,9 @@ impl Connector {
                         }
 
                     };
-                    let crystal = cargo_item.downcast::<item::CrystalCargoItemData>().unwrap();
+                    let crystal : Box<CrystalCargoItem> = cargo_item.downcast::<CrystalCargoItemData>().unwrap();
 
-                    lock.set(crystal_position, Some(Arc::new(*crystal)));
+                    lock.set(crystal_position, Some(Arc::new(RwLock::new(crystal))));
                     crystal_position += 1;
                 }
 
@@ -567,6 +568,61 @@ impl Connector {
                     Some(info) => info.write()?.set_active(false)
                 };
                 player.write()?.set_controllable_info(path_ship, None);
+            },
+            0x87 => { // 'ControllableInfoScorePacket'
+                let path_ship = packet.path_ship();
+                let reader = &mut packet.read() as &mut BinaryReader;
+                let player = connector.player_for(packet.path_player())?;
+                let player = player.read()?;
+                match player.controllable_info(path_ship) {
+                    None => return Err(Error::InvalidControllableInfo(path_ship)),
+                    Some(ref info) => {
+                        let info = info.read()?;
+                        let mut scores = info.scores().write()?;
+                        scores.update(reader)?
+                    },
+                }
+            },
+            0x88 => { // 'ControllableInfoCrystalPacket'
+                let mut crystals = Vec::new();
+
+                {
+                    let reader = &mut packet.read() as &mut BinaryReader;
+                    loop {
+                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
+                            Ok(item) => item,
+                            Err(e) => {
+                                let ok = match e {
+                                    Error::IoError(ref bt, ref inner_e) => {
+                                        match inner_e.kind() {
+                                            io::ErrorKind::UnexpectedEof => {
+                                                // end of stream? --> no more items
+                                                true
+                                            }
+                                            _ => false,
+                                        }
+                                    },
+                                    _ => false
+                                };
+                                if !ok {
+                                    return Err(e);
+                                } else {
+                                    break;
+                                }
+                            }
+                        };
+
+                        let crystal : Box<CrystalCargoItem> = crystal.downcast::<CrystalCargoItemData>().unwrap();
+
+                        crystals.push(Arc::new(RwLock::new(crystal)));
+                    }
+                }
+
+
+                let player = connector.player_for(packet.path_player())?;
+                let player = player.read()?;
+                let info   = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllableInfo(packet.path_ship()))?;
+                info.write()?.set_crystals(crystals);
             },
             // TODO missing entries
             _ => {

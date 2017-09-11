@@ -34,8 +34,8 @@ pub struct ControllableInfo {
     crystal_slots: u8,
     has_tractor_beam: bool,
 
-    crystals: Vec<Weak<RwLock<Box<CrystalCargoItem>>>>,
-    scores:   Arc<Scores>,
+    crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>,
+    scores:   Arc<RwLock<Scores>>,
 
     hull:           f32,
     shield:         f32,
@@ -90,7 +90,7 @@ impl ControllableInfo {
             has_tractor_beam:       reader.read_bool()?,
 
             crystals:               Vec::new(),
-            scores:                 Arc::new(Scores::default()),
+            scores:                 Arc::new(RwLock::new(Scores::default())),
             hull:                   0f32,
             shield:                 0f32,
             build_progress:         0f32,
@@ -248,7 +248,7 @@ impl ControllableInfo {
         self.has_tractor_beam
     }
 
-    pub fn scores(&self) -> &Arc<Scores> {
+    pub fn scores(&self) -> &Arc<RwLock<Scores>> {
         &self.scores
     }
 
@@ -288,11 +288,11 @@ impl ControllableInfo {
         self.kind
     }
 
-    pub fn crystals(&self) -> &Vec<Weak<RwLock<Box<CrystalCargoItem>>>> {
+    pub fn crystals(&self) -> &Vec<Arc<RwLock<Box<CrystalCargoItem>>>> {
         &self.crystals
     }
 
-    pub(crate) fn set_crystals(&mut self, crystals: Vec<Weak<RwLock<Box<CrystalCargoItem>>>>) {
+    pub(crate) fn set_crystals(&mut self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
         self.crystals = crystals;
     }
 }

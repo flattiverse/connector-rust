@@ -155,7 +155,7 @@ pub trait Controllable : Any + Send + Sync {
 
     fn tractor_beam_range(&self) -> f32;
 
-    fn scores(&self) -> &Arc<Scores>;
+    fn scores(&self) -> &Arc<RwLock<Scores>>;
 
     fn energy(&self) -> f32;
 
@@ -719,7 +719,7 @@ pub struct ControllableData {
     crystal_slots: u8,
     tractor_beam: EnergyCost,
     tractor_beam_range: f32,
-    scores: Arc<Scores>,
+    scores: Arc<RwLock<Scores>>,
     energy: f32,
     particles: f32,
     ions: f32,
@@ -1160,7 +1160,7 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         self.borrow().tractor_beam_range
     }
 
-    fn scores(&self) -> &Arc<Scores> {
+    fn scores(&self) -> &Arc<RwLock<Scores>> {
         &self.borrow().scores
     }
 

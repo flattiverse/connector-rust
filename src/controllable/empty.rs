@@ -252,7 +252,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn scores(&self) -> &Arc<Scores> {
+    fn scores(&self) -> &Arc<RwLock<Scores>> {
         unimplemented!()
     }
 
