@@ -58,6 +58,7 @@ pub struct Connector {
     tick:       RwLock<u16>,
     tasks:      RwLock<[bool; TASK_COUNT]>,
     flows:      RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
+    uni_groups: RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
 }
 
 impl Connector {
@@ -91,9 +92,10 @@ impl Connector {
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
             sync_control_flow:    Mutex::new(()),
-            tick:  RwLock::new(0_u16),
-            tasks: RwLock::new([false; TASK_COUNT]),
-            flows: RwLock::new(Vec::new()),
+            tick:       RwLock::new(0_u16),
+            tasks:      RwLock::new([false; TASK_COUNT]),
+            flows:      RwLock::new(Vec::new()),
+            uni_groups: RwLock::new(ManagedArray::with_capacity(128)),
         };
 
         let connector = Arc::new(connector);
@@ -478,7 +480,8 @@ impl Connector {
     }
 
     pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
-        unimplemented!()
+        let lock = self.uni_groups.read()?;
+        lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
     }
 
     pub fn team(&self, index: u16) -> Result<Arc<RwLock<Team>>, Error> {

@@ -71,6 +71,7 @@ pub enum Error {
     InvalidRangeValue(f32),
     InvalidForceValue(f32),
     InvalidCrystalName(String),
+    InvalidUniverseGroup(u16),
     PendingShutdown,
 }
 
