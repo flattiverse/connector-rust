@@ -32,6 +32,7 @@ mod vector;
 mod block;
 mod index_list;
 mod block_manager;
+mod universe_group;
 
 mod color;
 mod scores;
@@ -43,7 +44,7 @@ mod performance_requirement;
 mod team;
 mod universe;
 mod game_type;
-mod universe_group;
+mod managed_array;
 mod universal_holder;
 mod universe_group_flow_control;
 
@@ -69,6 +70,7 @@ pub use color::*;
 pub use block::*;
 pub use index_list::*;
 pub use block_manager::*;
+pub use managed_array::*;
 
 pub use scores::*;
 pub use message::*;

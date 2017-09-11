@@ -16,6 +16,7 @@ use ConnectorArc;
 use IndexList;
 use Difficulty;
 use Tournament;
+use ManagedArray;
 use UniversalHolder;
 use UniversalEnumerable;
 use UniverseGroupFlowControl;
@@ -59,7 +60,7 @@ pub struct UniverseGroup {
 
     universes:  RwLock<UniversalHolder<Universe>>,
     teams:      RwLock<UniversalHolder<Team>>,
-    players:    RwLock<UniversalHolder<Player>>,
+    players:    RwLock<ManagedArray<Arc<RwLock<Player>>>>,
 
     tournament: Option<Arc<Mutex<Tournament>>>
 }
@@ -103,7 +104,7 @@ impl UniverseGroup {
 
         let universes = RwLock::new(UniversalHolder::new(IndexList::new(false, 16)));
         let teams     = RwLock::new(UniversalHolder::new(IndexList::new(false, 16)));
-        let players   = RwLock::new(UniversalHolder::new(IndexList::new(false, maximum_players as usize)));
+        let players   = RwLock::new(ManagedArray::with_capacity(maximum_players as usize));
 
         Ok(UniverseGroup {
             connector:  Arc::downgrade(connector),
@@ -215,6 +216,10 @@ impl UniverseGroup {
 
     pub fn avg_tick_time(&self) -> &TimeSpan {
         &self.avg_tick_time
+    }
+
+    pub fn players(&self) -> &RwLock<ManagedArray<Arc<RwLock<Player>>>> {
+        &self.players
     }
 }
 

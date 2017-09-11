@@ -50,6 +50,12 @@ pub struct Player {
     controllables: RwLock<UniversalHolder<ControllableInfo>>
 }
 
+impl PartialEq<Player> for Player {
+    fn eq(&self, other: &Player) -> bool {
+        self.id == other.id
+    }
+}
+
 impl Player {
     pub fn from_reader(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Player, Error> {
         Ok(Player {
@@ -434,6 +440,10 @@ impl Player {
 
     pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
         &self.universe_group
+    }
+
+    pub(crate) fn set_universe_group(&mut self, group: Weak<RwLock<UniverseGroup>>) {
+        self.universe_group = group;
     }
 }
 

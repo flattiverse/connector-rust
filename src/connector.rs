@@ -26,6 +26,7 @@ use DateTime;
 use TimeSpan;
 use IndexList;
 use BlockManager;
+use ManagedArray;
 use UniverseGroup;
 use UniversalHolder;
 use UniverseGroupFlowControl;
@@ -106,7 +107,6 @@ impl Connector {
 
             loop {
                 let packet = rx.recv().expect("Failed to retrieve packet");
-                println!("Received packet: {:?}", packet);
 
                 // answer the ping beforehand
                 if packet.session() != 0x00 {
@@ -173,8 +173,7 @@ impl Connector {
 
     fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
         match packet.command() {
-            0x01 => {
-                println!("Received ping request");
+            0x01 => { // ping
                 connector.send(&packet).expect("Failed to respond to ping");
             },
             0x02 => { // pre-wait
@@ -295,7 +294,28 @@ impl Connector {
                     }
                 }
             },
-            // TODO 0x13 missing
+            0x13 => { // registered for UniverseGroup / Team
+                let player = connector.player_for(packet.path_player())?;
+                let group = connector.universe_group(packet.path_universe_group())?;
+
+                {
+                    let mut player = player.write()?;
+                    player.set_universe_group(Arc::downgrade(&group));
+                    player.set_team(group.read()?.team_weak(packet.path_sub()));
+                }
+
+                {
+                    let mut group = group.write()?;
+                    group.players().write()?.insert(player.clone());
+                }
+
+                {
+                    let mut player = player.write()?;
+                    player.update_assignment(&packet)?;
+                    println!("Updated assignement, clan: {:?}", player.clan());
+                }
+
+            },
             0x14 => { // player timing information
                 let player = connector.player_for(packet.path_player())?;
                 player.write()?.update_timing(&packet)?;
@@ -523,4 +543,12 @@ impl ConnectorArc for Arc<Connector> {
         self.flows.write()?.push(flow.clone());
         Ok(flow)
     }
+}
+
+trait Test {
+
+}
+
+impl<T> Test for (usize, [T]) {
+
 }
