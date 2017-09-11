@@ -7,6 +7,7 @@ use backtrace::Backtrace;
 
 #[derive(Debug)]
 pub enum Error {
+    DowncastError(Backtrace),
     IoError(Backtrace, std::io::Error),
     SendError,
     EmailAndOrPasswordInvalid,
@@ -40,6 +41,7 @@ pub enum Error {
     ScoresNotAvailable,
     PlayerNotAvailable,
     PlayerNotInUniverseGroup,
+    VectorNotAvailable,
     TeamNotAvailable,
     ControllableInfoNotAvailable,
     InvalidMessage,
@@ -93,5 +95,12 @@ impl<T> From<PoisonError<T>> for Error {
 impl<T> From<SendError<T>> for Error {
     fn from(_: SendError<T>) -> Self {
         Error::SendError
+    }
+}
+
+use downcast::DowncastError;
+impl<T> From<DowncastError<T>> for Error {
+    fn from(e: DowncastError<T>) -> Self {
+        Error::DowncastError(Backtrace::new())
     }
 }

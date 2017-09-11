@@ -1,6 +1,9 @@
 
 use std::net::ToSocketAddrs;
 
+use std::fmt;
+use std::fmt::Write;
+
 use std::io;
 use std::thread;
 
@@ -23,6 +26,7 @@ use Team;
 use Error;
 use Scores;
 use Player;
+use Vector;
 use Version;
 use Universe;
 use DateTime;
@@ -46,6 +50,11 @@ use controllable::Controllable;
 use controllable::ControllableData;
 
 use unit;
+use unit::Unit;
+use unit::Pixel;
+use unit::PixelData;
+use unit::PixelCluster;
+use unit::PixelClusterData;
 use unit::ControllableInfo;
 
 use item;
@@ -735,6 +744,28 @@ impl Connector {
                 let controllable = connector.controllable(packet.path_ship())?;
                 controllable.write()?.set_cargo_items(cargo_items);
             },
+            0x90 => { // scan result entry received
+                let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+                let player = player.read()?;
+                let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let group  = group.read()?;
+                let unit   = unit::unit_from_packet(connector, &group, packet)?;
+
+
+                let controllable = connector.controllable(packet.path_universe())?;
+                let controllable = controllable.read()?;
+
+                if unit.is::<PixelClusterData>() {
+                    let pixels = Connector::read_pixels_from_pixel_cluster(connector, unit.downcast::<PixelClusterData>()?)?;
+                    let mut scan = controllable.scan_list().write()?;
+                    for pixel in pixels.into_iter() {
+                        scan.push(pixel);
+                    }
+                } else {
+                    controllable.scan_list().write()?.push(unit);
+                }
+
+            },
             // TODO missing entries
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
@@ -742,6 +773,49 @@ impl Connector {
         };
         Ok(())
     }
+
+    fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: Box<PixelCluster>) -> Result<Vec<Box<Unit>>, Error> {
+        let mut pixels = Vec::new();
+        let reader = &mut &cluster.data()[..] as &mut BinaryReader;
+
+        let group= {
+            let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+            let player = player.read()?;
+            player.universe_group().clone().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?
+        };
+        let group = group.read()?;
+
+        let radius  = cluster.radius() / 16_f32;
+        let position = cluster.position();
+        let mut y_pos  = position.y() - cluster.radius() + radius;
+        let mut x_pos  = 0_f32;
+
+        for y in 0..16 {
+            x_pos = position.x() - cluster.radius() + radius;
+
+            for x in 0..16 {
+                let pixel = Box::new(PixelData::new(
+                    connector,
+                    &group,
+                    format!("{}{:08X}{:08X}", cluster.name(), x, y),
+                    radius,
+                    Vector::new(x_pos, y_pos),
+                    reader.read_unsigned_byte()?,
+                    reader.read_unsigned_byte()?,
+                    reader.read_unsigned_byte()?,
+                ));
+
+                if pixel.relevant() {
+                    pixels.push(pixel as Box<Unit>);
+                }
+
+                x_pos += radius * 2_f32;
+            }
+            y_pos += radius * 2_f32;
+        }
+        Ok(pixels)
+    }
+
 
     fn answer(&self, answer: Box<Packet>) {
         self.block_manager.answer(answer)
