@@ -201,6 +201,60 @@ impl Connector {
                     flow.set_pre_wait(time.clone(), tick)?;
                 }
             },
+            0x03 => {
+                // sync flow control
+                let lock = connector.sync_control_flow.lock()?;
+                let flows= connector.flows.read()?;
+
+                if flows.is_empty() {
+                    let mut packet = Packet::new();
+
+                    {
+                        packet.set_command(0x05);
+                        packet.set_path_sub(*connector.tick.read()? as u8 & 0xFF);
+                    }
+
+                    connector.send(&packet)?;
+                } else {
+                    let mut allow_flow_control_ready = true;
+                    for flow in flows.iter() {
+                        if !flow.ready()? {
+                            allow_flow_control_ready = false;
+                            break;
+                        }
+                    }
+
+                    if allow_flow_control_ready {
+                        let mut packet = Packet::new();
+
+                        {
+                            packet.set_command(0x05);
+                            packet.set_path_sub(*connector.tick.read()? as u8 & 0xFF);
+                        }
+
+                        connector.send(&packet)?;
+                    }
+                }
+
+                let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
+                let player = player.read()?;
+                let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let group = group.read()?;
+
+                let time = DateTime::now() + TimeSpan::new(
+                    group.avg_tick_time().ticks()
+                        - min(
+                        player.ping().ticks() +384_000_i64,
+                        group.avg_tick_time().ticks()
+                    )
+                );
+
+                for flow in connector.flows.read()?.iter() {
+                    flow.set_wait(time.clone())?;
+                }
+
+
+            },
             0x0F => { // assign player
                 let mut player_slot = connector.player.write()?;
                 *player_slot = connector.players.read()?.get_for_index_weak(packet.path_player() as usize);
