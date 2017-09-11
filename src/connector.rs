@@ -609,6 +609,10 @@ impl Connector {
         }
     }
 
+    pub fn universe_groups(&self) -> &RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>> {
+        &self.uni_groups
+    }
+
     pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
         let lock = self.uni_groups.read()?;
         lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
