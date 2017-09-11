@@ -18,7 +18,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitJumpedMessage);
+downcast!(PlayerUnitJumpedMessage);
 pub trait PlayerUnitJumpedMessage : GameMessage {
 
     fn controllable(&self) -> &Arc<RwLock<Controllable>>;

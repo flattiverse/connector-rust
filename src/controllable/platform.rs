@@ -15,7 +15,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Platform);
+downcast!(Platform);
 pub trait Platform : Controllable {
     fn kind(&self) -> UnitKind {
         UnitKind::PlayerPlatform

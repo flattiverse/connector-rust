@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Pixel);
+downcast!(Pixel);
 pub trait Pixel : Unit {
 
     fn color(&self) -> &Color;

@@ -19,7 +19,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerJoinedUniverseGroupMessage);
+downcast!(PlayerJoinedUniverseGroupMessage);
 pub trait PlayerJoinedUniverseGroupMessage : GameMessage {
 
     fn player(&self) -> &Arc<RwLock<Player>>;

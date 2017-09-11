@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(CloakPowerUp);
+downcast!(CloakPowerUp);
 pub trait CloakPowerUp : PowerUp {
     fn kind(&self) -> UnitKind {
         UnitKind::CloakPowerUp

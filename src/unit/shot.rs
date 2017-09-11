@@ -20,7 +20,7 @@ use controllable::SubDirection;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Shot);
+downcast!(Shot);
 pub trait Shot : Unit {
 
     /// The [Player] who fired the shot

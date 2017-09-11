@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Buoy);
+downcast!(Buoy);
 pub trait Buoy : Unit {
     fn message(&self) -> &str;
 

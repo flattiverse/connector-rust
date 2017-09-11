@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(PlayerDrone);
+downcast!(PlayerDrone);
 pub trait PlayerDrone : PlayerUnit {
     fn kind(&self) -> UnitKind {
         UnitKind::PlayerDrone

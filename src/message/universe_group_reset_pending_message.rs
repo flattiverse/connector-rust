@@ -19,7 +19,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(UniverseGroupResetPendingMessage);
+downcast!(UniverseGroupResetPendingMessage);
 pub trait UniverseGroupResetPendingMessage : GameMessage {
 
     fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;

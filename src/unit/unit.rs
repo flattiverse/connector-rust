@@ -18,10 +18,10 @@ use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
-use downcast_rs::Downcast;
+use downcast::Any;
 
-impl_downcast!(Unit);
-pub trait Unit : Downcast + Send + Sync {
+downcast!(Unit);
+pub trait Unit : Any + Send + Sync {
     fn name(&self) -> &str;
 
     fn position(&self) -> &Vector;

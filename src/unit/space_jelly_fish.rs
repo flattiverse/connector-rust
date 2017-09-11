@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(SpaceJellyFish);
+downcast!(SpaceJellyFish);
 pub trait SpaceJellyFish : Unit {
 
     fn hull(&self) -> f32;

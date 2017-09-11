@@ -14,7 +14,7 @@ use net::Packet;
 use net::BinaryReader;
 
 
-impl_downcast!(Sun);
+downcast!(Sun);
 pub trait Sun : Unit {
     fn coronas(&self) -> &Vec<Corona>;
 

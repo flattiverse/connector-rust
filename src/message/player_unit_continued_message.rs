@@ -21,7 +21,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitContinuedMessage);
+downcast!(PlayerUnitContinuedMessage);
 pub trait PlayerUnitContinuedMessage : GameMessage {
 
     fn player_unit_player(&self) -> &Arc<RwLock<Player>>;

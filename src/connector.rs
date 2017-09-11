@@ -1,6 +1,7 @@
 
 use std::net::ToSocketAddrs;
 
+use std::io;
 use std::thread;
 
 use std::sync::Arc;
@@ -37,6 +38,9 @@ use net::BinaryWriter;
 use net::BinaryReader;
 
 use controllable::Controllable;
+
+use item;
+use item::CargoItem;
 use item::CrystalCargoItem;
 
 use message::from_reader;
@@ -59,6 +63,7 @@ pub struct Connector {
     tasks:      RwLock<[bool; TASK_COUNT]>,
     flows:      RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups: RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
+    crystals:   RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
 }
 
 impl Connector {
@@ -96,6 +101,7 @@ impl Connector {
             tasks:      RwLock::new([false; TASK_COUNT]),
             flows:      RwLock::new(Vec::new()),
             uni_groups: RwLock::new(ManagedArray::with_capacity(128)),
+            crystals:   RwLock::new(ManagedArray::with_capacity(64)),
         };
 
         let connector = Arc::new(connector);
@@ -335,8 +341,8 @@ impl Connector {
 
                     // TODO WTF!
                     let mut players = group_read.players().write()?;
-                    let mut index = 0;
-                    let mut wipe_at = -1;
+                    let mut index = 0_isize;
+                    let mut wipe_at = -1_isize;
                     for player in players.as_ref() {
                         if let &Some(ref player) = player {
                             let lock = player.read()?;
@@ -371,6 +377,50 @@ impl Connector {
                     player.write()?.set_active(false);
                 }
                 connector.players.write()?.set(packet.path_player() as usize, None);
+            },
+            0x1B => { // crystal list update
+                let len = packet.read().len();
+                let reader = &mut packet.read() as &mut BinaryReader;
+                let mut lock = connector.crystals.write()?;
+
+                let mut crystal_position = 0;
+
+                while crystal_position < 64 {
+                    // TODO WTF
+                    let cargo_item = match item::cargo_item_from_stream(Arc::downgrade(&connector), true, reader) {
+                        Ok(item) => item,
+                        Err(e) => {
+                            let ok = match e {
+                                Error::IoError(ref bt, ref inner_e) => {
+                                    match inner_e.kind() {
+                                        io::ErrorKind::UnexpectedEof => {
+                                            // end of stream? --> no more items
+                                            true
+                                        }
+                                        _ => false,
+                                    }
+                                },
+                                _ => false
+                            };
+                            if !ok {
+                                return Err(e);
+                            } else {
+                                break;
+                            }
+                        }
+
+                    };
+                    let crystal = cargo_item.downcast::<item::CrystalCargoItemData>().unwrap();
+
+                    lock.set(crystal_position, Some(Arc::new(*crystal)));
+                    crystal_position += 1;
+                }
+
+                while crystal_position < 64 {
+                    lock.set(crystal_position, None);
+                    crystal_position += 1;
+                }
+
             },
             0x30 => { // new message
                 match from_reader(&connector, &packet) {

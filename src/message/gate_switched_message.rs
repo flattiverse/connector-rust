@@ -21,7 +21,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(GateSwitchedMessage);
+downcast!(GateSwitchedMessage);
 pub trait GateSwitchedMessage : GameMessage {
 
     fn invoker_player(&self) -> &Option<Arc<RwLock<Player>>>;

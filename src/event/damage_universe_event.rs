@@ -13,7 +13,7 @@ use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
-impl_downcast!(DamageUniverseEvent);
+downcast!(DamageUniverseEvent);
 pub trait DamageUniverseEvent : UniverseEvent + Display + Debug {
 
     fn hull_damage(&self) -> f32;

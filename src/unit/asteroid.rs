@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Asteroid);
+downcast!(Asteroid);
 pub trait Asteroid : Unit {
 
     fn aggressive(&self) -> bool;

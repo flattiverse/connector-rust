@@ -12,7 +12,7 @@ use unit::PowerUpData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(RefreshingPowerUp);
+downcast!(RefreshingPowerUp);
 pub trait RefreshingPowerUp : PowerUp {
     fn amount(&self) -> f32;
 }

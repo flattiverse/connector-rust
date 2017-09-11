@@ -18,7 +18,7 @@ use unit::PlayerUnitTractorbeamInfo;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(PlayerUnit);
+downcast!(PlayerUnit);
 pub trait PlayerUnit : Unit {
 
     fn player(&self) -> &Weak<RwLock<Player>>;

@@ -11,7 +11,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(RepairUniverseEvent);
+downcast!(RepairUniverseEvent);
 pub trait RepairUniverseEvent : UniverseEvent + Display + Debug {
 
     fn hull_repair(&self) -> f32;

@@ -17,7 +17,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(MissionTargetAvailableMessage);
+downcast!(MissionTargetAvailableMessage);
 pub trait MissionTargetAvailableMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 

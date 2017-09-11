@@ -11,7 +11,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(HarvestUniverseEvent);
+downcast!(HarvestUniverseEvent);
 pub trait HarvestUniverseEvent : UniverseEvent + Display + Debug {
 
     fn amount(&self) -> f32;

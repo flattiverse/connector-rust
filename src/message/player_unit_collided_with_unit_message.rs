@@ -20,7 +20,7 @@ use message::PlayerUnitDeceasedMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitCollidedWithUnitMessage);
+downcast!(PlayerUnitCollidedWithUnitMessage);
 pub trait PlayerUnitCollidedWithUnitMessage : PlayerUnitDeceasedMessage {
 
     fn collider_unit_kind(&self) -> UnitKind;

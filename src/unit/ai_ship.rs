@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(AiShip);
+downcast!(AiShip);
 pub trait AiShip : AiUnit {
     fn kind(&self) -> UnitKind {
         UnitKind::AiShip

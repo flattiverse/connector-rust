@@ -19,7 +19,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(TournamentStatusMessage);
+downcast!(TournamentStatusMessage);
 pub trait TournamentStatusMessage : GameMessage {
 
     fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;

@@ -12,7 +12,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(TransferredEnergyUniverseEvent);
+downcast!(TransferredEnergyUniverseEvent);
 pub trait TransferredEnergyUniverseEvent : UniverseEvent + Display + Debug {
 
     fn energy(&self) -> f32;

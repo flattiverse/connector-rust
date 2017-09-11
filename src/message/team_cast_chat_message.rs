@@ -16,7 +16,7 @@ use message::ChatMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(TeamCastChatMessage);
+downcast!(TeamCastChatMessage);
 pub trait TeamCastChatMessage : ChatMessage {
 
     fn to(&self) -> &Arc<RwLock<Team>>;

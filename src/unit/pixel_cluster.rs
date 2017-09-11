@@ -15,7 +15,7 @@ use net::BinaryReader;
 
 use flate2::read::GzDecoder;
 
-impl_downcast!(PixelCluster);
+downcast!(PixelCluster);
 pub trait PixelCluster : Unit {
 
     fn data(&self) -> &Vec<u8>;

@@ -13,7 +13,7 @@ use unit::GravityWell;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(BlackHole);
+downcast!(BlackHole);
 pub trait BlackHole : Unit {
 
     fn gravity_wells(&self) -> &Vec<GravityWell>;

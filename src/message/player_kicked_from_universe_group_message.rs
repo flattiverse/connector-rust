@@ -19,7 +19,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerKickedFromUniverseGroupMessage);
+downcast!(PlayerKickedFromUniverseGroupMessage);
 pub trait PlayerKickedFromUniverseGroupMessage : GameMessage {
 
     fn player(&self) -> &Arc<RwLock<Player>>;

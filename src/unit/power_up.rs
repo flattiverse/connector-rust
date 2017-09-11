@@ -11,7 +11,7 @@ use unit::UnitData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(PowerUp);
+downcast!(PowerUp);
 pub trait PowerUp : Unit {
 }
 

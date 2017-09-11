@@ -18,7 +18,7 @@ use message::PlayerUnitDeceasedMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitCommittedSuicideMessage);
+downcast!(PlayerUnitCommittedSuicideMessage);
 pub trait PlayerUnitCommittedSuicideMessage : PlayerUnitDeceasedMessage {
 
 }

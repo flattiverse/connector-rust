@@ -22,7 +22,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitHitOwnTargetMessage);
+downcast!(PlayerUnitHitOwnTargetMessage);
 pub trait PlayerUnitHitOwnTargetMessage : GameMessage {
 
     fn player_unit_player(&self) -> &Arc<RwLock<Player>>;

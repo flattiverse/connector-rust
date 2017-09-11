@@ -9,7 +9,7 @@ extern crate flate2;
 extern crate backtrace;
 
 #[macro_use]
-extern crate downcast_rs;
+extern crate downcast;
 
 mod net;
 mod unit;
@@ -88,4 +88,4 @@ pub use universe_group_flow_control::*;
 
 pub use tournament::*;
 
-pub use downcast_rs::Downcast;
+

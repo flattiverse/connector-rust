@@ -18,7 +18,7 @@ use unit::ControllableInfo;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Explosion);
+downcast!(Explosion);
 pub trait Explosion : Unit {
 
     /// The cause of the explosion

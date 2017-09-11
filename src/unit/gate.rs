@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Gate);
+downcast!(Gate);
 pub trait Gate : Unit {
 
     fn color(&self) -> &Color;

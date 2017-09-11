@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Meteoroid);
+downcast!(Meteoroid);
 pub trait Meteoroid : Unit {
     fn kind(&self) -> UnitKind {
         UnitKind::Meteoroid

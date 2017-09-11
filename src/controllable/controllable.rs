@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
-use Downcast;
+use downcast::Any;
 
 
 use Error;
@@ -39,8 +39,8 @@ use net::BinaryReader;
 use net::BinaryWriter;
 use net::is_set_u8;
 
-impl_downcast!(Controllable);
-pub trait Controllable : Downcast + Send + Sync {
+downcast!(Controllable);
+pub trait Controllable : Any + Send + Sync {
 
     fn id(&self) -> u8;
 

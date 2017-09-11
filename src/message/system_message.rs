@@ -14,7 +14,7 @@ use message::FlattiverseMessageData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(SystemMessage);
+downcast!(SystemMessage);
 pub trait SystemMessage : FlattiverseMessage {
     fn message(&self) -> &String;
 }

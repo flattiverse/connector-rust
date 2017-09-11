@@ -16,7 +16,7 @@ use message::ChatMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(BinaryChatMessage);
+downcast!(BinaryChatMessage);
 pub trait BinaryChatMessage : ChatMessage {
 
     fn to(&self) -> &Arc<RwLock<Player>>;

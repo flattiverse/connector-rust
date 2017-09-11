@@ -15,7 +15,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Probe);
+downcast!(Probe);
 pub trait Probe : Controllable {
     fn kind(&self) -> UnitKind {
         UnitKind::PlayerProbe

@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(StormWhirl);
+downcast!(StormWhirl);
 pub trait StormWhirl : Unit {
 
     /// Remaining time for this [StormWhirl] to be active

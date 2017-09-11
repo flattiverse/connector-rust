@@ -15,7 +15,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Ship);
+downcast!(Ship);
 pub trait Ship : Controllable {
 
     fn kind(&self) -> UnitKind {

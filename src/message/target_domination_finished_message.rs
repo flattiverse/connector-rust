@@ -17,7 +17,7 @@ use message::GameMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(TargetDominationFinishedMessage);
+downcast!(TargetDominationFinishedMessage);
 pub trait TargetDominationFinishedMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 

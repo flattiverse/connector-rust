@@ -9,7 +9,7 @@ use item::CargoItemData;
 use item::CargoItemKind;
 use net::BinaryReader;
 
-impl_downcast!(NebulaCargoItem);
+downcast!(NebulaCargoItem);
 pub trait NebulaCargoItem : CargoItem {
     fn color(&self) -> &Color;
 

@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(DoubleDamagePowerUp);
+downcast!(DoubleDamagePowerUp);
 pub trait DoubleDamagePowerUp : PowerUp {
     fn kind(&self) -> UnitKind {
         UnitKind::DoubleDamagePowerUp

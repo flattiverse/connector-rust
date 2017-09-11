@@ -3,7 +3,7 @@ use std::sync::Weak;
 
 use Error;
 use Connector;
-use Downcast;
+use downcast::Any;
 use net::BinaryReader;
 
 use item::CargoItemKind;
@@ -11,19 +11,20 @@ use item::NebulaCargoItemData;
 use item::CrystalCargoItemData;
 use item::MissionTargetCargoItemData;
 
-impl_downcast!(CargoItem);
-pub trait CargoItem : Downcast + Sync + Send {
+
+pub trait CargoItem : Any + Sync + Send {
     fn weight(&self) -> f32;
 
     fn kind(&self) -> CargoItemKind;
 }
+downcast!(CargoItem);
 
 
 pub(crate) fn cargo_item_from_stream(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
     Ok(match reader.read_byte()? {
-        0x00 => Box::new(NebulaCargoItemData::new(connector, master, reader)?),
-        0x01 => Box::new(CrystalCargoItemData::new(connector, master, reader)?),
-        0x02 => Box::new(MissionTargetCargoItemData::new(connector, master, reader)?),
+        0x00 => Box::new(NebulaCargoItemData        ::new(connector, master, reader)?),
+        0x01 => Box::new(CrystalCargoItemData       ::new(connector, master, reader)?),
+        0x02 => Box::new(MissionTargetCargoItemData ::new(connector, master, reader)?),
         id@_ => return Err(Error::InvalidCargoItem(id))
     })
 }

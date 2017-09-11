@@ -12,7 +12,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(ScanUniverseEvent);
+downcast!(ScanUniverseEvent);
 pub trait ScanUniverseEvent : UniverseEvent + Display + Debug {
 
     fn scan_info(&self) -> &ScanInfo;

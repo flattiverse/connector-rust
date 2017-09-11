@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Planet);
+downcast!(Planet);
 pub trait Planet : Unit {
     fn kind(&self) -> UnitKind {
         UnitKind::Planet

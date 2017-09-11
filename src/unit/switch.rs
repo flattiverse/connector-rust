@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Switch);
+downcast!(Switch);
 pub trait Switch : Unit {
 
     fn color(&self) -> &Color;

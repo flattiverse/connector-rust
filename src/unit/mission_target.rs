@@ -14,7 +14,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(MissionTarget);
+downcast!(MissionTarget);
 pub trait MissionTarget : Unit {
 
     /// The sequence number of this target

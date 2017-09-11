@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Nebula);
+downcast!(Nebula);
 pub trait Nebula : Unit {
 
     fn color(&self) -> &Color;

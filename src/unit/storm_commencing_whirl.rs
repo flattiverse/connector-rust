@@ -12,7 +12,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(StormCommencingWhirl);
+downcast!(StormCommencingWhirl);
 pub trait StormCommencingWhirl : Unit {
 
     /// Time until this [StormCommencingWhirl] to becomes a [StormWhirl]

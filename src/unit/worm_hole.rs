@@ -16,7 +16,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(WormHole);
+downcast!(WormHole);
 pub trait WormHole : Unit {
 
     fn destination(&self) -> &Option<Vector>;

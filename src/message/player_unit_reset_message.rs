@@ -18,7 +18,7 @@ use message::PlayerUnitDeceasedMessageData;
 use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitResetMessage);
+downcast!(PlayerUnitResetMessage);
 pub trait PlayerUnitResetMessage : PlayerUnitDeceasedMessage {
 
 }

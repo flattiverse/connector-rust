@@ -8,10 +8,10 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-use downcast_rs::Downcast;
+use downcast::Any;
 
-impl_downcast!(UniverseEvent);
-pub trait UniverseEvent : Downcast {
+downcast!(UniverseEvent);
+pub trait UniverseEvent : Any {
 
     fn kind(&self) -> UnitKind;
 

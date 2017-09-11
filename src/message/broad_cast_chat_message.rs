@@ -19,7 +19,7 @@ use message::FlattiverseMessage;
 use message::FlattiverseMessageData;
 
 
-impl_downcast!(BroadCastChatMessage);
+downcast!(BroadCastChatMessage);
 pub trait BroadCastChatMessage : ChatMessage {
 
     fn to(&self) -> &Arc<RwLock<UniverseGroup>>;

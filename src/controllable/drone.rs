@@ -15,7 +15,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Drone);
+downcast!(Drone);
 pub trait Drone : Controllable {
     fn kind(&self) -> UnitKind {
         UnitKind::PlayerDrone

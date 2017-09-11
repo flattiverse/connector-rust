@@ -15,7 +15,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(Base);
+downcast!(Base);
 pub trait Base : Controllable {
     fn kind(&self) -> UnitKind {
         UnitKind::PlayerBase

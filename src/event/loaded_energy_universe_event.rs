@@ -11,7 +11,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(LoadedEnergyUniverseEvent);
+downcast!(LoadedEnergyUniverseEvent);
 pub trait LoadedEnergyUniverseEvent : UniverseEvent + Display + Debug {
 
     fn energy(&self) -> f32;

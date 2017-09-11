@@ -11,7 +11,7 @@ use unit::UnitData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(AiUnit);
+downcast!(AiUnit);
 pub trait AiUnit : Unit {
 
     fn hull(&self) -> f32;

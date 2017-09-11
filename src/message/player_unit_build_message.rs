@@ -17,7 +17,7 @@ use message::GameMessage;
 use message::GameMessageData;
 use message::FlattiverseMessageData;
 
-impl_downcast!(PlayerUnitBuildMessage);
+downcast!(PlayerUnitBuildMessage);
 pub trait PlayerUnitBuildMessage : GameMessage {
 
     fn player(&self) -> &Arc<RwLock<Player>>;

@@ -13,7 +13,7 @@ use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(IonsRefreshingPowerUp);
+downcast!(IonsRefreshingPowerUp);
 pub trait IonsRefreshingPowerUp : RefreshingPowerUp {
     fn kind(&self) -> UnitKind {
         UnitKind::IonsPowerUp

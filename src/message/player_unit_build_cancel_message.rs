@@ -16,7 +16,7 @@ use message::FlattiverseMessageData;
 use message::PlayerUnitBuildMessage;
 use message::PlayerUnitBuildMessageData;
 
-impl_downcast!(PlayerUnitBuildCancelledMessage);
+downcast!(PlayerUnitBuildCancelledMessage);
 pub trait PlayerUnitBuildCancelledMessage : PlayerUnitBuildMessage {
 }
 

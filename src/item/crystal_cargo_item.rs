@@ -13,7 +13,6 @@ use net::Packet;
 use net::BinaryReader;
 use net::BinaryWriter;
 
-impl_downcast!(CrystalCargoItem);
 pub trait CrystalCargoItem : CargoItem + UniversalEnumerable {
     fn color(&self) -> &Color;
 
@@ -119,6 +118,7 @@ pub trait CrystalCargoItem : CargoItem + UniversalEnumerable {
     /// players' account.
     fn destroy(&mut self) -> Result<(), Error>;
 }
+downcast!(CrystalCargoItem);
 
 pub(crate) struct CrystalCargoItemData  {
     pub(crate) cargo_item_data: CargoItemData,

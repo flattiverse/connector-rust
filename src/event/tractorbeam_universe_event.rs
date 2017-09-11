@@ -11,7 +11,7 @@ use event::UniverseEventData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(TractorbeamUniverseEvent);
+downcast!(TractorbeamUniverseEvent);
 pub trait TractorbeamUniverseEvent : UniverseEvent + Display + Debug {
 
     fn direction(&self) -> f32;

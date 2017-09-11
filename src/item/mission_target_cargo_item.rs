@@ -8,7 +8,7 @@ use item::CargoItemData;
 use item::CargoItemKind;
 use net::BinaryReader;
 
-impl_downcast!(MissionTargetCargoItem);
+downcast!(MissionTargetCargoItem);
 pub trait MissionTargetCargoItem : CargoItem {
 
 }

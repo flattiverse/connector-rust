@@ -16,7 +16,7 @@ use message::FlattiverseMessageData;
 use net::Packet;
 use net::BinaryReader;
 
-impl_downcast!(MOTDMessage);
+downcast!(MOTDMessage);
 pub trait MOTDMessage : SystemMessage {
 
 }

@@ -93,11 +93,11 @@ use net::Packet;
 use net::BinaryReader;
 use dotnet::DateTime;
 
-use downcast_rs::Downcast;
+use downcast::Any;
 
 
-impl_downcast!(FlattiverseMessage);
-pub trait FlattiverseMessage : Downcast + Display + Send + Sync {
+downcast!(FlattiverseMessage);
+pub trait FlattiverseMessage : Any + Display + Send + Sync {
     fn timestamp(&self) -> &DateTime;
 }
 
