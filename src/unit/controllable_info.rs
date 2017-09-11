@@ -10,6 +10,7 @@ use UniversalEnumerable;
 
 use unit::UnitKind;
 
+use item::CargoItem;
 use item::CrystalCargoItem;
 
 use net::Packet;
@@ -35,6 +36,7 @@ pub struct ControllableInfo {
     has_tractor_beam: bool,
 
     crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>,
+    items:    Vec<Arc<RwLock<Box<CargoItem>>>>,
     scores:   Arc<RwLock<Scores>>,
 
     hull:           f32,
@@ -90,6 +92,7 @@ impl ControllableInfo {
             has_tractor_beam:       reader.read_bool()?,
 
             crystals:               Vec::new(),
+            items:                  Vec::new(),
             scores:                 Arc::new(RwLock::new(Scores::default())),
             hull:                   0f32,
             shield:                 0f32,
@@ -294,6 +297,14 @@ impl ControllableInfo {
 
     pub(crate) fn set_crystals(&mut self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
         self.crystals = crystals;
+    }
+
+    pub fn cargo_items(&self) -> &Vec<Arc<RwLock<Box<CargoItem>>>> {
+        &self.items
+    }
+
+    pub(crate) fn set_cargo_items(&mut self, items: Vec<Arc<RwLock<Box<CargoItem>>>>) {
+        self.items = items;
     }
 }
 
