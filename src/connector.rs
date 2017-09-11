@@ -555,10 +555,18 @@ impl Connector {
                 let player = connector.player_for(packet.path_player())?;
                 match player.read()?.controllable_info(packet.path_ship()) {
                     None => return Err(Error::InvalidControllableInfo(packet.path_ship())),
-                    Some(ref info) => {
-                        info.write()?.update(packet)?;
-                    }
+                    Some(info) => info.write()?.update(packet)?,
                 };
+            },
+            0x86 => { // 'ControllableInfoRemoved'
+                let player = connector.player_for(packet.path_player())?;
+                let path_ship = packet.path_ship();
+
+                match player.read()?.controllable_info(path_ship) {
+                    None => return Err(Error::InvalidControllableInfo(path_ship)),
+                    Some(info) => info.write()?.set_active(false)
+                };
+                player.write()?.set_controllable_info(path_ship, None);
             },
             // TODO missing entries
             _ => {
