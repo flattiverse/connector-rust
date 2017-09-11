@@ -695,6 +695,43 @@ impl Connector {
                     }
                 }
 
+                let player = connector.player_for(packet.path_player())?;
+                let info = player.read()?.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
+                info.write()?.set_cargo_items(cargo_items);
+            },
+            0x8B => { // 'ControllableInfoCargoPacket'
+                let mut cargo_items = Vec::new();
+
+                {
+                    let reader = &mut packet.read() as &mut BinaryReader;
+                    loop {
+                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), false, reader) {
+                            Ok(item) => item,
+                            Err(e) => {
+                                let ok = match e {
+                                    Error::IoError(ref bt, ref inner_e) => {
+                                        match inner_e.kind() {
+                                            io::ErrorKind::UnexpectedEof => {
+                                                // end of stream? --> no more items
+                                                true
+                                            }
+                                            _ => false,
+                                        }
+                                    },
+                                    _ => false
+                                };
+                                if !ok {
+                                    return Err(e);
+                                } else {
+                                    break;
+                                }
+                            }
+                        };
+
+                        cargo_items.push(Arc::new(RwLock::new(crystal)));
+                    }
+                }
+
                 let controllable = connector.controllable(packet.path_ship())?;
                 controllable.write()?.set_cargo_items(cargo_items);
             },
