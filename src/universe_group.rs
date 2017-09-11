@@ -198,6 +198,10 @@ impl UniverseGroup {
         self.universes.read().unwrap().get_for_index_weak(index as usize)
     }
 
+    pub(crate) fn set_universe(&mut self, index: u8, universe: Option<Arc<RwLock<Universe>>>) {
+        self.universes.write().unwrap().set(index as usize, universe);
+    }
+
     pub fn connector(&self) -> &Weak<Connector> {
         &self.connector
     }

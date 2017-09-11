@@ -26,8 +26,7 @@ pub struct Universe {
 }
 
 impl Universe {
-    pub fn new(universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet) -> Result<Universe, Error> {
-        let reader = &mut packet.read() as &mut BinaryReader;
+    pub fn from_reader(universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Universe, Error> {
         Ok(Universe {
             universe_group: Arc::downgrade(universe_group),
             connector:      universe_group.read()?.connector().clone(),
