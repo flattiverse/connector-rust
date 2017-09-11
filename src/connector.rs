@@ -322,7 +322,45 @@ impl Connector {
                 let player = connector.player_for(packet.path_player())?;
                 player.write()?.update_timing(&packet)?;
             },
-            // TODO 0x15 missing
+            0x15 => { // unregistered from UniverseGroup / Team
+                let player = connector.player_for(packet.path_player())?;
+
+                {
+                    let player_read = player.read()?;
+                    let group = player_read.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                    let group_read = group.read()?;
+                    let player_id = player_read.id();
+
+                    drop(player_read);
+
+                    // TODO WTF!
+                    let mut players = group_read.players().write()?;
+                    let mut index = 0;
+                    let mut wipe_at = -1;
+                    for player in players.as_ref() {
+                        if let &Some(ref player) = player {
+                            let lock = player.read()?;
+                            if lock.id() == player_id {
+                                wipe_at = index;
+                                break;
+                            }
+                        }
+                        index += 1;
+                    }
+                    if wipe_at >= 0 {
+                        players.wipe_index(wipe_at as usize);
+                    } else {
+                        panic!("...");
+                    }
+                }
+
+                {
+                    let mut player_write = player.write()?;
+                    player_write.set_team(Weak::default());
+                    player_write.clear_assignment();
+                }
+
+            },
             0x16 => { // player isn't online anymore
                 let player = connector.player_for(packet.path_player())?;
                 player.write()?.set_online(false);
