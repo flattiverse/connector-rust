@@ -48,6 +48,7 @@ use net::BinaryReader;
 use controllable;
 use controllable::Controllable;
 use controllable::ControllableData;
+use controllable::ControllableDesign;
 
 use unit;
 use unit::Unit;
@@ -973,6 +974,63 @@ impl Connector {
             &None => Weak::default(),
             &Some(ref arc) => Arc::downgrade(arc),
         }
+    }
+
+    /// Queries up to 128 designs.
+    ///
+    /// You can edit these [ControllableDesign]s via the flattiverse.com homepage
+    ///
+    /// Beware: The flattiverse-server will queue your and the requsts of other players
+    /// to avoid high loads on the database. So this method might need some time in until
+    /// it returns. Parallel requests to this method will be declined by the flattiverse-server
+    /// resultin in an empty return [Vec]. You have been warned.
+    ///
+    pub fn query_designes(&self) -> Result<Vec<ControllableDesign>, Error> {
+        let lock = self.sync_account_queries().lock()?;
+
+        let mut vec     = Vec::new();
+        let mut packet  = Packet::new();
+
+        let block    = self.block_manager().block()?;
+        let response = {
+            let mut block = block.lock()?;
+            packet.set_command(0x10);
+            packet.set_session(block.id());
+
+            self.send(&packet)?;
+            block.wait()?
+        };
+
+        {
+            let reader = &mut response.read() as &mut BinaryReader;
+            loop {
+                // TODO WTF
+                vec.push(match ControllableDesign::from_reader(reader) {
+                    Ok(item) => item,
+                    Err(e) => {
+                        let ok = match e {
+                            Error::IoError(ref bt, ref inner_e) => {
+                                match inner_e.kind() {
+                                    io::ErrorKind::UnexpectedEof => {
+                                        // end of stream? --> no more items
+                                        true
+                                    }
+                                    _ => false,
+                                }
+                            },
+                            _ => false
+                        };
+                        if !ok {
+                            return Err(e);
+                        } else {
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+
+        Ok(vec)
     }
 
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {

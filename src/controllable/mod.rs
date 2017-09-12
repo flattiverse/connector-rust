@@ -12,6 +12,7 @@ mod probe;
 mod empty;
 mod platform;
 mod controllable;
+mod controllable_design;
 
 
 pub use self::energy_cost::*;
@@ -27,6 +28,7 @@ pub use self::probe::*;
 pub use self::empty::*;
 pub use self::platform::*;
 pub use self::controllable::*;
+pub use self::controllable_design::*;
 
 
 
