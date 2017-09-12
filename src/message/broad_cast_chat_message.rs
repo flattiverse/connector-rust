@@ -22,14 +22,14 @@ use message::FlattiverseMessageData;
 downcast!(BroadCastChatMessage);
 pub trait BroadCastChatMessage : ChatMessage {
 
-    fn to(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn to(&self) -> &Arc<UniverseGroup>;
 
     fn message(&self) -> &str;
 }
 
 pub struct BroadCastChatMessageData {
     data:   ChatMessageData,
-    to:     Arc<RwLock<UniverseGroup>>,
+    to:     Arc<UniverseGroup>,
     message:String,
 }
 
@@ -66,7 +66,7 @@ impl BorrowMut<FlattiverseMessageData> for BroadCastChatMessageData {
 
 
 impl<T: 'static + Borrow<BroadCastChatMessageData> + BorrowMut<BroadCastChatMessageData> + ChatMessage> BroadCastChatMessage for T {
-    fn to(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn to(&self) -> &Arc<UniverseGroup> {
         &self.borrow().to
     }
 
@@ -79,10 +79,7 @@ impl fmt::Display for BroadCastChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] <U: {}> {}",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &BroadCastChatMessage).to().read() {
-                   Err(_) => "",
-                   Ok(ref group) => group.name()
-               },
+               (self as &BroadCastChatMessage).to().name(),
                self.message
         )
     }

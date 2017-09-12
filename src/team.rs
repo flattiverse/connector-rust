@@ -19,7 +19,7 @@ use net::BinaryReader;
 use net::BinaryWriter;
 
 pub struct Team {
-    universe_group: Weak<RwLock<UniverseGroup>>,
+    universe_group: Weak<UniverseGroup>,
     connector: Weak<Connector>,
     id: u8,
     color: Color,
@@ -28,8 +28,8 @@ pub struct Team {
 }
 
 impl Team {
-    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Team, Error> {
-        let scores = if let Some(GameType::Mission) = universe_group.read().unwrap().game_type() {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Team, Error> {
+        let scores = if let Some(GameType::Mission) = universe_group.game_type() {
             Some(RwLock::new(Scores::default()))
         } else {
             None
@@ -70,7 +70,6 @@ impl Team {
 
         {
             let uni_group = &self.universe_group.upgrade().unwrap();
-            let uni_group = uni_group.read().unwrap();
             let player = connector.player();
 
             match player.upgrade() {
@@ -81,7 +80,6 @@ impl Team {
                     let player = player.read()?;
                     let player_uni = player.universe_group().clone();
                     let player_uni = player_uni.upgrade().unwrap();
-                    let player_uni = player_uni.read()?;
                     if player_uni.eq(&uni_group) {
                         return Err(Error::CannotSendMessageIntoAnotherUniverseGroup)
                     }
@@ -110,7 +108,7 @@ impl Team {
         &self.name
     }
 
-    pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
+    pub fn universe_group(&self) -> &Weak<UniverseGroup> {
         &self.universe_group
     }
 }
@@ -135,8 +133,6 @@ impl PartialEq for Team {
         if me.is_some() && ot.is_some() {
             let me = me.unwrap();
             let ot = ot.unwrap();
-            let me = me.read().unwrap();
-            let ot = ot.read().unwrap();
 
             self.id == other.id && me.eq(&ot)
         } else {

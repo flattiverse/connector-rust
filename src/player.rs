@@ -41,7 +41,7 @@ pub struct Player {
     ping:                TimeSpan,
 
     connector:      Weak<Connector>,
-    universe_group: Weak<RwLock<UniverseGroup>>,
+    universe_group: Weak<UniverseGroup>,
     team:           Weak<RwLock<Team>>,
 
     active: bool,
@@ -438,11 +438,11 @@ impl Player {
         &self.name
     }
 
-    pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
+    pub fn universe_group(&self) -> &Weak<UniverseGroup> {
         &self.universe_group
     }
 
-    pub(crate) fn set_universe_group(&mut self, group: Weak<RwLock<UniverseGroup>>) {
+    pub(crate) fn set_universe_group(&mut self, group: Weak<UniverseGroup>) {
         self.universe_group = group;
     }
 }

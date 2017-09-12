@@ -65,7 +65,7 @@ pub struct UniverseGroup {
     teams:      RwLock<UniversalHolder<Team>>,
     players:    RwLock<ManagedArray<Arc<RwLock<Player>>>>,
 
-    tournament: Option<Arc<RwLock<Tournament>>>
+    tournament: RwLock<Option<Arc<Tournament>>>
 }
 
 impl UniverseGroup {
@@ -143,12 +143,13 @@ impl UniverseGroup {
             universes,
             teams,
             players,
-            tournament: None,
+            tournament: RwLock::new(None),
         })
     }
 
-    pub fn tournament(&self) -> &Option<Arc<RwLock<Tournament>>> {
-        if self.tournament.is_some() {
+    pub fn tournament(&self) -> Option<Arc<Tournament>> {
+        let tournament = self.tournament.read().unwrap();
+        if tournament.is_some() {
             match self.connector.upgrade() {
                 None => {},
                 Some(connector) => {
@@ -156,11 +157,12 @@ impl UniverseGroup {
                 }
             }
         };
-        &self.tournament
+        tournament.clone()
     }
 
-    pub fn set_tournament(&mut self, tournament: Option<Arc<RwLock<Tournament>>>) {
-        self.tournament = tournament;
+    pub(crate) fn set_tournament(&self, tournament: Option<Arc<Tournament>>) -> Result<(), Error> {
+        *self.tournament.write()? = tournament;
+        Ok(())
     }
 
     /// The avatar of this [UniverseGroup] as jpeg/raw (bitmap)
@@ -206,7 +208,7 @@ impl UniverseGroup {
         match player.read()?.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
-                let id_other = group.read()?.id();
+                let id_other = group.id();
                 if id_other != self.id {
                     return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
                 }
@@ -249,7 +251,7 @@ impl UniverseGroup {
         match player.read()?.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
-                let id_other = group.read()?.id();
+                let id_other = group.id();
                 if id_other != self.id {
                     return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
                 }
@@ -285,7 +287,7 @@ impl UniverseGroup {
         match player.read()?.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
-                let id_other = group.read()?.id();
+                let id_other = group.id();
                 if id_other != self.id {
                     return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
                 }
@@ -363,7 +365,7 @@ impl UniverseGroup {
         self.universes.read().unwrap().get_for_index_weak(index as usize)
     }
 
-    pub(crate) fn set_universe(&mut self, index: u8, universe: Option<Arc<RwLock<Universe>>>) {
+    pub(crate) fn set_universe(&self, index: u8, universe: Option<Arc<RwLock<Universe>>>) {
         self.universes.write().unwrap().set(index as usize, universe);
     }
 
@@ -387,7 +389,7 @@ impl UniverseGroup {
         Weak::default()
     }
 
-    pub(crate) fn set_team(&mut self, index: u8, team: Option<Arc<RwLock<Team>>>) {
+    pub(crate) fn set_team(&self, index: u8, team: Option<Arc<RwLock<Team>>>) {
         self.teams.write().unwrap().set(index as usize, team);
     }
 

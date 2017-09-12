@@ -21,12 +21,12 @@ use message::FlattiverseMessageData;
 downcast!(UniverseGroupResetMessage);
 pub trait UniverseGroupResetMessage : GameMessage {
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn universe_group(&self) -> &Arc<UniverseGroup>;
 }
 
 pub struct UniverseGroupResetMessageData {
     data:   GameMessageData,
-    group:  Arc<RwLock<UniverseGroup>>,
+    group:  Arc<UniverseGroup>,
 }
 
 impl UniverseGroupResetMessageData {
@@ -61,17 +61,16 @@ impl BorrowMut<FlattiverseMessageData> for UniverseGroupResetMessageData {
 
 
 impl<T: 'static + Borrow<UniverseGroupResetMessageData> + BorrowMut<UniverseGroupResetMessageData> + GameMessage> UniverseGroupResetMessage for T {
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn universe_group(&self) -> &Arc<UniverseGroup> {
         &self.borrow().group
     }
 }
 
 impl fmt::Display for UniverseGroupResetMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let group = self.group.read().unwrap();
         write!(f, "[{}] UniverseGroup {} has been reset.",
             (self as &FlattiverseMessage).timestamp(),
-            group.name(),
+            self.group.name(),
         )
     }
 }

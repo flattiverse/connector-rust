@@ -24,7 +24,7 @@ pub trait PlayerKickedFromUniverseGroupMessage : GameMessage {
 
     fn player(&self) -> &Arc<RwLock<Player>>;
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn universe_group(&self) -> &Arc<UniverseGroup>;
 
     fn team(&self) -> &Arc<RwLock<Team>>;
 
@@ -34,7 +34,7 @@ pub trait PlayerKickedFromUniverseGroupMessage : GameMessage {
 pub struct PlayerKickedFromUniverseGroupMessageData {
     data:   GameMessageData,
     player: Arc<RwLock<Player>>,
-    group:  Arc<RwLock<UniverseGroup>>,
+    group:  Arc<UniverseGroup>,
     team:   Arc<RwLock<Team>>,
     reason: String,
 }
@@ -44,7 +44,7 @@ impl PlayerKickedFromUniverseGroupMessageData {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         let group = connector.universe_group(reader.read_u16()?)?;
-        let team = group.read()?.team(reader.read_unsigned_byte()?)?;
+        let team = group.team(reader.read_unsigned_byte()?)?;
 
         Ok(PlayerKickedFromUniverseGroupMessageData {
             data,
@@ -83,7 +83,7 @@ impl<T: 'static + Borrow<PlayerKickedFromUniverseGroupMessageData> + BorrowMut<P
         &self.borrow().player
     }
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn universe_group(&self) -> &Arc<UniverseGroup> {
         &self.borrow().group
     }
 

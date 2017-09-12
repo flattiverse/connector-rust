@@ -67,28 +67,34 @@ impl TournamentSet {
     }
 }
 
-// TODO incomplete implementation
-pub struct Tournament {
-    connector:      Weak<Connector>,
-    universe_group: Weak<RwLock<UniverseGroup>>,
+struct TournamentMut {
     stage:          TournamentStage,
     set:            TournamentSet,
-    teams:          ManagedArray<Arc<RwLock<TournamentTeam>>>,
     test_mode:      bool,
     loaded:         bool,
 }
 
+// TODO incomplete implementation
+pub struct Tournament {
+    connector:      Weak<Connector>,
+    universe_group: Weak<UniverseGroup>,
+    teams:          ManagedArray<Arc<RwLock<TournamentTeam>>>,
+    mutable:        RwLock<TournamentMut>,
+}
+
 impl Tournament {
-    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
         Ok(Tournament {
             connector,
             universe_group: Arc::downgrade(universe_group),
-            loaded:     false,
-            test_mode:  reader.read_byte()? == 0x01,
-            stage:      TournamentStage ::from_id(reader.read_byte()?)?,
-            set:        TournamentSet   ::from_id(reader.read_byte()?)?,
+            mutable: RwLock::new(TournamentMut {
+                loaded:     false,
+                test_mode:  reader.read_byte()? == 0x01,
+                stage:      TournamentStage ::from_id(reader.read_byte()?)?,
+                set:        TournamentSet   ::from_id(reader.read_byte()?)?,
+            }),
             teams: {
-                let group = universe_group.read()?;
+                let group = universe_group;
                 let len = group.teams().read()?.len();
                 let teams: ManagedArray<Arc<RwLock<TournamentTeam>>> = ManagedArray::with_capacity(len);
 
@@ -104,7 +110,7 @@ impl Tournament {
                 // TODO entries missing
 
                 teams
-            }
+            },
         })
     }
 
@@ -112,36 +118,37 @@ impl Tournament {
         &self.connector
     }
 
-    pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
+    pub fn universe_group(&self) -> &Weak<UniverseGroup> {
         &self.universe_group
     }
 
     pub fn stage(&self) -> TournamentStage {
-        self.stage
+        self.mutable.read().unwrap().stage
     }
 
     pub fn set(&self) -> TournamentSet {
-        self.set
+        self.mutable.read().unwrap().set
     }
 
     pub fn test_mode(&self) -> bool {
-        self.test_mode
+        self.mutable.read().unwrap().test_mode
     }
 
     pub fn loaded(&self) -> bool {
-        self.loaded
+        self.mutable.read().unwrap().loaded
     }
 
-    pub fn update(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub fn update(&self, packet: &Packet) -> Result<(), Error> {
+        let mut mutable = self.mutable.write()?;
         if packet.read().len() == 0 {
-            self.stage = TournamentStage::Ended;
+            mutable.stage = TournamentStage::Ended;
             return Ok(());
         }
 
         let reader = &mut packet.read() as &mut BinaryReader;
-        self.test_mode  = reader.read_byte()? == 0x01;
-        self.stage      = TournamentStage::from_id(reader.read_byte()?)?;
-        self.set        = TournamentSet  ::from_id(reader.read_byte()?)?;
+        mutable.test_mode  = reader.read_byte()? == 0x01;
+        mutable.stage      = TournamentStage::from_id(reader.read_byte()?)?;
+        mutable.set        = TournamentSet  ::from_id(reader.read_byte()?)?;
 
         for i in 0..self.teams.len() {
             if let &Some(ref team) = self.teams.get(i) {

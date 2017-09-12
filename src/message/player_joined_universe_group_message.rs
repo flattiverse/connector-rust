@@ -24,7 +24,7 @@ pub trait PlayerJoinedUniverseGroupMessage : GameMessage {
 
     fn player(&self) -> &Arc<RwLock<Player>>;
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn universe_group(&self) -> &Arc<UniverseGroup>;
 
     fn team(&self) -> &Arc<RwLock<Team>>;
 }
@@ -32,7 +32,7 @@ pub trait PlayerJoinedUniverseGroupMessage : GameMessage {
 pub struct PlayerJoinedUniverseGroupMessageData {
     data:   GameMessageData,
     player: Arc<RwLock<Player>>,
-    group:  Arc<RwLock<UniverseGroup>>,
+    group:  Arc<UniverseGroup>,
     team:   Arc<RwLock<Team>>,
 }
 
@@ -41,7 +41,7 @@ impl PlayerJoinedUniverseGroupMessageData {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         let group = connector.universe_group(reader.read_u16()?)?;
-        let team = group.read()?.team(reader.read_unsigned_byte()?)?;
+        let team = group.team(reader.read_unsigned_byte()?)?;
 
         Ok(PlayerJoinedUniverseGroupMessageData {
             data,
@@ -79,7 +79,7 @@ impl<T: 'static + Borrow<PlayerJoinedUniverseGroupMessageData> + BorrowMut<Playe
         &self.borrow().player
     }
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn universe_group(&self) -> &Arc<UniverseGroup> {
         &self.borrow().group
     }
 

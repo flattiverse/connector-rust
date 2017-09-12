@@ -82,7 +82,7 @@ pub struct Connector {
     tick:           RwLock<u16>,
     tasks:          RwLock<[bool; TASK_COUNT]>,
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
-    uni_groups:     RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>>,
+    uni_groups:     RwLock<ManagedArray<Arc<UniverseGroup>>>,
     crystals:       RwLock<ManagedArray<Arc<RwLock<Box<CrystalCargoItem>>>>>,
     controllables:  RwLock<ManagedArray<Arc<RwLock<Box<Controllable>>>>>,
 }
@@ -203,6 +203,11 @@ impl Connector {
 
     fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
         match packet.command() {
+            2|3|14 => {},
+            id@_ => println!("## Processing command: {:02x}", id),
+        };
+
+        match packet.command() {
             0x01 => { // ping
                 connector.send(&packet).expect("Failed to respond to ping");
             },
@@ -216,7 +221,6 @@ impl Connector {
                 let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let player = player.read()?;
                 let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                let group = group.read()?;
 
                 let time = DateTime::now() + TimeSpan::new(
                     group.avg_tick_time().ticks()
@@ -268,7 +272,6 @@ impl Connector {
                 let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let player = player.read()?;
                 let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                let group = group.read()?;
 
                 let time = DateTime::now() + TimeSpan::new(
                     group.avg_tick_time().ticks()
@@ -331,11 +334,10 @@ impl Connector {
                 {
                     let mut player = player.write()?;
                     player.set_universe_group(Arc::downgrade(&group));
-                    player.set_team(group.read()?.team_weak(packet.path_sub()));
+                    player.set_team(group.team_weak(packet.path_sub()));
                 }
 
                 {
-                    let mut group = group.write()?;
                     group.players().write()?.insert(player.clone())?;
                 }
 
@@ -356,13 +358,12 @@ impl Connector {
                 {
                     let player_read = player.read()?;
                     let group = player_read.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                    let group_read = group.read()?;
                     let player_id = player_read.id();
 
                     drop(player_read);
 
                     // TODO WTF!
-                    let mut players = group_read.players().write()?;
+                    let mut players = group.players().write()?;
                     let mut index = 0_isize;
                     let mut wipe_at = -1_isize;
                     for player in players.as_ref() {
@@ -448,7 +449,7 @@ impl Connector {
                 let group = UniverseGroup::from_reader(&connector, &packet)?;
                 println!("New UniverseGroup: {}", group.name());
                 let mut write = connector.uni_groups.write()?;
-                write.set(packet.path_universe_group() as usize, Some(Arc::new(RwLock::new(group))));
+                write.set(packet.path_universe_group() as usize, Some(Arc::new(group)));
             },
             0x24 => { // new universe
                 let group = connector.universe_group(packet.path_universe_group())?;
@@ -456,20 +457,18 @@ impl Connector {
                 let universe = Universe::from_reader(&group, packet, reader)?;
                 println!("New Universe: {}", universe.name());
 
-                group.write()?.set_universe(packet.path_universe(), Some(Arc::new(RwLock::new(universe))));
+                group.set_universe(packet.path_universe(), Some(Arc::new(RwLock::new(universe))));
             },
             0x28 => { // new team
                 let group = connector.universe_group(packet.path_universe_group())?;
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let team = Team::from_reader(Arc::downgrade(connector), &group, packet, reader)?;
                 println!("New Team: {:?}", team);
-                group.write()?.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
+                group.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
             },
             0x2B => { // team score update
                 let group = connector.universe_group(packet.path_universe_group())?;
-                let team = group
-                    .read()?
-                    .team(packet.path_sub())?;
+                let team = group.team(packet.path_sub())?;
 
                 let team = team.read()?;
                 match team.scores() {
@@ -506,19 +505,19 @@ impl Connector {
                     reader
                 )?;
 
-                group.write()?.set_tournament(Some(Arc::new(RwLock::new(tournament))));
+                group.set_tournament(Some(Arc::new(tournament)))?;
             },
             0x61 => { // update tournament
                 let group = connector.universe_group(packet.path_universe_group())?;
-                match group.read()?.tournament() {
-                    &None => return Err(Error::TeamNotAvailable),
-                    &Some(ref tournament) => {
-                        tournament.write()?.update(packet)?;
+                match group.tournament() {
+                    None => return Err(Error::TeamNotAvailable),
+                    Some(ref tournament) => {
+                        tournament.update(packet)?;
                     }
                 };
 
                 if packet.read().len() == 0 {
-                    group.write()?.set_tournament(None);
+                    group.set_tournament(None);
                 }
             },
             0x80 => { // 'ControllableStaticPacket'
@@ -747,7 +746,6 @@ impl Connector {
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let player = player.read()?;
                 let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                let group  = group.read()?;
                 let unit   = unit::unit_from_packet(connector, &group, packet)?;
 
 
@@ -782,7 +780,6 @@ impl Connector {
             let player = player.read()?;
             player.universe_group().clone().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?
         };
-        let group = group.read()?;
 
         let radius  = cluster.radius() / 16_f32;
         let position = cluster.position();
@@ -939,23 +936,22 @@ impl Connector {
         }
     }
 
-    pub fn universe_groups(&self) -> &RwLock<ManagedArray<Arc<RwLock<UniverseGroup>>>> {
+    pub fn universe_groups(&self) -> &RwLock<ManagedArray<Arc<UniverseGroup>>> {
         &self.uni_groups
     }
 
-    pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
+    pub fn universe_group(&self, index: u16) -> Result<Arc<UniverseGroup>, Error> {
         let lock = self.uni_groups.read()?;
         lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
     }
 
-    pub fn universe_group_for_name(&self, name: &str) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
+    pub fn universe_group_for_name(&self, name: &str) -> Result<Arc<UniverseGroup>, Error> {
         let lock = self.uni_groups.read()?;
         for index in 0..lock.len() {
             let group = lock.get(index);
-            if let &Some(ref g) = group {
-                let read = g.read()?;
-                if read.name().eq(name) {
-                    return Ok(g.clone());
+            if let &Some(ref group) = group {
+                if group.name().eq(name) {
+                    return Ok(group.clone());
                 }
             }
         }

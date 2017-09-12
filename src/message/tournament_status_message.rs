@@ -22,14 +22,14 @@ use message::FlattiverseMessageData;
 downcast!(TournamentStatusMessage);
 pub trait TournamentStatusMessage : GameMessage {
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn universe_group(&self) -> &Arc<UniverseGroup>;
 
     fn tournament_stage(&self) -> &TournamentStage;
 }
 
 pub struct TournamentStatusMessageData {
     data:   GameMessageData,
-    group:  Arc<RwLock<UniverseGroup>>,
+    group:  Arc<UniverseGroup>,
     stage:  TournamentStage,
 }
 
@@ -66,7 +66,7 @@ impl BorrowMut<FlattiverseMessageData> for TournamentStatusMessageData {
 
 
 impl<T: 'static + Borrow<TournamentStatusMessageData> + BorrowMut<TournamentStatusMessageData> + GameMessage> TournamentStatusMessage for T {
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn universe_group(&self) -> &Arc<UniverseGroup> {
         &self.borrow().group
     }
 
@@ -77,10 +77,9 @@ impl<T: 'static + Borrow<TournamentStatusMessageData> + BorrowMut<TournamentStat
 
 impl fmt::Display for TournamentStatusMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let group = self.group.read().unwrap();
         write!(f, "[{}] A tournament on {} ",
             (self as &FlattiverseMessage).timestamp(),
-            group.name(),
+            self.group.name(),
         )?;
 
         match self.stage {

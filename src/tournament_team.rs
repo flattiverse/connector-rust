@@ -20,7 +20,7 @@ pub struct TournamentTeam {
 }
 
 impl TournamentTeam {
-    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<TournamentTeam, Error> {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<TournamentTeam, Error> {
         Ok(TournamentTeam {
             team: Team::from_reader(connector, universe_group, packet, reader)?,
             wins: 0u8,

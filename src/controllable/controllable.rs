@@ -746,7 +746,7 @@ impl ControllableData {
                 match player.read()?.universe_group().upgrade() {
                     None => return Err(Error::PlayerNotInUniverseGroup),
                     Some(universe_group) => {
-                        universe_group.read()?.universe(packet.path_universe())
+                        universe_group.universe(packet.path_universe())
                     }
                 }
             }

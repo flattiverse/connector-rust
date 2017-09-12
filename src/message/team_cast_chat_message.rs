@@ -37,7 +37,6 @@ impl TeamCastChatMessageData {
             to:     {
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let group = player.read()?.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                let group = group.read()?;
                 group.team(reader.read_unsigned_byte()?)?
             },
             message:reader.read_string()?,

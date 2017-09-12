@@ -15,7 +15,7 @@ use net::BinaryReader;
 /// This implementation does not provide administrative
 /// functionality due to time limitation while porting.
 pub struct Universe {
-    universe_group: Weak<RwLock<UniverseGroup>>,
+    universe_group: Weak<UniverseGroup>,
     connector:      Weak<Connector>,
 
     id:         u8,
@@ -26,10 +26,10 @@ pub struct Universe {
 }
 
 impl Universe {
-    pub fn from_reader(universe_group: &Arc<RwLock<UniverseGroup>>, packet: &Packet, reader: &mut BinaryReader) -> Result<Universe, Error> {
+    pub fn from_reader(universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Universe, Error> {
         Ok(Universe {
             universe_group: Arc::downgrade(universe_group),
-            connector:      universe_group.read()?.connector().clone(),
+            connector:      universe_group.connector().clone(),
             id:             packet.path_universe(),
             name:           reader.read_string()?,
             description:    reader.read_string()?,
@@ -38,7 +38,7 @@ impl Universe {
         })
     }
 
-    pub fn universe_group(&self) -> &Weak<RwLock<UniverseGroup>> {
+    pub fn universe_group(&self) -> &Weak<UniverseGroup> {
         &self.universe_group
     }
 

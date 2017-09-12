@@ -49,7 +49,6 @@ impl WormHoleData {
             let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
             let player = player.read()?;
             let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotAvailable)?;
-            let group  = group.read()?;
             dest   = group.universe(reader.read_unsigned_byte()?)
         }
 

@@ -43,7 +43,6 @@ impl TargetDominationStartedMessageData {
                     let player = player.read()?;
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
-                    let group  = group.read()?;
                     Some(group.team(id)?)
                 } else {
                     None

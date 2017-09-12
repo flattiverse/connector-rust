@@ -22,14 +22,14 @@ use message::FlattiverseMessageData;
 downcast!(UniverseGroupResetPendingMessage);
 pub trait UniverseGroupResetPendingMessage : GameMessage {
 
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>>;
+    fn universe_group(&self) -> &Arc<UniverseGroup>;
 
     fn remaining_time(&self) -> &TimeSpan;
 }
 
 pub struct UniverseGroupResetPendingMessageData {
     data:   GameMessageData,
-    group:  Arc<RwLock<UniverseGroup>>,
+    group:  Arc<UniverseGroup>,
     time:   TimeSpan,
 }
 
@@ -66,7 +66,7 @@ impl BorrowMut<FlattiverseMessageData> for UniverseGroupResetPendingMessageData 
 
 
 impl<T: 'static + Borrow<UniverseGroupResetPendingMessageData> + BorrowMut<UniverseGroupResetPendingMessageData> + GameMessage> UniverseGroupResetPendingMessage for T {
-    fn universe_group(&self) -> &Arc<RwLock<UniverseGroup>> {
+    fn universe_group(&self) -> &Arc<UniverseGroup> {
         &self.borrow().group
     }
 
@@ -77,10 +77,9 @@ impl<T: 'static + Borrow<UniverseGroupResetPendingMessageData> + BorrowMut<Unive
 
 impl fmt::Display for UniverseGroupResetPendingMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let group = self.group.read().unwrap();
         write!(f, "[{}] UniverseGroup {} pending reset in {} seconds.",
             (self as &FlattiverseMessage).timestamp(),
-            group.name(),
+            self.group.name(),
             self.time.seconds()+1,
         )
     }
