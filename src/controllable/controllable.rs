@@ -652,6 +652,18 @@ pub trait Controllable : Any + Send + Sync {
         let response = block.wait()?;
         Ok(response.path_sub() == 1)
     }
+
+    fn update(&self, packet: &Packet) -> Result<(), Error>;
+
+    fn update_extended(&self, packet: &Packet) -> Result<(), Error>;
+
+    fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error>;
+
+    fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error>;
+
+    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error>;
+
+    fn set_active(&self, active: bool) -> Result<(), Error>;
 }
 
 pub struct ControllableDataMut {
@@ -857,98 +869,6 @@ impl ControllableData {
                 is_built_by:            Weak::default() as Weak<controllable::Empty>,
             })
         })
-    }
-
-    pub fn update(&self, packet: &Packet) -> Result<(), Error> {
-        let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.mutable.write()?;
-
-        mutable.energy             = reader.read_single()?;
-        mutable.particles          = reader.read_single()?;
-        mutable.ions               = reader.read_single()?;
-        mutable.hull               = reader.read_single()?;
-        mutable.shield             = reader.read_single()?;
-        mutable.pending_shutdown   = reader.read_bool()?;
-        Ok(())
-    }
-
-    pub fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
-        let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.mutable.write()?;
-
-        mutable.weapon_production_status   = reader.read_single()?;
-        let header                      = reader.read_byte()?;
-
-        if is_set_u8(header, 0x03) {
-            mutable.build_progress = 0f32;
-        }
-
-        if is_set_u8(header, 0x01) {
-            match self.connector.upgrade() {
-                None => return Err(Error::ConnectorNotAvailable),
-                Some(connector) => {
-                    mutable.build_progress   = reader.read_single()?;
-                    mutable.is_building     = connector.controllable_weak(reader.read_unsigned_byte()?);
-                    mutable.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
-                }
-            };
-        } else {
-            mutable.build_position = None;
-            mutable.is_building    = Weak::default() as Weak<controllable::Empty>;
-        }
-
-        if is_set_u8(header, 0x02) {
-            mutable.build_progress = reader.read_single()?;
-            mutable.is_built_by    = match self.connector.upgrade() {
-                None => return Err(Error::ConnectorNotAvailable),
-                Some(connector) => {
-                    connector.controllable_weak(reader.read_unsigned_byte()?)
-                }
-            };
-        } else {
-            mutable.is_built_by = Weak::default() as Weak<controllable::Empty>;
-        }
-
-        if is_set_u8(header, 0x10) {
-            mutable.haste_time = reader.read_u16()?;
-        } else {
-            mutable.haste_time = 0u16;
-        }
-
-        if is_set_u8(header, 0x40) {
-            mutable.quad_damage_time = reader.read_u16()?;
-        } else {
-            mutable.haste_time = 0u16;
-        }
-
-        if is_set_u8(header, 0x80) {
-            mutable.cloak_time = reader.read_u16()?;
-        } else {
-            mutable.cloak_time = 0u16;
-        }
-
-        Ok(())
-    }
-
-
-    pub(crate) fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
-        *self.crystals.write()? = crystals;
-        Ok(())
-    }
-
-    pub(crate) fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error> {
-        *self.cargo_items.write()? = items;
-        Ok(())
-    }
-
-    pub(crate) fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
-        *self.scan_list.write()? = list;
-        Ok(())
-    }
-
-    pub(crate) fn set_active(&self, active: bool) -> Result<(), Error> {
-        self.mutable.write()?.active = active;
-        Ok(())
     }
 }
 
@@ -1266,6 +1186,99 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         &self.borrow().scan_list
     }
 
+
+
+    fn update(&self, packet: &Packet) -> Result<(), Error> {
+        let reader = &mut packet.read() as &mut BinaryReader;
+        let mut mutable = self.borrow().mutable.write()?;
+
+        mutable.energy             = reader.read_single()?;
+        mutable.particles          = reader.read_single()?;
+        mutable.ions               = reader.read_single()?;
+        mutable.hull               = reader.read_single()?;
+        mutable.shield             = reader.read_single()?;
+        mutable.pending_shutdown   = reader.read_bool()?;
+        Ok(())
+    }
+
+    fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
+        let reader = &mut packet.read() as &mut BinaryReader;
+        let mut mutable = self.borrow().mutable.write()?;
+
+        mutable.weapon_production_status   = reader.read_single()?;
+        let header                      = reader.read_byte()?;
+
+        if is_set_u8(header, 0x03) {
+            mutable.build_progress = 0f32;
+        }
+
+        if is_set_u8(header, 0x01) {
+            match self.borrow().connector.upgrade() {
+                None => return Err(Error::ConnectorNotAvailable),
+                Some(connector) => {
+                    mutable.build_progress   = reader.read_single()?;
+                    mutable.is_building     = connector.controllable_weak(reader.read_unsigned_byte()?);
+                    mutable.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
+                }
+            };
+        } else {
+            mutable.build_position = None;
+            mutable.is_building    = Weak::default() as Weak<controllable::Empty>;
+        }
+
+        if is_set_u8(header, 0x02) {
+            mutable.build_progress = reader.read_single()?;
+            mutable.is_built_by    = match self.borrow().connector.upgrade() {
+                None => return Err(Error::ConnectorNotAvailable),
+                Some(connector) => {
+                    connector.controllable_weak(reader.read_unsigned_byte()?)
+                }
+            };
+        } else {
+            mutable.is_built_by = Weak::default() as Weak<controllable::Empty>;
+        }
+
+        if is_set_u8(header, 0x10) {
+            mutable.haste_time = reader.read_u16()?;
+        } else {
+            mutable.haste_time = 0u16;
+        }
+
+        if is_set_u8(header, 0x40) {
+            mutable.quad_damage_time = reader.read_u16()?;
+        } else {
+            mutable.haste_time = 0u16;
+        }
+
+        if is_set_u8(header, 0x80) {
+            mutable.cloak_time = reader.read_u16()?;
+        } else {
+            mutable.cloak_time = 0u16;
+        }
+
+        Ok(())
+    }
+
+
+    fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
+        *self.borrow().crystals.write()? = crystals;
+        Ok(())
+    }
+
+    fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error> {
+        *self.borrow().cargo_items.write()? = items;
+        Ok(())
+    }
+
+    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+        *self.borrow().scan_list.write()? = list;
+        Ok(())
+    }
+
+    fn set_active(&self, active: bool) -> Result<(), Error> {
+        self.borrow().mutable.write()?.active = active;
+        Ok(())
+    }
 
 }
 

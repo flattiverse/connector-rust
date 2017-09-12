@@ -73,8 +73,8 @@ impl ScanEnergyCost {
 }
 
 // implicit 'extends' - kinda
-impl Borrow<EnergyCost> for ScanEnergyCost {
-    fn borrow(&self) -> &EnergyCost {
+impl AsRef<EnergyCost> for ScanEnergyCost {
+    fn as_ref(&self) -> &EnergyCost {
         &self.energy_cost
     }
 }

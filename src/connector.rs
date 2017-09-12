@@ -502,7 +502,7 @@ impl Connector {
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.downcast_ref::<ControllableData>()?.update(packet)?;
+                        controllable.update(packet)?;
                     }
                 }
             },
@@ -511,7 +511,7 @@ impl Connector {
                 match controllables.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.downcast_ref::<ControllableData>()?.set_active(false);
+                        controllable.set_active(false);
                     }
                 };
                 controllables.wipe_index(packet.path_ship() as usize);
@@ -520,7 +520,7 @@ impl Connector {
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.downcast_ref::<ControllableData>()?.update_extended(packet)?;
+                        controllable.update_extended(packet)?;
                     }
                 }
             },
@@ -635,7 +635,7 @@ impl Connector {
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.downcast_ref::<ControllableData>()?.set_crystals(crystals);
+                controllable.set_crystals(crystals);
             },
             0x8A => { // 'ControllableInfoCargoPacket'
                 let mut cargo_items = Vec::new();
@@ -708,7 +708,7 @@ impl Connector {
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.downcast_ref::<ControllableData>()?.set_cargo_items(cargo_items);
+                controllable.set_cargo_items(cargo_items);
             },
             0x90 => { // scan result entry received
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
