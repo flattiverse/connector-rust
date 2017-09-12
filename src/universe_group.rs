@@ -193,7 +193,9 @@ impl UniverseGroup {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
                 let flow = connector.register_flow_control()?;
+                println!("created flow, going to call setup");
                 flow.setup()?;
+                println!("created flow, going to call setup: done");
                 Ok(flow)
             }
         }

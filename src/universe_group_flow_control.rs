@@ -13,8 +13,8 @@ use std::thread::ThreadId;
 
 pub struct UniverseGroupFlowControl {
     connector: Weak<Connector>,
-    pre_wait:  RwLock<ManualResetEvent>,
-    wait_ev:   RwLock<ManualResetEvent>,
+    pre_wait:  ManualResetEvent,
+    wait_ev:   ManualResetEvent,
 
     limit_stamp: RwLock<DateTime>,
 
@@ -34,8 +34,8 @@ impl UniverseGroupFlowControl {
         UniverseGroupFlowControl {
             connector,
             thread:     thread::current().id(),
-            wait_ev:    RwLock::new(ManualResetEvent::new(false)),
-            pre_wait:   RwLock::new(ManualResetEvent::new(false)),
+            wait_ev:    ManualResetEvent::new(false),
+            pre_wait:   ManualResetEvent::new(false),
             ready:      RwLock::new(true),
 
             // defaults
@@ -45,7 +45,7 @@ impl UniverseGroupFlowControl {
     }
 
     pub fn setup(&self) -> Result<(), Error> {
-        self.pre_wait.read()?.wait_one()?;
+        self.pre_wait.wait_one()?;
         Ok(())
     }
 
@@ -58,26 +58,26 @@ impl UniverseGroupFlowControl {
             *self.ready.write()? = false;
         }
 
-        self.pre_wait.write()?.set()?;
+        self.pre_wait.set()?;
         Ok(())
     }
 
     pub fn set_wait(&self, limit_stamp: DateTime) -> Result<(), Error> {
         *self.limit_stamp.write()? = limit_stamp;
-        self.wait_ev.write()?.set()?;
+        self.wait_ev.set()?;
         Ok(())
     }
 
     /// Returns when the pre-wait-phase has ended
     pub fn pre_wait(&self) -> Result<i64, Error> {
         Self::check_thread(self.thread)?;
-        self.pre_wait.read()?.wait_one()?;
+        self.pre_wait.wait_one()?;
         Ok(self.limit_stamp.read()?.elapsed_millis())
     }
 
     pub fn wait(&self) -> Result<i64, Error> {
         Self::check_thread(self.thread)?;
-        self.wait_ev.read()?.wait_one()?;
+        self.wait_ev.wait_one()?;
         Ok(self.limit_stamp.read()?.elapsed_millis())
     }
 
@@ -90,13 +90,14 @@ impl UniverseGroupFlowControl {
     /// was in time
     pub fn commit(&self) -> Result<bool, Error> {
         Self::check_thread(self.thread)?;
-        self.wait_ev .write()?.reset()?;
-        self.pre_wait.write()?.reset()?;
+        self.wait_ev .reset()?;
+        self.pre_wait.reset()?;
         *self.ready.write()? = true;
         match self.connector.upgrade() {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
-                connector.flow_control_check(*self.tick.read()?)
+                let tick = *self.tick.read()?;
+                connector.flow_control_check(tick)
             }
         }
     }
