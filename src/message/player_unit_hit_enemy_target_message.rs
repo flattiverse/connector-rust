@@ -44,11 +44,12 @@ pub struct PlayerUnitHitEnemyTargetMessageData {
 
 impl PlayerUnitHitEnemyTargetMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitHitEnemyTargetMessageData, Error> {
+        let data   = GameMessageData::from_packet(connector, packet, reader)?;
+        let player = connector.player_for(reader.read_u16()?)?;
         Ok(PlayerUnitHitEnemyTargetMessageData {
-            data:   GameMessageData::from_packet(connector, packet, reader)?,
-            player: connector.player_for(reader.read_u16()?)?,
+            data,
+            player: player.clone(),
             info:   {
-                let player = connector.player_for(reader.read_u16()?)?;
                 let index = reader.read_unsigned_byte()?;
                 let player = player.read()?;
                 player.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?
