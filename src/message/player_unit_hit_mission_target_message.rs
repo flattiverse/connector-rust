@@ -66,7 +66,7 @@ impl PlayerUnitHitMissionTargetMessageData {
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                     let group  = group.read()?;
-                    Some(group.team(id).clone().ok_or(Error::TeamNotAvailable)?)
+                    Some(group.team(id)?)
                 } else {
                     None
                 }

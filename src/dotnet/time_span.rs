@@ -59,7 +59,7 @@ impl TimeSpan {
     }
 
     pub fn update(&mut self, reader: &mut BinaryReader) -> Result<(), Error> {
-        self.ticks = reader.read_i64()?;
+        self.ticks = reader.read_u32()? as i64;
         Ok(())
     }
 }

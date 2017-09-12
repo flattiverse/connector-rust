@@ -462,16 +462,14 @@ impl Connector {
                 let group = connector.universe_group(packet.path_universe_group())?;
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let team = Team::from_reader(Arc::downgrade(connector), &group, packet, reader)?;
-                println!("New Team: {}", team.name());
+                println!("New Team: {:?}", team);
                 group.write()?.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
             },
             0x2B => { // team score update
                 let group = connector.universe_group(packet.path_universe_group())?;
                 let team = group
                     .read()?
-                    .team(packet.path_sub())
-                    .clone()
-                    .ok_or(Error::InvalidTeam(packet.path_sub()))?;
+                    .team(packet.path_sub())?;
 
                 let team = team.read()?;
                 match team.scores() {
@@ -948,6 +946,20 @@ impl Connector {
     pub fn universe_group(&self, index: u16) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
         let lock = self.uni_groups.read()?;
         lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
+    }
+
+    pub fn universe_group_for_name(&self, name: &str) -> Result<Arc<RwLock<UniverseGroup>>, Error> {
+        let lock = self.uni_groups.read()?;
+        for index in 0..lock.len() {
+            let group = lock.get(index);
+            if let &Some(ref g) = group {
+                let read = g.read()?;
+                if read.name().eq(name) {
+                    return Ok(g.clone());
+                }
+            }
+        }
+        Err(Error::InvalidName)
     }
 
     pub fn crystals(&self, name: &str) -> Result<Arc<RwLock<Box<CrystalCargoItem>>>, Error> {

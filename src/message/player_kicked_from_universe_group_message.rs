@@ -44,7 +44,7 @@ impl PlayerKickedFromUniverseGroupMessageData {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         let group = connector.universe_group(reader.read_u16()?)?;
-        let team = group.read()?.team(reader.read_unsigned_byte()?).clone().ok_or(Error::TeamNotAvailable)?;
+        let team = group.read()?.team(reader.read_unsigned_byte()?)?;
 
         Ok(PlayerKickedFromUniverseGroupMessageData {
             data,

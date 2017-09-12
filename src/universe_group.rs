@@ -310,7 +310,7 @@ impl UniverseGroup {
     }
 
     pub fn join(&self, name: &str, team: u8, clan: Option<&str>, password: Option<&str>) -> Result<(), Error> {
-        let _ = self.team(team).clone().ok_or(Error::InvalidTeam(team))?;
+        let _ = self.team(team)?;
 
         if name.is_empty() || name.len() > 140 {
             return Err(Error::InvalidName);
@@ -379,8 +379,8 @@ impl UniverseGroup {
         &self.teams
     }
 
-    pub fn team(&self, index: u8) -> &Option<Arc<RwLock<Team>>> {
-        &None
+    pub fn team(&self, index: u8) -> Result<Arc<RwLock<Team>>, Error> {
+        self.teams.read()?.get_for_index(index as usize).ok_or(Error::InvalidTeam(index))
     }
 
     pub fn team_weak(&self, index: u8) -> Weak<RwLock<Team>> {
