@@ -78,6 +78,8 @@ pub enum Error {
     InvalidUniverseGroup(u16),
     InvalidTeam(u8),
     PendingShutdown,
+    PlayerAlreadyInAnotherUniverseGroup(u16),
+    StillOpenFlowControlsInUniverseGroup(u16),
 }
 
 impl From<std::io::Error> for Error {

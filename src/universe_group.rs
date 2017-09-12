@@ -22,8 +22,11 @@ use UniversalEnumerable;
 use UniverseGroupFlowControl;
 use PerformanceRequirement;
 
+use controllable::Controllable;
+
 use net::Packet;
 use net::BinaryReader;
+use net::BinaryWriter;
 use net::is_set_u8;
 
 pub struct UniverseGroup {
@@ -192,6 +195,168 @@ impl UniverseGroup {
                 Ok(flow)
             }
         }
+    }
+
+    // TODO missing parameter 'CrystalCargoItem...crystals'
+    /// The returned value is supposed to be a Ship
+    pub fn register_ship(&self, class: &str, name: &str) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+        let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+
+        let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+        match player.read()?.universe_group().upgrade() {
+            None => return Err(Error::PlayerNotInUniverseGroup),
+            Some(group) => {
+                let id_other = group.read()?.id();
+                if id_other != self.id {
+                    return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
+                }
+            }
+        };
+
+        if !"Ship".eq(name) && !Connector::check_name(class) {
+            return Err(Error::InvalidClass);
+        }
+
+        if !Connector::check_name(name) {
+            return Err(Error::InvalidName);
+        }
+
+        // TODO missing crystals check
+
+        let block = connector.block_manager().block()?;
+        let mut packet = Packet::new();
+        let mut block  = block.lock()?;
+
+        packet.set_command(0x80);
+        packet.set_session(block.id());
+
+        {
+            let writer = packet.write() as &mut BinaryWriter;
+            writer.write_string(class)?;
+            writer.write_string(name)?;
+            writer.write_u8(0)?; // TODO crystal count + crystals
+        }
+
+        connector.send(&packet)?;
+        let response = block.wait()?;
+        connector.controllable(response.path_ship())
+    }
+
+    pub fn part(&self) -> Result<(), Error> {
+        let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+
+        let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+        match player.read()?.universe_group().upgrade() {
+            None => return Err(Error::PlayerNotInUniverseGroup),
+            Some(group) => {
+                let id_other = group.read()?.id();
+                if id_other != self.id {
+                    return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
+                }
+            }
+        };
+
+        if connector.has_flows()? {
+            return Err(Error::StillOpenFlowControlsInUniverseGroup(self.id));
+        }
+
+        let block = connector.block_manager().block()?;
+        let mut packet = Packet::new();
+        let mut block  = block.lock()?;
+
+        packet.set_command(0x06);
+        packet.set_session(block.id());
+
+        connector.send(&packet)?;
+        block.wait()?;
+        Ok(())
+    }
+
+    // TODO missing #reset()
+
+    pub fn chat(&self, message: &str) -> Result<(), Error> {
+        if message.is_empty() || message.len() > 140 {
+            return Err(Error::InvalidMessage);
+        }
+
+        let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+
+        let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+        match player.read()?.universe_group().upgrade() {
+            None => return Err(Error::PlayerNotInUniverseGroup),
+            Some(group) => {
+                let id_other = group.read()?.id();
+                if id_other != self.id {
+                    return Err(Error::PlayerAlreadyInAnotherUniverseGroup(id_other));
+                }
+            }
+        };
+
+        let block = connector.block_manager().block()?;
+        let mut packet = Packet::new();
+        let mut block  = block.lock()?;
+
+        packet.set_command(0x32);
+        packet.set_session(block.id());
+
+        {
+            let writer = packet.write() as &mut BinaryWriter;
+            writer.write_string(message)?;
+        }
+
+        connector.send(&packet)?;
+        block.wait()?;
+        Ok(())
+    }
+
+    pub fn join(&self, name: &str, team: u8, clan: Option<&str>, password: Option<&str>) -> Result<(), Error> {
+        let _ = self.team(team).clone().ok_or(Error::InvalidTeam(team))?;
+
+        if name.is_empty() || name.len() > 140 {
+            return Err(Error::InvalidName);
+        }
+
+        let connector  = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+        let block      = connector.block_manager().block()?;
+        let mut packet = Packet::new();
+        let mut block  = block.lock()?;
+
+        packet.set_command(0x04);
+        packet.set_session(block.id());
+        packet.set_path_universe_group(self.id);
+        packet.set_path_sub(team);
+
+        {
+            let writer = packet.write() as &mut BinaryWriter;
+            writer.write_string(name)?;
+            let mut header = 0x00;
+
+            if clan.is_some() {
+                header |= 0x01;
+            }
+
+            if password.is_some() {
+                header |= 0x02;
+            }
+
+            writer.write_byte(header)?;
+
+            if let Some(c) = clan {
+                writer.write_string(c)?;
+            }
+
+            if let Some(p) = password {
+                writer.write_string(p)?;
+            }
+        }
+
+        connector.send(&packet)?;
+        block.wait()?;
+        Ok(())
+    }
+
+    pub fn id(&self) -> u16 {
+        self.id
     }
 
     pub fn universe(&self, index: u8) -> Weak<RwLock<Universe>> {

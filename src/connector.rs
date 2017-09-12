@@ -1033,6 +1033,10 @@ impl Connector {
         Ok(vec)
     }
 
+    pub fn has_flows(&self) -> Result<bool, Error> {
+        Ok(!self.flows.read()?.is_empty())
+    }
+
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
         &self.sync_account_queries
     }
@@ -1069,6 +1073,7 @@ impl Connector {
     }
 }
 
+// TODo WHY IN EXTRA TRAIT
 pub trait ConnectorArc {
     fn register_flow_control(&self) -> Result<Arc<UniverseGroupFlowControl>, Error>;
 }
@@ -1079,12 +1084,4 @@ impl ConnectorArc for Arc<Connector> {
         self.flows.write()?.push(flow.clone());
         Ok(flow)
     }
-}
-
-trait Test {
-
-}
-
-impl<T> Test for (usize, [T]) {
-
 }
