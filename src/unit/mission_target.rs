@@ -36,10 +36,6 @@ pub trait MissionTarget : Unit {
     /// When this values reaches a certain value (currently 350)
     /// its [Team] scores and the value is reset
     fn domination_ticks(&self) -> u16;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::MissionTarget
-    }
 }
 
 pub struct MissionTargetData {
@@ -54,7 +50,7 @@ pub struct MissionTargetData {
 impl MissionTargetData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<MissionTargetData, Error> {
         Ok(MissionTargetData {
-            unit:               UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:               UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::MissionTarget)?,
             sequence_number:    reader.read_u16()?,
             domination_radius:  reader.read_single()?,
             hints: {

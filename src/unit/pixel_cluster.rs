@@ -33,7 +33,7 @@ pub struct PixelClusterData {
 impl PixelClusterData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PixelClusterData, Error> {
         Ok(PixelClusterData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::PixelCluster)?,
             data: {
                 let count = reader.read_unsigned_byte()?;
                 if count == 0 {

@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(QuadDamagePowerUp);
 pub trait QuadDamagePowerUp : PowerUp {
-    fn kind(&self) -> UnitKind {
-        UnitKind::QuadDamagePowerUp
-    }
+
 }
 
 pub struct QuadDamagePowerUpData {
@@ -27,7 +25,7 @@ pub struct QuadDamagePowerUpData {
 impl QuadDamagePowerUpData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<QuadDamagePowerUpData, Error> {
         Ok(QuadDamagePowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::QuadDamagePowerUp)?,
         })
     }
 }

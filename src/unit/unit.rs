@@ -69,10 +69,11 @@ pub struct UnitData {
     pub(crate) orbiting_state: Option<Vec<OrbitingState>>,
     pub(crate) mobility: Mobility,
     pub(crate) connector: Weak<Connector>,
+    pub(crate) kind: UnitKind, // TODO bad
 }
 
 impl UnitData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<UnitData, Error> {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<UnitData, Error> {
         let team = universe_group.team_weak(packet.path_sub());
 
         let name = reader.read_string()?;
@@ -122,13 +123,14 @@ impl UnitData {
             orbiting_center,
             orbiting_state: orbiting_list,
             mobility,
-            connector: Arc::downgrade(connector)
+            connector: Arc::downgrade(connector),
+            kind
         })
     }
 
     pub fn new(connector: &Arc<Connector>, _: &UniverseGroup, name: String, radius: f32,
                gravity: f32, position: Vector, movement: Vector, solid: bool, masking: bool,
-               visible: bool, mobility: Mobility) -> UnitData {
+               visible: bool, mobility: Mobility, kind: UnitKind) -> UnitData {
         UnitData {
             connector: Arc::downgrade(connector),
             name,
@@ -146,11 +148,12 @@ impl UnitData {
             orbiting: false,
             orbiting_center: None,
             orbiting_state:  None,
+            kind
         }
     }
 }
 
-impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData> + Send + Sync> Unit for T {
+impl<T: 'static + Borrow<UnitData> + Send + Sync> Unit for T {
     fn name(&self) -> &str {
         &self.borrow().name
     }
@@ -212,6 +215,6 @@ impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData> + Send + Sync> Unit for
     }
 
     fn kind(&self) -> UnitKind {
-        UnitKind::Unknown
+        self.borrow().kind
     }
 }

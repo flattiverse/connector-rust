@@ -17,10 +17,6 @@ use net::BinaryReader;
 downcast!(Sun);
 pub trait Sun : Unit {
     fn coronas(&self) -> &Vec<Corona>;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Sun
-    }
 }
 
 pub struct SunData {
@@ -30,7 +26,7 @@ pub struct SunData {
 
 impl SunData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SunData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Sun)?;
         let count = reader.read_unsigned_byte()?;
         let mut coronas = Vec::with_capacity(count as usize);
 

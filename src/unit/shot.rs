@@ -70,10 +70,6 @@ pub trait Shot : Unit {
     fn damage_energy_crit_chance(&self) -> f32;
 
     fn sub_directions(&self) -> &Vec<SubDirection>;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Shot
-    }
 }
 
 pub struct ShotData {
@@ -104,7 +100,7 @@ pub struct ShotData {
 
 impl ShotData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<ShotData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Shot)?;
         let kind;
         let name;
         let player;

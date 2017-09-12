@@ -20,11 +20,6 @@ pub trait SpaceJellyFish : Unit {
     fn hull_max(&self) -> f32;
 
     fn hull_armor(&self) -> f32;
-
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::SpaceJellyFish
-    }
 }
 
 pub struct SpaceJellyFishData {
@@ -37,7 +32,7 @@ pub struct SpaceJellyFishData {
 impl SpaceJellyFishData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SpaceJellyFishData, Error> {
         Ok(SpaceJellyFishData {
-            unit:       UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:       UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::SpaceJellyFish)?,
             hull:       reader.read_single()?,
             hull_max:   reader.read_single()?,
             hull_armor: reader.read_single()?,

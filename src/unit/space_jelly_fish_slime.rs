@@ -26,10 +26,6 @@ pub trait SpaceJellyFishSlime : Unit {
 
     /// The time until this [SpaceJellyFishSlime] dissolves
     fn time(&self) -> u16;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::SpaceJellyFishSlime
-    }
 }
 
 pub struct SpaceJellyFishSlimeData {
@@ -44,7 +40,7 @@ pub struct SpaceJellyFishSlimeData {
 impl SpaceJellyFishSlimeData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SpaceJellyFishSlimeData, Error> {
         Ok(SpaceJellyFishSlimeData {
-            unit:       UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:       UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::SpaceJellyFishSlime)?,
             hull:       reader.read_single()?,
             hull_max:   reader.read_single()?,
             hull_armor: reader.read_single()?,

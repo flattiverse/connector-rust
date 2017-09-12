@@ -14,9 +14,7 @@ use net::BinaryReader;
 
 downcast!(Meteoroid);
 pub trait Meteoroid : Unit {
-    fn kind(&self) -> UnitKind {
-        UnitKind::Meteoroid
-    }
+
 }
 
 pub struct MeteoroidData {
@@ -26,7 +24,7 @@ pub struct MeteoroidData {
 impl MeteoroidData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<MeteoroidData, Error> {
         Ok(MeteoroidData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Meteoroid)?
         })
     }
 }

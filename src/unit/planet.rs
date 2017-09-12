@@ -26,7 +26,7 @@ pub struct PlanetData {
 impl PlanetData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PlanetData, Error> {
         Ok(PlanetData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Planet)?
         })
     }
 }

@@ -19,10 +19,6 @@ pub trait Gate : Unit {
     fn color(&self) -> &Color;
 
     fn switched(&self) -> bool;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Gate
-    }
 }
 
 pub struct GateData {
@@ -34,7 +30,7 @@ pub struct GateData {
 impl GateData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<GateData, Error> {
         Ok(GateData {
-            unit:   UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Gate)?,
             color:  Color::from_rgb(
                 reader.read_single()?,
                 reader.read_single()?,

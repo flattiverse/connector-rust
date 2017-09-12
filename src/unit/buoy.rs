@@ -16,10 +16,6 @@ use net::BinaryReader;
 downcast!(Buoy);
 pub trait Buoy : Unit {
     fn message(&self) -> &str;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Buoy
-    }
 }
 
 pub struct BuoyData {
@@ -30,7 +26,7 @@ pub struct BuoyData {
 impl BuoyData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<BuoyData, Error> {
         Ok(BuoyData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Buoy)?,
             message: reader.read_string()?,
         })
     }

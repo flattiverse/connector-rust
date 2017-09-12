@@ -48,10 +48,6 @@ pub trait Storm : Unit {
     fn min_energy_damage(&self) -> f32;
 
     fn max_energy_damage(&self) -> f32;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Storm
-    }
 }
 
 pub struct StormData {
@@ -78,7 +74,7 @@ pub struct StormData {
 impl StormData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<StormData, Error> {
         Ok(StormData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Storm)?,
             max_whirls:                     reader.read_unsigned_byte()?,
             child_min_announcement_time:    reader.read_unsigned_byte()?,
             child_max_announcement_time:    reader.read_unsigned_byte()?,

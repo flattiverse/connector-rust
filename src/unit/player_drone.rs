@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(PlayerDrone);
 pub trait PlayerDrone : PlayerUnit {
-    fn kind(&self) -> UnitKind {
-        UnitKind::PlayerDrone
-    }
+
 }
 
 pub struct PlayerDroneData {
@@ -27,7 +25,7 @@ pub struct PlayerDroneData {
 impl PlayerDroneData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerDroneData, Error> {
         Ok(PlayerDroneData {
-            unit: PlayerUnitData::from_reader(connector, universe_group, packet, reader)?
+            unit: PlayerUnitData::from_reader(connector, universe_group, packet, reader, UnitKind::PlayerDrone)?
         })
     }
 }

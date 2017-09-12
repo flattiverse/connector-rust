@@ -17,10 +17,6 @@ downcast!(Nebula);
 pub trait Nebula : Unit {
 
     fn color(&self) -> &Color;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Nebula
-    }
 }
 
 pub struct NebulaData {
@@ -31,7 +27,7 @@ pub struct NebulaData {
 impl NebulaData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<NebulaData, Error> {
         Ok(NebulaData {
-            unit:  UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:  UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Nebula)?,
             color: Color::from_hue(reader.read_single()?)?,
         })
     }

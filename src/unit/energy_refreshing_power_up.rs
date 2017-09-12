@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(EnergyRefreshingPowerUp);
 pub trait EnergyRefreshingPowerUp : RefreshingPowerUp {
-    fn kind(&self) -> UnitKind {
-        UnitKind::EnergyPowerUp
-    }
+
 }
 
 pub struct EnergyRefreshingPowerUpData {
@@ -27,7 +25,7 @@ pub struct EnergyRefreshingPowerUpData {
 impl EnergyRefreshingPowerUpData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<EnergyRefreshingPowerUpData, Error> {
         Ok(EnergyRefreshingPowerUpData {
-            unit: RefreshingPowerUpData::from_reader(connector, universe_group, packet, reader)?
+            unit: RefreshingPowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::EnergyPowerUp)?
         })
     }
 }

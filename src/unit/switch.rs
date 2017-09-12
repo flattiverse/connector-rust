@@ -25,10 +25,6 @@ pub trait Switch : Unit {
     fn switch_time_current(&self) -> u16;
 
     fn switched(&self) -> bool;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Switch
-    }
 }
 
 pub struct SwitchData {
@@ -43,7 +39,7 @@ pub struct SwitchData {
 impl SwitchData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SwitchData, Error> {
         Ok(SwitchData {
-            unit:   UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Switch)?,
             color:  Color::from_rgb(
                 reader.read_single()?,
                 reader.read_single()?,

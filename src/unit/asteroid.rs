@@ -18,10 +18,6 @@ pub trait Asteroid : Unit {
     fn aggressive(&self) -> bool;
 
     fn max_speed(&self) -> f32;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Asteroid
-    }
 }
 
 pub struct AsteroidData {
@@ -33,7 +29,7 @@ pub struct AsteroidData {
 impl AsteroidData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AsteroidData, Error> {
         Ok(AsteroidData {
-            unit:       UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:       UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Asteroid)?,
             max_speed:  reader.read_single()?,
             aggressive: reader.read_byte()? == 1,
         })

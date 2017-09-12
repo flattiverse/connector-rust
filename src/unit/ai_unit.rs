@@ -8,6 +8,7 @@ use Connector;
 use UniverseGroup;
 use unit::Unit;
 use unit::UnitData;
+use unit::UnitKind;
 use net::Packet;
 use net::BinaryReader;
 
@@ -38,9 +39,9 @@ pub struct AiUnitData {
 }
 
 impl AiUnitData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AiUnitData, Error> {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<AiUnitData, Error> {
         Ok(AiUnitData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit: UnitData::from_reader(connector, universe_group, packet, reader, kind)?,
             hull:           reader.read_single()?,
             hull_max:       reader.read_single()?,
             hull_armor:     reader.read_single()?,

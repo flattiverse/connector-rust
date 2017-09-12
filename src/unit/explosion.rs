@@ -50,10 +50,6 @@ pub trait Explosion : Unit {
 
     // The additional damage dealt by the explosion
     fn damage_energy_crit(&self) -> f32;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Explosion
-    }
 }
 
 pub struct ExplosionData {
@@ -72,7 +68,7 @@ pub struct ExplosionData {
 
 impl ExplosionData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<ExplosionData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Explosion)?;
         let kind;
         let name;
         let player;

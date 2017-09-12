@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(CloakPowerUp);
 pub trait CloakPowerUp : PowerUp {
-    fn kind(&self) -> UnitKind {
-        UnitKind::CloakPowerUp
-    }
+
 }
 
 pub struct CloakPowerUpData {
@@ -27,7 +25,7 @@ pub struct CloakPowerUpData {
 impl CloakPowerUpData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<CloakPowerUpData, Error> {
         Ok(CloakPowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::CloakPowerUp)?,
         })
     }
 }

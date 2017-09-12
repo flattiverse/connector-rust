@@ -17,10 +17,6 @@ downcast!(BlackHole);
 pub trait BlackHole : Unit {
 
     fn gravity_wells(&self) -> &Vec<GravityWell>;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::BlackHole
-    }
 }
 
 pub struct BlackHoleData {
@@ -31,7 +27,7 @@ pub struct BlackHoleData {
 impl BlackHoleData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<BlackHoleData, Error> {
         Ok(BlackHoleData {
-            unit:  UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:  UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::BlackHole)?,
             wells: {
                 let mut vec = Vec::new();
                 let count = reader.read_unsigned_byte()?;

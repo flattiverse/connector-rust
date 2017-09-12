@@ -22,10 +22,6 @@ pub trait WormHole : Unit {
     fn destination(&self) -> &Option<Vector>;
 
     fn destination_universe(&self) -> &Weak<Universe>;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::WormHole
-    }
 }
 
 pub struct WormHoleData {
@@ -36,7 +32,7 @@ pub struct WormHoleData {
 
 impl WormHoleData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<WormHoleData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::WormHole)?;
         let vector;
         let dest;
 

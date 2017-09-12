@@ -8,6 +8,7 @@ use Connector;
 use UniverseGroup;
 use unit::PowerUp;
 use unit::UnitData;
+use unit::UnitKind;
 use unit::PowerUpData;
 use net::Packet;
 use net::BinaryReader;
@@ -23,9 +24,9 @@ pub struct RefreshingPowerUpData {
 }
 
 impl RefreshingPowerUpData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<RefreshingPowerUpData, Error> {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<RefreshingPowerUpData, Error> {
         Ok(RefreshingPowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, kind)?,
             amount: reader.read_single()?,
         })
     }

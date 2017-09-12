@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(HastePowerUp);
 pub trait HastePowerUp : PowerUp {
-    fn kind(&self) -> UnitKind {
-        UnitKind::HastePowerUp
-    }
+
 }
 
 pub struct HastePowerUpData {
@@ -27,7 +25,7 @@ pub struct HastePowerUpData {
 impl HastePowerUpData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<HastePowerUpData, Error> {
         Ok(HastePowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::HastePowerUp)?,
         })
     }
 }

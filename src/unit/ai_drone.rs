@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(AiDrone);
 pub trait AiDrone : AiUnit {
-    fn kind(&self) -> UnitKind {
-        UnitKind::AiDrone
-    }
+
 }
 
 pub struct AiDroneData {
@@ -27,7 +25,7 @@ pub struct AiDroneData {
 impl AiDroneData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AiDroneData, Error> {
         Ok(AiDroneData {
-            unit: AiUnitData::from_reader(connector, universe_group, packet, reader)?
+            unit: AiUnitData::from_reader(connector, universe_group, packet, reader, UnitKind::AiDrone)?
         })
     }
 }

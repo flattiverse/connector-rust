@@ -23,10 +23,6 @@ pub trait StormWhirl : Unit {
     fn shield_damage(&self) -> f32;
 
     fn energy_damage(&self) -> f32;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::StormWhirl
-    }
 }
 
 pub struct StormWhirlData {
@@ -40,7 +36,7 @@ pub struct StormWhirlData {
 impl StormWhirlData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<StormWhirlData, Error> {
         Ok(StormWhirlData {
-            unit:           UnitData::from_reader(connector, universe_group, packet, reader)?,
+            unit:           UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::StormWhirl)?,
             time:           reader.read_unsigned_byte()?,
             hull_damage:    reader.read_single()?,
             shield_damage:  reader.read_single()?,

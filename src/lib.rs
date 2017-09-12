@@ -6,10 +6,10 @@ extern crate sha2;
 extern crate chrono;
 extern crate hostname;
 extern crate flate2;
-extern crate backtrace;
+pub extern crate backtrace;
 
 #[macro_use]
-extern crate downcast;
+pub extern crate downcast;
 
 pub mod net;
 pub mod unit;

@@ -15,9 +15,7 @@ use net::BinaryReader;
 
 downcast!(DoubleDamagePowerUp);
 pub trait DoubleDamagePowerUp : PowerUp {
-    fn kind(&self) -> UnitKind {
-        UnitKind::DoubleDamagePowerUp
-    }
+    
 }
 
 pub struct DoubleDamagePowerUpData {
@@ -27,7 +25,7 @@ pub struct DoubleDamagePowerUpData {
 impl DoubleDamagePowerUpData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<DoubleDamagePowerUpData, Error> {
         Ok(DoubleDamagePowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::DoubleDamagePowerUp)?,
         })
     }
 }

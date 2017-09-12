@@ -81,6 +81,13 @@ pub enum Error {
     PendingShutdown,
     PlayerAlreadyInAnotherUniverseGroup(u16),
     StillOpenFlowControlsInUniverseGroup(u16),
+    WithReason(String),
+}
+
+impl From<String> for Error {
+    fn from(message: String) -> Self {
+        Error::WithReason(message)
+    }
 }
 
 impl From<std::io::Error> for Error {
