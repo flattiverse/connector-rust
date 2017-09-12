@@ -55,11 +55,10 @@ impl BlockManager {
         let id = response.session() as usize;
         match lock[id-BLOCK_OFFSET] {
             Some(ref mut sender) => {
-                println!("sending to {:?}", sender);
                 let _ = sender.send(response);
             },
             _ => {
-                println!("no sender found");
+                println!("No sender available for response message: {:?}", response);
             }
         };
     }
