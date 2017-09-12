@@ -8,6 +8,7 @@ use backtrace::Backtrace;
 #[derive(Debug)]
 pub enum Error {
     DowncastError(Backtrace),
+    DowncastTypeMismatch(Backtrace, TypeMismatch),
     IoError(Backtrace, std::io::Error),
     SendError,
     EmailAndOrPasswordInvalid,
@@ -104,5 +105,12 @@ use downcast::DowncastError;
 impl<T> From<DowncastError<T>> for Error {
     fn from(e: DowncastError<T>) -> Self {
         Error::DowncastError(Backtrace::new())
+    }
+}
+
+use downcast::TypeMismatch;
+impl From<TypeMismatch> for Error {
+    fn from(m: TypeMismatch) -> Self {
+        Error::DowncastTypeMismatch(Backtrace::new(), m)
     }
 }
