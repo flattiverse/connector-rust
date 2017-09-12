@@ -11,13 +11,13 @@ extern crate backtrace;
 #[macro_use]
 extern crate downcast;
 
-mod net;
-mod unit;
-mod item;
-mod event;
-mod dotnet;
-mod message;
-mod controllable;
+pub mod net;
+pub mod unit;
+pub mod item;
+pub mod event;
+pub mod dotnet;
+pub mod message;
+pub mod controllable;
 
 
 mod error;
