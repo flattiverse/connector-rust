@@ -24,9 +24,9 @@ use message::FlattiverseMessageData;
 downcast!(GateSwitchedMessage);
 pub trait GateSwitchedMessage : GameMessage {
 
-    fn invoker_player(&self) -> &Option<Arc<RwLock<Player>>>;
+    fn invoker_player(&self) -> &Option<Arc<Player>>;
 
-    fn invoker_player_info(&self) -> &Option<Arc<RwLock<ControllableInfo>>>;
+    fn invoker_player_info(&self) -> &Option<Arc<ControllableInfo>>;
 
     fn switch_string(&self) -> &str;
 
@@ -35,8 +35,8 @@ pub trait GateSwitchedMessage : GameMessage {
 
 pub struct GateSwitchedMessageData {
     data:   GameMessageData,
-    player: Option<Arc<RwLock<Player>>>,
-    info:   Option<Arc<RwLock<ControllableInfo>>>,
+    player: Option<Arc<Player>>,
+    info:   Option<Arc<ControllableInfo>>,
     switch: String,
     gates:  Vec<GateSwitchInfo>,
 }
@@ -50,9 +50,10 @@ impl GateSwitchedMessageData {
 
         if invoked {
             let p_strong = connector.player_for(reader.read_u16()?)?;
-            player = Some(p_strong.clone());
             let index = reader.read_unsigned_byte()?;
-            info   = Some(p_strong.read()?.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?);
+
+            player = Some(p_strong.clone());
+            info   = Some(p_strong.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?);
         } else  {
             player = None;
             info   = None;
@@ -98,11 +99,11 @@ impl BorrowMut<FlattiverseMessageData> for GateSwitchedMessageData {
 
 
 impl<T: 'static + Borrow<GateSwitchedMessageData> + BorrowMut<GateSwitchedMessageData> + GameMessage> GateSwitchedMessage for T {
-    fn invoker_player(&self) -> &Option<Arc<RwLock<Player>>> {
+    fn invoker_player(&self) -> &Option<Arc<Player>> {
         &self.borrow().player
     }
 
-    fn invoker_player_info(&self) -> &Option<Arc<RwLock<ControllableInfo>>> {
+    fn invoker_player_info(&self) -> &Option<Arc<ControllableInfo>> {
         &self.borrow().info
     }
 
@@ -121,9 +122,7 @@ impl fmt::Display for GateSwitchedMessageData {
 
         if self.player.is_some() {
             let info = self.info.clone().unwrap();
-            let info = info.read().unwrap();
             let player = self.player.clone().unwrap();
-            let player = player.read().unwrap();
             write!(f, "{:?} of {}",
                 info.name(),
                 player.name(),

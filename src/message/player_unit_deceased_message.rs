@@ -21,15 +21,15 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitDeceasedMessage);
 pub trait PlayerUnitDeceasedMessage : GameMessage {
 
-    fn deceased_player_unit_player(&self) -> &Arc<RwLock<Player>>;
+    fn deceased_player_unit_player(&self) -> &Arc<Player>;
 
-    fn deceased_player_unit(&self) -> &Arc<RwLock<ControllableInfo>>;
+    fn deceased_player_unit(&self) -> &Arc<ControllableInfo>;
 }
 
 pub struct PlayerUnitDeceasedMessageData {
     data:   GameMessageData,
-    player: Arc<RwLock<Player>>,
-    info:   Arc<RwLock<ControllableInfo>>,
+    player: Arc<Player>,
+    info:   Arc<ControllableInfo>,
 }
 
 impl PlayerUnitDeceasedMessageData {
@@ -41,7 +41,6 @@ impl PlayerUnitDeceasedMessageData {
             player: player.clone(),
             info:   {
                 let index = reader.read_unsigned_byte()?;
-                let player = player.read()?;
                 player.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?
             }
         })
@@ -71,11 +70,11 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitDeceasedMessageData {
 
 
 impl<T: 'static + Borrow<PlayerUnitDeceasedMessageData> + BorrowMut<PlayerUnitDeceasedMessageData> + GameMessage> PlayerUnitDeceasedMessage for T {
-    fn deceased_player_unit_player(&self) -> &Arc<RwLock<Player>> {
+    fn deceased_player_unit_player(&self) -> &Arc<Player> {
         &self.borrow().player
     }
 
-    fn deceased_player_unit(&self) -> &Arc<RwLock<ControllableInfo>> {
+    fn deceased_player_unit(&self) -> &Arc<ControllableInfo> {
         &self.borrow().info
     }
 }

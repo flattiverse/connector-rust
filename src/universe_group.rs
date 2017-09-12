@@ -63,7 +63,7 @@ pub struct UniverseGroup {
 
     universes:  RwLock<UniversalHolder<Universe>>,
     teams:      RwLock<UniversalHolder<Team>>,
-    players:    RwLock<ManagedArray<Arc<RwLock<Player>>>>,
+    players:    RwLock<ManagedArray<Arc<Player>>>,
 
     tournament: RwLock<Option<Arc<Tournament>>>
 }
@@ -201,11 +201,11 @@ impl UniverseGroup {
 
     // TODO missing parameter 'CrystalCargoItem...crystals'
     /// The returned value is supposed to be a Ship
-    pub fn register_ship(&self, class: &str, name: &str) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+    pub fn register_ship(&self, class: &str, name: &str) -> Result<Arc<Controllable>, Error> {
         let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
 
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-        match player.read()?.universe_group().upgrade() {
+        match player.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
                 let id_other = group.id();
@@ -248,7 +248,7 @@ impl UniverseGroup {
         let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
 
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-        match player.read()?.universe_group().upgrade() {
+        match player.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
                 let id_other = group.id();
@@ -284,7 +284,7 @@ impl UniverseGroup {
         let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
 
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-        match player.read()?.universe_group().upgrade() {
+        match player.universe_group().upgrade() {
             None => return Err(Error::PlayerNotInUniverseGroup),
             Some(group) => {
                 let id_other = group.id();
@@ -361,11 +361,11 @@ impl UniverseGroup {
         self.id
     }
 
-    pub fn universe(&self, index: u8) -> Weak<RwLock<Universe>> {
+    pub fn universe(&self, index: u8) -> Weak<Universe> {
         self.universes.read().unwrap().get_for_index_weak(index as usize)
     }
 
-    pub(crate) fn set_universe(&self, index: u8, universe: Option<Arc<RwLock<Universe>>>) {
+    pub(crate) fn set_universe(&self, index: u8, universe: Option<Arc<Universe>>) {
         self.universes.write().unwrap().set(index as usize, universe);
     }
 
@@ -381,15 +381,15 @@ impl UniverseGroup {
         &self.teams
     }
 
-    pub fn team(&self, index: u8) -> Result<Arc<RwLock<Team>>, Error> {
+    pub fn team(&self, index: u8) -> Result<Arc<Team>, Error> {
         self.teams.read()?.get_for_index(index as usize).ok_or(Error::InvalidTeam(index))
     }
 
-    pub fn team_weak(&self, index: u8) -> Weak<RwLock<Team>> {
+    pub fn team_weak(&self, index: u8) -> Weak<Team> {
         Weak::default()
     }
 
-    pub(crate) fn set_team(&self, index: u8, team: Option<Arc<RwLock<Team>>>) {
+    pub(crate) fn set_team(&self, index: u8, team: Option<Arc<Team>>) {
         self.teams.write().unwrap().set(index as usize, team);
     }
 
@@ -397,7 +397,7 @@ impl UniverseGroup {
         &self.avg_tick_time
     }
 
-    pub fn players(&self) -> &RwLock<ManagedArray<Arc<RwLock<Player>>>> {
+    pub fn players(&self) -> &RwLock<ManagedArray<Arc<Player>>> {
         &self.players
     }
 }

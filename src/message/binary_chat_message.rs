@@ -19,14 +19,14 @@ use message::FlattiverseMessageData;
 downcast!(BinaryChatMessage);
 pub trait BinaryChatMessage : ChatMessage {
 
-    fn to(&self) -> &Arc<RwLock<Player>>;
+    fn to(&self) -> &Arc<Player>;
 
     fn message(&self) -> &Vec<u8>;
 }
 
 pub struct BinaryChatMessageData {
     data:   ChatMessageData,
-    to:     Arc<RwLock<Player>>,
+    to:     Arc<Player>,
     message:Vec<u8>,
 }
 
@@ -66,7 +66,7 @@ impl BorrowMut<FlattiverseMessageData> for BinaryChatMessageData {
 
 
 impl<T: 'static + Borrow<BinaryChatMessageData> + BorrowMut<BinaryChatMessageData> + ChatMessage> BinaryChatMessage for T {
-    fn to(&self) -> &Arc<RwLock<Player>> {
+    fn to(&self) -> &Arc<Player> {
         &self.borrow().to
     }
 
@@ -79,10 +79,7 @@ impl fmt::Display for BinaryChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] -{}- 0x",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &ChatMessage).from().read() {
-                   Err(_) => "",
-                   Ok(ref player) => player.name()
-               }
+               (self as &ChatMessage).from().name(),
         )?;
         for byte in self.message.iter() {
             write!(f, "{:x}", byte)?;

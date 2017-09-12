@@ -25,23 +25,23 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitHitMissionTargetMessage);
 pub trait PlayerUnitHitMissionTargetMessage : GameMessage {
 
-    fn player_unit_player(&self) -> &Arc<RwLock<Player>>;
+    fn player_unit_player(&self) -> &Arc<Player>;
 
-    fn player_unit(&self) -> &Arc<RwLock<ControllableInfo>>;
+    fn player_unit(&self) -> &Arc<ControllableInfo>;
 
     fn mission_target_name(&self) -> &str;
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>>;
+    fn mission_target_team(&self) -> &Option<Arc<Team>>;
 
     fn mission_target_sequence(&self) -> u16;
 }
 
 pub struct PlayerUnitHitMissionTargetMessageData {
     data:   GameMessageData,
-    player: Arc<RwLock<Player>>,
-    info:   Arc<RwLock<ControllableInfo>>,
+    player: Arc<Player>,
+    info:   Arc<ControllableInfo>,
     name:   String,
-    team:   Option<Arc<RwLock<Team>>>,
+    team:   Option<Arc<Team>>,
     seq:    u16,
 }
 
@@ -54,7 +54,6 @@ impl PlayerUnitHitMissionTargetMessageData {
             player: player.clone(),
             info:   {
                 let index = reader.read_unsigned_byte()?;
-                let player = player.read()?;
                 player.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?
             },
             name:   reader.read_string()?,
@@ -63,7 +62,6 @@ impl PlayerUnitHitMissionTargetMessageData {
                 if id != 0xFF {
                     let player = connector.player().upgrade();
                     let player = player.ok_or(Error::PlayerNotAvailable)?;
-                    let player = player.read()?;
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                     Some(group.team(id)?)
@@ -99,11 +97,11 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitHitMissionTargetMessageData
 
 
 impl<T: 'static + Borrow<PlayerUnitHitMissionTargetMessageData> + BorrowMut<PlayerUnitHitMissionTargetMessageData> + GameMessage> PlayerUnitHitMissionTargetMessage for T {
-    fn player_unit_player(&self) -> &Arc<RwLock<Player>> {
+    fn player_unit_player(&self) -> &Arc<Player> {
         &self.borrow().player
     }
 
-    fn player_unit(&self) -> &Arc<RwLock<ControllableInfo>> {
+    fn player_unit(&self) -> &Arc<ControllableInfo> {
         &self.borrow().info
     }
 
@@ -111,7 +109,7 @@ impl<T: 'static + Borrow<PlayerUnitHitMissionTargetMessageData> + BorrowMut<Play
         &self.borrow().name
     }
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>> {
+    fn mission_target_team(&self) -> &Option<Arc<Team>> {
         &self.borrow().team
     }
 
@@ -123,30 +121,14 @@ impl<T: 'static + Borrow<PlayerUnitHitMissionTargetMessageData> + BorrowMut<Play
 impl fmt::Display for PlayerUnitHitMissionTargetMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' ",
-
             (self as &FlattiverseMessage).timestamp(),
-            match (self as &PlayerUnitHitMissionTargetMessage).player_unit().read() {
-                Err(_) => String::new(),
-                Ok(ref read) => {
-                    let mut string = String::new();
-                    write!(string, "{:?}", read.kind())?;
-                    string
-                },
-            },
-            match (self as &PlayerUnitHitMissionTargetMessage).player_unit().read() {
-                Err(_) => "",
-                Ok(ref read) => read.name()
-            },
-            match (self as &PlayerUnitHitMissionTargetMessage).player_unit_player().read() {
-                Err(_) => "",
-                Ok(ref read) => read.name()
-            },
+            (self as &PlayerUnitHitMissionTargetMessage).player_unit().kind(),
+            (self as &PlayerUnitHitMissionTargetMessage).player_unit().name(),
+            (self as &PlayerUnitHitMissionTargetMessage).player_unit_player().name(),
         )?;
 
         if let Some(ref team) = self.team {
-            if let Ok(ref team) = team.read() {
-                write!(f, "teams {} ", team.name())?;
-            }
+            write!(f, "teams {} ", team.name())?;
         }
 
         write!(f, "MissionTarget \"{}\"", self.name)?;

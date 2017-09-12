@@ -10,6 +10,7 @@ use std::borrow::BorrowMut;
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
 
 use downcast::Any;
 
@@ -28,6 +29,7 @@ use unit::ScanInfo;
 use item::CargoItem;
 use item::CrystalCargoItem;
 
+use controllable;
 use controllable::EnergyCost;
 use controllable::ScanEnergyCost;
 use controllable::WeaponEnergyCost;
@@ -155,7 +157,7 @@ pub trait Controllable : Any + Send + Sync {
 
     fn tractor_beam_range(&self) -> f32;
 
-    fn scores(&self) -> &Arc<RwLock<Scores>>;
+    fn scores(&self) -> &Arc<Scores>;
 
     fn energy(&self) -> f32;
 
@@ -167,25 +169,21 @@ pub trait Controllable : Any + Send + Sync {
 
     fn shield(&self) -> f32;
 
-    fn build_position(&self) -> &Option<Vector>;
+    fn build_position(&self) -> Option<Vector>;
 
     fn build_progress(&self) -> f32;
 
-    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>>;
+    fn is_building(&self) -> Weak<Controllable>;
 
-    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>>;
+    fn is_built_by(&self) -> Weak<Controllable>;
 
     fn weapon_production_status(&self) -> f32;
 
-    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>>;
+    fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>>;
 
-    fn set_crystals(&self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>);
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>>;
 
-    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>>;
-
-    fn set_cargo_items(&self, items: Vec<Arc<RwLock<Box<CargoItem>>>>);
-
-    fn universe(&self) -> &Weak<RwLock<Universe>>;
+    fn universe(&self) -> &Weak<Universe>;
 
     fn haste_time(&self) -> u16;
 
@@ -214,7 +212,7 @@ pub trait Controllable : Any + Send + Sync {
         let _ = match connector.player().upgrade() {
             None => return Err(Error::PlayerNotAvailable),
             Some(player) => {
-                match player.read()?.universe_group().upgrade() {
+                match player.universe_group().upgrade() {
                     None => return Err(Error::PlayerNotInUniverseGroup),
                     Some(group) => group
                 }
@@ -236,9 +234,9 @@ pub trait Controllable : Any + Send + Sync {
         Ok(())
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Box<Unit>>>;
+    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>>;
 
-    fn scan_area(&self, degree: f32, range: f32) -> Result<Vec<Box<Unit>>, Error> {
+    fn scan_area(&self, degree: f32, range: f32) -> Result<Vec<Arc<Unit>>, Error> {
         self.scan_areas(&[ScanInfo::new(
             degree - (self.scanner_degree_per_scan() / 2f32),
             degree + (self.scanner_degree_per_scan() / 2f32),
@@ -246,7 +244,7 @@ pub trait Controllable : Any + Send + Sync {
         )?])
     }
 
-    fn scan_areas(&self, info: &[ScanInfo]) -> Result<Vec<Box<Unit>>, Error> {
+    fn scan_areas(&self, info: &[ScanInfo]) -> Result<Vec<Arc<Unit>>, Error> {
         if info.len() > self.scanner_count() as usize {
             return Err(Error::ScanRequestExceedsScannerCount {
                 got: info.len() as u8,
@@ -288,7 +286,7 @@ pub trait Controllable : Any + Send + Sync {
         }
     }
 
-    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<Controllable>, Error> {
         if !Connector::check_name(class) {
             return Err(Error::InvalidName);
         }
@@ -338,7 +336,7 @@ pub trait Controllable : Any + Send + Sync {
             block.wait()?.path_ship()
         };
 
-        Ok(connector.controllable(id)?)
+        connector.controllable(id)
     }
 
     fn kill(&self) -> Result<(), Error> {
@@ -461,7 +459,7 @@ pub trait Controllable : Any + Send + Sync {
         Ok(())
     }
 
-    fn produce_crystal(&self, name: &str) -> Result<Arc<RwLock<Box<CrystalCargoItem>>>, Error> {
+    fn produce_crystal(&self, name: &str) -> Result<Arc<CrystalCargoItem>, Error> {
         if !Connector::check_name(name) {
             return Err(Error::InvalidName);
         }
@@ -656,6 +654,26 @@ pub trait Controllable : Any + Send + Sync {
     }
 }
 
+pub struct ControllableDataMut {
+    energy: f32,
+    particles: f32,
+    ions: f32,
+    hull: f32,
+    shield: f32,
+    pending_shutdown: bool,
+    weapon_production_status: f32,
+    build_progress: f32,
+    build_position: Option<Vector>,
+    haste_time: u16,
+    double_damage_time: u16,
+    quad_damage_time: u16,
+    cloak_time: u16,
+    active: bool,
+    is_building: Weak<Controllable>,
+    is_built_by: Weak<Controllable>,
+}
+
+
 pub struct ControllableData {
     id: u8,
     revision: i64,
@@ -713,28 +731,13 @@ pub struct ControllableData {
     crystal_slots: u8,
     tractor_beam: EnergyCost,
     tractor_beam_range: f32,
-    scores: Arc<RwLock<Scores>>,
-    energy: f32,
-    particles: f32,
-    ions: f32,
-    hull: f32,
-    shield: f32,
-    build_position: Option<Vector>,
-    build_progress: f32,
-    is_building: Weak<RwLock<Box<Controllable>>>,
-    is_built_by: Weak<RwLock<Box<Controllable>>>,
-    weapon_production_status: f32,
-    crystals:       Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>>,
-    cargo_items:    Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>>,
-    universe: Weak<RwLock<Universe>>,
-    haste_time: u16,
-    double_damage_time: u16,
-    quad_damage_time: u16,
-    cloak_time: u16,
-    connector: Weak<Connector>,
-    active: bool,
-    pending_shutdown: bool,
-    scan_list: RwLock<Vec<Box<Unit>>>
+    scores:      Arc<Scores>,
+    universe:    Weak<Universe>,
+    connector:   Weak<Connector>,
+    scan_list:   RwLock<Vec<Arc<Unit>>>,
+    mutable:     RwLock<ControllableDataMut>,
+    crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
+    cargo_items: RwLock<Vec<Arc<CargoItem>>>,
 }
 
 impl ControllableData {
@@ -743,7 +746,7 @@ impl ControllableData {
         let universe = match connector.player().upgrade() {
             None => return Err(Error::PlayerNotAvailable),
             Some(player) => {
-                match player.read()?.universe_group().upgrade() {
+                match player.universe_group().upgrade() {
                     None => return Err(Error::PlayerNotInUniverseGroup),
                     Some(universe_group) => {
                         universe_group.universe(packet.path_universe())
@@ -824,107 +827,128 @@ impl ControllableData {
                 match connector.player().upgrade() {
                     None => return Err(Error::PlayerNotAvailable),
                     Some(player) => {
-                        match player.read()?.controllable_info(packet.path_ship()) {
+                        match player.controllable_info(packet.path_ship()) {
                             None => return Err(Error::ControllableInfoNotAvailable),
-                            Some(info) => info.read()?.scores().clone()
+                            Some(info) => info.scores().clone()
                         }
                     }
                 }
             },
 
-            active:                 true,
-            haste_time:             0u16,
-            double_damage_time:     0u16,
-            quad_damage_time:       0u16,
-            energy:                 0f32,
-            particles:              0f32,
-            ions:                   0f32,
-            hull:                   0f32,
-            shield:                 0f32,
-            build_position:         None,
-            build_progress:         0f32,
-            is_building:            Weak::default(),
-            is_built_by:            Weak::default(),
-            weapon_production_status:0f32,
-            crystals:               Arc::new(RwLock::new(Vec::new())),
-            cargo_items:            Arc::new(RwLock::new(Vec::new())),
-            cloak_time:             0u16,
-            pending_shutdown:       false,
-            scan_list:              RwLock::new(Vec::new())
+            scan_list:              RwLock::new(Vec::new()),
+            crystals:               RwLock::new(Vec::new()),
+            cargo_items:            RwLock::new(Vec::new()),
+            mutable: RwLock::new(ControllableDataMut {
+                active:                 true,
+                haste_time:             0u16,
+                double_damage_time:     0u16,
+                quad_damage_time:       0u16,
+                energy:                 0f32,
+                particles:              0f32,
+                ions:                   0f32,
+                hull:                   0f32,
+                shield:                 0f32,
+                build_position:         None,
+                build_progress:         0f32,
+                weapon_production_status:0f32,
+                cloak_time:             0u16,
+                pending_shutdown:       false,
+                is_building:            Weak::default() as Weak<controllable::Empty>,
+                is_built_by:            Weak::default() as Weak<controllable::Empty>,
+            })
         })
     }
 
-    pub fn update(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub fn update(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
+        let mut mutable = self.mutable.write()?;
 
-        self.energy             = reader.read_single()?;
-        self.particles          = reader.read_single()?;
-        self.ions               = reader.read_single()?;
-        self.hull               = reader.read_single()?;
-        self.shield             = reader.read_single()?;
-        self.pending_shutdown   = reader.read_bool()?;
+        mutable.energy             = reader.read_single()?;
+        mutable.particles          = reader.read_single()?;
+        mutable.ions               = reader.read_single()?;
+        mutable.hull               = reader.read_single()?;
+        mutable.shield             = reader.read_single()?;
+        mutable.pending_shutdown   = reader.read_bool()?;
         Ok(())
     }
 
-    pub fn update_extended(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
+        let mut mutable = self.mutable.write()?;
 
-        self.weapon_production_status   = reader.read_single()?;
+        mutable.weapon_production_status   = reader.read_single()?;
         let header                      = reader.read_byte()?;
 
         if is_set_u8(header, 0x03) {
-            self.build_progress = 0f32;
+            mutable.build_progress = 0f32;
         }
 
         if is_set_u8(header, 0x01) {
             match self.connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
-                    self.build_progress = reader.read_single()?;
-                    self.is_building    = connector.controllable_weak(reader.read_unsigned_byte()?);
-                    self.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
+                    mutable.build_progress   = reader.read_single()?;
+                    mutable.is_building     = connector.controllable_weak(reader.read_unsigned_byte()?);
+                    mutable.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
                 }
             };
         } else {
-            self.build_position = None;
-            self.is_building    = Weak::default();
+            mutable.build_position = None;
+            mutable.is_building    = Weak::default() as Weak<controllable::Empty>;
         }
 
         if is_set_u8(header, 0x02) {
-            self.build_progress = reader.read_single()?;
-            self.is_built_by    = match self.connector.upgrade() {
+            mutable.build_progress = reader.read_single()?;
+            mutable.is_built_by    = match self.connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
                     connector.controllable_weak(reader.read_unsigned_byte()?)
                 }
             };
         } else {
-            self.is_built_by = Weak::default();
+            mutable.is_built_by = Weak::default() as Weak<controllable::Empty>;
         }
 
         if is_set_u8(header, 0x10) {
-            self.haste_time = reader.read_u16()?;
+            mutable.haste_time = reader.read_u16()?;
         } else {
-            self.haste_time = 0u16;
+            mutable.haste_time = 0u16;
         }
 
         if is_set_u8(header, 0x40) {
-            self.quad_damage_time = reader.read_u16()?;
+            mutable.quad_damage_time = reader.read_u16()?;
         } else {
-            self.haste_time = 0u16;
+            mutable.haste_time = 0u16;
         }
 
         if is_set_u8(header, 0x80) {
-            self.cloak_time = reader.read_u16()?;
+            mutable.cloak_time = reader.read_u16()?;
         } else {
-            self.cloak_time = 0u16;
+            mutable.cloak_time = 0u16;
         }
 
         Ok(())
     }
 
-    pub fn set_active(&mut self, active: bool) {
-        self.active = active;
+
+    pub(crate) fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
+        *self.crystals.write()? = crystals;
+        Ok(())
+    }
+
+    pub(crate) fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error> {
+        *self.cargo_items.write()? = items;
+        Ok(())
+    }
+
+    pub(crate) fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+        *self.scan_list.write()? = list;
+        Ok(())
+    }
+
+    pub(crate) fn set_active(&self, active: bool) -> Result<(), Error> {
+        self.mutable.write()?.active = active;
+        Ok(())
     }
 }
 
@@ -1154,84 +1178,76 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         self.borrow().tractor_beam_range
     }
 
-    fn scores(&self) -> &Arc<RwLock<Scores>> {
+    fn scores(&self) -> &Arc<Scores> {
         &self.borrow().scores
     }
 
     fn energy(&self) -> f32 {
-        self.borrow().energy
+        self.borrow().mutable.read().unwrap().energy
     }
 
     fn particles(&self) -> f32 {
-        self.borrow().particles
+        self.borrow().mutable.read().unwrap().particles
     }
 
     fn ions(&self) -> f32 {
-        self.borrow().ions
+        self.borrow().mutable.read().unwrap().ions
     }
 
     fn hull(&self) -> f32 {
-        self.borrow().hull
+        self.borrow().mutable.read().unwrap().hull
     }
 
     fn shield(&self) -> f32 {
-        self.borrow().shield
+        self.borrow().mutable.read().unwrap().shield
     }
 
-    fn build_position(&self) -> &Option<Vector> {
-        &self.borrow().build_position
+    fn build_position(&self) -> Option<Vector> {
+        self.borrow().mutable.read().unwrap().build_position.clone()
     }
 
     fn build_progress(&self) -> f32 {
-        self.borrow().build_progress
+        self.borrow().mutable.read().unwrap().build_progress
     }
 
-    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>> {
-        &self.borrow().is_building
+    fn is_building(&self) -> Weak<Controllable> {
+        self.borrow().mutable.read().unwrap().is_building.clone()
     }
 
-    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>> {
-        &self.borrow().is_built_by
+    fn is_built_by(&self) -> Weak<Controllable> {
+        self.borrow().mutable.read().unwrap().is_built_by.clone()
     }
 
     fn weapon_production_status(&self) -> f32 {
-        self.borrow().weapon_production_status
+        self.borrow().mutable.read().unwrap().weapon_production_status
     }
 
-    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>> {
-        &self.borrow().crystals
+    fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
+        self.borrow().crystals.read().unwrap()
     }
 
-    fn set_crystals(&self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
-        *self.borrow().crystals.write().unwrap() = crystals;
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>> {
+        self.borrow().cargo_items.read().unwrap()
     }
 
-    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>> {
-        &self.borrow().cargo_items
-    }
-
-    fn set_cargo_items(&self, items: Vec<Arc<RwLock<Box<CargoItem>>>>) {
-        *self.borrow().cargo_items.write().unwrap() = items;
-    }
-
-    fn universe(&self) -> &Weak<RwLock<Universe>> {
+    fn universe(&self) -> &Weak<Universe> {
         &self.borrow().universe
     }
 
     fn haste_time(&self) -> u16 {
-        self.borrow().haste_time
+        self.borrow().mutable.read().unwrap().haste_time
     }
 
     fn double_damage_time(&self) -> u16 {
-        self.borrow().double_damage_time
+        self.borrow().mutable.read().unwrap().double_damage_time
     }
 
     fn quad_damage_time(&self) -> u16 {
-        self.borrow().quad_damage_time
+        self.borrow().mutable.read().unwrap().quad_damage_time
     }
 
     fn cloak_time(&self) -> u16 {
-        self.borrow().cloak_time
+        self.borrow().mutable.read().unwrap().cloak_time
     }
 
     fn connector(&self) -> &Weak<Connector> {
@@ -1239,16 +1255,18 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
     }
 
     fn active(&self) -> bool {
-        self.borrow().active
+        self.borrow().mutable.read().unwrap().active
     }
 
     fn pending_shutdown(&self) -> bool {
-        self.borrow().pending_shutdown
+        self.borrow().mutable.read().unwrap().pending_shutdown
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Box<Unit>>> {
+    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
         &self.borrow().scan_list
     }
+
+
 }
 
 impl Display for Controllable {

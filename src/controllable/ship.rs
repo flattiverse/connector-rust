@@ -28,7 +28,7 @@ pub trait Ship : Controllable {
     fn proceed(&self) -> Result<(), Error> {
         let connector = self.connector().upgrade().ok_or(Error::ConnectorNotAvailable)?;
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-        let _ = player.read()?.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+        let _ = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
         if self.pending_shutdown() {
             return Err(Error::PendingShutdown);

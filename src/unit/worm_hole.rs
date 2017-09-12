@@ -21,7 +21,7 @@ pub trait WormHole : Unit {
 
     fn destination(&self) -> &Option<Vector>;
 
-    fn destination_universe(&self) -> &Weak<RwLock<Universe>>;
+    fn destination_universe(&self) -> &Weak<Universe>;
 
     fn kind(&self) -> UnitKind {
         UnitKind::WormHole
@@ -31,7 +31,7 @@ pub trait WormHole : Unit {
 pub struct WormHoleData {
     unit:   UnitData,
     vector: Option<Vector>,
-    dest:   Weak<RwLock<Universe>>,
+    dest:   Weak<Universe>,
 }
 
 impl WormHoleData {
@@ -47,7 +47,6 @@ impl WormHoleData {
         } else {
             vector = None;
             let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-            let player = player.read()?;
             let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotAvailable)?;
             dest   = group.universe(reader.read_unsigned_byte()?)
         }
@@ -78,7 +77,7 @@ impl<T: 'static + Borrow<WormHoleData> + BorrowMut<WormHoleData> + Unit> WormHol
         &self.borrow().vector
     }
 
-    fn destination_universe(&self) -> &Weak<RwLock<Universe>> {
+    fn destination_universe(&self) -> &Weak<Universe> {
         &self.borrow().dest
     }
 }

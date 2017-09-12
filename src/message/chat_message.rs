@@ -18,12 +18,12 @@ use net::BinaryReader;
 
 downcast!(ChatMessage);
 pub trait ChatMessage : FlattiverseMessage {
-    fn from(&self) -> &Arc<RwLock<Player>>;
+    fn from(&self) -> &Arc<Player>;
 }
 
 pub struct ChatMessageData {
     data: FlattiverseMessageData,
-    from: Arc<RwLock<Player>>
+    from: Arc<Player>
 }
 
 
@@ -48,7 +48,7 @@ impl BorrowMut<FlattiverseMessageData> for ChatMessageData {
 }
 
 impl<T: 'static + Borrow<ChatMessageData> + FlattiverseMessage> ChatMessage for T {
-    fn from(&self) -> &Arc<RwLock<Player>> {
+    fn from(&self) -> &Arc<Player> {
         &self.borrow().from
     }
 }

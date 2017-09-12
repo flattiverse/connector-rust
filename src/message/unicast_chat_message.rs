@@ -19,14 +19,14 @@ use message::FlattiverseMessageData;
 downcast!(UnicastChatMessage);
 pub trait UnicastChatMessage : ChatMessage {
 
-    fn to(&self) -> &Arc<RwLock<Player>>;
+    fn to(&self) -> &Arc<Player>;
 
     fn message(&self) -> &str;
 }
 
 pub struct UnicastChatMessageData {
     data:   ChatMessageData,
-    to:     Arc<RwLock<Player>>,
+    to:     Arc<Player>,
     message:String,
 }
 
@@ -63,7 +63,7 @@ impl BorrowMut<FlattiverseMessageData> for UnicastChatMessageData {
 
 
 impl<T: 'static + Borrow<UnicastChatMessageData> + BorrowMut<UnicastChatMessageData> + ChatMessage> UnicastChatMessage for T {
-    fn to(&self) -> &Arc<RwLock<Player>> {
+    fn to(&self) -> &Arc<Player> {
         &self.borrow().to
     }
 
@@ -76,10 +76,7 @@ impl fmt::Display for UnicastChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] <{}> {}",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &ChatMessage).from().read() {
-                   Err(_) => "",
-                   Ok(ref player) => player.name()
-               },
+               (self as &ChatMessage).from().name(),
                self.message
         )
     }

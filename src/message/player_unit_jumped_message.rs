@@ -21,14 +21,14 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitJumpedMessage);
 pub trait PlayerUnitJumpedMessage : GameMessage {
 
-    fn controllable(&self) -> &Arc<RwLock<Box<Controllable>>>;
+    fn controllable(&self) -> &Arc<Controllable>;
 
     fn inter_universe(&self) -> bool;
 }
 
 pub struct PlayerUnitJumpedMessageData {
     data:   GameMessageData,
-    info:   Arc<RwLock<Box<Controllable>>>,
+    info:   Arc<Controllable>,
     inter:  bool,
 }
 
@@ -68,7 +68,7 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitJumpedMessageData {
 
 
 impl<T: 'static + Borrow<PlayerUnitJumpedMessageData> + BorrowMut<PlayerUnitJumpedMessageData> + GameMessage> PlayerUnitJumpedMessage for T {
-    fn controllable(&self) -> &Arc<RwLock<Box<Controllable>>> {
+    fn controllable(&self) -> &Arc<Controllable> {
         &self.borrow().info
     }
 
@@ -79,12 +79,10 @@ impl<T: 'static + Borrow<PlayerUnitJumpedMessageData> + BorrowMut<PlayerUnitJump
 
 impl fmt::Display for PlayerUnitJumpedMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let info = self.info.clone();
-        let info = info.read().unwrap();
         write!(f, "[{}] {:?} {}",
                (self as &FlattiverseMessage).timestamp(),
-               info.kind(),
-               info.name(),
+               self.info.kind(),
+               self.info.name(),
         )?;
         if self.inter {
             write!(f, " accomplished a inter-universe jump.")

@@ -1,16 +1,18 @@
 
+use std::sync::RwLock;
+
 use Error;
 use net::BinaryReader;
 
 #[derive(Debug)]
 pub struct TimeSpan {
-    ticks: i64
+    ticks: RwLock<i64>
 }
 
 impl TimeSpan {
     pub fn new(ticks: i64) -> TimeSpan {
         TimeSpan {
-            ticks: ticks
+            ticks: RwLock::new(ticks)
         }
     }
 
@@ -25,7 +27,7 @@ impl TimeSpan {
     }
 
     pub fn from_reader(reader: &mut BinaryReader) -> Result<TimeSpan, Error> {
-        let mut time_span = Self::default();
+        let time_span = Self::default();
         time_span.update(reader)?;
         Ok(time_span)
     }
@@ -41,25 +43,25 @@ impl TimeSpan {
     }
 
     pub fn ticks(&self) -> i64 {
-        self.ticks
+        *self.ticks.read().unwrap()
     }
 
     pub fn seconds(&self) -> i64 {
         // 100ns / 10 -> 1us / 1000 -> 1ms / 1000 -> 1s
-        self.ticks / 10_000_000_i64
+        self.ticks() / 10_000_000_i64
     }
 
     pub fn seconds_exact(&self) -> f64 {
         // 100ns / 10 -> 1us / 1000 -> 1ms / 1000 -> 1s
-        self.ticks as f64 / 10_000_000_f64
+        self.ticks() as f64 / 10_000_000_f64
     }
 
     pub fn millis(&self) -> u64 {
         (self.seconds_exact() * 1_000f64) as u64
     }
 
-    pub fn update(&mut self, reader: &mut BinaryReader) -> Result<(), Error> {
-        self.ticks = reader.read_u32()? as i64;
+    pub(crate) fn update(&self, reader: &mut BinaryReader) -> Result<(), Error> {
+        *self.ticks.write()? = reader.read_u32()? as i64;
         Ok(())
     }
 }

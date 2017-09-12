@@ -21,17 +21,17 @@ use net::BinaryReader;
 downcast!(PlayerUnit);
 pub trait PlayerUnit : Unit {
 
-    fn player(&self) -> &Weak<RwLock<Player>>;
+    fn player(&self) -> &Weak<Player>;
 
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>>;
+    fn controllable_info(&self) -> &Weak<ControllableInfo>;
 
     fn tractorbam_info(&self) -> &Option<PlayerUnitTractorbeamInfo>;
 }
 
 pub struct PlayerUnitData {
     unit:   UnitData,
-    player: Weak<RwLock<Player>>,
-    c_info:   Weak<RwLock<ControllableInfo>>,
+    player: Weak<Player>,
+    c_info:   Weak<ControllableInfo>,
     b_info:   Option<PlayerUnitTractorbeamInfo>,
 }
 
@@ -42,7 +42,6 @@ impl PlayerUnitData {
             player: connector.weak_player_for(reader.read_u16()?)?,
             c_info: {
                 let player = connector.player_for(reader.read_u16()?)?;
-                let player = player.read()?;
                 let id = reader.read_unsigned_byte()?;
                 let info = player.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
                 Arc::downgrade(&info)
@@ -72,11 +71,11 @@ impl BorrowMut<UnitData> for PlayerUnitData {
 }
 
 impl<T: 'static + Borrow<PlayerUnitData> + BorrowMut<PlayerUnitData> + Unit> PlayerUnit for  T {
-    fn player(&self) -> &Weak<RwLock<Player>> {
+    fn player(&self) -> &Weak<Player> {
         &self.borrow().player
     }
 
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>> {
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
         &self.borrow().c_info
     }
 

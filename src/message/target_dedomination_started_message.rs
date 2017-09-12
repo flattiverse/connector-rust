@@ -21,16 +21,16 @@ downcast!(TargetDedominationStartedMessage);
 pub trait TargetDedominationStartedMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>>;
+    fn mission_target_team(&self) -> &Option<Arc<Team>>;
 
-    fn mission_target_team_old(&self) -> &Option<Arc<RwLock<Team>>>;
+    fn mission_target_team_old(&self) -> &Option<Arc<Team>>;
 }
 
 pub struct TargetDedominationStartedMessageData {
     data:       GameMessageData,
     name:       String,
-    team:       Option<Arc<RwLock<Team>>>,
-    team_old:   Option<Arc<RwLock<Team>>>,
+    team:       Option<Arc<Team>>,
+    team_old:   Option<Arc<Team>>,
 }
 
 impl TargetDedominationStartedMessageData {
@@ -43,7 +43,6 @@ impl TargetDedominationStartedMessageData {
                 if id != 255  {
                     let player = connector.player().upgrade();
                     let player = player.ok_or(Error::PlayerNotAvailable)?;
-                    let player = player.read()?;
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                     Some(group.team(id)?)
@@ -56,7 +55,6 @@ impl TargetDedominationStartedMessageData {
                 if id != 255  {
                     let player = connector.player().upgrade();
                     let player = player.ok_or(Error::PlayerNotAvailable)?;
-                    let player = player.read()?;
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                     Some(group.team(id)?)
@@ -96,11 +94,11 @@ impl<T: 'static + Borrow<TargetDedominationStartedMessageData> + BorrowMut<Targe
         &self.borrow().name
     }
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>> {
+    fn mission_target_team(&self) -> &Option<Arc<Team>> {
         &self.borrow().team
     }
 
-    fn mission_target_team_old(&self) -> &Option<Arc<RwLock<Team>>> {
+    fn mission_target_team_old(&self) -> &Option<Arc<Team>> {
         &self.borrow().team_old
     }
 }
@@ -110,22 +108,14 @@ impl fmt::Display for TargetDedominationStartedMessageData {
         write!(f, "[{}] ", (self as &FlattiverseMessage).timestamp())?;
 
         if let Some(ref team) = self.team {
-            if let Ok(ref team) = team.read() {
-                write!(f, "Team \"{}\" ", team.name())?;
-            } else {
-                write!(f, "<defect Team> ")?;
-            }
+            write!(f, "Team \"{}\" ", team.name())?;
         } else {
             write!(f, "Unknown Team ")?;
         }
         write!(f, "finished the domination of MissionTarget \"{}\" currently owned by", self.name)?;
 
         if let Some(ref team) = self.team {
-            if let Ok(ref team) = team.read() {
-                write!(f, "Team \"{}\" ", team.name())?;
-            } else {
-                write!(f, "<defect Team> ")?;
-            }
+            write!(f, "Team \"{}\" ", team.name())?;
         } else {
             write!(f, "an unknown Team ")?;
         }

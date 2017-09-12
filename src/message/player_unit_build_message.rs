@@ -20,32 +20,26 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitBuildMessage);
 pub trait PlayerUnitBuildMessage : GameMessage {
 
-    fn player(&self) -> &Arc<RwLock<Player>>;
+    fn player(&self) -> &Arc<Player>;
 
-    fn player_unit(&self) -> &Arc<RwLock<ControllableInfo>>;
+    fn player_unit(&self) -> &Arc<ControllableInfo>;
 
-    fn player_unit_builder(&self) -> &Arc<RwLock<ControllableInfo>>;
+    fn player_unit_builder(&self) -> &Arc<ControllableInfo>;
 }
 
 pub struct PlayerUnitBuildMessageData {
     data:   GameMessageData,
-    player: Arc<RwLock<Player>>,
-    unit:   Arc<RwLock<ControllableInfo>>,
-    builder:Arc<RwLock<ControllableInfo>>,
+    player: Arc<Player>,
+    unit:   Arc<ControllableInfo>,
+    builder:Arc<ControllableInfo>,
 }
 
 impl PlayerUnitBuildMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitBuildMessageData, Error> {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
-        let unit;
-        let builder;
-
-        {
-            let locked = player.read()?;
-            unit    = locked.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?;
-            builder = locked.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?;
-        }
+        let unit    = player.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?;
+        let builder = player.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?;
 
         Ok(PlayerUnitBuildMessageData {
             data,
@@ -79,15 +73,15 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitBuildMessageData {
 
 
 impl<T: 'static + Borrow<PlayerUnitBuildMessageData> + BorrowMut<PlayerUnitBuildMessageData> + GameMessage> PlayerUnitBuildMessage for T {
-    fn player(&self) -> &Arc<RwLock<Player>> {
+    fn player(&self) -> &Arc<Player> {
         &self.borrow().player
     }
 
-    fn player_unit(&self) -> &Arc<RwLock<ControllableInfo>> {
+    fn player_unit(&self) -> &Arc<ControllableInfo> {
         &self.borrow().unit
     }
 
-    fn player_unit_builder(&self) -> &Arc<RwLock<ControllableInfo>> {
+    fn player_unit_builder(&self) -> &Arc<ControllableInfo> {
         &self.borrow().builder
     }
 }

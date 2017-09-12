@@ -22,10 +22,10 @@ downcast!(Explosion);
 pub trait Explosion : Unit {
 
     /// The cause of the explosion
-    fn player(&self) -> &Weak<RwLock<Player>>;
+    fn player(&self) -> &Weak<Player>;
 
     /// The [ControllableInfo] that caused the explosion
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>>;
+    fn controllable_info(&self) -> &Weak<ControllableInfo>;
 
     /// The [UnitKind] that caused the explosion
     fn originator_kind(&self) -> UnitKind;
@@ -58,8 +58,8 @@ pub trait Explosion : Unit {
 
 pub struct ExplosionData {
     unit:   UnitData,
-    player: Weak<RwLock<Player>>,
-    info:   Weak<RwLock<ControllableInfo>>,
+    player: Weak<Player>,
+    info:   Weak<ControllableInfo>,
     originator_kind:    UnitKind,
     originator_name:    String,
     damage_hull:        f32,
@@ -89,11 +89,10 @@ impl ExplosionData {
                 let p_strong = connector.player_for(reader.read_u16()?)?;
                 player  = Arc::downgrade(&p_strong);
                 let id  = reader.read_unsigned_byte()?;
-                let i_strong = p_strong.read()?.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
+                let i_strong = p_strong.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
                 info = Arc::downgrade(&i_strong);
-                let i_read = i_strong.read()?;
-                kind    = i_read.kind();
-                name    = String::from(i_read.name());
+                kind    = i_strong.kind();
+                name    = String::from(i_strong.name());
             },
             _ => {
                 kind    = UnitKind::Unknown;
@@ -134,11 +133,11 @@ impl BorrowMut<UnitData> for ExplosionData {
 }
 
 impl<T: 'static + Borrow<ExplosionData> + BorrowMut<ExplosionData> + Unit> Explosion for  T {
-    fn player(&self) -> &Weak<RwLock<Player>> {
+    fn player(&self) -> &Weak<Player> {
         &self.borrow().player
     }
 
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>> {
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
         &self.borrow().info
     }
 

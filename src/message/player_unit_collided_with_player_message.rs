@@ -25,15 +25,15 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitCollidedWithPlayerUnitMessage);
 pub trait PlayerUnitCollidedWithPlayerUnitMessage : PlayerUnitDeceasedMessage {
 
-    fn collider_unit_player(&self) -> &Arc<RwLock<Player>>;
+    fn collider_unit_player(&self) -> &Arc<Player>;
 
-    fn collider_unit_info(&self) -> &Arc<RwLock<ControllableInfo>>;
+    fn collider_unit_info(&self) -> &Arc<ControllableInfo>;
 }
 
 pub struct PlayerUnitCollidedWithPlayerUnitMessageData {
     data:   PlayerUnitDeceasedMessageData,
-    player: Arc<RwLock<Player>>,
-    info:   Arc<RwLock<ControllableInfo>>,
+    player: Arc<Player>,
+    info:   Arc<ControllableInfo>,
 }
 
 impl PlayerUnitCollidedWithPlayerUnitMessageData {
@@ -43,7 +43,6 @@ impl PlayerUnitCollidedWithPlayerUnitMessageData {
             player: connector.player_for(reader.read_u16()?)?,
             info:   {
                 let player = connector.player_for(reader.read_u16()?)?;
-                let player = player.read()?;
                 player.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?
             }
         })
@@ -85,11 +84,11 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitCollidedWithPlayerUnitMessa
 
 
 impl<T: 'static + Borrow<PlayerUnitCollidedWithPlayerUnitMessageData> + BorrowMut<PlayerUnitCollidedWithPlayerUnitMessageData> + PlayerUnitDeceasedMessage> PlayerUnitCollidedWithPlayerUnitMessage for T {
-    fn collider_unit_player(&self) -> &Arc<RwLock<Player>> {
+    fn collider_unit_player(&self) -> &Arc<Player> {
         &self.borrow().player
     }
 
-    fn collider_unit_info(&self) -> &Arc<RwLock<ControllableInfo>> {
+    fn collider_unit_info(&self) -> &Arc<ControllableInfo> {
         &self.borrow().info
     }
 }
@@ -98,34 +97,11 @@ impl fmt::Display for PlayerUnitCollidedWithPlayerUnitMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' has a deadly collision with {:?} from '{}'.",
             (self as &FlattiverseMessage).timestamp(),
-            match (self as &PlayerUnitDeceasedMessage).deceased_player_unit().read() {
-                Err(_) => String::new(),
-                Ok(ref read) => {
-                    let mut string = String::new();
-                    write!(string, "{:?}", read.kind())?;
-                    string
-                },
-            },
-            match (self as &PlayerUnitDeceasedMessage).deceased_player_unit().read() {
-                Err(_) => "",
-                Ok(ref read) => read.name()
-            },
-            match (self as &PlayerUnitDeceasedMessage).deceased_player_unit_player().read() {
-                Err(_) => "",
-                Ok(ref read) => read.name()
-            },
-            match self.info.read() {
-                Err(_) => String::new(),
-                Ok(ref read) => {
-                    let mut string = String::new();
-                    write!(string, "{:?}", read.kind())?;
-                    string
-                },
-            },
-            match self.player.read() {
-                Err(_) => "",
-                Ok(ref player) => player.name()
-            }
+            (self as &PlayerUnitDeceasedMessage).deceased_player_unit().kind(),
+            (self as &PlayerUnitDeceasedMessage).deceased_player_unit().name(),
+            (self as &PlayerUnitDeceasedMessage).deceased_player_unit_player().name(),
+            self.info.kind(),
+            self.player.name(),
         )
     }
 }

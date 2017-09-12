@@ -21,13 +21,13 @@ downcast!(MissionTargetAvailableMessage);
 pub trait MissionTargetAvailableMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 
-    fn mission_target_team(&self) -> &Arc<RwLock<Team>>;
+    fn mission_target_team(&self) -> &Arc<Team>;
 }
 
 pub struct MissionTargetAvailableMessageData {
     data:   GameMessageData,
     name:   String,
-    team:   Arc<RwLock<Team>>,
+    team:   Arc<Team>,
 }
 
 impl MissionTargetAvailableMessageData {
@@ -38,7 +38,6 @@ impl MissionTargetAvailableMessageData {
                 let id = reader.read_unsigned_byte()?;
                 let player = connector.player().upgrade();
                 let player = player.ok_or(Error::PlayerNotAvailable)?;
-                let player = player.read()?;
                 let group  = player.universe_group().upgrade();
                 let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                 group.team(id)?
@@ -76,7 +75,7 @@ impl<T: 'static + Borrow<MissionTargetAvailableMessageData> + BorrowMut<MissionT
         &self.borrow().name
     }
 
-    fn mission_target_team(&self) -> &Arc<RwLock<Team>> {
+    fn mission_target_team(&self) -> &Arc<Team> {
         &self.borrow().team
     }
 }
@@ -86,10 +85,7 @@ impl fmt::Display for MissionTargetAvailableMessageData {
         write!(f, "[{}] MissionTarget \"{}\" of Team {} is available again.",
             (self as &FlattiverseMessage).timestamp(),
             self.name,
-            match self.team.read() {
-                Err(_) => "",
-                Ok(ref read) => read.name()
-            },
+            self.team.name(),
         )
     }
 }

@@ -43,13 +43,13 @@ use net::Packet;
 use net::BinaryReader;
 
 
-pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Arc<Controllable>, Error> {
     Ok(match packet.path_sub() {
-        0 => Arc::new(RwLock::new(Box::new(PlatformData  ::from_reader(connector, packet, reader)?))), // platform
-        1 => Arc::new(RwLock::new(Box::new(ProbeData     ::from_reader(connector, packet, reader)?))), // probe
-        2 => Arc::new(RwLock::new(Box::new(DroneData     ::from_reader(connector, packet, reader)?))), // drone
-        3 => Arc::new(RwLock::new(Box::new(ShipData      ::from_reader(connector, packet, reader)?))), // ship
-        4 => Arc::new(RwLock::new(Box::new(BaseData      ::from_reader(connector, packet, reader)?))), // base
+        0 => Arc::new(PlatformData  ::from_reader(connector, packet, reader)?), // platform
+        1 => Arc::new(ProbeData     ::from_reader(connector, packet, reader)?), // probe
+        2 => Arc::new(DroneData     ::from_reader(connector, packet, reader)?), // drone
+        3 => Arc::new(ShipData      ::from_reader(connector, packet, reader)?), // ship
+        4 => Arc::new(BaseData      ::from_reader(connector, packet, reader)?), // base
         _ => return Err(Error::InvalidControllable(packet.path_sub()))
     })
 }

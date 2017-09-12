@@ -73,11 +73,11 @@ impl fmt::Display for PlayerUnitBuildFinishedMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} {} of {} finished building the {:?} with the name {}.",
                (self as &PlayerUnitBuildMessage).timestamp(),
-               (self as &PlayerUnitBuildMessage).player_unit_builder().read().unwrap().kind(),
-               (self as &PlayerUnitBuildMessage).player_unit_builder().read().unwrap().name(),
-               (self as &PlayerUnitBuildMessage).player().read().unwrap().name(),
-               (self as &PlayerUnitBuildMessage).player_unit().read().unwrap().kind(),
-               (self as &PlayerUnitBuildMessage).player_unit().read().unwrap().name(),
+               (self as &PlayerUnitBuildMessage).player_unit_builder().kind(),
+               (self as &PlayerUnitBuildMessage).player_unit_builder().name(),
+               (self as &PlayerUnitBuildMessage).player().name(),
+               (self as &PlayerUnitBuildMessage).player_unit().kind(),
+               (self as &PlayerUnitBuildMessage).player_unit().name(),
         )
     }
 }

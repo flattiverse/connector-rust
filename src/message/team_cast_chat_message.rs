@@ -19,14 +19,14 @@ use message::FlattiverseMessageData;
 downcast!(TeamCastChatMessage);
 pub trait TeamCastChatMessage : ChatMessage {
 
-    fn to(&self) -> &Arc<RwLock<Team>>;
+    fn to(&self) -> &Arc<Team>;
 
     fn message(&self) -> &str;
 }
 
 pub struct TeamCastChatMessageData {
     data:   ChatMessageData,
-    to:     Arc<RwLock<Team>>,
+    to:     Arc<Team>,
     message:String,
 }
 
@@ -36,7 +36,7 @@ impl TeamCastChatMessageData {
             data:   ChatMessageData::from_packet(connector, packet, reader)?,
             to:     {
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-                let group = player.read()?.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
                 group.team(reader.read_unsigned_byte()?)?
             },
             message:reader.read_string()?,
@@ -67,7 +67,7 @@ impl BorrowMut<FlattiverseMessageData> for TeamCastChatMessageData {
 
 
 impl<T: 'static + Borrow<TeamCastChatMessageData> + BorrowMut<TeamCastChatMessageData> + ChatMessage> TeamCastChatMessage for T {
-    fn to(&self) -> &Arc<RwLock<Team>> {
+    fn to(&self) -> &Arc<Team> {
         &self.borrow().to
     }
 
@@ -80,10 +80,7 @@ impl fmt::Display for TeamCastChatMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] <T: {}> {}",
                (self as &FlattiverseMessage).timestamp(),
-               match (self as &TeamCastChatMessage).to().read() {
-                   Err(_) => "",
-                   Ok(ref to) => to.name()
-               },
+               (self as &TeamCastChatMessage).to().name(),
                self.message
         )
     }

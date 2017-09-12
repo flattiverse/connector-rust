@@ -32,7 +32,7 @@ pub trait Unit : Any + Send + Sync {
 
     fn gravity(&self) -> f32;
 
-    fn team(&self) -> &Weak<RwLock<Team>>;
+    fn team(&self) -> &Weak<Team>;
 
     fn solid(&self) -> bool;
 
@@ -60,7 +60,7 @@ pub struct UnitData {
     pub(crate) movement: Vector,
     pub(crate) radius: f32,
     pub(crate) gravity: f32,
-    pub(crate) team: Weak<RwLock<Team>>,
+    pub(crate) team: Weak<Team>,
     pub(crate) solid: bool,
     pub(crate) masking: bool,
     pub(crate) visible: bool,
@@ -171,7 +171,7 @@ impl<T: 'static + Borrow<UnitData> + BorrowMut<UnitData> + Send + Sync> Unit for
         self.borrow().gravity
     }
 
-    fn team(&self) -> &Weak<RwLock<Team>> {
+    fn team(&self) -> &Weak<Team> {
         &self.borrow().team
     }
 

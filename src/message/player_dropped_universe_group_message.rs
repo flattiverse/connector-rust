@@ -22,18 +22,18 @@ use message::FlattiverseMessageData;
 downcast!(PlayerDroppedFromUniverseGroupMessage);
 pub trait PlayerDroppedFromUniverseGroupMessage : GameMessage {
 
-    fn player(&self) -> &Arc<RwLock<Player>>;
+    fn player(&self) -> &Arc<Player>;
 
     fn universe_group(&self) -> &Arc<UniverseGroup>;
 
-    fn team(&self) -> &Arc<RwLock<Team>>;
+    fn team(&self) -> &Arc<Team>;
 }
 
 pub struct PlayerDroppedFromUniverseGroupMessageData {
     data:   GameMessageData,
-    player: Arc<RwLock<Player>>,
+    player: Arc<Player>,
     group:  Arc<UniverseGroup>,
-    team:   Arc<RwLock<Team>>,
+    team:   Arc<Team>,
 }
 
 impl PlayerDroppedFromUniverseGroupMessageData {
@@ -75,7 +75,7 @@ impl BorrowMut<FlattiverseMessageData> for PlayerDroppedFromUniverseGroupMessage
 
 
 impl<T: 'static + Borrow<PlayerDroppedFromUniverseGroupMessageData> + BorrowMut<PlayerDroppedFromUniverseGroupMessageData> + GameMessage> PlayerDroppedFromUniverseGroupMessage for T {
-    fn player(&self) -> &Arc<RwLock<Player>> {
+    fn player(&self) -> &Arc<Player> {
         &self.borrow().player
     }
 
@@ -83,19 +83,17 @@ impl<T: 'static + Borrow<PlayerDroppedFromUniverseGroupMessageData> + BorrowMut<
         &self.borrow().group
     }
 
-    fn team(&self) -> &Arc<RwLock<Team>> {
+    fn team(&self) -> &Arc<Team> {
         &self.borrow().team
     }
 }
 
 impl fmt::Display for PlayerDroppedFromUniverseGroupMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let player = self.player.read().unwrap();
-        let team = self.team.read().unwrap();
         write!(f, "[{}] Player {} from Team {} got dropped from the game.",
             (self as &FlattiverseMessage).timestamp(),
-            player.name(),
-            team.name(),
+            self.player.name(),
+            self.team.name(),
         )
     }
 }

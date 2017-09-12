@@ -2,6 +2,7 @@
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
 
 use Scores;
 use Vector;
@@ -252,7 +253,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn scores(&self) -> &Arc<RwLock<Scores>> {
+    fn scores(&self) -> &Arc<Scores> {
         unimplemented!()
     }
 
@@ -276,7 +277,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn build_position(&self) -> &Option<Vector> {
+    fn build_position(&self) -> Option<Vector> {
         unimplemented!()
     }
 
@@ -284,11 +285,11 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn is_building(&self) -> &Weak<RwLock<Box<Controllable>>> {
+    fn is_building(&self) -> Weak<Controllable> {
         unimplemented!()
     }
 
-    fn is_built_by(&self) -> &Weak<RwLock<Box<Controllable>>> {
+    fn is_built_by(&self) -> Weak<Controllable> {
         unimplemented!()
     }
 
@@ -296,23 +297,15 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn crystals(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>> {
+    fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
         unimplemented!()
     }
 
-    fn set_crystals(&self, _: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) {
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>> {
         unimplemented!()
     }
 
-    fn cargo_items(&self) -> &Arc<RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>> {
-        unimplemented!()
-    }
-
-    fn set_cargo_items(&self, _: Vec<Arc<RwLock<Box<CargoItem>>>>) {
-        unimplemented!()
-    }
-
-    fn universe(&self) -> &Weak<RwLock<Universe>> {
+    fn universe(&self) -> &Weak<Universe> {
         unimplemented!()
     }
 
@@ -344,7 +337,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Box<Unit>>> {
+    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
         unimplemented!()
     }
 }

@@ -74,8 +74,8 @@ pub const TASK_COUNT : usize   = 32;
 pub struct Connector {
     connection: Mutex<Connection>,
     block_manager: BlockManager,
-    player:     RwLock<Weak<RwLock<Player>>>,
-    players:    RwLock<UniversalHolder<Player>>,
+    player:                 RwLock<Weak<Player>>,
+    players:                RwLock<UniversalHolder<Player>>,
     sync_account_queries:   Mutex<()>,
     sync_control_flow:      Mutex<()>,
 
@@ -83,8 +83,8 @@ pub struct Connector {
     tasks:          RwLock<[bool; TASK_COUNT]>,
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<UniverseGroup>>>,
-    crystals:       RwLock<ManagedArray<Arc<RwLock<Box<CrystalCargoItem>>>>>,
-    controllables:  RwLock<ManagedArray<Arc<RwLock<Box<Controllable>>>>>,
+    crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
+    controllables:  RwLock<ManagedArray<Arc<Controllable>>>,
 }
 
 impl Connector {
@@ -217,9 +217,7 @@ impl Connector {
 
                 // sync flow control
                 let lock = connector.sync_control_flow.lock()?;
-
-                let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
-                let player = player.read()?;
+                let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
                 let time = DateTime::now() + TimeSpan::new(
@@ -269,8 +267,7 @@ impl Connector {
                     }
                 }
 
-                let player = connector.player.read()?.upgrade().ok_or(Error::PlayerNotAvailable)?;
-                let player = player.read()?;
+                let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
                 let time = DateTime::now() + TimeSpan::new(
@@ -305,15 +302,14 @@ impl Connector {
                 let reader = &mut packet.read() as &mut BinaryReader;
                 connector.players.write()?.set(
                     packet.path_player() as usize,
-                    Some(Arc::new(RwLock::new(Player::from_reader(connector, packet, reader)?)))
+                    Some(Arc::new(Player::from_reader(connector, packet, reader)?))
                 );
             },
             0x11 => { // player status update
                 match connector.players.read()?.get_for_index(packet.path_player() as usize) {
                     None => return Err(Error::MissingPlayer(packet.path_player())),
                     Some(player) => {
-                        println!("Updating player status of {}", player.read()?);
-                        player.write()?.update_stats(packet)?;
+                        player.update_stats(packet)?;
                     }
                 }
             },
@@ -321,9 +317,8 @@ impl Connector {
                 match connector.players.read()?.get_for_index(packet.path_player() as usize) {
                     None => return Err(Error::MissingPlayer(packet.path_player())),
                     Some(player) => {
-                        println!("Updating player ping of {}", player.read()?);
-                        player.write()?.update_ping(&packet)?;
-                        println!("Ping of {} is now {}ms", player.read()?, player.read()?.ping().millis());
+                        player.update_ping(&packet)?;
+                        println!("Ping of {} is now {}ms", player, player.ping().millis());
                     }
                 }
             },
@@ -331,36 +326,24 @@ impl Connector {
                 let player = connector.player_for(packet.path_player())?;
                 let group = connector.universe_group(packet.path_universe_group())?;
 
-                {
-                    let mut player = player.write()?;
-                    player.set_universe_group(Arc::downgrade(&group));
-                    player.set_team(group.team_weak(packet.path_sub()));
-                }
+                player.set_universe_group(Arc::downgrade(&group));
+                player.set_team(group.team_weak(packet.path_sub()));
 
-                {
-                    group.players().write()?.insert(player.clone())?;
-                }
+                group.players().write()?.insert(player.clone())?;
 
-                {
-                    let mut player = player.write()?;
-                    player.update_assignment(&packet)?;
-                    println!("Updated assignement, clan: {:?}", player.clan());
-                }
+                player.update_assignment(&packet)?;
+                println!("Updated assignement, clan: {:?}", player.clan());
 
             },
             0x14 => { // player timing information
-                let player = connector.player_for(packet.path_player())?;
-                player.write()?.update_timing(&packet)?;
+                connector.player_for(packet.path_player())?.update_timing(&packet)?;
             },
             0x15 => { // unregistered from UniverseGroup / Team
                 let player = connector.player_for(packet.path_player())?;
 
                 {
-                    let player_read = player.read()?;
-                    let group = player_read.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                    let player_id = player_read.id();
-
-                    drop(player_read);
+                    let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                    let player_id = player.id();
 
                     // TODO WTF!
                     let mut players = group.players().write()?;
@@ -368,8 +351,7 @@ impl Connector {
                     let mut wipe_at = -1_isize;
                     for player in players.as_ref() {
                         if let &Some(ref player) = player {
-                            let lock = player.read()?;
-                            if lock.id() == player_id {
+                            if player.id() == player_id {
                                 wipe_at = index;
                                 break;
                             }
@@ -383,22 +365,15 @@ impl Connector {
                     }
                 }
 
-                {
-                    let mut player_write = player.write()?;
-                    player_write.set_team(Weak::default());
-                    player_write.clear_assignment();
-                }
+                player.set_team(Weak::default());
+                player.clear_assignment();
 
             },
             0x16 => { // player isn't online anymore
-                let player = connector.player_for(packet.path_player())?;
-                player.write()?.set_online(false);
+                connector.player_for(packet.path_player())?.set_online(false);
             },
             0x17 => { // player isn't active anymore
-                {
-                    let player = connector.player_for(packet.path_player())?;
-                    player.write()?.set_active(false);
-                }
+                connector.player_for(packet.path_player())?.set_active(false);
                 connector.players.write()?.set(packet.path_player() as usize, None);
             },
             0x1B => { // crystal list update
@@ -433,9 +408,9 @@ impl Connector {
                         }
 
                     };
-                    let crystal : Box<CrystalCargoItem> = cargo_item.downcast::<CrystalCargoItemData>().unwrap();
+                    let crystal : Arc<CrystalCargoItem> = Arc::from(*cargo_item.downcast::<CrystalCargoItemData>()?);
 
-                    lock.set(crystal_position, Some(Arc::new(RwLock::new(crystal))));
+                    lock.set(crystal_position, Some(crystal));
                     crystal_position += 1;
                 }
 
@@ -457,26 +432,23 @@ impl Connector {
                 let universe = Universe::from_reader(&group, packet, reader)?;
                 println!("New Universe: {}", universe.name());
 
-                group.set_universe(packet.path_universe(), Some(Arc::new(RwLock::new(universe))));
+                group.set_universe(packet.path_universe(), Some(Arc::new(universe)));
             },
             0x28 => { // new team
                 let group = connector.universe_group(packet.path_universe_group())?;
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let team = Team::from_reader(Arc::downgrade(connector), &group, packet, reader)?;
                 println!("New Team: {:?}", team);
-                group.set_team(packet.path_sub(), Some(Arc::new(RwLock::new(team))));
+                group.set_team(packet.path_sub(), Some(Arc::new(team)));
             },
             0x2B => { // team score update
                 let group = connector.universe_group(packet.path_universe_group())?;
                 let team = group.team(packet.path_sub())?;
 
-                let team = team.read()?;
                 match team.scores() {
                     &None => return Err(Error::ScoresNotAvailable),
                     &Some(ref scores) => {
-                        scores
-                            .write()?
-                            .update(&mut packet.read() as &mut BinaryReader)?;
+                        scores.update(&mut packet.read() as &mut BinaryReader)?;
                     }
                 };
             }
@@ -530,7 +502,7 @@ impl Connector {
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().update(packet)?;
+                        controllable.downcast_ref::<ControllableData>()?.update(packet)?;
                     }
                 }
             },
@@ -539,7 +511,7 @@ impl Connector {
                 match controllables.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().set_active(false);
+                        controllable.downcast_ref::<ControllableData>()?.set_active(false);
                     }
                 };
                 controllables.wipe_index(packet.path_ship() as usize);
@@ -548,45 +520,42 @@ impl Connector {
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.write()?.downcast_mut::<ControllableData>().unwrap().update_extended(packet)?;
+                        controllable.downcast_ref::<ControllableData>()?.update_extended(packet)?;
                     }
                 }
             },
             0x84 => { // 'ControllableInfoStaticPacket'
                 let player = connector.player_for(packet.path_player())?;
-                player.write()?.set_controllable_info(
+                player.set_controllable_info(
                     packet.path_ship(),
-                    Some(Arc::new(RwLock::new(ControllableInfo::from_packet(packet, Arc::downgrade(&player))?))),
+                    Some(Arc::new(ControllableInfo::from_packet(packet, Arc::downgrade(&player))?)),
                 );
             },
             0x85 => { // 'ControllableInfoDynamicPacket'
                 let player = connector.player_for(packet.path_player())?;
-                match player.read()?.controllable_info(packet.path_ship()) {
+                match player.controllable_info(packet.path_ship()) {
                     None => return Err(Error::InvalidControllableInfo(packet.path_ship())),
-                    Some(info) => info.write()?.update(packet)?,
+                    Some(info) => info.update(packet)?,
                 };
             },
             0x86 => { // 'ControllableInfoRemoved'
                 let player = connector.player_for(packet.path_player())?;
                 let path_ship = packet.path_ship();
 
-                match player.read()?.controllable_info(path_ship) {
+                match player.controllable_info(path_ship) {
                     None => return Err(Error::InvalidControllableInfo(path_ship)),
-                    Some(info) => info.write()?.set_active(false)
+                    Some(info) => info.set_active(false)
                 };
-                player.write()?.set_controllable_info(path_ship, None);
+                player.set_controllable_info(path_ship, None);
             },
             0x87 => { // 'ControllableInfoScorePacket'
                 let path_ship = packet.path_ship();
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let player = connector.player_for(packet.path_player())?;
-                let player = player.read()?;
                 match player.controllable_info(path_ship) {
                     None => return Err(Error::InvalidControllableInfo(path_ship)),
                     Some(ref info) => {
-                        let info = info.read()?;
-                        let mut scores = info.scores().write()?;
-                        scores.update(reader)?
+                        info.scores().update(reader)?
                     },
                 }
             },
@@ -627,9 +596,8 @@ impl Connector {
 
 
                 let player = connector.player_for(packet.path_player())?;
-                let player = player.read()?;
                 let info   = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllableInfo(packet.path_ship()))?;
-                info.write()?.set_crystals(crystals);
+                info.set_crystals(crystals);
             },
             0x89 => { // 'ControllableCrystalPacket'
                 let mut crystals = Vec::new();
@@ -660,14 +628,14 @@ impl Connector {
                             }
                         };
 
-                        let crystal : Box<CrystalCargoItem> = crystal.downcast::<CrystalCargoItemData>().unwrap();
+                        let crystal : Box<CrystalCargoItemData> = crystal.downcast::<CrystalCargoItemData>().unwrap();
 
-                        crystals.push(Arc::new(RwLock::new(crystal)));
+                        crystals.push(Arc::from(*crystal) as Arc<CrystalCargoItem>);
                     }
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.write()?.set_crystals(crystals);
+                controllable.downcast_ref::<ControllableData>()?.set_crystals(crystals);
             },
             0x8A => { // 'ControllableInfoCargoPacket'
                 let mut cargo_items = Vec::new();
@@ -703,8 +671,8 @@ impl Connector {
                 }
 
                 let player = connector.player_for(packet.path_player())?;
-                let info = player.read()?.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
-                info.write()?.set_cargo_items(cargo_items);
+                let info = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
+                info.set_cargo_items(cargo_items);
             },
             0x8B => { // 'ControllableInfoCargoPacket'
                 let mut cargo_items = Vec::new();
@@ -735,25 +703,23 @@ impl Connector {
                             }
                         };
 
-                        cargo_items.push(Arc::new(RwLock::new(crystal)));
+                        cargo_items.push(Arc::from(crystal));
                     }
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.write()?.set_cargo_items(cargo_items);
+                controllable.downcast_ref::<ControllableData>()?.set_cargo_items(cargo_items);
             },
             0x90 => { // scan result entry received
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-                let player = player.read()?;
                 let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
                 let unit   = unit::unit_from_packet(connector, &group, packet)?;
 
 
                 let controllable = connector.controllable(packet.path_universe())?;
-                let controllable = controllable.read()?;
 
                 if unit.is::<PixelClusterData>() {
-                    let pixels = Connector::read_pixels_from_pixel_cluster(connector, unit.downcast::<PixelClusterData>()?)?;
+                    let pixels = Connector::read_pixels_from_pixel_cluster(connector, unit.downcast_ref::<PixelClusterData>()?)?;
                     let mut scan = controllable.scan_list().write()?;
                     for pixel in pixels.into_iter() {
                         scan.push(pixel);
@@ -771,13 +737,12 @@ impl Connector {
         Ok(())
     }
 
-    fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: Box<PixelCluster>) -> Result<Vec<Box<Unit>>, Error> {
+    fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: &PixelCluster) -> Result<Vec<Arc<Unit>>, Error> {
         let mut pixels = Vec::new();
         let reader = &mut &cluster.data()[..] as &mut BinaryReader;
 
         let group= {
             let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-            let player = player.read()?;
             player.universe_group().clone().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?
         };
 
@@ -790,7 +755,7 @@ impl Connector {
             x_pos = position.x() - cluster.radius() + radius;
 
             for x in 0..16 {
-                let pixel = Box::new(PixelData::new(
+                let pixel = Arc::new(PixelData::new(
                     connector,
                     &group,
                     format!("{}{:08X}{:08X}", cluster.name(), x, y),
@@ -802,7 +767,7 @@ impl Connector {
                 ));
 
                 if pixel.relevant() {
-                    pixels.push(pixel as Box<Unit>);
+                    pixels.push(pixel as Arc<Unit>);
                 }
 
                 x_pos += radius * 2_f32;
@@ -829,18 +794,18 @@ impl Connector {
         connection.flush()
     }
 
-    pub fn player(&self) -> Weak<RwLock<Player>> {
+    pub fn player(&self) -> Weak<Player> {
         self.player.read().unwrap().clone()
     }
 
-    pub fn player_for(&self, index: u16) -> Result<Arc<RwLock<Player>>, Error> {
+    pub fn player_for(&self, index: u16) -> Result<Arc<Player>, Error> {
         match self.players.read()?.get_for_index(index as usize) {
             None => Err(Error::MissingPlayer(index)),
-            Some(arc) => Ok(arc)
+            Some(arc) => Ok(arc.clone())
         }
     }
 
-    pub fn weak_player_for(&self, index: u16) -> Result<Weak<RwLock<Player>>, Error> {
+    pub fn weak_player_for(&self, index: u16) -> Result<Weak<Player>, Error> {
         Ok(self.players.read()?.get_for_index_weak(index as usize))
     }
 
@@ -958,13 +923,13 @@ impl Connector {
         Err(Error::InvalidName)
     }
 
-    pub fn crystals(&self, name: &str) -> Result<Arc<RwLock<Box<CrystalCargoItem>>>, Error> {
+    pub fn crystals(&self, name: &str) -> Result<Arc<CrystalCargoItem>, Error> {
         let crystals = self.crystals.read()?;
         for i in 0..crystals.len() {
             match crystals.get(i) {
                 &None => {},
                 &Some(ref arc) => {
-                    if arc.read()?.name().eq(name) {
+                    if arc.name().eq(name) {
                         return Ok(arc.clone());
                     }
                 },
@@ -973,13 +938,13 @@ impl Connector {
         Err(Error::InvalidCrystalName(String::from(name)))
     }
 
-    pub fn controllable(&self, index: u8) -> Result<Arc<RwLock<Box<Controllable>>>, Error> {
+    pub fn controllable(&self, index: u8) -> Result<Arc<Controllable>, Error> {
         self.controllables.read()?.get(index as usize).clone().ok_or(Error::InvalidControllable(index))
     }
 
-    pub fn controllable_weak(&self, index: u8) -> Weak<RwLock<Box<Controllable>>> {
+    pub fn controllable_weak(&self, index: u8) -> Weak<Controllable> {
         match self.controllables.read().unwrap().get(index as usize) {
-            &None => Weak::default(),
+            &None => Weak::default() as Weak<controllable::Empty>,
             &Some(ref arc) => Arc::downgrade(arc),
         }
     }

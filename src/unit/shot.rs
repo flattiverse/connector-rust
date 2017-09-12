@@ -24,10 +24,10 @@ downcast!(Shot);
 pub trait Shot : Unit {
 
     /// The [Player] who fired the shot
-    fn player(&self) -> &Weak<RwLock<Player>>;
+    fn player(&self) -> &Weak<Player>;
 
     /// The [ControllableInfo] the fired the shot
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>>;
+    fn controllable_info(&self) -> &Weak<ControllableInfo>;
 
     /// The [UnitKind] that fired the shot
     fn originator_kind(&self) -> UnitKind;
@@ -78,8 +78,8 @@ pub trait Shot : Unit {
 
 pub struct ShotData {
     unit:   UnitData,
-    player: Weak<RwLock<Player>>,
-    info:   Weak<RwLock<ControllableInfo>>,
+    player: Weak<Player>,
+    info:   Weak<ControllableInfo>,
     originator_kind:    UnitKind,
     originator_name:    String,
     time:               u16,
@@ -108,7 +108,7 @@ impl ShotData {
         let kind;
         let name;
         let player;
-        let info : Weak<RwLock<ControllableInfo>>;
+        let info : Weak<ControllableInfo>;
 
         match reader.read_unsigned_byte()? {
             1 => {
@@ -121,11 +121,10 @@ impl ShotData {
                 let p_strong = connector.player_for(reader.read_u16()?)?;
                 player  = Arc::downgrade(&p_strong);
                 let id  = reader.read_unsigned_byte()?;
-                let i_strong = p_strong.read()?.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
+                let i_strong = p_strong.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
                 info = Arc::downgrade(&i_strong);
-                let i_read = i_strong.read()?;
-                kind    = i_read.kind();
-                name    = String::from(i_read.name());
+                kind    = i_strong.kind();
+                name    = String::from(i_strong.name());
             },
             _ => {
                 kind    = UnitKind::Unknown;
@@ -184,11 +183,11 @@ impl BorrowMut<UnitData> for ShotData {
 }
 
 impl<T: 'static + Borrow<ShotData> + BorrowMut<ShotData> + Unit> Shot for  T {
-    fn player(&self) -> &Weak<RwLock<Player>> {
+    fn player(&self) -> &Weak<Player> {
         &self.borrow().player
     }
 
-    fn controllable_info(&self) -> &Weak<RwLock<ControllableInfo>> {
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
         &self.borrow().info
     }
 

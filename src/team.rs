@@ -24,13 +24,13 @@ pub struct Team {
     id: u8,
     color: Color,
     name: String,
-    scores: Option<RwLock<Scores>>
+    scores: Option<Scores>
 }
 
 impl Team {
     pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Team, Error> {
         let scores = if let Some(GameType::Mission) = universe_group.game_type() {
-            Some(RwLock::new(Scores::default()))
+            Some(Scores::default())
         } else {
             None
         };
@@ -53,7 +53,7 @@ impl Team {
         self.id
     }
 
-    pub fn scores(&self) -> &Option<RwLock<Scores>> {
+    pub fn scores(&self) -> &Option<Scores> {
         &self.scores
     }
 
@@ -77,7 +77,6 @@ impl Team {
                 Some(ref player) => {
                     // TODO lots of unwrap...
                     let player = player.clone();
-                    let player = player.read()?;
                     let player_uni = player.universe_group().clone();
                     let player_uni = player_uni.upgrade().unwrap();
                     if player_uni.eq(&uni_group) {

@@ -21,13 +21,13 @@ downcast!(TargetDominationStartedMessage);
 pub trait TargetDominationStartedMessage : GameMessage {
     fn mission_target_name(&self) -> &str;
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>>;
+    fn mission_target_team(&self) -> &Option<Arc<Team>>;
 }
 
 pub struct TargetDominationStartedMessageData {
     data:   GameMessageData,
     name:   String,
-    team:   Option<Arc<RwLock<Team>>>,
+    team:   Option<Arc<Team>>,
 }
 
 impl TargetDominationStartedMessageData {
@@ -40,7 +40,6 @@ impl TargetDominationStartedMessageData {
                 if id != 255  {
                     let player = connector.player().upgrade();
                     let player = player.ok_or(Error::PlayerNotAvailable)?;
-                    let player = player.read()?;
                     let group  = player.universe_group().upgrade();
                     let group  = group.ok_or(Error::PlayerNotInUniverseGroup)?;
                     Some(group.team(id)?)
@@ -80,7 +79,7 @@ impl<T: 'static + Borrow<TargetDominationStartedMessageData> + BorrowMut<TargetD
         &self.borrow().name
     }
 
-    fn mission_target_team(&self) -> &Option<Arc<RwLock<Team>>> {
+    fn mission_target_team(&self) -> &Option<Arc<Team>> {
         &self.borrow().team
     }
 }
@@ -90,11 +89,7 @@ impl fmt::Display for TargetDominationStartedMessageData {
         write!(f, "[{}] ", (self as &FlattiverseMessage).timestamp())?;
 
         if let Some(ref team) = self.team {
-            if let Ok(ref team) = team.read() {
-                write!(f, "Team \"{}\" ", team.name())?;
-            } else {
-                write!(f, "<defect Team> ")?;
-            }
+            write!(f, "Team \"{}\" ", team.name())?;
         } else {
             write!(f, "Unknown Team ")?;
         }

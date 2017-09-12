@@ -22,6 +22,16 @@ use net::BinaryReader;
 use net::BinaryWriter;
 use net::is_set_u8;
 
+
+struct PlayerStats {
+    rank:   u32,
+    level:   u8,
+    elo:    i32,
+
+    active: bool,
+    online: bool,
+}
+
 pub struct Player {
     name:        String,
     platform:    PlatformKind,
@@ -29,23 +39,18 @@ pub struct Player {
     performance: Option<PerformanceMark>,
 
     id:     u16,
-    rank:   u32,
-    level:   u8,
-    elo:    i32,
+    stats:  RwLock<PlayerStats>,
 
     game_scores:         Scores,
     player_scores:       Scores,
-    clan:                Option<String>,
+    clan:                RwLock<Option<String>>,
     average_commit_time: TimeSpan,
     last_commit_time:    TimeSpan,
     ping:                TimeSpan,
 
     connector:      Weak<Connector>,
-    universe_group: Weak<UniverseGroup>,
-    team:           Weak<RwLock<Team>>,
-
-    active: bool,
-    online: bool,
+    universe_group: RwLock<Weak<UniverseGroup>>,
+    team:           RwLock<Weak<Team>>,
 
     controllables: RwLock<UniversalHolder<ControllableInfo>>
 }
@@ -82,14 +87,16 @@ impl Player {
             last_commit_time:       TimeSpan::from_seconds(1),
 
             // defaults
-            clan:           None,
-            rank:           0u32,
-            level:          0u8,
-            universe_group: Weak::new(),
-            team:           Weak::new(),
-            active:         false,
-            online:         false,
-            elo:            0i32,
+            clan:           RwLock::new(None),
+            universe_group: RwLock::new(Weak::new()),
+            team:           RwLock::new(Weak::new()),
+            stats: RwLock::new(PlayerStats {
+                rank:   0u32,
+                level:  0u8,
+                elo:    0i32,
+                active: false,
+                online: false,
+            }),
         })
     }
 
@@ -120,8 +127,8 @@ impl Player {
 
                 match connector.player().upgrade() {
                     None => {},
-                    Some(ref arc) => {
-                        if arc.read()?.id() != self.id() {
+                    Some(ref player) => {
+                        if player.id() != self.id() {
                             connector.register_task_quitely_if_unknown(Task::UsedAvatar);
                         }
                     }
@@ -133,13 +140,13 @@ impl Player {
         }
     }
 
-    pub fn clear_assignment(&mut self) {
-        self.clan = None
+    pub fn clear_assignment(&self) {
+        *self.clan.write().unwrap() = None
     }
 
-    pub fn update_assignment(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub(crate) fn update_assignment(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        self.clan = if is_set_u8(reader.read_unsigned_byte()?, 0x01) {
+        *self.clan.write()? = if is_set_u8(reader.read_unsigned_byte()?, 0x01) {
             Some(reader.read_string()?)
         } else {
             None
@@ -147,24 +154,25 @@ impl Player {
         Ok(())
     }
 
-    pub fn update_stats(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub(crate) fn update_stats(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        self.rank   = reader.read_u32()?;
-        self.level  = reader.read_unsigned_byte()?;
-        self.elo    = reader.read_u16()? as i32;
+        let mut stats = self.stats.write()?;
+        stats.rank   = reader.read_u32()?;
+        stats.level  = reader.read_unsigned_byte()?;
+        stats.elo    = reader.read_u16()? as i32;
 
         self.game_scores    .update(reader)?;
         self.player_scores  .update(reader)?;
         Ok(())
     }
 
-    pub fn update_ping(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub(crate) fn update_ping(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
         self.ping.update(reader)?;
         Ok(())
     }
 
-    pub fn update_timing(&mut self, packet: &Packet) -> Result<(), Error> {
+    pub(crate) fn update_timing(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
         self.average_commit_time.update(reader)?;
         self.last_commit_time   .update(reader)?;
@@ -179,7 +187,7 @@ impl Player {
             return Err(Error::InvalidMessage);
         }
 
-        if !self.active {
+        if !self.stats.read()?.active {
             return Err(Error::CantSendMessageToInactivePlayer);
         }
 
@@ -214,7 +222,7 @@ impl Player {
             return Err(Error::InvalidMessage);
         }
 
-        if !self.active {
+        if !self.stats.read()?.active {
             return Err(Error::CantSendMessageToInactivePlayer);
         }
 
@@ -261,7 +269,7 @@ impl Player {
             }
         }
 
-        if !self.active {
+        if !self.stats.read()?.active {
             return Err(Error::CantSendMessageToInactivePlayer);
         }
 
@@ -309,13 +317,8 @@ impl Player {
                 match connector.player().upgrade() {
                     None => {},
                     Some(ref player) => {
-                        match player.read() {
-                            Err(_) => {},
-                            Ok(ref player) => {
-                                if self.id != player.id() {
-                                    connector.register_task_quitely_if_unknown(Task::UsedPlatform);
-                                }
-                            }
+                        if self.id != player.id() {
+                            connector.register_task_quitely_if_unknown(Task::UsedPlatform);
                         }
                     }
                 }
@@ -333,15 +336,15 @@ impl Player {
     }
 
     pub fn rank(&self) -> u32 {
-        self.rank
+        self.stats.read().unwrap().rank
     }
 
     pub fn level(&self) -> u8 {
-        self.level
+        self.stats.read().unwrap().level
     }
 
     pub fn elo(&self) -> i32 {
-        self.elo
+        self.stats.read().unwrap().elo
     }
 
     pub fn ping(&self) -> &TimeSpan {
@@ -356,8 +359,8 @@ impl Player {
         &self.player_scores
     }
 
-    pub fn clan(&self) -> &Option<String> {
-        &self.clan
+    pub fn clan(&self) -> Option<String> {
+        self.clan.read().unwrap().clone()
     }
 
     pub fn average_commit_time(&self) -> &TimeSpan {
@@ -367,13 +370,8 @@ impl Player {
                 match connector.player().upgrade() {
                     None => {},
                     Some(ref player) => {
-                        match player.read() {
-                            Err(_) => {},
-                            Ok(ref player) => {
-                                if self.id != player.id() {
-                                    connector.register_task_quitely_if_unknown(Task::UsedAvgCommitTime);
-                                }
-                            }
+                        if self.id != player.id() {
+                            connector.register_task_quitely_if_unknown(Task::UsedAvgCommitTime);
                         }
                     }
                 }
@@ -394,56 +392,57 @@ impl Player {
         &self.connector
     }
 
-    pub fn team(&self) -> &Weak<RwLock<Team>> {
-        &self.team
+    pub fn team(&self) -> Weak<Team> {
+        self.team.read().unwrap().clone()
     }
 
-    pub(crate) fn set_team(&mut self, team: Weak<RwLock<Team>>) -> &mut Self {
-        self.team = team;
-        self
+    pub(crate) fn set_team(&self, team: Weak<Team>) -> Result<(), Error> {
+        *self.team.write()? = team;
+        Ok(())
     }
 
     pub fn active(&self) -> bool {
-        self.active
+        self.stats.read().unwrap().active
     }
 
-    pub(crate) fn set_active(&mut self, active: bool) -> &mut Self {
-        self.active = active;
-        self
+    pub(crate) fn set_active(&self, active: bool) -> Result<(), Error> {
+        self.stats.write()?.active = active;
+        Ok(())
     }
 
     pub fn online(&self) -> bool {
-        self.online
+        self.stats.read().unwrap().online
     }
 
-    pub(crate) fn set_online(&mut self, online: bool) -> &mut Self {
-        self.online = online;
-        self
+    pub(crate) fn set_online(&self, online: bool) -> Result<(), Error> {
+        self.stats.write()?.online = online;
+        Ok(())
     }
 
     pub fn controllable_info_list(&self) -> &RwLock<UniversalHolder<ControllableInfo>> {
         &self.controllables
     }
 
-    pub fn controllable_info(&self, index: u8) -> Option<Arc<RwLock<ControllableInfo>>> {
+    pub fn controllable_info(&self, index: u8) -> Option<Arc<ControllableInfo>> {
         self.controllables.read().unwrap().get_for_index(index as usize)
     }
 
-    pub(crate) fn set_controllable_info(&mut self, index: u8, value: Option<Arc<RwLock<ControllableInfo>>>) -> &mut Self {
-        self.controllables.write().unwrap().set(index as usize, value);
-        self
+    pub(crate) fn set_controllable_info(&self, index: u8, value: Option<Arc<ControllableInfo>>) -> Result<(), Error> {
+        self.controllables.write()?.set(index as usize, value);
+        Ok(())
     }
 
     pub fn name(&self) -> &String {
         &self.name
     }
 
-    pub fn universe_group(&self) -> &Weak<UniverseGroup> {
-        &self.universe_group
+    pub fn universe_group(&self) -> Weak<UniverseGroup> {
+        self.universe_group.read().unwrap().clone()
     }
 
-    pub(crate) fn set_universe_group(&mut self, group: Weak<UniverseGroup>) {
-        self.universe_group = group;
+    pub(crate) fn set_universe_group(&self, group: Weak<UniverseGroup>) -> Result<(), Error> {
+        *self.universe_group.write()? = group;
+        Ok(())
     }
 }
 
