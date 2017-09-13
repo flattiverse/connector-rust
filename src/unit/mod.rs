@@ -161,7 +161,7 @@ pub fn unit_from_packet(connector: &Arc<Connector>, universe_group: &UniverseGro
         0x73 /* 115 */ => Arc::new(HullRefreshingPowerUpData            ::from_reader(connector, universe_group, packet, reader)?),
         0x74 /* 116 */ => Arc::new(ShieldRefreshingPowerUpData          ::from_reader(connector, universe_group, packet, reader)?),
         0x75 /* 117 */ => Arc::new(ShotProductionRefreshingPowerUpData  ::from_reader(connector, universe_group, packet, reader)?),
-        0x78 /* 120 */ => Arc::new(TotalRefreshPowerUpData              ::from_reader(connector, universe_group, packet, reader)?),
+        0x78 /* 120 */ => Arc::new(TotalRefreshingPowerUpData   ::from_reader(connector, universe_group, packet, reader)?),
         0x79 /* 121 */ => Arc::new(HastePowerUpData             ::from_reader(connector, universe_group, packet, reader)?),
         0x7A /* 122 */ => Arc::new(DoubleDamagePowerUpData      ::from_reader(connector, universe_group, packet, reader)?),
         0x7B /* 123 */ => Arc::new(QuadDamagePowerUpData        ::from_reader(connector, universe_group, packet, reader)?),

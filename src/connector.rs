@@ -34,6 +34,7 @@ use DateTime;
 use TimeSpan;
 use IndexList;
 use Tournament;
+use PlatformKind;
 use BlockManager;
 use ManagedArray;
 use UniverseGroup;
@@ -71,8 +72,8 @@ use item::CrystalCargoItemData;
 use message::from_reader;
 use message::FlattiverseMessage;
 
-pub const PROTOCOL_VERSION  : u32       = 34;
-pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 5, 0);
+pub const PROTOCOL_VERSION  : u32       = 35;
+pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 0);
 
 pub const TASK_COUNT : usize   = 32;
 
@@ -117,7 +118,7 @@ impl Connector {
         let (message_sender, message_receiver) = channel();
 
         let connector = Connector {
-            players: RwLock::new(UniversalHolder::new(IndexList::new(false, 512))),
+            players: RwLock::new(UniversalHolder::new(IndexList::new(false, 1024))),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
             player: RwLock::new(Weak::default()),
@@ -172,7 +173,7 @@ impl Connector {
             println!("write protocol version");
             writer.write_u32(PROTOCOL_VERSION)?;
             println!("write platform kind");
-            writer.write_byte(0u8)?; // platform kind
+            writer.write_byte(PlatformKind::Rust as u8)?; // platform kind
             println!("write connector version");
             writer.write_u32(CONNECTOR_VERSION.raw())?;
 
