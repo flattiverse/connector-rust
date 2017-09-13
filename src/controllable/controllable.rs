@@ -286,6 +286,23 @@ pub trait Controllable : Any + Send + Sync {
         }
     }
 
+    fn accelerate(&self, movement: &Vector) -> Result<(), Error> {
+        let connector = self.connector().upgrade().clone().ok_or(Error::ConnectorNotAvailable)?;
+        let mut packet = Packet::new();
+
+        packet.set_command(0x91);
+        packet.set_path_ship(self.id());
+        movement.write(&mut packet.write() as &mut BinaryWriter)?;
+
+        let block = connector.block_manager().block()?;
+        let mut block = block.lock()?;
+        packet.set_session(block.id());
+
+        connector.send(&packet)?;
+        block.wait()?;
+        Ok(())
+    }
+
     fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<Controllable>, Error> {
         if !Connector::check_name(class) {
             return Err(Error::InvalidName);
