@@ -1,4 +1,5 @@
 
+use std::cmp::Ordering;
 use std::sync::RwLock;
 
 use Error;
@@ -63,6 +64,22 @@ impl TimeSpan {
     pub(crate) fn update(&self, reader: &mut BinaryReader) -> Result<(), Error> {
         *self.ticks.write()? = reader.read_u32()? as i64;
         Ok(())
+    }
+}
+
+impl PartialEq<TimeSpan> for TimeSpan {
+    fn eq(&self, other: &TimeSpan) -> bool {
+        let ticks_me = *self.ticks.read().unwrap();
+        let ticks_ot = *other.ticks.read().unwrap();
+        ticks_me == ticks_ot
+    }
+}
+
+impl PartialOrd<TimeSpan> for TimeSpan {
+    fn partial_cmp(&self, other: &TimeSpan) -> Option<Ordering> {
+        let ticks_me = *self.ticks.read().unwrap();
+        let ticks_ot = *other.ticks.read().unwrap();
+        ticks_me.partial_cmp(&ticks_ot)
     }
 }
 

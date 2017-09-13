@@ -16,6 +16,7 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
 
 use std::cmp::min;
+use std::time::Duration;
 
 use sha2::Digest;
 use sha2::Sha512;
@@ -39,6 +40,10 @@ use UniverseGroup;
 use UniversalHolder;
 use UniversalEnumerable;
 use UniverseGroupFlowControl;
+
+use PerformanceMark;
+use PerformanceTest;
+use ManualResetEvent;
 
 use net::Packet;
 use net::Connection;
@@ -1010,6 +1015,10 @@ impl Connector {
         Ok(!self.flows.read()?.is_empty())
     }
 
+    pub fn close(&self) -> Result<(), Error> {
+        self.connection.lock()?.close()
+    }
+
     pub(crate) fn sync_account_queries(&self) -> &Mutex<()> {
         &self.sync_account_queries
     }
@@ -1039,6 +1048,73 @@ impl Connector {
             };
         }
         return true;
+    }
+
+    pub fn benchmark() -> Result<PerformanceMark, Error> {
+        let mark = PerformanceMark::new();
+
+        let single_threaded_mark;
+        let mut multi_threadedmark = 0;
+        let memory_access_mark;
+
+        let mre = Arc::new(ManualResetEvent::new(false));
+
+        println!("one short test to warm up");
+        // one short test to warm up
+        {
+            let mut test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 0, 100), true);
+            test.ready().wait_one()?;
+            mre.set()?;
+            thread::sleep(Duration::from_millis(100));
+            mre.reset()?;
+            test.ready().wait_one()?;
+            mre.set()?;
+            thread::sleep(Duration::from_millis(100));
+            mre.reset()?;
+            test.ready().wait_one()?;
+        }
+
+        println!("single CPU test");
+        // single CPU test
+        {
+            let mut test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 1, 600), true);
+            test.ready().wait_one()?;
+            mre.set()?;
+            thread::sleep(Duration::from_millis(1_500));
+            mre.reset()?;
+            test.ready().wait_one()?;
+
+            single_threaded_mark = test.try_result()?;
+
+            mre.set()?;
+            thread::sleep(Duration::from_millis(1_500));
+            mre.reset()?;
+            test.ready().wait_one()?;
+
+            memory_access_mark = test.try_result()?;
+        }
+
+        println!("multi CPU test");
+        // multi CPU test
+        let mut tests = Vec::with_capacity(16);
+        for _ in 0..16 {
+            tests.push(PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 3, 600), false))
+        }
+
+        for test in tests.iter() {
+            test.ready().wait_one()?;
+        }
+
+        mre.set()?;
+        thread::sleep(Duration::from_millis(3_500));
+        mre.reset()?;
+
+        for test in tests.iter() {
+            test.ready().wait_one()?;
+            multi_threadedmark += test.try_result()?;
+        }
+
+        Ok(PerformanceMark::from_save(single_threaded_mark, multi_threadedmark, memory_access_mark, Self::hostname())?)
     }
 
     pub fn hostname() -> String {

@@ -6,6 +6,7 @@ extern crate sha2;
 extern crate chrono;
 extern crate hostname;
 extern crate flate2;
+extern crate rand;
 pub extern crate backtrace;
 
 #[macro_use]
@@ -38,12 +39,14 @@ mod color;
 mod scores;
 mod player;
 mod platform_kind;
+mod performance_test;
 mod performance_mark;
 mod performance_requirement;
 
 mod team;
 mod universe;
 mod game_type;
+mod stop_watch;
 mod managed_array;
 mod universal_holder;
 mod universe_group_flow_control;
@@ -77,12 +80,14 @@ pub use scores::*;
 pub use message::*;
 pub use player::*;
 pub use platform_kind::*;
+pub use performance_test::*;
 pub use performance_mark::*;
 pub use performance_requirement::*;
 
 pub use team::*;
 pub use universe::*;
 pub use game_type::*;
+pub use stop_watch::*;
 pub use universe_group::*;
 pub use universal_holder::*;
 pub use universe_group_flow_control::*;

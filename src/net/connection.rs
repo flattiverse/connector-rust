@@ -1,6 +1,7 @@
 
 use std::net::SocketAddr;
 use std::net::TcpStream;
+use std::net::Shutdown;
 
 use std::thread;
 use std::sync::mpsc::Sender;
@@ -54,4 +55,8 @@ impl Connection {
         Ok(())
     }
 
+    pub fn close(&mut self) -> Result<(), Error> {
+        self.stream.shutdown(Shutdown::Both)?;
+        Ok(())
+    }
 }

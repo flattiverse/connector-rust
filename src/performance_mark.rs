@@ -67,6 +67,17 @@ pub struct PerformanceMark {
 }
 
 impl PerformanceMark {
+    pub fn new() -> PerformanceMark {
+        PerformanceMark {
+            single_threaded_mark:   0_f64,
+            multi_threaded_mark:    0_f64,
+            memory_access_mark:     0_f64,
+            average_mark:           0_f64,
+            mark: PerformanceDiscreteMark::Deficient,
+            host: None,
+        }
+    }
+
     pub fn from_save(single_threaded_measurement: i64, multi_threaded_measurement: i64, memory_access_measurement: i64, host: String) -> Result<PerformanceMark, Error> {
 
         let single_threaded_mark = (single_threaded_measurement as f64 / 268435456.0).ln().max(0f64);
