@@ -1,6 +1,6 @@
 
 #[repr(u8)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
 pub enum UnitKind {
     Unknown = 0xFFu8,
     Sun = 1,
