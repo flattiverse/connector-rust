@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::Mutex;
 use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::Receiver;
@@ -798,6 +799,10 @@ impl Connector {
             connection.send(&packets[i])?;
         }
         connection.flush()
+    }
+
+    pub fn players(&self) -> RwLockReadGuard<UniversalHolder<Player>> {
+        self.players.read().unwrap()
     }
 
     pub fn player(&self) -> Weak<Player> {
