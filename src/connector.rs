@@ -215,7 +215,7 @@ impl Connector {
 
         match packet.command() {
             0x01 => { // ping
-                connector.send(&packet).expect("Failed to respond to ping");
+                connector.send(&packet)?;
             },
             0x02 => { // pre-wait
                 let tick = packet.path_sub() as u16;
