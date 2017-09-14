@@ -92,10 +92,8 @@ impl<T: Write> BinaryWriter for T {
     }
 
     fn write_u32(&mut self, v: u32) -> Result<()> {
-        println!(" - writing u32");
         let mut b = [0u8; 4];
         LittleEndian::write_u32(&mut b, v);
-        println!(" - writing b: {:?}", b);
         self.write_all(&b)
     }
 
