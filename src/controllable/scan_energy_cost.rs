@@ -1,6 +1,5 @@
 
 use std::sync::Arc;
-use std::borrow::Borrow;
 
 use Error;
 use Connector;

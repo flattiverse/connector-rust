@@ -38,7 +38,7 @@ impl ManualResetEvent {
         Ok(())
     }
 
-    pub fn close(mut self) -> Result<(), Error> {
+    pub fn close(self) -> Result<(), Error> {
         self.reset()
     }
 }

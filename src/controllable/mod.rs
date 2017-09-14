@@ -34,7 +34,6 @@ pub use self::controllable_design::*;
 
 
 use std::sync::Arc;
-use std::sync::RwLock;
 
 use Error;
 use Connector;

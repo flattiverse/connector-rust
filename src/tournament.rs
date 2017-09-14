@@ -2,9 +2,7 @@
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
-use std::borrow::Borrow;
 
-use Team;
 use Error;
 use Connector;
 use UniverseGroup;
@@ -83,7 +81,7 @@ pub struct Tournament {
 }
 
 impl Tournament {
-    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
+    pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, _: &Packet, reader: &mut BinaryReader) -> Result<Tournament, Error> {
         Ok(Tournament {
             connector,
             universe_group: Arc::downgrade(universe_group),

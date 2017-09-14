@@ -343,27 +343,27 @@ impl Controllable for Empty {
     fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
         unimplemented!()
     }
-    fn update(&self, packet: &Packet) -> Result<(), Error> {
+    fn update(&self, _: &Packet) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
+    fn update_extended(&self, _: &Packet) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
+    fn set_crystals(&self, _: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error> {
+    fn set_cargo_items(&self, _: Vec<Arc<CargoItem>>) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+    fn set_scan_list(&self, _: Vec<Arc<Unit>>) -> Result<(), Error> {
         unimplemented!()
     }
 
-    fn set_active(&self, active: bool) -> Result<(), Error> {
+    fn set_active(&self, _: bool) -> Result<(), Error> {
         unimplemented!()
     }
 }

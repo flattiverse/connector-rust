@@ -21,7 +21,7 @@ pub struct Connection {
 
 impl Connection {
     pub fn new(addr: &SocketAddr, max_recv_load: u32, sink: Sender<Box<Packet>>) -> Result<Connection, Error> {
-        let mut stream= TcpStream::connect(addr)?;
+        let stream= TcpStream::connect(addr)?;
         stream.set_nodelay(true)?;
 
         let stream_reader = stream.try_clone()?;

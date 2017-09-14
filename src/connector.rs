@@ -1,9 +1,6 @@
 
 use std::net::ToSocketAddrs;
 
-use std::fmt;
-use std::fmt::Write;
-
 use std::io;
 use std::thread;
 
@@ -26,7 +23,6 @@ use hostname;
 use Task;
 use Team;
 use Error;
-use Scores;
 use Player;
 use Vector;
 use Version;
@@ -54,7 +50,6 @@ use net::BinaryReader;
 
 use controllable;
 use controllable::Controllable;
-use controllable::ControllableData;
 use controllable::ControllableDesign;
 
 use unit;
@@ -66,7 +61,6 @@ use unit::PixelClusterData;
 use unit::ControllableInfo;
 
 use item;
-use item::CargoItem;
 use item::CrystalCargoItem;
 use item::CrystalCargoItemData;
 
@@ -171,28 +165,26 @@ impl Connector {
         {
             let writer = (&mut packet.write()) as &mut BinaryWriter;
 
-            println!("write protocol version");
             writer.write_u32(PROTOCOL_VERSION)?;
-            println!("write platform kind");
-            writer.write_byte(PlatformKind::Rust as u8)?; // platform kind
-            println!("write connector version");
+            writer.write_byte(PlatformKind::Rust as u8)?;
             writer.write_u32(CONNECTOR_VERSION.raw())?;
 
             // login features: 0b00000001 = Performance data
             let mut features = 0u8;
 
-            // TODO feature performance mark
-            // TODO feature compression
-
-            println!("write features");
-            writer.write_byte(features)?;
-
             // TODO write performance mark
+            /*if (performanceMark != null) {
+                features |= 0x01;
+            }*/
 
+            if compression_enabled {
+                features |= 0x02;
+            }
+
+            writer.write_byte(features)?;
             writer.write_string(&email)?;
             let mut hasher = Sha512::default();
             hasher.input(password.as_bytes());
-            println!("Hasher result: {:?}", &hasher.result()[..]);
             writer.write_all(&hasher.result()[..])?;
         }
 
@@ -223,7 +215,7 @@ impl Connector {
                 *connector.tick.write()? = tick;
 
                 // sync flow control
-                let lock = connector.sync_control_flow.lock()?;
+                let _ = connector.sync_control_flow.lock()?;
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
                 let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
@@ -241,7 +233,7 @@ impl Connector {
             },
             0x03 => { // wait
                 // sync flow control
-                let lock = connector.sync_control_flow.lock()?;
+                let _ = connector.sync_control_flow.lock()?;
                 let flows= connector.flows.read()?;
 
                 if flows.is_empty() {
@@ -333,8 +325,8 @@ impl Connector {
                 let player = connector.player_for(packet.path_player())?;
                 let group = connector.universe_group(packet.path_universe_group())?;
 
-                player.set_universe_group(Arc::downgrade(&group));
-                player.set_team(group.team_weak(packet.path_sub()));
+                player.set_universe_group(Arc::downgrade(&group))?;
+                player.set_team(group.team_weak(packet.path_sub()))?;
 
                 group.players().write()?.insert(player.clone())?;
 
@@ -372,19 +364,18 @@ impl Connector {
                     }
                 }
 
-                player.set_team(Weak::default());
+                player.set_team(Weak::default())?;
                 player.clear_assignment();
 
             },
             0x16 => { // player isn't online anymore
-                connector.player_for(packet.path_player())?.set_online(false);
+                connector.player_for(packet.path_player())?.set_online(false)?;
             },
             0x17 => { // player isn't active anymore
-                connector.player_for(packet.path_player())?.set_active(false);
+                connector.player_for(packet.path_player())?.set_active(false)?;
                 connector.players.write()?.set(packet.path_player() as usize, None);
             },
             0x1B => { // crystal list update
-                let len = packet.read().len();
                 let reader = &mut packet.read() as &mut BinaryReader;
                 let mut lock = connector.crystals.write()?;
 
@@ -396,7 +387,7 @@ impl Connector {
                         Ok(item) => item,
                         Err(e) => {
                             let ok = match e {
-                                Error::IoError(ref bt, ref inner_e) => {
+                                Error::IoError(_, ref inner_e) => {
                                     match inner_e.kind() {
                                         io::ErrorKind::UnexpectedEof => {
                                             // end of stream? --> no more items
@@ -463,7 +454,7 @@ impl Connector {
                 match from_reader(&connector, &packet) {
                     Err(e) => {
                         match e {
-                            Error::IoError(ref backtrace, ref ioe) => println!("Backtrace {:?}", backtrace),
+                            Error::IoError(ref backtrace, _) => println!("Backtrace {:?}", backtrace),
                             _ => {}
                         }
                         println!("Failed to decode message: {:?}", e)
@@ -496,7 +487,7 @@ impl Connector {
                 };
 
                 if packet.read().len() == 0 {
-                    group.set_tournament(None);
+                    group.set_tournament(None)?;
                 }
             },
             0x80 => { // 'ControllableStaticPacket'
@@ -518,7 +509,7 @@ impl Connector {
                 match controllables.get(packet.path_ship() as usize) {
                     &None => return Err(Error::InvalidControllable(packet.path_ship())),
                     &Some(ref controllable) => {
-                        controllable.set_active(false);
+                        controllable.set_active(false)?;
                     }
                 };
                 controllables.wipe_index(packet.path_ship() as usize);
@@ -536,7 +527,7 @@ impl Connector {
                 player.set_controllable_info(
                     packet.path_ship(),
                     Some(Arc::new(ControllableInfo::from_packet(packet, Arc::downgrade(&player))?)),
-                );
+                )?;
             },
             0x85 => { // 'ControllableInfoDynamicPacket'
                 let player = connector.player_for(packet.path_player())?;
@@ -551,9 +542,9 @@ impl Connector {
 
                 match player.controllable_info(path_ship) {
                     None => return Err(Error::InvalidControllableInfo(path_ship)),
-                    Some(info) => info.set_active(false)
+                    Some(info) => info.set_active(false)?
                 };
-                player.set_controllable_info(path_ship, None);
+                player.set_controllable_info(path_ship, None)?;
             },
             0x87 => { // 'ControllableInfoScorePacket'
                 let path_ship = packet.path_ship();
@@ -576,7 +567,7 @@ impl Connector {
                             Ok(item) => item,
                             Err(e) => {
                                 let ok = match e {
-                                    Error::IoError(ref bt, ref inner_e) => {
+                                    Error::IoError(_, ref inner_e) => {
                                         match inner_e.kind() {
                                             io::ErrorKind::UnexpectedEof => {
                                                 // end of stream? --> no more items
@@ -604,7 +595,7 @@ impl Connector {
 
                 let player = connector.player_for(packet.path_player())?;
                 let info   = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllableInfo(packet.path_ship()))?;
-                info.set_crystals(crystals);
+                info.set_crystals(crystals)?;
             },
             0x89 => { // 'ControllableCrystalPacket'
                 let mut crystals = Vec::new();
@@ -616,7 +607,7 @@ impl Connector {
                             Ok(item) => item,
                             Err(e) => {
                                 let ok = match e {
-                                    Error::IoError(ref bt, ref inner_e) => {
+                                    Error::IoError(_, ref inner_e) => {
                                         match inner_e.kind() {
                                             io::ErrorKind::UnexpectedEof => {
                                                 // end of stream? --> no more items
@@ -642,7 +633,7 @@ impl Connector {
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.set_crystals(crystals);
+                controllable.set_crystals(crystals)?;
             },
             0x8A => { // 'ControllableInfoCargoPacket'
                 let mut cargo_items = Vec::new();
@@ -654,7 +645,7 @@ impl Connector {
                             Ok(item) => item,
                             Err(e) => {
                                 let ok = match e {
-                                    Error::IoError(ref bt, ref inner_e) => {
+                                    Error::IoError(_, ref inner_e) => {
                                         match inner_e.kind() {
                                             io::ErrorKind::UnexpectedEof => {
                                                 // end of stream? --> no more items
@@ -679,7 +670,7 @@ impl Connector {
 
                 let player = connector.player_for(packet.path_player())?;
                 let info = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
-                info.set_cargo_items(cargo_items);
+                info.set_cargo_items(cargo_items)?;
             },
             0x8B => { // 'ControllableInfoCargoPacket'
                 let mut cargo_items = Vec::new();
@@ -691,7 +682,7 @@ impl Connector {
                             Ok(item) => item,
                             Err(e) => {
                                 let ok = match e {
-                                    Error::IoError(ref bt, ref inner_e) => {
+                                    Error::IoError(_, ref inner_e) => {
                                         match inner_e.kind() {
                                             io::ErrorKind::UnexpectedEof => {
                                                 // end of stream? --> no more items
@@ -715,7 +706,7 @@ impl Connector {
                 }
 
                 let controllable = connector.controllable(packet.path_ship())?;
-                controllable.set_cargo_items(cargo_items);
+                controllable.set_cargo_items(cargo_items)?;
             },
             0x90 => { // scan result entry received
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
@@ -756,7 +747,7 @@ impl Connector {
         let radius  = cluster.radius() / 16_f32;
         let position = cluster.position();
         let mut y_pos  = position.y() - cluster.radius() + radius;
-        let mut x_pos  = 0_f32;
+        let mut x_pos;
 
         for y in 0..16 {
             x_pos = position.x() - cluster.radius() + radius;
@@ -970,7 +961,7 @@ impl Connector {
     /// resultin in an empty return [Vec]. You have been warned.
     ///
     pub fn query_designes(&self) -> Result<Vec<ControllableDesign>, Error> {
-        let lock = self.sync_account_queries().lock()?;
+        let _ = self.sync_account_queries().lock()?;
 
         let mut vec     = Vec::new();
         let mut packet  = Packet::new();
@@ -993,7 +984,7 @@ impl Connector {
                     Ok(item) => item,
                     Err(e) => {
                         let ok = match e {
-                            Error::IoError(ref bt, ref inner_e) => {
+                            Error::IoError(_, ref inner_e) => {
                                 match inner_e.kind() {
                                     io::ErrorKind::UnexpectedEof => {
                                         // end of stream? --> no more items
@@ -1057,8 +1048,6 @@ impl Connector {
     }
 
     pub fn benchmark() -> Result<PerformanceMark, Error> {
-        let mark = PerformanceMark::new();
-
         let single_threaded_mark;
         let mut multi_threadedmark = 0;
         let memory_access_mark;
@@ -1068,7 +1057,7 @@ impl Connector {
         println!("one short test to warm up");
         // one short test to warm up
         {
-            let mut test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 0, 100), true);
+            let test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 0, 100), true);
             test.ready().wait_one()?;
             mre.set()?;
             thread::sleep(Duration::from_millis(100));
@@ -1083,7 +1072,7 @@ impl Connector {
         println!("single CPU test");
         // single CPU test
         {
-            let mut test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 1, 600), true);
+            let test = PerformanceTest::new(mre.clone(), TimeSpan::from_dhmsm(0, 0, 0, 1, 600), true);
             test.ready().wait_one()?;
             mre.set()?;
             thread::sleep(Duration::from_millis(1_500));

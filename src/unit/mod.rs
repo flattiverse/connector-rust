@@ -122,7 +122,6 @@ pub use self::shot_production_refreshing_power_up::*;
 
 
 use std::sync::Arc;
-use std::sync::RwLock;
 
 use Error;
 use Connector;

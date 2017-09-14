@@ -47,7 +47,7 @@ impl<T: Clone> ManagedArray<T> {
     }*/
 
     pub fn insert(&mut self, value: T) -> Result<usize, Error> {
-        for i in 0..self.array.len() {
+        for _ in 0..self.array.len() {
             self.index = (self.index+1) % self.array.len() as isize;
             if self.array[self.index as usize].is_none() {
                 self.array[self.index as usize] = Some(value);

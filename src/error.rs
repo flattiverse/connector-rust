@@ -110,7 +110,7 @@ impl<T> From<SendError<T>> for Error {
 
 use downcast::DowncastError;
 impl<T> From<DowncastError<T>> for Error {
-    fn from(e: DowncastError<T>) -> Self {
+    fn from(_: DowncastError<T>) -> Self {
         Error::DowncastError(Backtrace::new())
     }
 }

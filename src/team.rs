@@ -4,7 +4,6 @@ use std::cmp::PartialEq;
 
 use std::sync::Arc;
 use std::sync::Weak;
-use std::sync::RwLock;
 
 use Error;
 use Color;

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
-use std::sync::Mutex;
 
 use Task;
 use Team;
@@ -375,7 +374,7 @@ impl UniverseGroup {
     }
 
     pub fn game_type(&self) -> Option<GameType> {
-        None
+        self.game_type
     }
 
     pub fn teams(&self) -> &RwLock<UniversalHolder<Team>> {
@@ -387,7 +386,7 @@ impl UniverseGroup {
     }
 
     pub fn team_weak(&self, index: u8) -> Weak<Team> {
-        Weak::default()
+        self.teams.read().unwrap().get_for_index_weak(index as usize)
     }
 
     pub(crate) fn set_team(&self, index: u8, team: Option<Arc<Team>>) {

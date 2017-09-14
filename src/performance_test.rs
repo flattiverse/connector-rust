@@ -2,10 +2,8 @@
 
 use rand;
 use rand::Rng;
-use rand::Rand;
 
 use std::thread;
-use std::time::Instant;
 
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -91,7 +89,7 @@ impl PerformanceTest {
         let mut rand = rand::thread_rng();
         let mut ram_data = Vec::with_capacity(128);
 
-        for rp in 0..128 {
+        for _ in 0..128 {
             let mut vec = Vec::with_capacity(1_048_576);
             {
                 let writer = &mut vec as &mut BinaryWriter;
@@ -117,8 +115,9 @@ impl PerformanceTest {
             }
 
             let array = (rand.gen::<u8>() / 2_u8) as usize;
-            let from       = (rand.next_f32() * 786_432_f32) as usize;
-            tmp_data.clone_from_slice(&ram_data[array][..262_144]);
+            let from  = (rand.next_f32() * 786_432_f32) as usize;
+            let to           = from + 262_144;
+            tmp_data.clone_from_slice(&ram_data[array][from..to]);
 
             let current_measurement = stop_watch.elapsed();
 
@@ -155,7 +154,7 @@ impl PerformanceTest {
         &self.control
     }
 
-    pub fn close(mut self) -> Result<(), Error> {
+    pub fn close(self) -> Result<(), Error> {
         self.ready.close()
     }
 }
