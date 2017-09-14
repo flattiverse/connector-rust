@@ -100,7 +100,11 @@ impl Vector {
     }
 
     pub fn length(&self) -> f32 {
-        (self.x*self.x + self.y*self.y).sqrt()
+        self.length2().sqrt()
+    }
+
+    pub fn length2(&self) -> f32 {
+        (self.x*self.x + self.y*self.y)
     }
 
     pub fn set_length(&mut self, length: f32) -> &mut Self {
