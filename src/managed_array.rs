@@ -1,4 +1,6 @@
 
+use std::slice::Iter;
+
 use Error;
 
 pub struct ManagedArray<T: Clone> {
@@ -67,6 +69,10 @@ impl<T: Clone> ManagedArray<T> {
 
     pub fn len(&self) -> usize {
         self.array.len()
+    }
+
+    pub fn iter(&self) -> Iter<Option<T>> {
+        self.array.iter()
     }
 }
 
