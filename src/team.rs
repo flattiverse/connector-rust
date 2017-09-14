@@ -30,9 +30,9 @@ pub struct Team {
 impl Team {
     pub fn from_reader(connector: Weak<Connector>, universe_group: &Arc<UniverseGroup>, packet: &Packet, reader: &mut BinaryReader) -> Result<Team, Error> {
         let scores = if let Some(GameType::Mission) = universe_group.game_type() {
-            Some(Scores::default())
-        } else {
             None
+        } else {
+            Some(Scores::default())
         };
 
         Ok(Team {
