@@ -119,7 +119,7 @@ impl Connector {
         let (message_sender, message_receiver) = channel();
 
         let connector = Connector {
-            players: RwLock::new(UniversalHolder::new(IndexList::new(false, 1024))),
+            players: RwLock::new(UniversalHolder::new(IndexList::new(false, 4096))),
             connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
             block_manager: BlockManager::new(),
             player: RwLock::new(Weak::default()),
