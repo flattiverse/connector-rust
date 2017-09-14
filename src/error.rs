@@ -49,7 +49,7 @@ pub enum Error {
     InvalidMessageList,
     InvalidMessageAtIndex(u8),
     CantSendMessageToInactivePlayer,
-    MissingPlayer(u16),
+    MissingPlayer(Backtrace, u16),
     InvalidFromDegree(f32),
     InvalidToDegree(f32),
     InvalidRange(f32),
@@ -82,6 +82,12 @@ pub enum Error {
     PlayerAlreadyInAnotherUniverseGroup(u16),
     StillOpenFlowControlsInUniverseGroup(u16),
     WithReason(String),
+}
+
+impl Error {
+    pub fn missing_player(player: u16) -> Error {
+        Error::MissingPlayer(Backtrace::new(), player)
+    }
 }
 
 impl From<String> for Error {

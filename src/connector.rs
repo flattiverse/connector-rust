@@ -305,7 +305,7 @@ impl Connector {
             },
             0x11 => { // player status update
                 match connector.players.read()?.get_for_index(packet.path_player() as usize) {
-                    None => return Err(Error::MissingPlayer(packet.path_player())),
+                    None => return Err(Error::missing_player(packet.path_player())),
                     Some(player) => {
                         player.update_stats(packet)?;
                     }
@@ -313,7 +313,7 @@ impl Connector {
             },
             0x12 => { // player ping update
                 match connector.players.read()?.get_for_index(packet.path_player() as usize) {
-                    None => return Err(Error::MissingPlayer(packet.path_player())),
+                    None => return Err(Error::missing_player(packet.path_player())),
                     Some(player) => {
                         player.update_ping(&packet)?;
                         println!("Ping of {} is now {}ms", player, player.ping().millis());
@@ -801,7 +801,7 @@ impl Connector {
 
     pub fn player_for(&self, index: u16) -> Result<Arc<Player>, Error> {
         match self.players.read()?.get_for_index(index as usize) {
-            None => Err(Error::MissingPlayer(index)),
+            None => Err(Error::missing_player(index)),
             Some(arc) => Ok(arc.clone())
         }
     }

@@ -37,11 +37,12 @@ pub struct PlayerUnitData {
 
 impl PlayerUnitData {
     pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<PlayerUnitData, Error> {
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader, kind)?;
+        let player = connector.player_for(reader.read_u16()?)?;
         Ok(PlayerUnitData {
-            unit:   UnitData::from_reader(connector, universe_group, packet, reader, kind)?,
-            player: connector.weak_player_for(reader.read_u16()?)?,
+            unit,
+            player: Arc::downgrade(&player),
             c_info: {
-                let player = connector.player_for(reader.read_u16()?)?;
                 let id = reader.read_unsigned_byte()?;
                 let info = player.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
                 Arc::downgrade(&info)
