@@ -2,6 +2,7 @@
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
 use std::sync::Mutex;
 
 use Task;
@@ -397,8 +398,21 @@ impl UniverseGroup {
         &self.avg_tick_time
     }
 
+    // TODO change public method to RwLockReadGuard
     pub fn players(&self) -> &RwLock<ManagedArray<Arc<Player>>> {
         &self.players
+    }
+
+    pub fn universes(&self) -> RwLockReadGuard<UniversalHolder<Universe>> {
+        self.universes.read().unwrap()
+    }
+
+    pub fn maximum_ship_level(&self) -> u8 {
+        self.maximum_ship_level
+    }
+
+    pub fn max_players(&self) -> u16 {
+        self.maximum_players
     }
 }
 
