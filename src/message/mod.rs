@@ -136,7 +136,7 @@ pub fn from_reader(connector: &Arc<Connector>, packet: &Packet) -> Result<Box<Fl
         0x01 => Ok(Box::new(UnicastChatMessageData                      ::from_packet(connector, packet, reader)?)),
         0x02 => Ok(Box::new(TeamCastChatMessageData                     ::from_packet(connector, packet, reader)?)),
         0x03 => Ok(Box::new(BroadCastChatMessageData                    ::from_packet(connector, packet, reader)?)),
-        0x04 => Ok(Box::new(BroadCastChatMessageData                    ::from_packet(connector, packet, reader)?)),
+        0x04 => Ok(Box::new(BinaryChatMessageData                       ::from_packet(connector, packet, reader)?)),
         0x08 => Ok(Box::new(MOTDMessageData                             ::from_packet(connector, packet, reader)?)),
         0x10 => Ok(Box::new(PlayerUnitCommittedSuicideMessageData       ::from_packet(connector, packet, reader)?)),
         0x11 => Ok(Box::new(PlayerUnitCollidedWithUnitMessageData       ::from_packet(connector, packet, reader)?)),
