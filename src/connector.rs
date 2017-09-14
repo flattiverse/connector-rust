@@ -18,6 +18,7 @@ use std::time::Duration;
 
 use sha2::Digest;
 use sha2::Sha512;
+
 use hostname;
 
 use Task;
@@ -183,9 +184,7 @@ impl Connector {
 
             writer.write_byte(features)?;
             writer.write_string(&email)?;
-            let mut hasher = Sha512::default();
-            hasher.input(password.as_bytes());
-            writer.write_all(&hasher.result()[..])?;
+            writer.write_all(&Self::sha512(password)[..])?;
         }
 
         {
@@ -1114,6 +1113,12 @@ impl Connector {
 
     pub fn hostname() -> String {
         hostname::get_hostname().expect("Failed to retrieve hostname")
+    }
+
+    fn sha512(text: &str) -> Vec<u8> {
+        let mut hasher = Sha512::default();
+        hasher.input(text.as_bytes());
+        Vec::from(&hasher.result()[..])
     }
 }
 
