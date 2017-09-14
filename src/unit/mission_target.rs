@@ -55,7 +55,7 @@ impl MissionTargetData {
             domination_radius:  reader.read_single()?,
             hints: {
                 let mut vec = Vec::new();
-                let count = reader.read_u16()?;
+                let count = reader.read_unsigned_byte()?;
                 for _ in 0..count {
                     vec.push(Vector::from_reader(reader)?);
                 }
