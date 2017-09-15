@@ -13,7 +13,7 @@ use Connector;
 use unit::Unit;
 use unit::UnitKind;
 
-use item::CargoItem;
+use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
 use controllable::Controllable;
@@ -304,7 +304,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>> {
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>> {
         unimplemented!()
     }
 
@@ -355,7 +355,7 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn set_cargo_items(&self, _: Vec<Arc<CargoItem>>) -> Result<(), Error> {
+    fn set_cargo_items(&self, _: Vec<AnyCargoItem>) -> Result<(), Error> {
         unimplemented!()
     }
 

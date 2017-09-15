@@ -11,7 +11,7 @@ use UniversalEnumerable;
 
 use unit::UnitKind;
 
-use item::CargoItem;
+use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
 use net::Packet;
@@ -59,8 +59,8 @@ pub struct ControllableInfo {
     scores:  Arc<Scores>,
     mutable: RwLock<ControllableInfoMut>,
 
-    crystals: RwLock<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>>,
-    items:    RwLock<Vec<Arc<RwLock<Box<CargoItem>>>>>,
+    items:    RwLock<Vec<AnyCargoItem>>,
+    crystals: RwLock<Vec<Arc<CrystalCargoItem>>>,
 }
 
 impl ControllableInfo {
@@ -298,20 +298,20 @@ impl ControllableInfo {
         self.kind
     }
 
-    pub fn crystals(&self) -> RwLockReadGuard<Vec<Arc<RwLock<Box<CrystalCargoItem>>>>> {
+    pub fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
         self.crystals.read().unwrap()
     }
 
-    pub(crate) fn set_crystals(&self, crystals: Vec<Arc<RwLock<Box<CrystalCargoItem>>>>) -> Result<(), Error> {
+    pub(crate) fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
         *self.crystals.write()? = crystals;
         Ok(())
     }
 
-    pub fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<RwLock<Box<CargoItem>>>>> {
+    pub fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>> {
         self.items.read().unwrap()
     }
 
-    pub(crate) fn set_cargo_items(&self, items: Vec<Arc<RwLock<Box<CargoItem>>>>) -> Result<(), Error> {
+    pub(crate) fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error> {
         *self.items.write()? = items;
         Ok(())
     }

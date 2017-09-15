@@ -82,6 +82,7 @@ pub enum Error {
     PlayerAlreadyInAnotherUniverseGroup(u16),
     StillOpenFlowControlsInUniverseGroup(u16),
     WithReason(String),
+    NotCrystalCargoItem
 }
 
 impl Error {

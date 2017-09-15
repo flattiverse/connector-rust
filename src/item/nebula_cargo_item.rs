@@ -1,5 +1,5 @@
 
-use std::sync::Weak;
+use std::sync::Arc;
 
 use Color;
 use Error;
@@ -9,46 +9,43 @@ use item::CargoItemData;
 use item::CargoItemKind;
 use net::BinaryReader;
 
-downcast!(NebulaCargoItem);
-pub trait NebulaCargoItem : CargoItem {
-    fn color(&self) -> &Color;
+pub struct NebulaCargoItem {
+    cargo: CargoItemData,
+    color: Color,
+}
+
+impl NebulaCargoItem {
+    pub fn from_reader(connector: &Arc<Connector>, reader: &mut BinaryReader, master: bool) -> Result<NebulaCargoItem, Error> {
+        Ok(NebulaCargoItem {
+            cargo: CargoItemData::new(connector, reader, master)?,
+            color: Color::from_hue(reader.read_single()?)?
+        })
+    }
+
+    fn color(&self) -> &Color {
+        &self.color
+    }
 
     fn red(&self) -> f32 {
-        self.color().red()
+        self.color.red
     }
 
     fn green(&self) -> f32 {
-        self.color().green()
+        self.color.green
     }
 
     fn blue(&self) -> f32 {
-        self.color().blue()
+        self.color.blue
     }
 
     fn alpha(&self) -> f32 {
-        self.color().alpha()
+        self.color.alpha
     }
 }
 
-
-
-pub(crate) struct NebulaCargoItemData {
-    pub(crate) cargo_item_data: CargoItemData,
-    pub(crate) color:           Color
-}
-
-impl NebulaCargoItemData {
-    pub(crate) fn new(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<NebulaCargoItemData, Error> {
-        Ok(NebulaCargoItemData {
-            cargo_item_data: CargoItemData::new(connector, master, reader)?,
-            color:           Color::from_hue(reader.read_single()?)?
-        })
-    }
-}
-
-impl CargoItem for NebulaCargoItemData {
+impl CargoItem for NebulaCargoItem {
     fn weight(&self) -> f32 {
-        self.cargo_item_data.weight
+        self.cargo.weight
     }
 
     fn kind(&self) -> CargoItemKind {

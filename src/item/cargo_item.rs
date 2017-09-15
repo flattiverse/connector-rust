@@ -1,33 +1,59 @@
 
+use std::sync::Arc;
 use std::sync::Weak;
 
 use Error;
 use Connector;
-use downcast::Any;
 use net::BinaryReader;
 
 use item::CargoItemKind;
-use item::NebulaCargoItemData;
-use item::CrystalCargoItemData;
-use item::MissionTargetCargoItemData;
+use item::NebulaCargoItem;
+use item::CrystalCargoItem;
+use item::MissionTargetCargoItem;
 
 
-pub trait CargoItem : Any + Sync + Send {
+pub trait CargoItem : Sync + Send {
+
     fn weight(&self) -> f32;
 
     fn kind(&self) -> CargoItemKind;
 }
-downcast!(CargoItem);
 
-
-pub(crate) fn cargo_item_from_reader(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<Box<CargoItem>, Error> {
-    Ok(match reader.read_byte()? {
-        0x00 => Box::new(NebulaCargoItemData        ::new(connector, master, reader)?),
-        0x01 => Box::new(CrystalCargoItemData       ::new(connector, master, reader)?),
-        0x02 => Box::new(MissionTargetCargoItemData ::new(connector, master, reader)?),
-        id@_ => return Err(Error::InvalidCargoItem(id))
-    })
+pub enum AnyCargoItem {
+    Nebula       (Arc<NebulaCargoItem>),
+    Crystal      (Arc<CrystalCargoItem>),
+    MissionTarget(Arc<MissionTargetCargoItem>),
 }
+
+impl AnyCargoItem {
+    pub fn from_reader(connector: &Arc<Connector>, reader: &mut BinaryReader, master: bool) -> Result<AnyCargoItem, Error> {
+        Ok(match reader.read_byte()? {
+            0x00 => AnyCargoItem::Nebula       (Arc::new(NebulaCargoItem       ::from_reader(connector, reader, master)?)),
+            0x01 => AnyCargoItem::Crystal      (Arc::new(CrystalCargoItem      ::from_reader(connector, reader, master)?)),
+            0x02 => AnyCargoItem::MissionTarget(Arc::new(MissionTargetCargoItem::from_reader(connector, reader, master)?)),
+            id@_ => return Err(Error::InvalidCargoItem(id)),
+        })
+    }
+}
+
+impl CargoItem for AnyCargoItem {
+    fn weight(&self) -> f32 {
+        match self {
+            &AnyCargoItem::Nebula       (ref item) => item.weight(),
+            &AnyCargoItem::Crystal      (ref item) => item.weight(),
+            &AnyCargoItem::MissionTarget(ref item) => item.weight(),
+        }
+    }
+
+    fn kind(&self) -> CargoItemKind {
+        match self {
+            &AnyCargoItem::Nebula       (ref item) => item.kind(),
+            &AnyCargoItem::Crystal      (ref item) => item.kind(),
+            &AnyCargoItem::MissionTarget(ref item) => item.kind(),
+        }
+    }
+}
+
 
 
 pub(crate) struct CargoItemData {
@@ -37,11 +63,11 @@ pub(crate) struct CargoItemData {
 }
 
 impl CargoItemData {
-    pub(crate) fn new(connector: Weak<Connector>, master: bool, reader: &mut BinaryReader) -> Result<CargoItemData, Error> {
+    pub(crate) fn new(connector: &Arc<Connector>, reader: &mut BinaryReader, master: bool) -> Result<CargoItemData, Error> {
         Ok(CargoItemData {
-            connector:  connector,
-            master:     master,
-            weight:     reader.read_single()?,
+            master,
+            connector: Arc::downgrade(connector),
+            weight:    reader.read_single()?,
         })
     }
 }

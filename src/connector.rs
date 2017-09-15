@@ -61,9 +61,8 @@ use unit::PixelCluster;
 use unit::PixelClusterData;
 use unit::ControllableInfo;
 
-use item;
+use item::AnyCargoItem;
 use item::CrystalCargoItem;
-use item::CrystalCargoItemData;
 
 use message::from_reader;
 use message::FlattiverseMessage;
@@ -392,34 +391,26 @@ impl Connector {
                 let mut crystal_position = 0;
 
                 while crystal_position < 64 {
-                    // TODO WTF
-                    let cargo_item = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
+                    let cargo_item = match AnyCargoItem::from_reader(&connector, reader, true) {
                         Ok(item) => item,
                         Err(e) => {
-                            let ok = match e {
-                                Error::IoError(_, ref inner_e) => {
-                                    match inner_e.kind() {
-                                        io::ErrorKind::UnexpectedEof => {
-                                            // end of stream? --> no more items
-                                            true
-                                        }
-                                        _ => false,
-                                    }
-                                },
-                                _ => false
-                            };
-                            if !ok {
-                                return Err(e);
-                            } else {
-                                break;
+                            if let Error::IoError(_, ref inner_e) = e {
+                                if let io::ErrorKind::UnexpectedEof = inner_e.kind() {
+                                    // everything is fine, no more crystals
+                                    break;
+                                }
                             }
+                            return Err(e);
                         }
-
                     };
-                    let crystal : Arc<CrystalCargoItem> = Arc::from(*cargo_item.downcast::<CrystalCargoItemData>()?);
 
-                    lock.set(crystal_position, Some(crystal));
-                    crystal_position += 1;
+                    if let AnyCargoItem::Crystal(crystal) = cargo_item {
+                        lock.set(crystal_position, Some(crystal));
+                        crystal_position += 1;
+
+                    } else {
+                        return Err(Error::NotCrystalCargoItem);
+                    }
                 }
 
                 while crystal_position < 64 {
@@ -573,32 +564,25 @@ impl Connector {
                 {
                     let reader = &mut packet.read() as &mut BinaryReader;
                     loop {
-                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
+                        let cargo_item = match AnyCargoItem::from_reader(&connector, reader, true) {
                             Ok(item) => item,
                             Err(e) => {
-                                let ok = match e {
-                                    Error::IoError(_, ref inner_e) => {
-                                        match inner_e.kind() {
-                                            io::ErrorKind::UnexpectedEof => {
-                                                // end of stream? --> no more items
-                                                true
-                                            }
-                                            _ => false,
-                                        }
-                                    },
-                                    _ => false
-                                };
-                                if !ok {
-                                    return Err(e);
-                                } else {
-                                    break;
+                                if let Error::IoError(_, ref inner_e) = e {
+                                    if let io::ErrorKind::UnexpectedEof = inner_e.kind() {
+                                        // everything is fine, no more crystals
+                                        break;
+                                    }
                                 }
+                                return Err(e);
                             }
                         };
 
-                        let crystal : Box<CrystalCargoItem> = crystal.downcast::<CrystalCargoItemData>().unwrap();
+                        if let AnyCargoItem::Crystal(crystal) = cargo_item {
+                            crystals.push(crystal);
 
-                        crystals.push(Arc::new(RwLock::new(crystal)));
+                        } else {
+                            return Err(Error::NotCrystalCargoItem);
+                        }
                     }
                 }
 
@@ -608,113 +592,18 @@ impl Connector {
                 info.set_crystals(crystals)?;
             },
             0x89 => { // 'ControllableCrystalPacket'
-                let mut crystals = Vec::new();
-
-                {
-                    let reader = &mut packet.read() as &mut BinaryReader;
-                    loop {
-                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), true, reader) {
-                            Ok(item) => item,
-                            Err(e) => {
-                                let ok = match e {
-                                    Error::IoError(_, ref inner_e) => {
-                                        match inner_e.kind() {
-                                            io::ErrorKind::UnexpectedEof => {
-                                                // end of stream? --> no more items
-                                                true
-                                            }
-                                            _ => false,
-                                        }
-                                    },
-                                    _ => false
-                                };
-                                if !ok {
-                                    return Err(e);
-                                } else {
-                                    break;
-                                }
-                            }
-                        };
-
-                        let crystal : Box<CrystalCargoItemData> = crystal.downcast::<CrystalCargoItemData>().unwrap();
-
-                        crystals.push(Arc::from(*crystal) as Arc<CrystalCargoItem>);
-                    }
-                }
-
+                let crystals     = Self::read_all_crystals(&connector, packet)?;
                 let controllable = connector.controllable(packet.path_ship())?;
                 controllable.set_crystals(crystals)?;
             },
             0x8A => { // 'ControllableInfoCargoPacket'
-                let mut cargo_items = Vec::new();
-
-                {
-                    let reader = &mut packet.read() as &mut BinaryReader;
-                    loop {
-                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), false, reader) {
-                            Ok(item) => item,
-                            Err(e) => {
-                                let ok = match e {
-                                    Error::IoError(_, ref inner_e) => {
-                                        match inner_e.kind() {
-                                            io::ErrorKind::UnexpectedEof => {
-                                                // end of stream? --> no more items
-                                                true
-                                            }
-                                            _ => false,
-                                        }
-                                    },
-                                    _ => false
-                                };
-                                if !ok {
-                                    return Err(e);
-                                } else {
-                                    break;
-                                }
-                            }
-                        };
-
-                        cargo_items.push(Arc::new(RwLock::new(crystal)));
-                    }
-                }
-
+                let cargo_items = Connector::read_all_cargo_items(&connector, packet)?;
                 let player = connector.player_for(packet.path_player())?;
                 let info = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
                 info.set_cargo_items(cargo_items)?;
             },
             0x8B => { // 'ControllableInfoCargoPacket'
-                let mut cargo_items = Vec::new();
-
-                {
-                    let reader = &mut packet.read() as &mut BinaryReader;
-                    loop {
-                        let crystal = match item::cargo_item_from_reader(Arc::downgrade(&connector), false, reader) {
-                            Ok(item) => item,
-                            Err(e) => {
-                                let ok = match e {
-                                    Error::IoError(_, ref inner_e) => {
-                                        match inner_e.kind() {
-                                            io::ErrorKind::UnexpectedEof => {
-                                                // end of stream? --> no more items
-                                                true
-                                            }
-                                            _ => false,
-                                        }
-                                    },
-                                    _ => false
-                                };
-                                if !ok {
-                                    return Err(e);
-                                } else {
-                                    break;
-                                }
-                            }
-                        };
-
-                        cargo_items.push(Arc::from(crystal));
-                    }
-                }
-
+                let cargo_items = Connector::read_all_cargo_items(&connector, packet)?;
                 let controllable = connector.controllable(packet.path_ship())?;
                 controllable.set_cargo_items(cargo_items)?;
             },
@@ -743,6 +632,55 @@ impl Connector {
             }
         };
         Ok(())
+    }
+
+    fn read_all_cargo_items(connector: &Arc<Connector>, packet: &Packet) -> Result<Vec<AnyCargoItem>, Error> {
+        let mut items = Vec::new();
+
+        loop {
+            match AnyCargoItem::from_reader(&connector, &mut packet.read() as &mut BinaryReader, true) {
+                Ok(item) => items.push(item),
+                Err(e) => {
+                    if let Error::IoError(_, ref inner_e) = e {
+                        if let io::ErrorKind::UnexpectedEof = inner_e.kind() {
+                            // everything is fine, no more crystals
+                            break;
+                        }
+                    }
+                    return Err(e);
+                }
+            };
+        }
+
+        Ok(items)
+    }
+
+    fn read_all_crystals(connector: &Arc<Connector>, packet: &Packet) -> Result<Vec<Arc<CrystalCargoItem>>, Error> {
+        let mut crystals = Vec::new();
+
+        loop {
+            let cargo_item = match AnyCargoItem::from_reader(&connector, &mut packet.read() as &mut BinaryReader, true) {
+                Ok(item) => item,
+                Err(e) => {
+                    if let Error::IoError(_, ref inner_e) = e {
+                        if let io::ErrorKind::UnexpectedEof = inner_e.kind() {
+                            // everything is fine, no more crystals
+                            break;
+                        }
+                    }
+                    return Err(e);
+                }
+            };
+
+            if let AnyCargoItem::Crystal(crystal) = cargo_item {
+                crystals.push(crystal);
+
+            } else {
+                return Err(Error::NotCrystalCargoItem);
+            }
+        }
+
+        Ok(crystals)
     }
 
     fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: &PixelCluster) -> Result<Vec<Arc<Unit>>, Error> {

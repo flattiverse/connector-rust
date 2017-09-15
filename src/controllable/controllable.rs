@@ -26,7 +26,7 @@ use unit::Unit;
 use unit::UnitKind;
 use unit::ScanInfo;
 
-use item::CargoItem;
+use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
 use controllable;
@@ -181,7 +181,7 @@ pub trait Controllable : Any + Send + Sync {
 
     fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>>;
 
-    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>>;
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>>;
 
     fn universe(&self) -> &Weak<Universe>;
 
@@ -676,7 +676,7 @@ pub trait Controllable : Any + Send + Sync {
 
     fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error>;
 
-    fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error>;
+    fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error>;
 
     fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error>;
 
@@ -766,7 +766,7 @@ pub struct ControllableData {
     scan_list:   RwLock<Vec<Arc<Unit>>>,
     mutable:     RwLock<ControllableDataMut>,
     crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
-    cargo_items: RwLock<Vec<Arc<CargoItem>>>,
+    cargo_items: RwLock<Vec<AnyCargoItem>>,
 }
 
 impl ControllableData {
@@ -1163,7 +1163,7 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         self.borrow().crystals.read().unwrap()
     }
 
-    fn cargo_items(&self) -> RwLockReadGuard<Vec<Arc<CargoItem>>> {
+    fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>> {
         self.borrow().cargo_items.read().unwrap()
     }
 
@@ -1282,7 +1282,7 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         Ok(())
     }
 
-    fn set_cargo_items(&self, items: Vec<Arc<CargoItem>>) -> Result<(), Error> {
+    fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error> {
         *self.borrow().cargo_items.write()? = items;
         Ok(())
     }
