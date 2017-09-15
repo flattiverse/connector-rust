@@ -36,11 +36,12 @@ pub struct PlayerUnitCollidedWithPlayerUnitMessageData {
 
 impl PlayerUnitCollidedWithPlayerUnitMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitCollidedWithPlayerUnitMessageData, Error> {
+        let data = PlayerUnitDeceasedMessageData::from_packet(connector, packet, reader)?;
+        let player = connector.player_for(reader.read_u16()?)?;
         Ok(PlayerUnitCollidedWithPlayerUnitMessageData {
-            data:   PlayerUnitDeceasedMessageData::from_packet(connector, packet, reader)?,
-            player: connector.player_for(reader.read_u16()?)?,
+            data,
+            player: player.clone(),
             info:   {
-                let player = connector.player_for(reader.read_u16()?)?;
                 player.controllable_info(reader.read_unsigned_byte()?).ok_or(Error::ControllableInfoNotAvailable)?
             }
         })
