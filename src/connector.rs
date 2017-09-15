@@ -202,7 +202,9 @@ impl Connector {
     fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
         match packet.command() {
             0x02|0x03|0x14|0x20|0x24|0x28|0x30|0x81|0x83|0x84|0x85|0x90 => {},
-            id@_ => println!("## Processing command: 0x{:02x}", id),
+            id@_ => {
+                // println!("## Processing command: 0x{:02x}", id)
+            },
         };
 
         match packet.command() {
@@ -316,7 +318,7 @@ impl Connector {
                     None => return Err(Error::missing_player(packet.path_player())),
                     Some(player) => {
                         player.update_ping(&packet)?;
-                        println!("Ping of {} is now {}ms", player, player.ping().millis());
+                        // println!("Ping of {} is now {}ms", player, player.ping().millis());
                     }
                 }
             },
@@ -330,7 +332,7 @@ impl Connector {
                 group.players().write()?.insert(player.clone())?;
 
                 player.update_assignment(&packet)?;
-                println!("Updated assignement, clan: {:?}", player.clan());
+                // println!("Updated assignement, clan: {:?}", player.clan());
 
             },
             0x14 => { // player timing information
