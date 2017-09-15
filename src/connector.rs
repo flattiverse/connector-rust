@@ -202,8 +202,8 @@ impl Connector {
     fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
         match packet.command() {
             0x02|0x03|0x14|0x20|0x24|0x28|0x30|0x81|0x83|0x84|0x85|0x90 => {},
-            id@_ => {
-                // println!("## Processing command: 0x{:02x}", id)
+            _id@_ => {
+                // println!("## Processing command: 0x{:02x}", _id)
             },
         };
 
