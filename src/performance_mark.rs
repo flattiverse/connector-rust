@@ -177,7 +177,7 @@ impl PerformanceMark {
             None => true,
             Some(ref host) => !Connector::hostname().eq(host)
         } {
-            return writer.write_i64(0);
+            // return writer.write_i64(0);
         }
 
 

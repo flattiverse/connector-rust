@@ -413,6 +413,10 @@ impl UniverseGroup {
     pub fn max_players(&self) -> u16 {
         self.maximum_players
     }
+
+    pub fn performance_requirement(&self) -> PerformanceRequirement {
+        self.performance_requirement
+    }
 }
 
 impl UniversalEnumerable for UniverseGroup {

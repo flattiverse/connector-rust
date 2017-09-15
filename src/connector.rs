@@ -87,10 +87,12 @@ pub struct Connector {
     uni_groups:     RwLock<ManagedArray<Arc<UniverseGroup>>>,
     crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
     controllables:  RwLock<ManagedArray<Arc<Controllable>>>,
+
+    benchmark: Option<PerformanceMark>,
 }
 
 impl Connector {
-    pub fn new(email: &str, password: &str, compression_enabled: bool) -> Result<(Arc<Connector>, Receiver<Box<FlattiverseMessage>>), Error> {
+    pub fn new(email: &str, password: &str, compression_enabled: bool, benchmark: Option<PerformanceMark>) -> Result<(Arc<Connector>, Receiver<Box<FlattiverseMessage>>), Error> {
         // param check
         if email.len() < 6 || email.len() > 256 || password.is_empty() {
             return Err(Error::EmailAndOrPasswordInvalid);
@@ -126,6 +128,8 @@ impl Connector {
             uni_groups:     RwLock::new(ManagedArray::with_capacity(128)),
             crystals:       RwLock::new(ManagedArray::with_capacity(64)),
             controllables:  RwLock::new(ManagedArray::with_capacity(256)),
+
+            benchmark,
         };
 
         let connector = Arc::new(connector);
@@ -173,16 +177,21 @@ impl Connector {
             // login features: 0b00000001 = Performance data
             let mut features = 0u8;
 
-            // TODO write performance mark
-            /*if (performanceMark != null) {
+            if self.benchmark.is_some() {
                 features |= 0x01;
-            }*/
+            }
 
             if compression_enabled {
                 features |= 0x02;
             }
 
             writer.write_byte(features)?;
+
+            if let Some(ref mark) = self.benchmark {
+                println!("Writing: {:?}", mark.performance_discrete_mark());
+                mark.write(writer)?;
+            }
+
             writer.write_string(&email)?;
             writer.write_all(&Self::sha512(password)[..])?;
         }
