@@ -14,7 +14,7 @@ use controllable::ControllableData;
 use controllable::any_controllable::prelude::*;
 
 pub struct Ship {
-    controllable: ControllableData,
+    pub(crate) controllable: ControllableData,
 }
 
 impl Ship {

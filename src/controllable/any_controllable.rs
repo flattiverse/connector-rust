@@ -68,11 +68,11 @@ impl AnyControllable {
 impl AsRef<ControllableData> for AnyControllable {
     fn as_ref<'a>(&'a self) -> &'a ControllableData {
         match self {
-            &AnyControllable::Platform(ref controllable) => controllable.as_ref().as_ref(),
-            &AnyControllable::Probe   (ref controllable) => controllable.as_ref().as_ref(),
-            &AnyControllable::Drone   (ref controllable) => controllable.as_ref().as_ref(),
-            &AnyControllable::Ship    (ref controllable) => controllable.as_ref().as_ref(),
-            &AnyControllable::Base    (ref controllable) => controllable.as_ref().as_ref(),
+            &AnyControllable::Platform(ref controllable) => &controllable.controllable,
+            &AnyControllable::Probe   (ref controllable) => &controllable.controllable,
+            &AnyControllable::Drone   (ref controllable) => &controllable.controllable,
+            &AnyControllable::Ship    (ref controllable) => &controllable.controllable,
+            &AnyControllable::Base    (ref controllable) => &controllable.controllable,
         }
     }
 }

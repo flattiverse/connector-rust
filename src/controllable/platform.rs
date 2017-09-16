@@ -14,7 +14,7 @@ use controllable::ControllableData;
 use controllable::any_controllable::prelude::*;
 
 pub struct Platform {
-    controllable: ControllableData,
+    pub(crate) controllable: ControllableData,
 }
 
 impl Platform {
