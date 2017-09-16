@@ -53,6 +53,22 @@ impl Pixel {
         &self.color
     }
 
+    pub fn red(&self) -> f32 {
+        self.color.red
+    }
+
+    pub fn green(&self) -> f32 {
+        self.color.green
+    }
+
+    pub fn blue(&self) -> f32 {
+        self.color.blue
+    }
+
+    pub fn alpha(&self) -> f32 {
+        self.color.alpha
+    }
+
     pub fn is_relevant(&self) -> bool {
         let color = self.color();
         color.red() > 0_f32 || color.green() > 0_f32 || color.blue() != 1_f32
