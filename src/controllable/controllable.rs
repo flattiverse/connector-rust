@@ -4,16 +4,10 @@ use std::mem;
 use std::fmt;
 use std::fmt::Display;
 
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
-
-use downcast::Any;
-
 
 use Error;
 use Scores;
@@ -29,7 +23,11 @@ use unit::ScanInfo;
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
-use controllable;
+use controllable::Base;
+use controllable::Ship;
+use controllable::Drone;
+use controllable::Probe;
+use controllable::Platform;
 use controllable::EnergyCost;
 use controllable::ScanEnergyCost;
 use controllable::WeaponEnergyCost;
@@ -41,8 +39,30 @@ use net::BinaryReader;
 use net::BinaryWriter;
 use net::is_set_u8;
 
-downcast!(Controllable);
-pub trait Controllable : Any + Send + Sync {
+#[derive(Clone)]
+pub enum AnyControllable {
+    Ship    (Arc<Ship>),
+    Base    (Arc<Base>),
+    Probe   (Arc<Probe>),
+    Drone   (Arc<Drone>),
+    Platform(Arc<Platform>),
+}
+
+impl AnyControllable {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<AnyControllable, Error> {
+        Ok(match packet.path_sub() {
+            0 => AnyControllable::Platform(Arc::new(Platform::from_reader(connector, packet, reader)?)),
+            1 => AnyControllable::Probe   (Arc::new(Probe   ::from_reader(connector, packet, reader)?)),
+            2 => AnyControllable::Drone   (Arc::new(Drone   ::from_reader(connector, packet, reader)?)),
+            3 => AnyControllable::Ship    (Arc::new(Ship    ::from_reader(connector, packet, reader)?)),
+            4 => AnyControllable::Base    (Arc::new(Base    ::from_reader(connector, packet, reader)?)),
+            _ => return Err(Error::InvalidControllable(packet.path_sub()))
+        })
+    }
+}
+
+
+pub trait Controllable : Send + Sync {
 
     fn id(&self) -> u8;
 
@@ -173,9 +193,9 @@ pub trait Controllable : Any + Send + Sync {
 
     fn build_progress(&self) -> f32;
 
-    fn is_building(&self) -> Weak<Controllable>;
+    fn is_building(&self) -> Option<AnyControllable>;
 
-    fn is_built_by(&self) -> Weak<Controllable>;
+    fn is_built_by(&self) -> Option<AnyControllable>;
 
     fn weapon_production_status(&self) -> f32;
 
@@ -198,10 +218,6 @@ pub trait Controllable : Any + Send + Sync {
     fn active(&self) -> bool;
 
     fn pending_shutdown(&self) -> bool;
-
-    fn kind(&self) -> UnitKind {
-        UnitKind::Unknown
-    }
 
     fn close(&self) -> Result<(), Error> {
         let connector = match self.connector().upgrade() {
@@ -303,7 +319,7 @@ pub trait Controllable : Any + Send + Sync {
         Ok(())
     }
 
-    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<Arc<Controllable>, Error> {
+    fn build(&self, class: &str, name: &str, direction: f32, crystals: &[Box<CrystalCargoItem>]) -> Result<AnyControllable, Error> {
         if !Connector::check_name(class) {
             return Err(Error::InvalidName);
         }
@@ -683,90 +699,90 @@ pub trait Controllable : Any + Send + Sync {
     fn set_active(&self, active: bool) -> Result<(), Error>;
 }
 
-pub struct ControllableDataMut {
-    energy: f32,
-    particles: f32,
-    ions: f32,
-    hull: f32,
-    shield: f32,
-    pending_shutdown: bool,
-    weapon_production_status: f32,
-    build_progress: f32,
-    build_position: Option<Vector>,
-    haste_time: u16,
-    double_damage_time: u16,
-    quad_damage_time: u16,
-    cloak_time: u16,
-    active: bool,
-    is_building: Weak<Controllable>,
-    is_built_by: Weak<Controllable>,
+pub(crate) struct ControllableDataMut {
+    pub(crate) energy: f32,
+    pub(crate) particles: f32,
+    pub(crate) ions: f32,
+    pub(crate) hull: f32,
+    pub(crate) shield: f32,
+    pub(crate) pending_shutdown: bool,
+    pub(crate) weapon_production_status: f32,
+    pub(crate) build_progress: f32,
+    pub(crate) build_position: Option<Vector>,
+    pub(crate) haste_time: u16,
+    pub(crate) double_damage_time: u16,
+    pub(crate) quad_damage_time: u16,
+    pub(crate) cloak_time: u16,
+    pub(crate) active: bool,
+    pub(crate) is_building: Option<AnyControllable>,
+    pub(crate) is_built_by: Option<AnyControllable>,
 }
 
 
 pub struct ControllableData {
-    id: u8,
-    revision: i64,
-    class: String,
-    name: String,
-    level: u8,
-    radius: f32,
-    gravity: f32,
-    efficiency_tactical: f32,
-    efficiency_economical: f32,
-    visible_range_multiplier: f32,
-    energy_max: f32,
-    particles_max: f32,
-    ions_max: f32,
-    energy_cells: f32,
-    particles_cells: f32,
-    ions_cells: f32,
-    energy_reactor: f32,
-    particles_reactor: f32,
-    ions_reactor: f32,
-    hull_max: f32,
-    hull_armor: f32,
-    hull_repair: EnergyCost,
-    shield_max: f32,
-    shield_armor: f32,
-    shield_load: EnergyCost,
-    engine_speed: f32,
-    engine_acceleration: EnergyCost,
-    scanner_degree_per_scan: f32,
-    scanner_count: u8,
-    scanner_area: ScanEnergyCost,
-    weapon_shot: WeaponEnergyCost,
-    weapon_hull: f32,
-    weapon_hull_armor: f32,
-    weapon_shield: f32,
-    weapon_shield_armor: f32,
-    weapon_visible_range_multiplier: f32,
-    weapon_gravity: f32,
-    weapon_size: f32,
-    weapon_production: f32,
-    weapon_production_load: f32,
-    weapon_sub_directions: u8,
-    weapon_sub_directions_length: f32,
-    builder_time: f32,
-    builder_time_factory_energy: f32,
-    builder_time_factory_particles: f32,
-    builder_time_factory_ions: f32,
-    builder_capabilities: Vec<UnitKind>,
-    energy_transfer_energy: EnergyCost,
-    energy_transfer_particles: EnergyCost,
-    energy_transfer_ions: EnergyCost,
-    cargo_slots: u8,
-    cargo_amount: f32,
-    crystal_converter: EnergyCost,
-    crystal_slots: u8,
-    tractor_beam: EnergyCost,
-    tractor_beam_range: f32,
-    scores:      Arc<Scores>,
-    universe:    Weak<Universe>,
-    connector:   Weak<Connector>,
-    scan_list:   RwLock<Vec<Arc<Unit>>>,
-    mutable:     RwLock<ControllableDataMut>,
-    crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
-    cargo_items: RwLock<Vec<AnyCargoItem>>,
+    pub(crate) id: u8,
+    pub(crate) revision: i64,
+    pub(crate) class: String,
+    pub(crate) name: String,
+    pub(crate) level: u8,
+    pub(crate) radius: f32,
+    pub(crate) gravity: f32,
+    pub(crate) efficiency_tactical: f32,
+    pub(crate) efficiency_economical: f32,
+    pub(crate) visible_range_multiplier: f32,
+    pub(crate) energy_max: f32,
+    pub(crate) particles_max: f32,
+    pub(crate) ions_max: f32,
+    pub(crate) energy_cells: f32,
+    pub(crate) particles_cells: f32,
+    pub(crate) ions_cells: f32,
+    pub(crate) energy_reactor: f32,
+    pub(crate) particles_reactor: f32,
+    pub(crate) ions_reactor: f32,
+    pub(crate) hull_max: f32,
+    pub(crate) hull_armor: f32,
+    pub(crate) hull_repair: EnergyCost,
+    pub(crate) shield_max: f32,
+    pub(crate) shield_armor: f32,
+    pub(crate) shield_load: EnergyCost,
+    pub(crate) engine_speed: f32,
+    pub(crate) engine_acceleration: EnergyCost,
+    pub(crate) scanner_degree_per_scan: f32,
+    pub(crate) scanner_count: u8,
+    pub(crate) scanner_area: ScanEnergyCost,
+    pub(crate) weapon_shot: WeaponEnergyCost,
+    pub(crate) weapon_hull: f32,
+    pub(crate) weapon_hull_armor: f32,
+    pub(crate) weapon_shield: f32,
+    pub(crate) weapon_shield_armor: f32,
+    pub(crate) weapon_visible_range_multiplier: f32,
+    pub(crate) weapon_gravity: f32,
+    pub(crate) weapon_size: f32,
+    pub(crate) weapon_production: f32,
+    pub(crate) weapon_production_load: f32,
+    pub(crate) weapon_sub_directions: u8,
+    pub(crate) weapon_sub_directions_length: f32,
+    pub(crate) builder_time: f32,
+    pub(crate) builder_time_factory_energy: f32,
+    pub(crate) builder_time_factory_particles: f32,
+    pub(crate) builder_time_factory_ions: f32,
+    pub(crate) builder_capabilities: Vec<UnitKind>,
+    pub(crate) energy_transfer_energy: EnergyCost,
+    pub(crate) energy_transfer_particles: EnergyCost,
+    pub(crate) energy_transfer_ions: EnergyCost,
+    pub(crate) cargo_slots: u8,
+    pub(crate) cargo_amount: f32,
+    pub(crate) crystal_converter: EnergyCost,
+    pub(crate) crystal_slots: u8,
+    pub(crate) tractor_beam: EnergyCost,
+    pub(crate) tractor_beam_range: f32,
+    pub(crate) scores:      Arc<Scores>,
+    pub(crate) universe:    Weak<Universe>,
+    pub(crate) connector:   Weak<Connector>,
+    pub(crate) scan_list:   RwLock<Vec<Arc<Unit>>>,
+    pub(crate) mutable:     RwLock<ControllableDataMut>,
+    pub(crate) crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
+    pub(crate) cargo_items: RwLock<Vec<AnyCargoItem>>,
 }
 
 impl ControllableData {
@@ -882,332 +898,344 @@ impl ControllableData {
                 weapon_production_status:0f32,
                 cloak_time:             0u16,
                 pending_shutdown:       false,
-                is_building:            Weak::default() as Weak<controllable::Empty>,
-                is_built_by:            Weak::default() as Weak<controllable::Empty>,
+                is_building:            None,
+                is_built_by:            None,
             })
         })
     }
 }
 
-impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send + Sync> Controllable for T {
+impl AsRef<ControllableData> for AnyControllable {
+    fn as_ref<'a>(&'a self) -> &'a ControllableData {
+        match self {
+            &AnyControllable::Platform(ref controllable) => controllable.as_ref().as_ref(),
+            &AnyControllable::Probe   (ref controllable) => controllable.as_ref().as_ref(),
+            &AnyControllable::Drone   (ref controllable) => controllable.as_ref().as_ref(),
+            &AnyControllable::Ship    (ref controllable) => controllable.as_ref().as_ref(),
+            &AnyControllable::Base    (ref controllable) => controllable.as_ref().as_ref(),
+        }
+    }
+}
+
+impl<T: 'static + AsRef<ControllableData> + Send + Sync> Controllable for T {
     fn id(&self) -> u8 {
-        self.borrow().id
+        self.as_ref().id
     }
 
     fn revision(&self) -> i64 {
-        self.borrow().revision
+        self.as_ref().revision
     }
     
     fn class(&self) -> &str {
-        &self.borrow().class
+        &self.as_ref().class
     }
     
     fn name(&self) -> &str {
-        &self.borrow().name
+        &self.as_ref().name
     }
 
     fn level(&self) -> u8 {
-        self.borrow().level
+        self.as_ref().level
     }
 
     fn radius(&self) -> f32 {
-        self.borrow().radius
+        self.as_ref().radius
     }
 
 
     fn gravity(&self) -> f32 {
-        self.borrow().gravity
+        self.as_ref().gravity
     }
 
     fn efficiency_tactical(&self) -> f32 {
-        self.borrow().efficiency_tactical
+        self.as_ref().efficiency_tactical
     }
 
     fn efficiency_economical(&self) -> f32 {
-        self.borrow().efficiency_economical
+        self.as_ref().efficiency_economical
     }
 
     fn visible_range_multiplier(&self) -> f32 {
-        self.borrow().visible_range_multiplier
+        self.as_ref().visible_range_multiplier
     }
 
     fn energy_max(&self) -> f32 {
-        self.borrow().energy_max
+        self.as_ref().energy_max
     }
 
     fn particles_max(&self) -> f32 {
-        self.borrow().particles_max
+        self.as_ref().particles_max
     }
 
     fn ions_max(&self) -> f32 {
-        self.borrow().ions_max
+        self.as_ref().ions_max
     }
 
     fn energy_cells(&self) -> f32 {
-        self.borrow().energy_cells
+        self.as_ref().energy_cells
     }
 
     fn particles_cells(&self) -> f32 {
-        self.borrow().particles_cells
+        self.as_ref().particles_cells
     }
 
     fn ions_cells(&self) -> f32 {
-        self.borrow().ions_cells
+        self.as_ref().ions_cells
     }
 
     fn energy_reactor(&self) -> f32 {
-        self.borrow().energy_reactor
+        self.as_ref().energy_reactor
     }
 
     fn particles_reactor(&self) -> f32 {
-        self.borrow().particles_reactor
+        self.as_ref().particles_reactor
     }
 
     fn ions_reactor(&self) -> f32 {
-        self.borrow().ions_reactor
+        self.as_ref().ions_reactor
     }
 
     fn hull_max(&self) -> f32 {
-        self.borrow().hull_max
+        self.as_ref().hull_max
     }
 
     fn hull_armor(&self) -> f32 {
-        self.borrow().hull_armor
+        self.as_ref().hull_armor
     }
 
     fn hull_repair(&self) -> &EnergyCost {
-        &self.borrow().hull_repair
+        &self.as_ref().hull_repair
     }
 
     fn shield_max(&self) -> f32 {
-        self.borrow().shield_max
+        self.as_ref().shield_max
     }
 
     fn shield_armor(&self) -> f32 {
-        self.borrow().shield_armor
+        self.as_ref().shield_armor
     }
 
     fn shield_load(&self) -> &EnergyCost {
-        &self.borrow().shield_load
+        &self.as_ref().shield_load
     }
 
     fn engine_speed(&self) -> f32 {
-        self.borrow().engine_speed
+        self.as_ref().engine_speed
     }
 
     fn engine_acceleration(&self) -> &EnergyCost {
-        &self.borrow().engine_acceleration
+        &self.as_ref().engine_acceleration
     }
 
     fn scanner_degree_per_scan(&self) -> f32 {
-        self.borrow().scanner_degree_per_scan
+        self.as_ref().scanner_degree_per_scan
     }
 
     fn scanner_count(&self) -> u8 {
-        self.borrow().scanner_count
+        self.as_ref().scanner_count
     }
 
     fn scanner_area(&self) -> &ScanEnergyCost {
-        &self.borrow().scanner_area
+        &self.as_ref().scanner_area
     }
 
     fn weapon_shot(&self) -> &WeaponEnergyCost {
-        &self.borrow().weapon_shot
+        &self.as_ref().weapon_shot
     }
 
     fn weapon_hull(&self) -> f32 {
-        self.borrow().weapon_hull
+        self.as_ref().weapon_hull
     }
 
     fn weapon_hull_armor(&self) -> f32 {
-        self.borrow().weapon_hull_armor
+        self.as_ref().weapon_hull_armor
     }
 
     fn weapon_shield(&self) -> f32 {
-        self.borrow().weapon_shield
+        self.as_ref().weapon_shield
     }
 
     fn weapon_shield_armor(&self) -> f32 {
-        self.borrow().weapon_shield_armor
+        self.as_ref().weapon_shield_armor
     }
 
     fn weapon_visible_range_multiplier(&self) -> f32 {
-        self.borrow().weapon_visible_range_multiplier
+        self.as_ref().weapon_visible_range_multiplier
     }
 
     fn weapon_gravity(&self) -> f32 {
-        self.borrow().weapon_gravity
+        self.as_ref().weapon_gravity
     }
 
     fn weapon_size(&self) -> f32 {
-        self.borrow().weapon_size
+        self.as_ref().weapon_size
     }
 
     fn weapon_production(&self) -> f32 {
-        self.borrow().weapon_production
+        self.as_ref().weapon_production
     }
 
     fn weapon_production_load(&self) -> f32 {
-        self.borrow().weapon_production_load
+        self.as_ref().weapon_production_load
     }
 
     fn weapon_sub_directions(&self) -> u8 {
-        self.borrow().weapon_sub_directions
+        self.as_ref().weapon_sub_directions
     }
 
     fn weapon_sub_directions_length(&self) -> f32 {
-        self.borrow().weapon_sub_directions_length
+        self.as_ref().weapon_sub_directions_length
     }
 
     fn builder_time(&self) -> f32 {
-        self.borrow().builder_time
+        self.as_ref().builder_time
     }
 
     fn builder_time_factory_energy(&self) -> f32 {
-        self.borrow().builder_time_factory_energy
+        self.as_ref().builder_time_factory_energy
     }
 
     fn builder_time_factory_particles(&self) -> f32 {
-        self.borrow().builder_time_factory_particles
+        self.as_ref().builder_time_factory_particles
     }
 
     fn builder_time_factory_ions(&self) -> f32 {
-        self.borrow().builder_time_factory_ions
+        self.as_ref().builder_time_factory_ions
     }
 
     fn builder_capabilities(&self) -> &Vec<UnitKind> {
-        &self.borrow().builder_capabilities
+        &self.as_ref().builder_capabilities
     }
 
     fn energy_transfer_energy(&self) -> &EnergyCost {
-        &self.borrow().energy_transfer_energy
+        &self.as_ref().energy_transfer_energy
     }
 
     fn energy_transfer_particles(&self) -> &EnergyCost {
-        &self.borrow().energy_transfer_particles
+        &self.as_ref().energy_transfer_particles
     }
 
     fn energy_transfer_ions(&self) -> &EnergyCost {
-        &self.borrow().energy_transfer_ions
+        &self.as_ref().energy_transfer_ions
     }
 
     fn cargo_slots(&self) -> u8 {
-        self.borrow().cargo_slots
+        self.as_ref().cargo_slots
     }
 
     fn cargo_amount(&self) -> f32 {
-        self.borrow().cargo_amount
+        self.as_ref().cargo_amount
     }
 
     fn crystal_converter(&self) -> &EnergyCost {
-        &self.borrow().crystal_converter
+        &self.as_ref().crystal_converter
     }
 
     fn crystal_slots(&self) -> u8 {
-        self.borrow().crystal_slots
+        self.as_ref().crystal_slots
     }
 
     fn tractor_beam(&self) -> &EnergyCost {
-        &self.borrow().tractor_beam
+        &self.as_ref().tractor_beam
     }
 
     fn tractor_beam_range(&self) -> f32 {
-        self.borrow().tractor_beam_range
+        self.as_ref().tractor_beam_range
     }
 
     fn scores(&self) -> &Arc<Scores> {
-        &self.borrow().scores
+        &self.as_ref().scores
     }
 
     fn energy(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().energy
+        self.as_ref().mutable.read().unwrap().energy
     }
 
     fn particles(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().particles
+        self.as_ref().mutable.read().unwrap().particles
     }
 
     fn ions(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().ions
+        self.as_ref().mutable.read().unwrap().ions
     }
 
     fn hull(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().hull
+        self.as_ref().mutable.read().unwrap().hull
     }
 
     fn shield(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().shield
+        self.as_ref().mutable.read().unwrap().shield
     }
 
     fn build_position(&self) -> Option<Vector> {
-        self.borrow().mutable.read().unwrap().build_position.clone()
+        self.as_ref().mutable.read().unwrap().build_position.clone()
     }
 
     fn build_progress(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().build_progress
+        self.as_ref().mutable.read().unwrap().build_progress
     }
 
-    fn is_building(&self) -> Weak<Controllable> {
-        self.borrow().mutable.read().unwrap().is_building.clone()
+    fn is_building(&self) -> Option<AnyControllable> {
+        self.as_ref().mutable.read().unwrap().is_building.clone()
     }
 
-    fn is_built_by(&self) -> Weak<Controllable> {
-        self.borrow().mutable.read().unwrap().is_built_by.clone()
+    fn is_built_by(&self) -> Option<AnyControllable> {
+        self.as_ref().mutable.read().unwrap().is_built_by.clone()
     }
 
     fn weapon_production_status(&self) -> f32 {
-        self.borrow().mutable.read().unwrap().weapon_production_status
+        self.as_ref().mutable.read().unwrap().weapon_production_status
     }
 
     fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
-        self.borrow().crystals.read().unwrap()
+        self.as_ref().crystals.read().unwrap()
     }
 
     fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>> {
-        self.borrow().cargo_items.read().unwrap()
+        self.as_ref().cargo_items.read().unwrap()
     }
 
     fn universe(&self) -> &Weak<Universe> {
-        &self.borrow().universe
+        &self.as_ref().universe
     }
 
     fn haste_time(&self) -> u16 {
-        self.borrow().mutable.read().unwrap().haste_time
+        self.as_ref().mutable.read().unwrap().haste_time
     }
 
     fn double_damage_time(&self) -> u16 {
-        self.borrow().mutable.read().unwrap().double_damage_time
+        self.as_ref().mutable.read().unwrap().double_damage_time
     }
 
     fn quad_damage_time(&self) -> u16 {
-        self.borrow().mutable.read().unwrap().quad_damage_time
+        self.as_ref().mutable.read().unwrap().quad_damage_time
     }
 
     fn cloak_time(&self) -> u16 {
-        self.borrow().mutable.read().unwrap().cloak_time
+        self.as_ref().mutable.read().unwrap().cloak_time
     }
 
     fn connector(&self) -> &Weak<Connector> {
-        &self.borrow().connector
+        &self.as_ref().connector
     }
 
     fn active(&self) -> bool {
-        self.borrow().mutable.read().unwrap().active
+        self.as_ref().mutable.read().unwrap().active
     }
 
     fn pending_shutdown(&self) -> bool {
-        self.borrow().mutable.read().unwrap().pending_shutdown
+        self.as_ref().mutable.read().unwrap().pending_shutdown
     }
 
     fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
-        &self.borrow().scan_list
+        &self.as_ref().scan_list
     }
 
 
 
     fn update(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.borrow().mutable.write()?;
+        let mut mutable = self.as_ref().mutable.write()?;
 
         mutable.energy             = reader.read_single()?;
         mutable.particles          = reader.read_single()?;
@@ -1220,7 +1248,7 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
 
     fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.borrow().mutable.write()?;
+        let mut mutable = self.as_ref().mutable.write()?;
 
         mutable.weapon_production_status   = reader.read_single()?;
         let header                      = reader.read_byte()?;
@@ -1230,29 +1258,29 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
         }
 
         if is_set_u8(header, 0x01) {
-            match self.borrow().connector.upgrade() {
+            match self.as_ref().connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
                     mutable.build_progress   = reader.read_single()?;
-                    mutable.is_building     = connector.controllable_weak(reader.read_unsigned_byte()?);
+                    mutable.is_building     = connector.controllable_opt(reader.read_unsigned_byte()?);
                     mutable.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
                 }
             };
         } else {
             mutable.build_position = None;
-            mutable.is_building    = Weak::default() as Weak<controllable::Empty>;
+            mutable.is_building    = None;
         }
 
         if is_set_u8(header, 0x02) {
             mutable.build_progress = reader.read_single()?;
-            mutable.is_built_by    = match self.borrow().connector.upgrade() {
+            mutable.is_built_by    = match self.as_ref().connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
-                    connector.controllable_weak(reader.read_unsigned_byte()?)
+                    connector.controllable_opt(reader.read_unsigned_byte()?)
                 }
             };
         } else {
-            mutable.is_built_by = Weak::default() as Weak<controllable::Empty>;
+            mutable.is_built_by = None;
         }
 
         if is_set_u8(header, 0x10) {
@@ -1278,22 +1306,22 @@ impl<T: 'static + Borrow<ControllableData> + BorrowMut<ControllableData> + Send 
 
 
     fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
-        *self.borrow().crystals.write()? = crystals;
+        *self.as_ref().crystals.write()? = crystals;
         Ok(())
     }
 
     fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error> {
-        *self.borrow().cargo_items.write()? = items;
+        *self.as_ref().cargo_items.write()? = items;
         Ok(())
     }
 
     fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
-        *self.borrow().scan_list.write()? = list;
+        *self.as_ref().scan_list.write()? = list;
         Ok(())
     }
 
     fn set_active(&self, active: bool) -> Result<(), Error> {
-        self.borrow().mutable.write()?.active = active;
+        self.as_ref().mutable.write()?.active = active;
         Ok(())
     }
 

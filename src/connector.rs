@@ -49,8 +49,8 @@ use net::Connection;
 use net::BinaryWriter;
 use net::BinaryReader;
 
-use controllable;
 use controllable::Controllable;
+use controllable::AnyControllable;
 use controllable::ControllableDesign;
 
 use unit;
@@ -85,7 +85,7 @@ pub struct Connector {
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<UniverseGroup>>>,
     crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
-    controllables:  RwLock<ManagedArray<Arc<Controllable>>>,
+    controllables:  RwLock<ManagedArray<AnyControllable>>,
 
     benchmark: Option<PerformanceMark>,
 }
@@ -409,7 +409,7 @@ impl Connector {
                         crystal_position += 1;
 
                     } else {
-                        return Err(Error::NotCrystalCargoItem);
+                        return Err(Error::not_crystal_cargo_item());
                     }
                 }
 
@@ -494,7 +494,7 @@ impl Connector {
             0x80 => { // 'ControllableStaticPacket'
                 connector.controllables.write()?.set(
                     packet.path_ship() as usize,
-                    Some(controllable::from_packet(&connector, packet, &mut packet.read() as &mut BinaryReader)?)
+                    Some(AnyControllable::from_packet(&connector, packet, &mut packet.read() as &mut BinaryReader)?)
                 );
             },
             0x81 => { // 'ControllableDynamicPacket'
@@ -581,7 +581,7 @@ impl Connector {
                             crystals.push(crystal);
 
                         } else {
-                            return Err(Error::NotCrystalCargoItem);
+                            return Err(Error::not_crystal_cargo_item());
                         }
                     }
                 }
@@ -676,7 +676,7 @@ impl Connector {
                 crystals.push(crystal);
 
             } else {
-                return Err(Error::NotCrystalCargoItem);
+                return Err(Error::not_crystal_cargo_item());
             }
         }
 
@@ -888,15 +888,12 @@ impl Connector {
         Err(Error::InvalidCrystalName(String::from(name)))
     }
 
-    pub fn controllable(&self, index: u8) -> Result<Arc<Controllable>, Error> {
+    pub fn controllable(&self, index: u8) -> Result<AnyControllable, Error> {
         self.controllables.read()?.get(index as usize).clone().ok_or(Error::InvalidControllable(index))
     }
 
-    pub fn controllable_weak(&self, index: u8) -> Weak<Controllable> {
-        match self.controllables.read().unwrap().get(index as usize) {
-            &None => Weak::default() as Weak<controllable::Empty>,
-            &Some(ref arc) => Arc::downgrade(arc),
-        }
+    pub fn controllable_opt(&self, index: u8) -> Option<AnyControllable> {
+        self.controllables.read().unwrap().get(index as usize).clone()
     }
 
     /// Queries up to 128 designs.

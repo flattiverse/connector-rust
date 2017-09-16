@@ -8,6 +8,7 @@ use Error;
 use Connector;
 
 use controllable::Controllable;
+use controllable::AnyControllable;
 
 use net::Packet;
 use net::BinaryReader;
@@ -20,14 +21,14 @@ use message::FlattiverseMessageData;
 downcast!(PlayerUnitJumpedMessage);
 pub trait PlayerUnitJumpedMessage : GameMessage {
 
-    fn controllable(&self) -> &Arc<Controllable>;
+    fn controllable(&self) -> &AnyControllable;
 
     fn inter_universe(&self) -> bool;
 }
 
 pub struct PlayerUnitJumpedMessageData {
     data:   GameMessageData,
-    info:   Arc<Controllable>,
+    info:   AnyControllable,
     inter:  bool,
 }
 
@@ -38,7 +39,7 @@ impl PlayerUnitJumpedMessageData {
             inter:  reader.read_bool()?,
             info:   {
                 let index = reader.read_unsigned_byte()?;
-                connector.controllable(index)?
+                connector.controllable(index)?.clone()
             }
         })
     }
@@ -67,7 +68,7 @@ impl BorrowMut<FlattiverseMessageData> for PlayerUnitJumpedMessageData {
 
 
 impl<T: 'static + Borrow<PlayerUnitJumpedMessageData> + BorrowMut<PlayerUnitJumpedMessageData> + GameMessage> PlayerUnitJumpedMessage for T {
-    fn controllable(&self) -> &Arc<Controllable> {
+    fn controllable(&self) -> &AnyControllable {
         &self.borrow().info
     }
 
@@ -80,7 +81,13 @@ impl fmt::Display for PlayerUnitJumpedMessageData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} {}",
                (self as &FlattiverseMessage).timestamp(),
-               self.info.kind(),
+               match self.info {
+                   AnyControllable::Platform(_) => "Platform",
+                   AnyControllable::Probe   (_) => "Probe",
+                   AnyControllable::Drone   (_) => "Drone",
+                   AnyControllable::Base    (_) => "Base",
+                   AnyControllable::Ship    (_) => "Ship",
+               },
                self.info.name(),
         )?;
         if self.inter {

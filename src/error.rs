@@ -82,12 +82,21 @@ pub enum Error {
     PlayerAlreadyInAnotherUniverseGroup(u16),
     StillOpenFlowControlsInUniverseGroup(u16),
     WithReason(String),
-    NotCrystalCargoItem
+    NotCrystalCargoItem(Backtrace),
+    NotControllableShip(Backtrace),
 }
 
 impl Error {
     pub fn missing_player(player: u16) -> Error {
         Error::MissingPlayer(Backtrace::new(), player)
+    }
+
+    pub fn not_crystal_cargo_item() -> Error {
+        Error::NotCrystalCargoItem(Backtrace::new())
+    }
+
+    pub fn not_controllable_ship() -> Error {
+        Error::NotControllableShip(Backtrace::new())
     }
 }
 

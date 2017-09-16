@@ -1,36 +1,35 @@
 
 use std::sync::Arc;
 
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
 
-use controllable::Controllable;
-use controllable::ControllableData;
-
-use unit::UnitKind;
-
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(Ship);
-pub trait Ship : Controllable {
+use controllable::ControllableData;
 
-    fn kind(&self) -> UnitKind {
-        UnitKind::PlayerShip
+pub struct Ship {
+    controllable: ControllableData,
+}
+
+impl Ship {
+    pub fn from_reader(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<Ship, Error>  {
+        Ok(Ship {
+            controllable: ControllableData::from_reader(connector, packet, reader)?
+        })
     }
 
     /// Allows your ship to continue playing after it was destroyed.
     /// This is only possible for this ship. Everything else has to be rebuilt!
     /// Note: In C# this is called 'Continue()'
-    fn proceed(&self) -> Result<(), Error> {
-        let connector = self.connector().upgrade().ok_or(Error::ConnectorNotAvailable)?;
+    pub fn proceed(&self) -> Result<(), Error> {
+        let connector = self.controllable.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
         let _ = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
-        if self.pending_shutdown() {
+        if self.controllable.mutable.read()?.pending_shutdown {
             return Err(Error::PendingShutdown);
         }
 
@@ -41,7 +40,7 @@ pub trait Ship : Controllable {
 
         packet.set_command(0x81);
         packet.set_session(block.id());
-        packet.set_path_ship(self.id());
+        packet.set_path_ship(self.controllable.id);
 
         connector.send(&packet)?;
         block.wait()?;
@@ -49,30 +48,8 @@ pub trait Ship : Controllable {
     }
 }
 
-pub struct ShipData {
-    data: ControllableData
-}
-
-impl ShipData {
-    pub fn from_reader(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<ShipData, Error>  {
-        Ok(ShipData {
-            data: ControllableData::from_reader(connector, packet, reader)?
-        })
+impl AsRef<ControllableData> for Ship {
+    fn as_ref(&self) -> &ControllableData {
+        &self.controllable
     }
-}
-
-// implicitly 'extend' Controllable
-impl Borrow<ControllableData> for ShipData {
-    fn borrow(&self) -> &ControllableData {
-        &self.data
-    }
-}
-impl BorrowMut<ControllableData> for ShipData {
-    fn borrow_mut(&mut self) -> &mut ControllableData {
-        &mut self.data
-    }
-}
-
-impl<T: 'static + Borrow<ShipData> + BorrowMut<ShipData> + Controllable> Ship for T {
-
 }

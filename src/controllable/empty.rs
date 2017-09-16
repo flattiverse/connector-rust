@@ -16,6 +16,7 @@ use unit::UnitKind;
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
+use controllable::AnyControllable;
 use controllable::Controllable;
 use controllable::EnergyCost;
 use controllable::ScanEnergyCost;
@@ -288,11 +289,11 @@ impl Controllable for Empty {
         unimplemented!()
     }
 
-    fn is_building(&self) -> Weak<Controllable> {
+    fn is_building(&self) -> Option<AnyControllable> {
         unimplemented!()
     }
 
-    fn is_built_by(&self) -> Weak<Controllable> {
+    fn is_built_by(&self) -> Option<AnyControllable> {
         unimplemented!()
     }
 

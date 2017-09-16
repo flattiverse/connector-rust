@@ -19,6 +19,7 @@ pub trait CargoItem : Sync + Send {
     fn kind(&self) -> CargoItemKind;
 }
 
+#[derive(Clone)]
 pub enum AnyCargoItem {
     Nebula       (Arc<NebulaCargoItem>),
     Crystal      (Arc<CrystalCargoItem>),

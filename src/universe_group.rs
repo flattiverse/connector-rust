@@ -22,7 +22,8 @@ use UniversalEnumerable;
 use UniverseGroupFlowControl;
 use PerformanceRequirement;
 
-use controllable::Controllable;
+use controllable::Ship;
+use controllable::AnyControllable;
 
 use net::Packet;
 use net::BinaryReader;
@@ -201,7 +202,7 @@ impl UniverseGroup {
 
     // TODO missing parameter 'CrystalCargoItem...crystals'
     /// The returned value is supposed to be a Ship
-    pub fn register_ship(&self, class: &str, name: &str) -> Result<Arc<Controllable>, Error> {
+    pub fn register_ship(&self, class: &str, name: &str) -> Result<Arc<Ship>, Error> {
         let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
 
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
@@ -241,7 +242,10 @@ impl UniverseGroup {
 
         connector.send(&packet)?;
         let response = block.wait()?;
-        connector.controllable(response.path_ship())
+        match connector.controllable(response.path_ship())? {
+            AnyControllable::Ship(ship) => Ok(ship),
+            _ => return Err(Error::not_controllable_ship())
+        }
     }
 
     pub fn part(&self) -> Result<(), Error> {
