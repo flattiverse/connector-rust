@@ -1,58 +1,112 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::AiUnit;
-use unit::UnitData;
-use unit::AiUnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(AiPlatform);
-pub trait AiPlatform : AiUnit {
+use unit::any_ai_unit::prelude::*;
 
+pub struct AiPlatform {
+    pub(crate) unit: AiUnitData,
 }
 
-pub struct AiPlatformData {
-    unit: AiUnitData,
-}
-
-impl AiPlatformData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AiPlatformData, Error> {
-        Ok(AiPlatformData {
-            unit: AiUnitData::from_reader(connector, universe_group, packet, reader, UnitKind::AiPlatform)?
+impl AiPlatform {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AiPlatform, Error> {
+        Ok(AiPlatform {
+            unit: AiUnitData::from_reader(connector, universe_group, packet, reader)?
         })
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for AiPlatform {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
 
-// implicitly implement AiUnit
-impl Borrow<AiUnitData> for AiPlatformData {
-    fn borrow(&self) -> &AiUnitData {
-        &self.unit
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
-}
-impl BorrowMut<AiUnitData> for AiPlatformData {
-    fn borrow_mut(&mut self) -> &mut AiUnitData {
-        &mut self.unit
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
-}
-impl Borrow<UnitData> for AiPlatformData {
-    fn borrow(&self) -> &UnitData {
-        self.unit.borrow()
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
-}
-impl BorrowMut<UnitData> for AiPlatformData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        self.unit.borrow_mut()
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::AiPlatform
     }
 }
 
-impl<T: 'static + Borrow<AiPlatformData> + BorrowMut<AiPlatformData> + AiUnit> AiPlatform for  T {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl AiUnit for AiPlatform {
+    fn hull(&self) -> f32 {
+        self.unit.hull()
+    }
 
+    fn hull_max(&self) -> f32 {
+        self.unit.hull_max()
+    }
+
+    fn hull_armor(&self) -> f32 {
+        self.unit.hull_armor()
+    }
+
+    fn shield(&self) -> f32 {
+        self.unit.shield()
+    }
+
+    fn shield_max(&self) -> f32 {
+        self.unit.shield_max()
+    }
+
+    fn shield_armor(&self) -> f32 {
+        self.unit.shield_armor()
+    }
 }

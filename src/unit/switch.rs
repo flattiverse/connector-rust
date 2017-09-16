@@ -1,33 +1,14 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Color;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(Switch);
-pub trait Switch : Unit {
+use unit::any_unit::prelude::*;
 
-    fn color(&self) -> &Color;
-
-    fn range(&self) -> f32;
-
-    fn switch_time_cycle(&self) -> u16;
-
-    fn switch_time_current(&self) -> u16;
-
-    fn switched(&self) -> bool;
-}
-
-pub struct SwitchData {
+pub struct Switch {
     unit:   UnitData,
     color:  Color,
     range:              f32,
@@ -36,10 +17,10 @@ pub struct SwitchData {
     switched:           bool,
 }
 
-impl SwitchData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SwitchData, Error> {
-        Ok(SwitchData {
-            unit:   UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Switch)?,
+impl Switch {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<Switch, Error> {
+        Ok(Switch {
+            unit:   UnitData::from_reader(connector, universe_group, packet, reader)?,
             color:  Color::from_rgb(
                 reader.read_single()?,
                 reader.read_single()?,
@@ -51,39 +32,88 @@ impl SwitchData {
             switched:           reader.read_bool()?,
         })
     }
-}
 
+    pub fn color(&self) -> &Color {
+        &self.color
+    }
 
-// implicitly implement Unit
-impl Borrow<UnitData> for SwitchData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    pub fn range(&self) -> f32 {
+        self.range
+    }
+
+    pub fn switch_time_cycle(&self) -> u16 {
+        self.switch_time_cycle
+    }
+
+    pub fn switch_time_current(&self) -> u16 {
+        self.switch_time_current
+    }
+
+    pub fn is_switched(&self) -> bool {
+        self.switched
     }
 }
-impl BorrowMut<UnitData> for SwitchData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
 
-impl<T: 'static + Borrow<SwitchData> + BorrowMut<SwitchData> + Unit> Switch for  T {
-    fn color(&self) -> &Color {
-        &self.borrow().color
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for Switch {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn range(&self) -> f32 {
-        self.borrow().range
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
 
-    fn switch_time_cycle(&self) -> u16 {
-        self.borrow().switch_time_cycle
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
 
-    fn switch_time_current(&self) -> u16 {
-        self.borrow().switch_time_current
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
 
-    fn switched(&self) -> bool {
-        self.borrow().switched
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::Switch
     }
 }

@@ -27,6 +27,7 @@ pub(crate) mod prelude {
     pub use Universe;
 
     pub use unit::Unit;
+    pub use unit::AnyUnit;
     pub use unit::UnitKind;
     pub use unit::ScanInfo;
 
@@ -389,7 +390,7 @@ impl Controllable for AnyControllable {
         self.as_ref().is_pending_shutdown()
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
+    fn scan_list(&self) -> &RwLock<Vec<AnyUnit>> {
         self.as_ref().scan_list()
     }
 
@@ -409,7 +410,7 @@ impl Controllable for AnyControllable {
         self.as_ref().set_cargo_items(items)
     }
 
-    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+    fn set_scan_list(&self, list: Vec<AnyUnit>) -> Result<(), Error> {
         self.as_ref().set_scan_list(list)
     }
 

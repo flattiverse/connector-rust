@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::ops::Deref;
 
 use Error;
 use Vector;
@@ -235,4 +236,13 @@ impl WeaponEnergyCost {
         self.damage_energy_crit_chance
     }
 
+}
+
+// WeaponEnergyCost 'extends' EnergyCost - kinda
+impl Deref for WeaponEnergyCost {
+    type Target = EnergyCost;
+
+    fn deref(&self) -> &Self::Target {
+        &self.load
+    }
 }

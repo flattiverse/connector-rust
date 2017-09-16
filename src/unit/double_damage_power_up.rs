@@ -1,58 +1,90 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::PowerUp;
-use unit::UnitData;
-use unit::PowerUpData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(DoubleDamagePowerUp);
-pub trait DoubleDamagePowerUp : PowerUp {
-    
-}
+use unit::any_power_up::prelude::*;
 
-pub struct DoubleDamagePowerUpData {
+pub struct DoubleDamagePowerUp {
     unit:   PowerUpData,
 }
 
-impl DoubleDamagePowerUpData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<DoubleDamagePowerUpData, Error> {
-        Ok(DoubleDamagePowerUpData {
-            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::DoubleDamagePowerUp)?,
+impl DoubleDamagePowerUp {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<DoubleDamagePowerUp, Error> {
+        Ok(DoubleDamagePowerUp {
+            unit:   PowerUpData::from_reader(connector, universe_group, packet, reader)?,
         })
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for DoubleDamagePowerUp {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
 
-// implicitly implement PowerUp
-impl Borrow<PowerUpData> for DoubleDamagePowerUpData {
-    fn borrow(&self) -> &PowerUpData {
-        &self.unit
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
-}
-impl BorrowMut<PowerUpData> for DoubleDamagePowerUpData {
-    fn borrow_mut(&mut self) -> &mut PowerUpData {
-        &mut self.unit
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
-}
-impl Borrow<UnitData> for DoubleDamagePowerUpData {
-    fn borrow(&self) -> &UnitData {
-        self.unit.borrow()
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
-}
-impl BorrowMut<UnitData> for DoubleDamagePowerUpData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        self.unit.borrow_mut()
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::DoubleDamagePowerUp
     }
 }
 
-impl<T: 'static + Borrow<DoubleDamagePowerUpData> + BorrowMut<DoubleDamagePowerUpData> + PowerUp> DoubleDamagePowerUp for  T {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl PowerUp for DoubleDamagePowerUp {
 
 }

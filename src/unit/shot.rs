@@ -1,77 +1,18 @@
 
-use std::sync::Arc;
-use std::sync::Weak;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Player;
 use Connector;
-use UniverseGroup;
 use UniversalEnumerable;
-
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
-use unit::ControllableInfo;
-use controllable::SubDirection;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(Shot);
-pub trait Shot : Unit {
+use unit::ControllableInfo;
+use unit::any_unit::prelude::*;
 
-    /// The [Player] who fired the shot
-    fn player(&self) -> &Weak<Player>;
+use controllable::SubDirection;
 
-    /// The [ControllableInfo] the fired the shot
-    fn controllable_info(&self) -> &Weak<ControllableInfo>;
-
-    /// The [UnitKind] that fired the shot
-    fn originator_kind(&self) -> UnitKind;
-
-    /// The name of the [ControllableInfo] that fired the shot
-    fn originator_name(&self) -> &str;
-
-    fn time(&self) -> u16;
-
-    fn load(&self) -> f32;
-
-    fn hull(&self) -> f32;
-
-    fn hull_max(&self) -> f32;
-
-    fn hull_armor(&self) -> f32;
-
-    fn shield(&self) -> f32;
-
-    fn shield_max(&self) -> f32;
-
-    fn shield_armor(&self) -> f32;
-
-    fn damage_hull(&self) -> f32;
-
-    fn damage_hull_crit(&self) -> f32;
-
-    fn damage_hull_crit_chance(&self) -> f32;
-
-    fn damage_shield(&self) -> f32;
-
-    fn damage_shield_crit(&self) -> f32;
-
-    fn damage_shield_crit_chance(&self) -> f32;
-
-    fn damage_energy(&self) -> f32;
-
-    fn damage_energy_crit(&self) -> f32;
-
-    fn damage_energy_crit_chance(&self) -> f32;
-
-    fn sub_directions(&self) -> &Vec<SubDirection>;
-}
-
-pub struct ShotData {
+pub struct Shot {
     unit:   UnitData,
     player: Weak<Player>,
     info:   Weak<ControllableInfo>,
@@ -97,9 +38,9 @@ pub struct ShotData {
     sub_directions:             Vec<SubDirection>,
 }
 
-impl ShotData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<ShotData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Shot)?;
+impl Shot {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<Shot, Error> {
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
         let kind;
         let name;
         let player;
@@ -129,7 +70,7 @@ impl ShotData {
             },
         }
 
-        Ok(ShotData {
+        Ok(Shot {
             unit,
             originator_kind: kind,
             originator_name: name,
@@ -162,107 +103,160 @@ impl ShotData {
             },
         })
     }
-}
 
+    /// The [Player] who fired the shot
+    pub fn player(&self) -> &Weak<Player> {
+        &self.player
+    }
 
-// implicitly implement Unit
-impl Borrow<UnitData> for ShotData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    /// The [ControllableInfo] the fired the shot
+    pub fn controllable_info(&self) -> &Weak<ControllableInfo> {
+        &self.info
+    }
+
+    /// The [UnitKind] that fired the shot
+    pub fn originator_kind(&self) -> UnitKind {
+        self.originator_kind
+    }
+
+    /// The name of the [ControllableInfo] that fired the shot
+    pub fn originator_name(&self) -> &str {
+        &self.originator_name
+    }
+
+    pub fn time(&self) -> u16 {
+        self.time
+    }
+
+    pub fn load(&self) -> f32 {
+        self.load
+    }
+
+    pub fn hull(&self) -> f32 {
+        self.hull
+    }
+
+    pub fn hull_max(&self) -> f32 {
+        self.hull_max
+    }
+
+    pub fn hull_armor(&self) -> f32 {
+        self.hull_armor
+    }
+
+    pub fn shield(&self) -> f32 {
+        self.shield
+    }
+
+    pub fn shield_max(&self) -> f32 {
+        self.shield_max
+    }
+
+    pub fn shield_armor(&self) -> f32 {
+        self.shield_armor
+    }
+
+    pub fn damage_hull(&self) -> f32 {
+        self.damage_hull
+    }
+
+    pub fn damage_hull_crit(&self) -> f32 {
+        self.damage_hull_crit
+    }
+
+    pub fn damage_hull_crit_chance(&self) -> f32 {
+        self.damage_hull_crit_chance
+    }
+
+    pub fn damage_shield(&self) -> f32 {
+        self.damage_shield
+    }
+
+    pub fn damage_shield_crit(&self) -> f32 {
+        self.damage_shield_crit
+    }
+
+    pub fn damage_shield_crit_chance(&self) -> f32 {
+        self.damage_shield_crit_chance
+    }
+
+    pub fn damage_energy(&self) -> f32 {
+        self.damage_energy
+    }
+
+    pub fn damage_energy_crit(&self) -> f32 {
+        self.damage_energy_crit
+    }
+
+    pub fn damage_energy_crit_chance(&self) -> f32 {
+        self.damage_energy_crit_chance
+    }
+
+    pub fn sub_directions(&self) -> &Vec<SubDirection> {
+        &self.sub_directions
     }
 }
-impl BorrowMut<UnitData> for ShotData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
 
-impl<T: 'static + Borrow<ShotData> + BorrowMut<ShotData> + Unit> Shot for  T {
-    fn player(&self) -> &Weak<Player> {
-        &self.borrow().player
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for Shot {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn controllable_info(&self) -> &Weak<ControllableInfo> {
-        &self.borrow().info
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
 
-    fn originator_kind(&self) -> UnitKind {
-        self.borrow().originator_kind
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
 
-    fn originator_name(&self) -> &str {
-        &self.borrow().originator_name
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
 
-    fn time(&self) -> u16 {
-        self.borrow().time
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
     }
 
-    fn load(&self) -> f32 {
-        self.borrow().load
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
     }
 
-    fn hull(&self) -> f32 {
-        self.borrow().hull
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
     }
 
-    fn hull_max(&self) -> f32 {
-        self.borrow().hull_max
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
     }
 
-    fn hull_armor(&self) -> f32 {
-        self.borrow().hull_armor
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
     }
 
-    fn shield(&self) -> f32 {
-        self.borrow().shield
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
     }
 
-    fn shield_max(&self) -> f32 {
-        self.borrow().shield_max
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
     }
 
-    fn shield_armor(&self) -> f32 {
-        self.borrow().shield_armor
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
     }
 
-    fn damage_hull(&self) -> f32 {
-        self.borrow().damage_hull
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
     }
 
-    fn damage_hull_crit(&self) -> f32 {
-        self.borrow().damage_hull_crit
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
     }
 
-    fn damage_hull_crit_chance(&self) -> f32 {
-        self.borrow().damage_hull_crit_chance
-    }
-
-    fn damage_shield(&self) -> f32 {
-        self.borrow().damage_shield
-    }
-
-    fn damage_shield_crit(&self) -> f32 {
-        self.borrow().damage_shield_crit
-    }
-
-    fn damage_shield_crit_chance(&self) -> f32 {
-        self.borrow().damage_shield_crit_chance
-    }
-
-    fn damage_energy(&self) -> f32 {
-        self.borrow().damage_energy
-    }
-
-    fn damage_energy_crit(&self) -> f32 {
-        self.borrow().damage_energy_crit
-    }
-
-    fn damage_energy_crit_chance(&self) -> f32 {
-        self.borrow().damage_energy_crit_chance
-    }
-
-    fn sub_directions(&self) -> &Vec<SubDirection> {
-        &self.borrow().sub_directions
+    fn kind(&self) -> UnitKind {
+        UnitKind::Shot
     }
 }

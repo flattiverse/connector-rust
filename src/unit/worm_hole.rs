@@ -1,37 +1,21 @@
 
-use std::sync::Arc;
-use std::sync::Weak;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
-use Vector;
-use Universe;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(WormHole);
-pub trait WormHole : Unit {
+use unit::any_unit::prelude::*;
 
-    fn destination(&self) -> &Option<Vector>;
-
-    fn destination_universe(&self) -> &Weak<Universe>;
-}
-
-pub struct WormHoleData {
+pub struct WormHole {
     unit:   UnitData,
     vector: Option<Vector>,
     dest:   Weak<Universe>,
 }
 
-impl WormHoleData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<WormHoleData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::WormHole)?;
+impl WormHole {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<WormHole, Error> {
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
         let vector;
         let dest;
 
@@ -46,33 +30,82 @@ impl WormHoleData {
             dest   = group.universe(reader.read_unsigned_byte()?)
         }
 
-        Ok(WormHoleData {
+        Ok(WormHole {
             unit,
             vector,
             dest
         })
     }
-}
 
-
-// implicitly implement Unit
-impl Borrow<UnitData> for WormHoleData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    pub fn destination(&self) -> &Option<Vector> {
+        &self.vector
     }
-}
-impl BorrowMut<UnitData> for WormHoleData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
+
+    pub fn destination_universe(&self) -> &Weak<Universe> {
+        &self.dest
     }
 }
 
-impl<T: 'static + Borrow<WormHoleData> + BorrowMut<WormHoleData> + Unit> WormHole for  T {
-    fn destination(&self) -> &Option<Vector> {
-        &self.borrow().vector
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for WormHole {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn destination_universe(&self) -> &Weak<Universe> {
-        &self.borrow().dest
+    fn position(&self) -> &Vector {
+        self.unit.position()
+    }
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
+    }
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::WormHole
     }
 }

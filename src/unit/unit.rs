@@ -1,25 +1,15 @@
 
-use std::sync::Arc;
-use std::sync::Weak;
-use std::borrow::Borrow;
-
 use Task;
-use Team;
 use Error;
-use Vector;
 use Connector;
-use UniverseGroup;
-use unit::Mobility;
-use unit::UnitKind;
-use unit::OrbitingState;
+
 use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
-use downcast::Any;
+use unit::any_unit::prelude::*;
 
-downcast!(Unit);
-pub trait Unit : Any + Send + Sync {
+pub trait Unit : Send + Sync {
     fn name(&self) -> &str;
 
     fn position(&self) -> &Vector;
@@ -32,13 +22,13 @@ pub trait Unit : Any + Send + Sync {
 
     fn team(&self) -> &Weak<Team>;
 
-    fn solid(&self) -> bool;
+    fn is_solid(&self) -> bool;
 
-    fn masking(&self) -> bool;
+    fn is_masking(&self) -> bool;
 
-    fn visible(&self) -> bool;
+    fn is_visible(&self) -> bool;
 
-    fn orbiting(&self) -> bool;
+    fn is_orbiting(&self) -> bool;
 
     fn orbiting_center(&self) -> &Option<Vector>;
 
@@ -52,26 +42,25 @@ pub trait Unit : Any + Send + Sync {
 }
 
 
-pub struct UnitData {
-    pub(crate) name: String,
-    pub(crate) position: Vector,
-    pub(crate) movement: Vector,
-    pub(crate) radius: f32,
-    pub(crate) gravity: f32,
-    pub(crate) team: Weak<Team>,
-    pub(crate) solid: bool,
-    pub(crate) masking: bool,
-    pub(crate) visible: bool,
-    pub(crate) orbiting: bool,
-    pub(crate) orbiting_center: Option<Vector>,
-    pub(crate) orbiting_state: Option<Vec<OrbitingState>>,
-    pub(crate) mobility: Mobility,
-    pub(crate) connector: Weak<Connector>,
-    pub(crate) kind: UnitKind, // TODO bad
+pub(crate) struct UnitData {
+    name: String,
+    position: Vector,
+    movement: Vector,
+    radius: f32,
+    gravity: f32,
+    team: Weak<Team>,
+    solid: bool,
+    masking: bool,
+    visible: bool,
+    orbiting: bool,
+    orbiting_center: Option<Vector>,
+    orbiting_state: Option<Vec<OrbitingState>>,
+    mobility: Mobility,
+    connector: Weak<Connector>,
 }
 
 impl UnitData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<UnitData, Error> {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<UnitData, Error> {
         let team = universe_group.team_weak(packet.path_sub());
 
         let name = reader.read_string()?;
@@ -122,13 +111,12 @@ impl UnitData {
             orbiting_state: orbiting_list,
             mobility,
             connector: Arc::downgrade(connector),
-            kind
         })
     }
 
     pub fn new(connector: &Arc<Connector>, _: &UniverseGroup, name: String, radius: f32,
                gravity: f32, position: Vector, movement: Vector, solid: bool, masking: bool,
-               visible: bool, mobility: Mobility, kind: UnitKind) -> UnitData {
+               visible: bool, mobility: Mobility) -> UnitData {
         UnitData {
             connector: Arc::downgrade(connector),
             name,
@@ -146,73 +134,72 @@ impl UnitData {
             orbiting: false,
             orbiting_center: None,
             orbiting_state:  None,
-            kind
         }
     }
 }
 
-impl<T: 'static + Borrow<UnitData> + Send + Sync> Unit for T {
+impl Unit for UnitData {
     fn name(&self) -> &str {
-        &self.borrow().name
+        &self.name
     }
 
     fn position(&self) -> &Vector {
-        &self.borrow().position
+        &self.position
     }
 
     fn movement(&self) -> &Vector {
-        &self.borrow().movement
+        &self.movement
     }
 
     fn radius(&self) -> f32 {
-        self.borrow().radius
+        self.radius
     }
 
     fn gravity(&self) -> f32 {
-        self.borrow().gravity
+        self.gravity
     }
 
     fn team(&self) -> &Weak<Team> {
-        &self.borrow().team
+        &self.team
     }
 
-    fn solid(&self) -> bool {
-        self.borrow().solid
+    fn is_solid(&self) -> bool {
+        self.solid
     }
 
-    fn masking(&self) -> bool {
-        self.borrow().masking
+    fn is_masking(&self) -> bool {
+        self.masking
     }
 
-    fn visible(&self) -> bool {
-        self.borrow().visible
+    fn is_visible(&self) -> bool {
+        self.visible
     }
 
-    fn orbiting(&self) -> bool {
-        self.borrow().orbiting
+    fn is_orbiting(&self) -> bool {
+        self.orbiting
     }
 
     fn orbiting_center(&self) -> &Option<Vector> {
-        &self.borrow().orbiting_center
+        &self.orbiting_center
     }
 
     fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
-        match self.borrow().connector.upgrade() {
+        match self.connector.upgrade() {
             None => println!("Connector reference invalid"),
             Some(ref arc) => arc.register_task_quitely_if_unknown(Task::UsedOrbits),
         };
-        &self.borrow().orbiting_state
+        &self.orbiting_state
     }
 
     fn mobility(&self) -> Mobility {
-        self.borrow().mobility
+        self.mobility
     }
 
     fn connector(&self) -> &Weak<Connector> {
-        &self.borrow().connector
+        &self.connector
     }
 
     fn kind(&self) -> UnitKind {
-        self.borrow().kind
+        unimplemented!("Missing override!")
     }
 }

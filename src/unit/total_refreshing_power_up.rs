@@ -1,58 +1,90 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::UnitData;
-use unit::RefreshingPowerUp;
-use unit::RefreshingPowerUpData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(TotalRefreshingPowerUp);
-pub trait TotalRefreshingPowerUp: RefreshingPowerUp {
+use unit::any_power_up::prelude::*;
 
+pub struct TotalRefreshingPowerUp {
+    unit: PowerUpData,
 }
 
-pub struct TotalRefreshingPowerUpData {
-    unit: RefreshingPowerUpData,
-}
-
-impl TotalRefreshingPowerUpData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<TotalRefreshingPowerUpData, Error> {
-        Ok(TotalRefreshingPowerUpData {
-            unit: RefreshingPowerUpData::from_reader(connector, universe_group, packet, reader, UnitKind::TotalRefreshPowerUp)?
+impl TotalRefreshingPowerUp {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<TotalRefreshingPowerUp, Error> {
+        Ok(TotalRefreshingPowerUp {
+            unit: PowerUpData::from_reader(connector, universe_group, packet, reader)?
         })
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for TotalRefreshingPowerUp {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
 
-// implicitly implement RefreshingPowerUp
-impl Borrow<RefreshingPowerUpData> for TotalRefreshingPowerUpData {
-    fn borrow(&self) -> &RefreshingPowerUpData {
-        &self.unit
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
-}
-impl BorrowMut<RefreshingPowerUpData> for TotalRefreshingPowerUpData {
-    fn borrow_mut(&mut self) -> &mut RefreshingPowerUpData {
-        &mut self.unit
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
-}
-impl Borrow<UnitData> for TotalRefreshingPowerUpData {
-    fn borrow(&self) -> &UnitData {
-        self.unit.borrow()
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
-}
-impl BorrowMut<UnitData> for TotalRefreshingPowerUpData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        self.unit.borrow_mut()
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::TotalRefreshPowerUp
     }
 }
 
-impl<T: 'static + Borrow<TotalRefreshingPowerUpData> + BorrowMut<TotalRefreshingPowerUpData> + RefreshingPowerUp> TotalRefreshingPowerUp for  T {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl PowerUp for TotalRefreshingPowerUp {
 
 }

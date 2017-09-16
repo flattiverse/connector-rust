@@ -1,33 +1,22 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
-use unit::GravityWell;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(BlackHole);
-pub trait BlackHole : Unit {
+use unit::GravityWell;
+use unit::any_unit::prelude::*;
 
-    fn gravity_wells(&self) -> &Vec<GravityWell>;
-}
-
-pub struct BlackHoleData {
+pub struct BlackHole {
     unit:  UnitData,
     wells: Vec<GravityWell>
 }
 
-impl BlackHoleData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<BlackHoleData, Error> {
-        Ok(BlackHoleData {
-            unit:  UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::BlackHole)?,
+impl BlackHole {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<BlackHole, Error> {
+        Ok(BlackHole {
+            unit:  UnitData::from_reader(connector, universe_group, packet, reader)?,
             wells: {
                 let mut vec = Vec::new();
                 let count = reader.read_unsigned_byte()?;
@@ -38,23 +27,72 @@ impl BlackHoleData {
             },
         })
     }
-}
 
-
-// implicitly implement Unit
-impl Borrow<UnitData> for BlackHoleData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
-    }
-}
-impl BorrowMut<UnitData> for BlackHoleData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
+    pub fn gravity_wells(&self) -> &Vec<GravityWell> {
+        &self.wells
     }
 }
 
-impl<T: 'static + Borrow<BlackHoleData> + BorrowMut<BlackHoleData> + Unit> BlackHole for  T {
-    fn gravity_wells(&self) -> &Vec<GravityWell> {
-        &self.borrow().wells
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for BlackHole {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
+
+    fn position(&self) -> &Vector {
+        self.unit.position()
+    }
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
+    }
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::BlackHole
     }
 }

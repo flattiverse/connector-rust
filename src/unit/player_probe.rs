@@ -1,58 +1,100 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::UnitData;
-use unit::PlayerUnit;
-use unit::PlayerUnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(PlayerProbe);
-pub trait PlayerProbe : PlayerUnit {
+use unit::any_player_unit::prelude::*;
 
-}
-
-pub struct PlayerProbeData {
+pub struct PlayerProbe {
     unit: PlayerUnitData,
 }
 
-impl PlayerProbeData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerProbeData, Error> {
-        Ok(PlayerProbeData {
-            unit: PlayerUnitData::from_reader(connector, universe_group, packet, reader, UnitKind::PlayerProbe)?
+impl PlayerProbe {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerProbe, Error> {
+        Ok(PlayerProbe {
+            unit: PlayerUnitData::from_reader(connector, universe_group, packet, reader)?
         })
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for PlayerProbe {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
 
-// implicitly implement PlayerUnit
-impl Borrow<PlayerUnitData> for PlayerProbeData {
-    fn borrow(&self) -> &PlayerUnitData {
-        &self.unit
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
-}
-impl BorrowMut<PlayerUnitData> for PlayerProbeData {
-    fn borrow_mut(&mut self) -> &mut PlayerUnitData {
-        &mut self.unit
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
-}
-impl Borrow<UnitData> for PlayerProbeData {
-    fn borrow(&self) -> &UnitData {
-        self.unit.borrow()
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
-}
-impl BorrowMut<UnitData> for PlayerProbeData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        self.unit.borrow_mut()
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::PlayerProbe
     }
 }
 
-impl<T: 'static + Borrow<PlayerProbeData> + BorrowMut<PlayerProbeData> + PlayerUnit> PlayerProbe for  T {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl PlayerUnit for PlayerProbe {
+    fn player(&self) -> &Weak<Player> {
+        &self.unit.player()
+    }
 
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
+        &self.unit.controllable_info()
+    }
+
+    fn tractorbeam_info(&self) -> &Option<PlayerUnitTractorbeamInfo> {
+        &self.unit.tractorbeam_info()
+    }
 }

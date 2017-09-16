@@ -1,56 +1,13 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(Storm);
-pub trait Storm : Unit {
+use unit::any_unit::prelude::*;
 
-    fn max_whirls(&self) -> u8;
-
-    fn child_min_announcement_time(&self) -> u8;
-
-    fn child_max_announcement_time(&self) -> u8;
-
-    fn child_min_active_time(&self) -> u8;
-
-    fn child_max_active_time(&self) -> u8;
-
-    fn child_min_size(&self) -> f32;
-
-    fn child_max_size(&self) -> f32;
-
-    fn child_min_speed(&self) -> f32;
-
-    fn child_max_speed(&self) -> f32;
-
-    fn child_min_gravity(&self) -> f32;
-
-    fn child_max_gravity(&self) -> f32;
-
-    fn min_hull_damage(&self) -> f32;
-
-    fn max_hull_damage(&self) -> f32;
-
-    fn min_shield_damage(&self) -> f32;
-
-    fn max_shield_damage(&self) -> f32;
-
-    fn min_energy_damage(&self) -> f32;
-
-    fn max_energy_damage(&self) -> f32;
-}
-
-pub struct StormData {
+pub struct Storm {
     unit: UnitData,
     max_whirls: u8,
     child_min_announcement_time:    u8,
@@ -71,10 +28,10 @@ pub struct StormData {
     max_energy_damage:  f32,
 }
 
-impl StormData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<StormData, Error> {
-        Ok(StormData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Storm)?,
+impl Storm {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<Storm, Error> {
+        Ok(Storm {
+            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
             max_whirls:                     reader.read_unsigned_byte()?,
             child_min_announcement_time:    reader.read_unsigned_byte()?,
             child_max_announcement_time:    reader.read_unsigned_byte()?,
@@ -94,87 +51,136 @@ impl StormData {
             max_energy_damage:              reader.read_single()?,
         })
     }
-}
 
+    pub fn max_whirls(&self) -> u8 {
+        self.max_whirls
+    }
 
-// implicitly implement Unit
-impl Borrow<UnitData> for StormData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    pub fn child_min_announcement_time(&self) -> u8 {
+        self.child_min_announcement_time
+    }
+
+    pub fn child_max_announcement_time(&self) -> u8 {
+        self.child_max_announcement_time
+    }
+
+    pub fn child_min_active_time(&self) -> u8 {
+        self.child_min_active_time
+    }
+
+    pub fn child_max_active_time(&self) -> u8 {
+        self.child_max_active_time
+    }
+
+    pub fn child_min_size(&self) -> f32 {
+        self.child_min_size
+    }
+
+    pub fn child_max_size(&self) -> f32 {
+        self.child_max_size
+    }
+
+    pub fn child_min_speed(&self) -> f32 {
+        self.child_min_speed
+    }
+
+    pub fn child_max_speed(&self) -> f32 {
+        self.child_max_speed
+    }
+
+    pub fn child_min_gravity(&self) -> f32 {
+        self.child_min_gravity
+    }
+
+    pub fn child_max_gravity(&self) -> f32 {
+        self.child_max_gravity
+    }
+
+    pub fn min_hull_damage(&self) -> f32 {
+        self.min_hull_damage
+    }
+
+    pub fn max_hull_damage(&self) -> f32 {
+        self.max_hull_damage
+    }
+
+    pub fn min_shield_damage(&self) -> f32 {
+        self.min_shield_damage
+    }
+
+    pub fn max_shield_damage(&self) -> f32 {
+        self.max_shield_damage
+    }
+
+    pub fn min_energy_damage(&self) -> f32 {
+        self.min_energy_damage
+    }
+
+    pub fn max_energy_damage(&self) -> f32 {
+        self.max_energy_damage
     }
 }
-impl BorrowMut<UnitData> for StormData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
 
-impl<T: 'static + Borrow<StormData> + BorrowMut<StormData> + Unit> Storm for  T {
-    fn max_whirls(&self) -> u8 {
-        self.borrow().max_whirls
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for Storm {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn child_min_announcement_time(&self) -> u8 {
-        self.borrow().child_min_announcement_time
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
 
-    fn child_max_announcement_time(&self) -> u8 {
-        self.borrow().child_max_announcement_time
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
 
-    fn child_min_active_time(&self) -> u8 {
-        self.borrow().child_min_active_time
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
 
-    fn child_max_active_time(&self) -> u8 {
-        self.borrow().child_max_active_time
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
     }
 
-    fn child_min_size(&self) -> f32 {
-        self.borrow().child_min_size
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
     }
 
-    fn child_max_size(&self) -> f32 {
-        self.borrow().child_max_size
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
     }
 
-    fn child_min_speed(&self) -> f32 {
-        self.borrow().child_min_speed
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
     }
 
-    fn child_max_speed(&self) -> f32 {
-        self.borrow().child_max_speed
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
     }
 
-    fn child_min_gravity(&self) -> f32 {
-        self.borrow().child_min_gravity
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
     }
 
-    fn child_max_gravity(&self) -> f32 {
-        self.borrow().child_max_gravity
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
     }
 
-    fn min_hull_damage(&self) -> f32 {
-        self.borrow().min_hull_damage
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
     }
 
-    fn max_hull_damage(&self) -> f32 {
-        self.borrow().max_hull_damage
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
     }
 
-    fn min_shield_damage(&self) -> f32 {
-        self.borrow().min_shield_damage
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
     }
 
-    fn max_shield_damage(&self) -> f32 {
-        self.borrow().max_shield_damage
-    }
-
-    fn min_energy_damage(&self) -> f32 {
-        self.borrow().min_energy_damage
-    }
-
-    fn max_energy_damage(&self) -> f32 {
-        self.borrow().max_energy_damage
+    fn kind(&self) -> UnitKind {
+        UnitKind::Storm
     }
 }

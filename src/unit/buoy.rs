@@ -1,55 +1,94 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Task;
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(Buoy);
-pub trait Buoy : Unit {
-    fn message(&self) -> &str;
-}
+use unit::any_unit::prelude::*;
 
-pub struct BuoyData {
+pub struct Buoy {
     unit: UnitData,
     message: String,
 }
 
-impl BuoyData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<BuoyData, Error> {
-        Ok(BuoyData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::Buoy)?,
+impl Buoy {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<Buoy, Error> {
+        Ok(Buoy {
+            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
             message: reader.read_string()?,
         })
     }
-}
 
-
-// implicitly implement Unit
-impl Borrow<UnitData> for BuoyData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
-    }
-}
-impl BorrowMut<UnitData> for BuoyData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
-
-impl<T: 'static + Borrow<BuoyData> + BorrowMut<BuoyData> + Unit> Buoy for  T {
-    fn message(&self) -> &str {
-        if let Some(connector) = self.connector().upgrade() {
+    pub fn message(&self) -> &str {
+        if let Some(connector) = self.unit.connector().upgrade() {
             connector.register_task_quitely_if_unknown(Task::UsedBuoyMessage);
         }
-        &self.borrow().message
+        &self.message
+    }
+}
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for Buoy {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
+
+    fn position(&self) -> &Vector {
+        self.unit.position()
+    }
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
+    }
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::Buoy
     }
 }

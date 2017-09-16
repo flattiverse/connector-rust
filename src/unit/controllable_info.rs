@@ -262,7 +262,7 @@ impl ControllableInfo {
         &self.scores
     }
 
-    pub fn hash_pending_shutdown(&self) -> bool {
+    pub fn has_pending_shutdown(&self) -> bool {
         self.mutable.read().unwrap().pending_shutdown
     }
 

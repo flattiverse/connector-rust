@@ -16,7 +16,7 @@ use Universe;
 use Connector;
 use UniversalEnumerable;
 
-use unit::Unit;
+use unit::AnyUnit;
 use unit::UnitKind;
 use unit::ScanInfo;
 
@@ -224,9 +224,9 @@ pub trait Controllable : Send + Sync {
         Ok(())
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>>;
+    fn scan_list(&self) -> &RwLock<Vec<AnyUnit>>;
 
-    fn scan_area(&self, degree: f32, range: f32) -> Result<Vec<Arc<Unit>>, Error> {
+    fn scan_area(&self, degree: f32, range: f32) -> Result<Vec<AnyUnit>, Error> {
         self.scan_areas(&[ScanInfo::new(
             degree - (self.scanner_degree_per_scan() / 2f32),
             degree + (self.scanner_degree_per_scan() / 2f32),
@@ -234,7 +234,7 @@ pub trait Controllable : Send + Sync {
         )?])
     }
 
-    fn scan_areas(&self, info: &[ScanInfo]) -> Result<Vec<Arc<Unit>>, Error> {
+    fn scan_areas(&self, info: &[ScanInfo]) -> Result<Vec<AnyUnit>, Error> {
         if info.len() > self.scanner_count() as usize {
             return Err(Error::ScanRequestExceedsScannerCount {
                 got: info.len() as u8,
@@ -668,7 +668,7 @@ pub trait Controllable : Send + Sync {
 
     fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error>;
 
-    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error>;
+    fn set_scan_list(&self, list: Vec<AnyUnit>) -> Result<(), Error>;
 
     fn set_active(&self, active: bool) -> Result<(), Error>;
 }
@@ -753,7 +753,7 @@ pub(crate) struct ControllableData {
     pub(crate) scores:      Arc<Scores>,
     pub(crate) universe:    Weak<Universe>,
     pub(crate) connector:   Weak<Connector>,
-    pub(crate) scan_list:   RwLock<Vec<Arc<Unit>>>,
+    pub(crate) scan_list:   RwLock<Vec<AnyUnit>>,
     pub(crate) mutable:     RwLock<ControllableDataMut>,
     pub(crate) crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
     pub(crate) cargo_items: RwLock<Vec<AnyCargoItem>>,
@@ -1189,7 +1189,7 @@ impl Controllable for ControllableData {
         self.mutable.read().unwrap().pending_shutdown
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
+    fn scan_list(&self) -> &RwLock<Vec<AnyUnit>> {
         &self.scan_list
     }
 
@@ -1277,7 +1277,7 @@ impl Controllable for ControllableData {
         Ok(())
     }
 
-    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+    fn set_scan_list(&self, list: Vec<AnyUnit>) -> Result<(), Error> {
         *self.scan_list.write()? = list;
         Ok(())
     }

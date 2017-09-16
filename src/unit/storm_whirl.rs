@@ -1,31 +1,13 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(StormWhirl);
-pub trait StormWhirl : Unit {
+use unit::any_unit::prelude::*;
 
-    /// Remaining time for this [StormWhirl] to be active
-    fn time(&self) -> u8;
-
-    fn hull_damage(&self) -> f32;
-
-    fn shield_damage(&self) -> f32;
-
-    fn energy_damage(&self) -> f32;
-}
-
-pub struct StormWhirlData {
+pub struct StormWhirl {
     unit:           UnitData,
     time:           u8,
     hull_damage:    f32,
@@ -33,45 +15,95 @@ pub struct StormWhirlData {
     energy_damage:  f32,
 }
 
-impl StormWhirlData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<StormWhirlData, Error> {
-        Ok(StormWhirlData {
-            unit:           UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::StormWhirl)?,
+impl StormWhirl {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<StormWhirl, Error> {
+        Ok(StormWhirl {
+            unit:           UnitData::from_reader(connector, universe_group, packet, reader)?,
             time:           reader.read_unsigned_byte()?,
             hull_damage:    reader.read_single()?,
             shield_damage:  reader.read_single()?,
             energy_damage:  reader.read_single()?,
         })
     }
-}
 
+    /// Remaining time for this [StormWhirl] to be active
+    pub fn time(&self) -> u8 {
+        self.time
+    }
 
-// implicitly implement Unit
-impl Borrow<UnitData> for StormWhirlData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    pub fn hull_damage(&self) -> f32 {
+        self.hull_damage
+    }
+
+    pub fn shield_damage(&self) -> f32 {
+        self.shield_damage
+    }
+
+    pub fn energy_damage(&self) -> f32 {
+        self.energy_damage
     }
 }
-impl BorrowMut<UnitData> for StormWhirlData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
 
-impl<T: 'static + Borrow<StormWhirlData> + BorrowMut<StormWhirlData> + Unit> StormWhirl for  T {
-    fn time(&self) -> u8 {
-        self.borrow().time
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for StormWhirl {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn hull_damage(&self) -> f32 {
-        self.borrow().hull_damage
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
 
-    fn shield_damage(&self) -> f32 {
-        self.borrow().shield_damage
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
 
-    fn energy_damage(&self) -> f32 {
-        self.borrow().energy_damage
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::StormWhirl
     }
 }

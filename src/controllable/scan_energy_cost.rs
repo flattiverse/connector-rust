@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::ops::Deref;
 
 use Error;
 use Connector;
@@ -71,9 +72,11 @@ impl ScanEnergyCost {
     }
 }
 
-// implicit 'extends' - kinda
-impl AsRef<EnergyCost> for ScanEnergyCost {
-    fn as_ref(&self) -> &EnergyCost {
+// ScanEnergyCost 'extends' EnergyCost - kinda
+impl Deref for ScanEnergyCost {
+    type Target = EnergyCost;
+
+    fn deref(&self) -> &Self::Target {
         &self.energy_cost
     }
 }

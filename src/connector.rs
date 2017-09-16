@@ -53,13 +53,7 @@ use controllable::Controllable;
 use controllable::AnyControllable;
 use controllable::ControllableDesign;
 
-use unit;
-use unit::Unit;
-use unit::Pixel;
-use unit::PixelData;
-use unit::PixelCluster;
-use unit::PixelClusterData;
-use unit::ControllableInfo;
+use unit::*;
 
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
@@ -609,18 +603,19 @@ impl Connector {
             },
             0x90 => { // scan result entry received
                 let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
-                let group  = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
-                let unit   = unit::unit_from_packet(connector, &group, packet)?;
+                let group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+                let unit = AnyUnit::from_reader(connector, &group, packet, &mut packet.read() as &mut BinaryReader)?;
 
 
                 let controllable = connector.controllable(packet.path_universe())?;
 
-                if unit.is::<PixelClusterData>() {
-                    let pixels = Connector::read_pixels_from_pixel_cluster(connector, unit.downcast_ref::<PixelClusterData>()?)?;
+                if let AnyUnit::PixelCluster(ref cluster) = unit {
+                    let pixels = Connector::read_pixels_from_pixel_cluster(connector, &*cluster)?;
                     let mut scan = controllable.scan_list().write()?;
                     for pixel in pixels.into_iter() {
-                        scan.push(pixel);
+                        scan.push(AnyUnit::Pixel(pixel));
                     }
+
                 } else {
                     controllable.scan_list().write()?.push(unit);
                 }
@@ -683,7 +678,7 @@ impl Connector {
         Ok(crystals)
     }
 
-    fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: &PixelCluster) -> Result<Vec<Arc<Unit>>, Error> {
+    fn read_pixels_from_pixel_cluster(connector: &Arc<Connector>, cluster: &PixelCluster) -> Result<Vec<Arc<Pixel>>, Error> {
         let mut pixels = Vec::new();
         let reader = &mut &cluster.data()[..] as &mut BinaryReader;
 
@@ -701,7 +696,7 @@ impl Connector {
             x_pos = position.x() - cluster.radius() + radius;
 
             for x in 0..16 {
-                let pixel = Arc::new(PixelData::new(
+                let pixel = Arc::new(Pixel::new(
                     connector,
                     &group,
                     format!("{}{:08X}{:08X}", cluster.name(), x, y),
@@ -712,8 +707,8 @@ impl Connector {
                     reader.read_unsigned_byte()?,
                 ));
 
-                if pixel.relevant() {
-                    pixels.push(pixel as Arc<Unit>);
+                if pixel.is_relevant() {
+                    pixels.push(pixel);
                 }
 
                 x_pos += radius * 2_f32;

@@ -336,7 +336,7 @@ impl Controllable for Probe {
         self.controllable.is_pending_shutdown()
     }
 
-    fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
+    fn scan_list(&self) -> &RwLock<Vec<AnyUnit>> {
         self.controllable.scan_list()
     }
 
@@ -356,7 +356,7 @@ impl Controllable for Probe {
         self.controllable.set_cargo_items(items)
     }
 
-    fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
+    fn set_scan_list(&self, list: Vec<AnyUnit>) -> Result<(), Error> {
         self.controllable.set_scan_list(list)
     }
 

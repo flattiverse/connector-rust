@@ -1,18 +1,15 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
 use UniverseGroup;
-use unit::Unit;
+
 use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(AiUnit);
+use unit::any_unit::prelude::*;
+
 pub trait AiUnit : Unit {
 
     fn hull(&self) -> f32;
@@ -28,8 +25,8 @@ pub trait AiUnit : Unit {
     fn shield_armor(&self) -> f32;
 }
 
-pub struct AiUnitData {
-    unit: UnitData,
+pub(crate) struct AiUnitData {
+    unit:           UnitData,
     hull:           f32,
     hull_max:       f32,
     hull_armor:     f32,
@@ -39,9 +36,9 @@ pub struct AiUnitData {
 }
 
 impl AiUnitData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<AiUnitData, Error> {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<AiUnitData, Error> {
         Ok(AiUnitData {
-            unit: UnitData::from_reader(connector, universe_group, packet, reader, kind)?,
+            unit: UnitData::from_reader(connector, universe_group, packet, reader)?,
             hull:           reader.read_single()?,
             hull_max:       reader.read_single()?,
             hull_armor:     reader.read_single()?,
@@ -52,41 +49,92 @@ impl AiUnitData {
     }
 }
 
-
-// implicitly implement Unit
-impl Borrow<UnitData> for AiUnitData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
-    }
-}
-impl BorrowMut<UnitData> for AiUnitData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
-
-impl<T: 'static + Borrow<AiUnitData> + BorrowMut<AiUnitData> + Unit> AiUnit for  T {
+impl AiUnit for AiUnitData {
     fn hull(&self) -> f32 {
-        self.borrow().hull
+        self.hull
     }
 
     fn hull_max(&self) -> f32 {
-        self.borrow().hull_max
+        self.hull_max
     }
 
     fn hull_armor(&self) -> f32 {
-        self.borrow().hull_armor
+        self.hull_armor
     }
 
     fn shield(&self) -> f32 {
-        self.borrow().shield
+        self.shield
     }
 
     fn shield_max(&self) -> f32 {
-        self.borrow().shield_max
+        self.shield_max
     }
 
     fn shield_armor(&self) -> f32 {
-        self.borrow().shield_armor
+        self.shield_armor
+    }
+}
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for AiUnitData {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
+
+    fn position(&self) -> &Vector {
+        self.unit.position()
+    }
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
+    }
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        self.unit.kind()
     }
 }

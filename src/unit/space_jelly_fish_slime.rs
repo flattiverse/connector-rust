@@ -1,34 +1,13 @@
 
-use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
 use Connector;
-use UniverseGroup;
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
+
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(SpaceJellyFishSlime);
-pub trait SpaceJellyFishSlime : Unit {
+use unit::any_unit::prelude::*;
 
-    fn hull(&self) -> f32;
-
-    fn hull_max(&self) -> f32;
-
-    fn hull_armor(&self) -> f32;
-
-    /// The amount of damage this [SpaceJellyFishSlime] can deal
-    fn damage(&self) -> f32;
-
-    /// The time until this [SpaceJellyFishSlime] dissolves
-    fn time(&self) -> u16;
-}
-
-pub struct SpaceJellyFishSlimeData {
+pub struct SpaceJellyFishSlime {
     unit: UnitData,
     hull:       f32,
     hull_max:   f32,
@@ -37,10 +16,10 @@ pub struct SpaceJellyFishSlimeData {
     time:       u16,
 }
 
-impl SpaceJellyFishSlimeData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SpaceJellyFishSlimeData, Error> {
-        Ok(SpaceJellyFishSlimeData {
-            unit:       UnitData::from_reader(connector, universe_group, packet, reader, UnitKind::SpaceJellyFishSlime)?,
+impl SpaceJellyFishSlime {
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<SpaceJellyFishSlime, Error> {
+        Ok(SpaceJellyFishSlime {
+            unit:       UnitData::from_reader(connector, universe_group, packet, reader)?,
             hull:       reader.read_single()?,
             hull_max:   reader.read_single()?,
             hull_armor: reader.read_single()?,
@@ -48,39 +27,90 @@ impl SpaceJellyFishSlimeData {
             time:       reader.read_u16()?,
         })
     }
-}
 
+    pub fn hull(&self) -> f32 {
+        self.hull
+    }
 
-// implicitly implement Unit
-impl Borrow<UnitData> for SpaceJellyFishSlimeData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
+    pub fn hull_max(&self) -> f32 {
+        self.hull_max
+    }
+
+    pub fn hull_armor(&self) -> f32 {
+        self.hull_armor
+    }
+
+    /// The amount of damage this [SpaceJellyFishSlime] can deal
+    pub fn damage(&self) -> f32 {
+        self.damage
+    }
+
+    /// The time until this [SpaceJellyFishSlime] dissolves
+    pub fn time(&self) -> u16 {
+        self.time
     }
 }
-impl BorrowMut<UnitData> for SpaceJellyFishSlimeData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
 
-impl<T: 'static + Borrow<SpaceJellyFishSlimeData> + BorrowMut<SpaceJellyFishSlimeData> + Unit> SpaceJellyFishSlime for  T {
-    fn hull(&self) -> f32 {
-        self.borrow().hull
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for SpaceJellyFishSlime {
+    fn name(&self) -> &str {
+        self.unit.name()
     }
 
-    fn hull_max(&self) -> f32 {
-        self.borrow().hull_max
+    fn position(&self) -> &Vector {
+        self.unit.position()
     }
 
-    fn hull_armor(&self) -> f32 {
-        self.borrow().hull_armor
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
     }
 
-    fn damage(&self) -> f32 {
-        self.borrow().damage
+    fn radius(&self) -> f32 {
+        self.unit.radius()
     }
 
-    fn time(&self) -> u16 {
-        self.borrow().time
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        UnitKind::SpaceJellyFishSlime
     }
 }

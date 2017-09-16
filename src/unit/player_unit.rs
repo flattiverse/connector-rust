@@ -1,43 +1,31 @@
 
-use std::sync::Arc;
-use std::sync::Weak;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
-
 use Error;
-use Player;
 use Connector;
-use UniverseGroup;
-
-use unit::Unit;
-use unit::UnitData;
-use unit::UnitKind;
-use unit::ControllableInfo;
-use unit::PlayerUnitTractorbeamInfo;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(PlayerUnit);
+use unit::any_player_unit::prelude::*;
+
 pub trait PlayerUnit : Unit {
 
     fn player(&self) -> &Weak<Player>;
 
     fn controllable_info(&self) -> &Weak<ControllableInfo>;
 
-    fn tractorbam_info(&self) -> &Option<PlayerUnitTractorbeamInfo>;
+    fn tractorbeam_info(&self) -> &Option<PlayerUnitTractorbeamInfo>;
 }
 
-pub struct PlayerUnitData {
+pub(crate) struct PlayerUnitData {
     unit:   UnitData,
     player: Weak<Player>,
-    c_info:   Weak<ControllableInfo>,
-    b_info:   Option<PlayerUnitTractorbeamInfo>,
+    c_info: Weak<ControllableInfo>,
+    b_info: Option<PlayerUnitTractorbeamInfo>,
 }
 
 impl PlayerUnitData {
-    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader, kind: UnitKind) -> Result<PlayerUnitData, Error> {
-        let unit = UnitData::from_reader(connector, universe_group, packet, reader, kind)?;
+    pub fn from_reader(connector: &Arc<Connector>, universe_group: &UniverseGroup, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitData, Error> {
+        let unit = UnitData::from_reader(connector, universe_group, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         Ok(PlayerUnitData {
             unit,
@@ -58,29 +46,80 @@ impl PlayerUnitData {
     }
 }
 
-
-// implicitly implement Unit
-impl Borrow<UnitData> for PlayerUnitData {
-    fn borrow(&self) -> &UnitData {
-        &self.unit
-    }
-}
-impl BorrowMut<UnitData> for PlayerUnitData {
-    fn borrow_mut(&mut self) -> &mut UnitData {
-        &mut self.unit
-    }
-}
-
-impl<T: 'static + Borrow<PlayerUnitData> + BorrowMut<PlayerUnitData> + Unit> PlayerUnit for  T {
+impl PlayerUnit for PlayerUnitData {
     fn player(&self) -> &Weak<Player> {
-        &self.borrow().player
+        &self.player
     }
 
     fn controllable_info(&self) -> &Weak<ControllableInfo> {
-        &self.borrow().c_info
+        &self.c_info
     }
 
-    fn tractorbam_info(&self) -> &Option<PlayerUnitTractorbeamInfo> {
-        &self.borrow().b_info
+    fn tractorbeam_info(&self) -> &Option<PlayerUnitTractorbeamInfo> {
+        &self.b_info
+    }
+}
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Unit for PlayerUnitData {
+    fn name(&self) -> &str {
+        self.unit.name()
+    }
+
+    fn position(&self) -> &Vector {
+        self.unit.position()
+    }
+
+    fn movement(&self) -> &Vector {
+        self.unit.movement()
+    }
+
+    fn radius(&self) -> f32 {
+        self.unit.radius()
+    }
+
+    fn gravity(&self) -> f32 {
+        self.unit.gravity()
+    }
+
+    fn team(&self) -> &Weak<Team> {
+        self.unit.team()
+    }
+
+    fn is_solid(&self) -> bool {
+        self.unit.is_solid()
+    }
+
+    fn is_masking(&self) -> bool {
+        self.unit.is_masking()
+    }
+
+    fn is_visible(&self) -> bool {
+        self.unit.is_visible()
+    }
+
+    fn is_orbiting(&self) -> bool {
+        self.unit.is_orbiting()
+    }
+
+    fn orbiting_center(&self) -> &Option<Vector> {
+        self.unit.orbiting_center()
+    }
+
+    fn orbiting_states(&self) -> &Option<Vec<OrbitingState>> {
+        self.unit.orbiting_states()
+    }
+
+    fn mobility(&self) -> Mobility {
+        self.unit.mobility()
+    }
+
+    fn connector(&self) -> &Weak<Connector> {
+        self.unit.connector()
+    }
+
+    fn kind(&self) -> UnitKind {
+        unimplemented!();
     }
 }
