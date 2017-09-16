@@ -49,7 +49,6 @@ use net::Connection;
 use net::BinaryWriter;
 use net::BinaryReader;
 
-use controllable::Controllable;
 use controllable::AnyControllable;
 use controllable::ControllableDesign;
 

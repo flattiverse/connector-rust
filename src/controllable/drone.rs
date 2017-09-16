@@ -14,7 +14,7 @@ use controllable::ControllableData;
 use controllable::any_controllable::prelude::*;
 
 pub struct Drone {
-    pub(crate) controllable: ControllableData,
+    controllable: ControllableData,
 }
 
 impl Drone {

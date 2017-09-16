@@ -7,7 +7,6 @@ use std::borrow::BorrowMut;
 use Error;
 use Connector;
 
-use controllable::Controllable;
 use controllable::AnyControllable;
 
 use net::Packet;

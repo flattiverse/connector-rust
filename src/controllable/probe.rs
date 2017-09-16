@@ -14,7 +14,7 @@ use controllable::ControllableData;
 use controllable::any_controllable::prelude::*;
 
 pub struct Probe {
-    pub(crate) controllable: ControllableData,
+    controllable: ControllableData,
 }
 
 impl Probe {
