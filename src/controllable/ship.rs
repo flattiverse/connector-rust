@@ -8,6 +8,7 @@ use Connector;
 use net::Packet;
 use net::BinaryReader;
 
+use controllable::Controllable;
 use controllable::ControllableData;
 
 pub struct Ship {
@@ -25,11 +26,11 @@ impl Ship {
     /// This is only possible for this ship. Everything else has to be rebuilt!
     /// Note: In C# this is called 'Continue()'
     pub fn proceed(&self) -> Result<(), Error> {
-        let connector = self.controllable.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+        let connector = self.connector().upgrade().ok_or(Error::ConnectorNotAvailable)?;
         let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
         let _ = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
 
-        if self.controllable.mutable.read()?.pending_shutdown {
+        if self.pending_shutdown() {
             return Err(Error::PendingShutdown);
         }
 
@@ -40,7 +41,7 @@ impl Ship {
 
         packet.set_command(0x81);
         packet.set_session(block.id());
-        packet.set_path_ship(self.controllable.id);
+        packet.set_path_ship(self.id());
 
         connector.send(&packet)?;
         block.wait()?;
