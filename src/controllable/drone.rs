@@ -25,350 +25,342 @@ impl Drone {
     }
 }
 
-impl AsRef<ControllableData> for Drone {
-    fn as_ref(&self) -> &ControllableData {
-        &self.controllable
-    }
-}
-
-
-
 // TODO replace with delegation directive
 // once standardized: https://github.com/rust-lang/rfcs/pull/1406
 impl Controllable for Drone {
     fn id(&self) -> u8 {
-        self.as_ref().id()
+        self.controllable.id()
     }
 
     fn revision(&self) -> i64 {
-        self.as_ref().revision()
+        self.controllable.revision()
     }
 
     fn class(&self) -> &str {
-        self.as_ref().class()
+        self.controllable.class()
     }
 
     fn name(&self) -> &str {
-        self.as_ref().name()
+        self.controllable.name()
     }
 
     fn level(&self) -> u8 {
-        self.as_ref().level()
+        self.controllable.level()
     }
 
     fn radius(&self) -> f32 {
-        self.as_ref().radius()
+        self.controllable.radius()
     }
 
     fn gravity(&self) -> f32 {
-        self.as_ref().gravity()
+        self.controllable.gravity()
     }
 
     fn efficiency_tactical(&self) -> f32 {
-        self.as_ref().efficiency_tactical()
+        self.controllable.efficiency_tactical()
     }
 
     fn efficiency_economical(&self) -> f32 {
-        self.as_ref().efficiency_economical()
+        self.controllable.efficiency_economical()
     }
 
     fn visible_range_multiplier(&self) -> f32 {
-        self.as_ref().visible_range_multiplier()
+        self.controllable.visible_range_multiplier()
     }
 
     fn energy_max(&self) -> f32 {
-        self.as_ref().energy_max()
+        self.controllable.energy_max()
     }
 
     fn particles_max(&self) -> f32 {
-        self.as_ref().particles_max()
+        self.controllable.particles_max()
     }
 
     fn ions_max(&self) -> f32 {
-        self.as_ref().ions_max()
+        self.controllable.ions_max()
     }
 
     fn energy_cells(&self) -> f32 {
-        self.as_ref().energy_cells()
+        self.controllable.energy_cells()
     }
 
     fn particles_cells(&self) -> f32 {
-        self.as_ref().particles_cells()
+        self.controllable.particles_cells()
     }
 
     fn ions_cells(&self) -> f32 {
-        self.as_ref().ions_cells()
+        self.controllable.ions_cells()
     }
 
     fn energy_reactor(&self) -> f32 {
-        self.as_ref().energy_reactor()
+        self.controllable.energy_reactor()
     }
 
     fn particles_reactor(&self) -> f32 {
-        self.as_ref().particles_reactor()
+        self.controllable.particles_reactor()
     }
 
     fn ions_reactor(&self) -> f32 {
-        self.as_ref().ions_reactor()
+        self.controllable.ions_reactor()
     }
 
     fn hull_max(&self) -> f32 {
-        self.as_ref().hull_max()
+        self.controllable.hull_max()
     }
 
     fn hull_armor(&self) -> f32 {
-        self.as_ref().hull_armor()
+        self.controllable.hull_armor()
     }
 
     fn hull_repair(&self) -> &EnergyCost {
-        self.as_ref().hull_repair()
+        self.controllable.hull_repair()
     }
 
     fn shield_max(&self) -> f32 {
-        self.as_ref().shield_max()
+        self.controllable.shield_max()
     }
 
     fn shield_armor(&self) -> f32 {
-        self.as_ref().shield_armor()
+        self.controllable.shield_armor()
     }
 
     fn shield_load(&self) -> &EnergyCost {
-        self.as_ref().shield_load()
+        self.controllable.shield_load()
     }
 
     fn engine_speed(&self) -> f32 {
-        self.as_ref().engine_speed()
+        self.controllable.engine_speed()
     }
 
     fn engine_acceleration(&self) -> &EnergyCost {
-        self.as_ref().engine_acceleration()
+        self.controllable.engine_acceleration()
     }
 
     fn scanner_degree_per_scan(&self) -> f32 {
-        self.as_ref().scanner_degree_per_scan()
+        self.controllable.scanner_degree_per_scan()
     }
 
     fn scanner_count(&self) -> u8 {
-        self.as_ref().scanner_count()
+        self.controllable.scanner_count()
     }
 
     fn scanner_area(&self) -> &ScanEnergyCost {
-        self.as_ref().scanner_area()
+        self.controllable.scanner_area()
     }
 
     fn weapon_shot(&self) -> &WeaponEnergyCost {
-        self.as_ref().weapon_shot()
+        self.controllable.weapon_shot()
     }
 
     fn weapon_hull(&self) -> f32 {
-        self.as_ref().weapon_hull()
+        self.controllable.weapon_hull()
     }
 
     fn weapon_hull_armor(&self) -> f32 {
-        self.as_ref().weapon_hull_armor()
+        self.controllable.weapon_hull_armor()
     }
 
     fn weapon_shield(&self) -> f32 {
-        self.as_ref().weapon_shield()
+        self.controllable.weapon_shield()
     }
 
     fn weapon_shield_armor(&self) -> f32 {
-        self.as_ref().weapon_shield_armor()
+        self.controllable.weapon_shield_armor()
     }
 
     fn weapon_visible_range_multiplier(&self) -> f32 {
-        self.as_ref().weapon_visible_range_multiplier()
+        self.controllable.weapon_visible_range_multiplier()
     }
 
     fn weapon_gravity(&self) -> f32 {
-        self.as_ref().weapon_gravity()
+        self.controllable.weapon_gravity()
     }
 
     fn weapon_size(&self) -> f32 {
-        self.as_ref().weapon_size()
+        self.controllable.weapon_size()
     }
 
     fn weapon_production(&self) -> f32 {
-        self.as_ref().weapon_production()
+        self.controllable.weapon_production()
     }
 
     fn weapon_production_load(&self) -> f32 {
-        self.as_ref().weapon_production_load()
+        self.controllable.weapon_production_load()
     }
 
     fn weapon_sub_directions(&self) -> u8 {
-        self.as_ref().weapon_sub_directions()
+        self.controllable.weapon_sub_directions()
     }
 
     fn weapon_sub_directions_length(&self) -> f32 {
-        self.as_ref().weapon_sub_directions_length()
+        self.controllable.weapon_sub_directions_length()
     }
 
     fn builder_time(&self) -> f32 {
-        self.as_ref().builder_time()
+        self.controllable.builder_time()
     }
 
     fn builder_time_factory_energy(&self) -> f32 {
-        self.as_ref().builder_time_factory_energy()
+        self.controllable.builder_time_factory_energy()
     }
 
     fn builder_time_factory_particles(&self) -> f32 {
-        self.as_ref().builder_time_factory_particles()
+        self.controllable.builder_time_factory_particles()
     }
 
     fn builder_time_factory_ions(&self) -> f32 {
-        self.as_ref().builder_time_factory_ions()
+        self.controllable.builder_time_factory_ions()
     }
 
     fn builder_capabilities(&self) -> &Vec<UnitKind> {
-        self.as_ref().builder_capabilities()
+        self.controllable.builder_capabilities()
     }
 
     fn energy_transfer_energy(&self) -> &EnergyCost {
-        self.as_ref().energy_transfer_energy()
+        self.controllable.energy_transfer_energy()
     }
 
     fn energy_transfer_particles(&self) -> &EnergyCost {
-        self.as_ref().energy_transfer_particles()
+        self.controllable.energy_transfer_particles()
     }
 
     fn energy_transfer_ions(&self) -> &EnergyCost {
-        self.as_ref().energy_transfer_ions()
+        self.controllable.energy_transfer_ions()
     }
 
     fn cargo_slots(&self) -> u8 {
-        self.as_ref().cargo_slots()
+        self.controllable.cargo_slots()
     }
 
     fn cargo_amount(&self) -> f32 {
-        self.as_ref().cargo_amount()
+        self.controllable.cargo_amount()
     }
 
     fn crystal_converter(&self) -> &EnergyCost {
-        self.as_ref().crystal_converter()
+        self.controllable.crystal_converter()
     }
 
     fn crystal_slots(&self) -> u8 {
-        self.as_ref().crystal_slots()
+        self.controllable.crystal_slots()
     }
 
     fn tractor_beam(&self) -> &EnergyCost {
-        self.as_ref().tractor_beam()
+        self.controllable.tractor_beam()
     }
 
     fn tractor_beam_range(&self) -> f32 {
-        self.as_ref().tractor_beam_range()
+        self.controllable.tractor_beam_range()
     }
 
     fn scores(&self) -> &Arc<Scores> {
-        self.as_ref().scores()
+        self.controllable.scores()
     }
 
     fn energy(&self) -> f32 {
-        self.as_ref().energy()
+        self.controllable.energy()
     }
 
     fn particles(&self) -> f32 {
-        self.as_ref().particles()
+        self.controllable.particles()
     }
 
     fn ions(&self) -> f32 {
-        self.as_ref().ions()
+        self.controllable.ions()
     }
 
     fn hull(&self) -> f32 {
-        self.as_ref().hull()
+        self.controllable.hull()
     }
 
     fn shield(&self) -> f32 {
-        self.as_ref().shield()
+        self.controllable.shield()
     }
 
     fn build_position(&self) -> Option<Vector> {
-        self.as_ref().build_position()
+        self.controllable.build_position()
     }
 
     fn build_progress(&self) -> f32 {
-        self.as_ref().build_progress()
+        self.controllable.build_progress()
     }
 
     fn is_building(&self) -> Option<AnyControllable> {
-        self.as_ref().is_building()
+        self.controllable.is_building()
     }
 
     fn is_built_by(&self) -> Option<AnyControllable> {
-        self.as_ref().is_built_by()
+        self.controllable.is_built_by()
     }
 
     fn weapon_production_status(&self) -> f32 {
-        self.as_ref().weapon_production_status()
+        self.controllable.weapon_production_status()
     }
 
     fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
-        self.as_ref().crystals()
+        self.controllable.crystals()
     }
 
     fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>> {
-        self.as_ref().cargo_items()
+        self.controllable.cargo_items()
     }
 
     fn universe(&self) -> &Weak<Universe> {
-        self.as_ref().universe()
+        self.controllable.universe()
     }
 
     fn haste_time(&self) -> u16 {
-        self.as_ref().haste_time()
+        self.controllable.haste_time()
     }
 
     fn double_damage_time(&self) -> u16 {
-        self.as_ref().double_damage_time()
+        self.controllable.double_damage_time()
     }
 
     fn quad_damage_time(&self) -> u16 {
-        self.as_ref().quad_damage_time()
+        self.controllable.quad_damage_time()
     }
 
     fn cloak_time(&self) -> u16 {
-        self.as_ref().cloak_time()
+        self.controllable.cloak_time()
     }
 
     fn connector(&self) -> &Weak<Connector> {
-        self.as_ref().connector()
+        self.controllable.connector()
     }
 
     fn is_active(&self) -> bool {
-        self.as_ref().is_active()
+        self.controllable.is_active()
     }
 
     fn is_pending_shutdown(&self) -> bool {
-        self.as_ref().is_pending_shutdown()
+        self.controllable.is_pending_shutdown()
     }
 
     fn scan_list(&self) -> &RwLock<Vec<Arc<Unit>>> {
-        self.as_ref().scan_list()
+        self.controllable.scan_list()
     }
 
     fn update(&self, packet: &Packet) -> Result<(), Error> {
-        self.as_ref().update(packet)
+        self.controllable.update(packet)
     }
 
     fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
-        self.as_ref().update_extended(packet)
+        self.controllable.update_extended(packet)
     }
 
     fn set_crystals(&self, crystals: Vec<Arc<CrystalCargoItem>>) -> Result<(), Error> {
-        self.as_ref().set_crystals(crystals)
+        self.controllable.set_crystals(crystals)
     }
 
     fn set_cargo_items(&self, items: Vec<AnyCargoItem>) -> Result<(), Error> {
-        self.as_ref().set_cargo_items(items)
+        self.controllable.set_cargo_items(items)
     }
 
     fn set_scan_list(&self, list: Vec<Arc<Unit>>) -> Result<(), Error> {
-        self.as_ref().set_scan_list(list)
+        self.controllable.set_scan_list(list)
     }
 
     fn set_active(&self, active: bool) -> Result<(), Error> {
-        self.as_ref().set_active(active)
+        self.controllable.set_active(active)
     }
 }
