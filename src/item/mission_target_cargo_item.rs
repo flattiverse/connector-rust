@@ -23,7 +23,7 @@ impl MissionTargetCargoItem {
 
 impl CargoItem for MissionTargetCargoItem {
     fn weight(&self) -> f32 {
-        self.cargo.weight
+        self.cargo.weight()
     }
 
     fn kind(&self) -> CargoItemKind {

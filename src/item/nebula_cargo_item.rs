@@ -45,7 +45,7 @@ impl NebulaCargoItem {
 
 impl CargoItem for NebulaCargoItem {
     fn weight(&self) -> f32 {
-        self.cargo.weight
+        self.cargo.weight()
     }
 
     fn kind(&self) -> CargoItemKind {
