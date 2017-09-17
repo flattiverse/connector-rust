@@ -1,99 +1,75 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
 use UniversalEnumerable;
 
-use unit::UnitKind;
-
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessageData;
-use message::PlayerUnitDeceasedMessage;
-use message::PlayerUnitDeceasedMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use unit::UnitKind;
 
-downcast!(PlayerUnitShotByUnitMessage);
-pub trait PlayerUnitShotByUnitMessage : PlayerUnitDeceasedMessage {
+use message::any_player_unit_deceased_message::prelude::*;
 
-    fn collider_unit_kind(&self) -> UnitKind;
-
-    fn collider_unit_name(&self) -> &str;
-}
-
-pub struct PlayerUnitShotByUnitMessageData {
+pub struct PlayerUnitShotByUnitMessage {
     data:   PlayerUnitDeceasedMessageData,
     kind:   UnitKind,
     name:   String,
 }
 
-impl PlayerUnitShotByUnitMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitShotByUnitMessageData, Error> {
-        Ok(PlayerUnitShotByUnitMessageData {
+impl PlayerUnitShotByUnitMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitShotByUnitMessage, Error> {
+        Ok(PlayerUnitShotByUnitMessage {
             data:   PlayerUnitDeceasedMessageData::from_packet(connector, packet, reader)?,
             kind:   UnitKind::from_id(reader.read_byte()?),
             name:   reader.read_string()?,
         })
     }
-}
 
+    pub fn collider_unit_kind(&self) -> UnitKind {
+        self.kind
+    }
 
-
-impl Borrow<GameMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data.borrow()
-    }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        self.data.borrow_mut()
-    }
-}
-impl Borrow<PlayerUnitDeceasedMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow(&self) -> &PlayerUnitDeceasedMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<PlayerUnitDeceasedMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow_mut(&mut self) -> &mut PlayerUnitDeceasedMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &PlayerUnitDeceasedMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitShotByUnitMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut PlayerUnitDeceasedMessageData).borrow_mut()
+    pub fn collider_unit_name(&self) -> &str {
+        &self.name
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerUnitShotByUnitMessageData> + BorrowMut<PlayerUnitShotByUnitMessageData> + PlayerUnitDeceasedMessage> PlayerUnitShotByUnitMessage for T {
-    fn collider_unit_kind(&self) -> UnitKind {
-        self.borrow().kind
-    }
-
-    fn collider_unit_name(&self) -> &str {
-        &self.borrow().name
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitShotByUnitMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerUnitShotByUnitMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitShotByUnitMessage {
+
+}
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl PlayerUnitDeceasedMessage for PlayerUnitShotByUnitMessage {
+    fn deceased_player_unit_player(&self) -> &Arc<Player> {
+        self.data.deceased_player_unit_player()
+    }
+
+    fn deceased_player_unit(&self) -> &Arc<ControllableInfo> {
+        self.data.deceased_player_unit()
+    }
+}
+
+impl fmt::Display for PlayerUnitShotByUnitMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' has been killed by {:?} '{}'.",
-            (self as &FlattiverseMessage).timestamp(),
-            (self as &PlayerUnitDeceasedMessage).deceased_player_unit().kind(),
-            (self as &PlayerUnitDeceasedMessage).deceased_player_unit().name(),
-            (self as &PlayerUnitDeceasedMessage).deceased_player_unit_player().name(),
+            self.timestamp(),
+            self.deceased_player_unit().kind(),
+            self.deceased_player_unit().name(),
+            self.deceased_player_unit_player().name(),
             self.kind,
             self.name
         )

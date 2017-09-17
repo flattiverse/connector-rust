@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -13,24 +11,9 @@ use UniverseGroup;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(PlayerKickedFromUniverseGroupMessage);
-pub trait PlayerKickedFromUniverseGroupMessage : GameMessage {
-
-    fn player(&self) -> &Arc<Player>;
-
-    fn universe_group(&self) -> &Arc<UniverseGroup>;
-
-    fn team(&self) -> &Arc<Team>;
-
-    fn reason(&self) -> &str;
-}
-
-pub struct PlayerKickedFromUniverseGroupMessageData {
+pub struct PlayerKickedFromUniverseGroupMessage {
     data:   GameMessageData,
     player: Arc<Player>,
     group:  Arc<UniverseGroup>,
@@ -38,14 +21,14 @@ pub struct PlayerKickedFromUniverseGroupMessageData {
     reason: String,
 }
 
-impl PlayerKickedFromUniverseGroupMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerKickedFromUniverseGroupMessageData, Error> {
+impl PlayerKickedFromUniverseGroupMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerKickedFromUniverseGroupMessage, Error> {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         let group = connector.universe_group(reader.read_u16()?)?;
         let team = group.team(reader.read_unsigned_byte()?)?;
 
-        Ok(PlayerKickedFromUniverseGroupMessageData {
+        Ok(PlayerKickedFromUniverseGroupMessage {
             data,
             player,
             group,
@@ -53,52 +36,42 @@ impl PlayerKickedFromUniverseGroupMessageData {
             reason: reader.read_string()?,
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerKickedFromUniverseGroupMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn player(&self) -> &Arc<Player> {
+        &self.player
     }
-}
-impl BorrowMut<GameMessageData> for PlayerKickedFromUniverseGroupMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
+
+    pub fn universe_group(&self) -> &Arc<UniverseGroup> {
+        &self.group
     }
-}
-impl Borrow<FlattiverseMessageData> for PlayerKickedFromUniverseGroupMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
+
+    pub fn team(&self) -> &Arc<Team> {
+        &self.team
     }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerKickedFromUniverseGroupMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn reason(&self) -> &str {
+        &self.reason
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerKickedFromUniverseGroupMessageData> + BorrowMut<PlayerKickedFromUniverseGroupMessageData> + GameMessage> PlayerKickedFromUniverseGroupMessage for T {
-    fn player(&self) -> &Arc<Player> {
-        &self.borrow().player
-    }
-
-    fn universe_group(&self) -> &Arc<UniverseGroup> {
-        &self.borrow().group
-    }
-
-    fn team(&self) -> &Arc<Team> {
-        &self.borrow().team
-    }
-
-    fn reason(&self) -> &str {
-        &self.borrow().reason
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerKickedFromUniverseGroupMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerKickedFromUniverseGroupMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerKickedFromUniverseGroupMessage {
+
+}
+
+impl fmt::Display for PlayerKickedFromUniverseGroupMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] Player {} from Team {} has been kicked from the game: {}.",
-            (self as &FlattiverseMessage).timestamp(),
+            self.timestamp(),
             self.player.name(),
             self.team.name(),
             self.reason()

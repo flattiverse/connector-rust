@@ -1,82 +1,58 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Player;
 use Connector;
+
 use net::Packet;
 use net::BinaryReader;
 
-use message::ChatMessage;
-use message::ChatMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_chat_message::prelude::*;
 
-downcast!(UnicastChatMessage);
-pub trait UnicastChatMessage : ChatMessage {
-
-    fn to(&self) -> &Arc<Player>;
-
-    fn message(&self) -> &str;
-}
-
-pub struct UnicastChatMessageData {
+pub struct UnicastChatMessage {
     data:   ChatMessageData,
     to:     Arc<Player>,
     message:String,
 }
 
-impl UnicastChatMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<UnicastChatMessageData, Error> {
-        Ok(UnicastChatMessageData {
+impl UnicastChatMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<UnicastChatMessage, Error> {
+        Ok(UnicastChatMessage {
             data:   ChatMessageData::from_packet(connector, packet, reader)?,
             to:     connector.player_for(reader.read_u16()?)?,
             message:reader.read_string()?,
         })
     }
-}
 
-impl Borrow<ChatMessageData> for UnicastChatMessageData {
-    fn borrow(&self) -> &ChatMessageData {
-        &self.data
+    pub fn to(&self) -> &Arc<Player> {
+        &self.to
     }
-}
-impl BorrowMut<ChatMessageData> for UnicastChatMessageData {
-    fn borrow_mut(&mut self) -> &mut ChatMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for UnicastChatMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &ChatMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for UnicastChatMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut ChatMessageData).borrow_mut()
+
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 
-
-impl<T: 'static + Borrow<UnicastChatMessageData> + BorrowMut<UnicastChatMessageData> + ChatMessage> UnicastChatMessage for T {
-    fn to(&self) -> &Arc<Player> {
-        &self.borrow().to
-    }
-
-    fn message(&self) -> &str {
-        &self.borrow().message
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for UnicastChatMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for UnicastChatMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl ChatMessage for UnicastChatMessage {
+    fn from(&self) -> &Arc<Player> {
+        self.data.from()
+    }
+}
+
+impl fmt::Display for UnicastChatMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}] <{}> {}",
-               (self as &FlattiverseMessage).timestamp(),
-               (self as &ChatMessage).from().name(),
-               self.message
-        )
+        write!(f, "[{}] <{}> {}", self.timestamp(), self.from().name(), self.message())
     }
 }

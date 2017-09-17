@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
@@ -11,73 +9,60 @@ use UniversalEnumerable;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessageData;
-use message::FlattiverseMessageData;
-use message::PlayerUnitBuildMessage;
-use message::PlayerUnitBuildMessageData;
+use message::any_player_unit_build_message::prelude::*;
 
-downcast!(PlayerUnitBuildStartMessage);
-pub trait PlayerUnitBuildStartMessage : PlayerUnitBuildMessage {
-}
-
-pub struct PlayerUnitBuildStartMessageData {
+pub struct PlayerUnitBuildStartMessage {
     data:   PlayerUnitBuildMessageData,
 }
 
-impl PlayerUnitBuildStartMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitBuildStartMessageData, Error> {
-        Ok(PlayerUnitBuildStartMessageData {
+impl PlayerUnitBuildStartMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitBuildStartMessage, Error> {
+        Ok(PlayerUnitBuildStartMessage {
             data: PlayerUnitBuildMessageData::from_packet(connector, packet, reader)?,
         })
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitBuildStartMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
+    }
+}
 
-impl Borrow<PlayerUnitBuildMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow(&self) -> &PlayerUnitBuildMessageData {
-        &self.data
-    }
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitBuildStartMessage {
+
 }
-impl BorrowMut<PlayerUnitBuildMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow_mut(&mut self) -> &mut PlayerUnitBuildMessageData {
-        &mut self.data
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl PlayerUnitBuildMessage for PlayerUnitBuildStartMessage {
+    fn player(&self) -> &Arc<Player> {
+        self.data.player()
     }
-}
-impl Borrow<GameMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        (self.borrow() as &PlayerUnitBuildMessageData).borrow()
+
+    fn player_unit(&self) -> &Arc<ControllableInfo> {
+        self.data.player_unit()
     }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        (self.borrow_mut() as &mut PlayerUnitBuildMessageData).borrow_mut()
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitBuildStartMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    fn player_unit_builder(&self) -> &Arc<ControllableInfo> {
+        self.data.player_unit_builder()
     }
 }
 
 
-impl<T: 'static + Borrow<PlayerUnitBuildStartMessageData> + BorrowMut<PlayerUnitBuildStartMessageData> + PlayerUnitBuildMessage> PlayerUnitBuildStartMessage for T {
-
-}
-
-impl fmt::Display for PlayerUnitBuildStartMessageData {
+impl fmt::Display for PlayerUnitBuildStartMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} {} of {} starts building a {:?} with the name {}.",
-               (self as &PlayerUnitBuildMessage).timestamp(),
-               (self as &PlayerUnitBuildMessage).player_unit_builder().kind(),
-               (self as &PlayerUnitBuildMessage).player_unit_builder().name(),
-               (self as &PlayerUnitBuildMessage).player().name(),
-               (self as &PlayerUnitBuildMessage).player_unit().kind(),
-               (self as &PlayerUnitBuildMessage).player_unit().name(),
+               self.timestamp(),
+               self.player_unit_builder().kind(),
+               self.player_unit_builder().name(),
+               self.player().name(),
+               self.player_unit().kind(),
+               self.player_unit().name(),
         )
     }
 }

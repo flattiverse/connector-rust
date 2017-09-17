@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -13,84 +11,61 @@ use UniverseGroup;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(PlayerDroppedFromUniverseGroupMessage);
-pub trait PlayerDroppedFromUniverseGroupMessage : GameMessage {
-
-    fn player(&self) -> &Arc<Player>;
-
-    fn universe_group(&self) -> &Arc<UniverseGroup>;
-
-    fn team(&self) -> &Arc<Team>;
-}
-
-pub struct PlayerDroppedFromUniverseGroupMessageData {
+pub struct PlayerDroppedFromUniverseGroupMessage {
     data:   GameMessageData,
     player: Arc<Player>,
     group:  Arc<UniverseGroup>,
     team:   Arc<Team>,
 }
 
-impl PlayerDroppedFromUniverseGroupMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerDroppedFromUniverseGroupMessageData, Error> {
+impl PlayerDroppedFromUniverseGroupMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerDroppedFromUniverseGroupMessage, Error> {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
         let group = connector.universe_group(reader.read_u16()?)?;
         let team = group.team(reader.read_unsigned_byte()?)?;
 
-        Ok(PlayerDroppedFromUniverseGroupMessageData {
+        Ok(PlayerDroppedFromUniverseGroupMessage {
             data,
             player,
             group,
             team
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerDroppedFromUniverseGroupMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn player(&self) -> &Arc<Player> {
+        &self.player
     }
-}
-impl BorrowMut<GameMessageData> for PlayerDroppedFromUniverseGroupMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
+
+    pub fn universe_group(&self) -> &Arc<UniverseGroup> {
+        &self.group
     }
-}
-impl Borrow<FlattiverseMessageData> for PlayerDroppedFromUniverseGroupMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerDroppedFromUniverseGroupMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn team(&self) -> &Arc<Team> {
+        &self.team
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerDroppedFromUniverseGroupMessageData> + BorrowMut<PlayerDroppedFromUniverseGroupMessageData> + GameMessage> PlayerDroppedFromUniverseGroupMessage for T {
-    fn player(&self) -> &Arc<Player> {
-        &self.borrow().player
-    }
-
-    fn universe_group(&self) -> &Arc<UniverseGroup> {
-        &self.borrow().group
-    }
-
-    fn team(&self) -> &Arc<Team> {
-        &self.borrow().team
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerDroppedFromUniverseGroupMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerDroppedFromUniverseGroupMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerDroppedFromUniverseGroupMessage {
+
+}
+
+impl fmt::Display for PlayerDroppedFromUniverseGroupMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] Player {} from Team {} got dropped from the game.",
-            (self as &FlattiverseMessage).timestamp(),
+            self.timestamp(),
             self.player.name(),
             self.team.name(),
         )

@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Player;
@@ -15,24 +13,9 @@ use unit::ControllableInfo;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(GateSwitchedMessage);
-pub trait GateSwitchedMessage : GameMessage {
-
-    fn invoker_player(&self) -> &Option<Arc<Player>>;
-
-    fn invoker_player_info(&self) -> &Option<Arc<ControllableInfo>>;
-
-    fn switch_string(&self) -> &str;
-
-    fn gates(&self) -> &Vec<GateSwitchInfo>;
-}
-
-pub struct GateSwitchedMessageData {
+pub struct GateSwitchedMessage {
     data:   GameMessageData,
     player: Option<Arc<Player>>,
     info:   Option<Arc<ControllableInfo>>,
@@ -40,8 +23,8 @@ pub struct GateSwitchedMessageData {
     gates:  Vec<GateSwitchInfo>,
 }
 
-impl GateSwitchedMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<GateSwitchedMessageData, Error> {
+impl GateSwitchedMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<GateSwitchedMessage, Error> {
         let data = GameMessageData::from_packet(connector, packet, reader)?;
         let invoked = reader.read_bool()?;
         let player;
@@ -58,7 +41,7 @@ impl GateSwitchedMessageData {
             info   = None;
         }
 
-        Ok(GateSwitchedMessageData {
+        Ok(GateSwitchedMessage {
             data,
             player,
             info,
@@ -73,67 +56,52 @@ impl GateSwitchedMessageData {
             },
         })
     }
-}
 
-impl Borrow<GameMessageData> for GateSwitchedMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn invoker_player(&self) -> &Option<Arc<Player>> {
+        &self.player
     }
-}
-impl BorrowMut<GameMessageData> for GateSwitchedMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
+
+    pub fn invoker_player_info(&self) -> &Option<Arc<ControllableInfo>> {
+        &self.info
     }
-}
-impl Borrow<FlattiverseMessageData> for GateSwitchedMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
+
+    pub fn switch_string(&self) -> &str {
+        &self.switch
     }
-}
-impl BorrowMut<FlattiverseMessageData> for GateSwitchedMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn gates(&self) -> &Vec<GateSwitchInfo> {
+        &self.gates
     }
 }
 
-
-impl<T: 'static + Borrow<GateSwitchedMessageData> + BorrowMut<GateSwitchedMessageData> + GameMessage> GateSwitchedMessage for T {
-    fn invoker_player(&self) -> &Option<Arc<Player>> {
-        &self.borrow().player
-    }
-
-    fn invoker_player_info(&self) -> &Option<Arc<ControllableInfo>> {
-        &self.borrow().info
-    }
-
-    fn switch_string(&self) -> &str {
-        &self.borrow().switch
-    }
-
-    fn gates(&self) -> &Vec<GateSwitchInfo> {
-        &self.borrow().gates
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for GateSwitchedMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for GateSwitchedMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for GateSwitchedMessage {
+
+}
+
+impl fmt::Display for GateSwitchedMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}] ", (self as &FlattiverseMessage).timestamp())?;
+        write!(f, "[{}] ", self.timestamp())?;
 
         if self.player.is_some() {
             let info = self.info.clone().unwrap();
             let player = self.player.clone().unwrap();
-            write!(f, "{:?} of {}",
-                info.name(),
-                player.name(),
-            )?;
+            write!(f, "{:?} of {}", info.name(), player.name())?;
+
         } else {
             write!(f, "A neutral unit ")?;
         }
 
-        write!(f, " triggered Switch {}. {} Gate",
-            self.switch,
-            self.gates.len()
-        )?;
+        write!(f, " triggered Switch {}. {} Gate", self.switch, self.gates.len())?;
 
         if self.gates.len() > 0 {
             write!(f, "s")?;

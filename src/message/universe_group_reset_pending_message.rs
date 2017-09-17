@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use TimeSpan;
@@ -13,71 +11,50 @@ use UniversalEnumerable;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(UniverseGroupResetPendingMessage);
-pub trait UniverseGroupResetPendingMessage : GameMessage {
-
-    fn universe_group(&self) -> &Arc<UniverseGroup>;
-
-    fn remaining_time(&self) -> &TimeSpan;
-}
-
-pub struct UniverseGroupResetPendingMessageData {
+pub struct UniverseGroupResetPendingMessage {
     data:   GameMessageData,
     group:  Arc<UniverseGroup>,
     time:   TimeSpan,
 }
 
-impl UniverseGroupResetPendingMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<UniverseGroupResetPendingMessageData, Error> {
-        Ok(UniverseGroupResetPendingMessageData {
+impl UniverseGroupResetPendingMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<UniverseGroupResetPendingMessage, Error> {
+        Ok(UniverseGroupResetPendingMessage {
             data:  GameMessageData::from_packet(connector, packet, reader)?,
             group: connector.universe_group(reader.read_u16()?)?,
             time:  TimeSpan::from_reader(reader)?,
         })
     }
-}
 
-impl Borrow<GameMessageData> for UniverseGroupResetPendingMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn universe_group(&self) -> &Arc<UniverseGroup> {
+        &self.group
     }
-}
-impl BorrowMut<GameMessageData> for UniverseGroupResetPendingMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for UniverseGroupResetPendingMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for UniverseGroupResetPendingMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn remaining_time(&self) -> &TimeSpan {
+        &self.time
     }
 }
 
-
-impl<T: 'static + Borrow<UniverseGroupResetPendingMessageData> + BorrowMut<UniverseGroupResetPendingMessageData> + GameMessage> UniverseGroupResetPendingMessage for T {
-    fn universe_group(&self) -> &Arc<UniverseGroup> {
-        &self.borrow().group
-    }
-
-    fn remaining_time(&self) -> &TimeSpan {
-        &self.borrow().time
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for UniverseGroupResetPendingMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for UniverseGroupResetPendingMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for UniverseGroupResetPendingMessage {
+
+}
+
+impl fmt::Display for UniverseGroupResetPendingMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] UniverseGroup {} pending reset in {} seconds.",
-            (self as &FlattiverseMessage).timestamp(),
+            self.timestamp(),
             self.group.name(),
             self.time.seconds()+1,
         )

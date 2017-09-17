@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -11,30 +9,18 @@ use Connector;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(TargetDedominationStartedMessage);
-pub trait TargetDedominationStartedMessage : GameMessage {
-    fn mission_target_name(&self) -> &str;
-
-    fn mission_target_team(&self) -> &Option<Arc<Team>>;
-
-    fn mission_target_team_old(&self) -> &Option<Arc<Team>>;
-}
-
-pub struct TargetDedominationStartedMessageData {
+pub struct TargetDedominationStartedMessage {
     data:       GameMessageData,
     name:       String,
     team:       Option<Arc<Team>>,
     team_old:   Option<Arc<Team>>,
 }
 
-impl TargetDedominationStartedMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TargetDedominationStartedMessageData, Error> {
-        Ok(TargetDedominationStartedMessageData {
+impl TargetDedominationStartedMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<TargetDedominationStartedMessage, Error> {
+        Ok(TargetDedominationStartedMessage {
             data:   GameMessageData::from_packet(connector, packet, reader)?,
             name:   reader.read_string()?,
             team:   {
@@ -63,48 +49,37 @@ impl TargetDedominationStartedMessageData {
             },
         })
     }
-}
 
-impl Borrow<GameMessageData> for TargetDedominationStartedMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn mission_target_name(&self) -> &str {
+        &self.name
     }
-}
-impl BorrowMut<GameMessageData> for TargetDedominationStartedMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
+
+    pub fn mission_target_team(&self) -> &Option<Arc<Team>> {
+        &self.team
     }
-}
-impl Borrow<FlattiverseMessageData> for TargetDedominationStartedMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for TargetDedominationStartedMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn mission_target_team_old(&self) -> &Option<Arc<Team>> {
+        &self.team_old
     }
 }
 
-
-impl<T: 'static + Borrow<TargetDedominationStartedMessageData> + BorrowMut<TargetDedominationStartedMessageData> + GameMessage> TargetDedominationStartedMessage for T {
-
-    fn mission_target_name(&self) -> &str {
-        &self.borrow().name
-    }
-
-    fn mission_target_team(&self) -> &Option<Arc<Team>> {
-        &self.borrow().team
-    }
-
-    fn mission_target_team_old(&self) -> &Option<Arc<Team>> {
-        &self.borrow().team_old
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for TargetDedominationStartedMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for TargetDedominationStartedMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for TargetDedominationStartedMessage {
+
+}
+
+impl fmt::Display for TargetDedominationStartedMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{}] ", (self as &FlattiverseMessage).timestamp())?;
+        write!(f, "[{}] ", self.timestamp())?;
 
         if let Some(ref team) = self.team {
             write!(f, "Team \"{}\" ", team.name())?;

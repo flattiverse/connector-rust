@@ -1,39 +1,26 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
 
-use controllable::AnyControllable;
-
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use controllable::AnyControllable;
 
-downcast!(PlayerUnitJumpedMessage);
-pub trait PlayerUnitJumpedMessage : GameMessage {
+use message::any_game_message::prelude::*;
 
-    fn controllable(&self) -> &AnyControllable;
-
-    fn inter_universe(&self) -> bool;
-}
-
-pub struct PlayerUnitJumpedMessageData {
+pub struct PlayerUnitJumpedMessage {
     data:   GameMessageData,
     info:   AnyControllable,
     inter:  bool,
 }
 
-impl PlayerUnitJumpedMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitJumpedMessageData, Error> {
-        Ok(PlayerUnitJumpedMessageData {
+impl PlayerUnitJumpedMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitJumpedMessage, Error> {
+        Ok(PlayerUnitJumpedMessage {
             data:   GameMessageData::from_packet(connector, packet, reader)?,
             inter:  reader.read_bool()?,
             info:   {
@@ -42,44 +29,34 @@ impl PlayerUnitJumpedMessageData {
             }
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerUnitJumpedMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn controllable(&self) -> &AnyControllable {
+        &self.info
     }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitJumpedMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitJumpedMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitJumpedMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn is_inter_universe(&self) -> bool {
+        self.inter
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerUnitJumpedMessageData> + BorrowMut<PlayerUnitJumpedMessageData> + GameMessage> PlayerUnitJumpedMessage for T {
-    fn controllable(&self) -> &AnyControllable {
-        &self.borrow().info
-    }
-
-    fn inter_universe(&self) -> bool {
-        self.borrow().inter
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitJumpedMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerUnitJumpedMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitJumpedMessage {
+
+}
+
+impl fmt::Display for PlayerUnitJumpedMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} {}",
-               (self as &FlattiverseMessage).timestamp(),
+               self.timestamp(),
                match self.info {
                    AnyControllable::Platform(_) => "Platform",
                    AnyControllable::Probe   (_) => "Probe",

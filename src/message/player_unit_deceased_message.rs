@@ -1,23 +1,15 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
-use Player;
 use Connector;
-
-use unit::ControllableInfo;
 
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessageData;
+use message::any_player_unit_deceased_message::prelude::*;
 
-downcast!(PlayerUnitDeceasedMessage);
 pub trait PlayerUnitDeceasedMessage : GameMessage {
 
     fn deceased_player_unit_player(&self) -> &Arc<Player>;
@@ -46,35 +38,27 @@ impl PlayerUnitDeceasedMessageData {
     }
 }
 
-impl Borrow<GameMessageData> for PlayerUnitDeceasedMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitDeceasedMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitDeceasedMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitDeceasedMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitDeceasedMessageData {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitDeceasedMessageData {
 
-impl<T: 'static + Borrow<PlayerUnitDeceasedMessageData> + BorrowMut<PlayerUnitDeceasedMessageData> + GameMessage> PlayerUnitDeceasedMessage for T {
+}
+
+impl PlayerUnitDeceasedMessage for PlayerUnitDeceasedMessageData {
     fn deceased_player_unit_player(&self) -> &Arc<Player> {
-        &self.borrow().player
+        &self.player
     }
 
     fn deceased_player_unit(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().info
+        &self.info
     }
 }
 

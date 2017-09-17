@@ -1,27 +1,22 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Player;
 use Connector;
 
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
-
 use net::Packet;
 use net::BinaryReader;
 
+use message::any_chat_message::prelude::*;
 
-downcast!(ChatMessage);
-pub trait ChatMessage : FlattiverseMessage {
+pub trait ChatMessage : Message {
     fn from(&self) -> &Arc<Player>;
 }
 
-pub struct ChatMessageData {
-    data: FlattiverseMessageData,
+pub(crate) struct ChatMessageData {
+    data: MessageData,
     from: Arc<Player>
 }
 
@@ -29,26 +24,23 @@ pub struct ChatMessageData {
 impl ChatMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<ChatMessageData, Error> {
         Ok(ChatMessageData {
-            data:   FlattiverseMessageData::from_packet(connector, packet, reader)?,
+            data:   MessageData::from_packet(connector, packet, reader)?,
             from:   connector.player_for(reader.read_u16()?)?
         })
     }
 }
 
-impl Borrow<FlattiverseMessageData> for ChatMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for ChatMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        &mut self.data
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for ChatMessageData {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl<T: 'static + Borrow<ChatMessageData> + FlattiverseMessage> ChatMessage for T {
+impl ChatMessage for ChatMessageData {
     fn from(&self) -> &Arc<Player> {
-        &self.borrow().from
+        &self.from
     }
 }
 

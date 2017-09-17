@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -10,31 +8,14 @@ use Player;
 use Connector;
 use UniversalEnumerable;
 
-use unit::ControllableInfo;
-
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use unit::ControllableInfo;
 
-downcast!(PlayerUnitHitMissionTargetMessage);
-pub trait PlayerUnitHitMissionTargetMessage : GameMessage {
+use message::any_game_message::prelude::*;
 
-    fn player_unit_player(&self) -> &Arc<Player>;
-
-    fn player_unit(&self) -> &Arc<ControllableInfo>;
-
-    fn mission_target_name(&self) -> &str;
-
-    fn mission_target_team(&self) -> &Option<Arc<Team>>;
-
-    fn mission_target_sequence(&self) -> u16;
-}
-
-pub struct PlayerUnitHitMissionTargetMessageData {
+pub struct PlayerUnitHitMissionTargetMessage {
     data:   GameMessageData,
     player: Arc<Player>,
     info:   Arc<ControllableInfo>,
@@ -43,11 +24,11 @@ pub struct PlayerUnitHitMissionTargetMessageData {
     seq:    u16,
 }
 
-impl PlayerUnitHitMissionTargetMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitHitMissionTargetMessageData, Error> {
+impl PlayerUnitHitMissionTargetMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitHitMissionTargetMessage, Error> {
         let data   = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
-        Ok(PlayerUnitHitMissionTargetMessageData {
+        Ok(PlayerUnitHitMissionTargetMessage {
             data,
             player: player.clone(),
             info:   {
@@ -70,59 +51,49 @@ impl PlayerUnitHitMissionTargetMessageData {
             seq:    reader.read_u16()?,
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerUnitHitMissionTargetMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitHitMissionTargetMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitHitMissionTargetMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitHitMissionTargetMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
-    }
-}
-
-
-impl<T: 'static + Borrow<PlayerUnitHitMissionTargetMessageData> + BorrowMut<PlayerUnitHitMissionTargetMessageData> + GameMessage> PlayerUnitHitMissionTargetMessage for T {
-    fn player_unit_player(&self) -> &Arc<Player> {
-        &self.borrow().player
+    pub fn player_unit_player(&self) -> &Arc<Player> {
+        &self.player
     }
 
-    fn player_unit(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().info
+    pub fn player_unit(&self) -> &Arc<ControllableInfo> {
+        &self.info
     }
 
-    fn mission_target_name(&self) -> &str {
-        &self.borrow().name
+    pub fn mission_target_name(&self) -> &str {
+        &self.name
     }
 
-    fn mission_target_team(&self) -> &Option<Arc<Team>> {
-        &self.borrow().team
+    pub fn mission_target_team(&self) -> &Option<Arc<Team>> {
+        &self.team
     }
 
-    fn mission_target_sequence(&self) -> u16 {
-        self.borrow().seq
+    pub fn mission_target_sequence(&self) -> u16 {
+        self.seq
     }
 }
 
-impl fmt::Display for PlayerUnitHitMissionTargetMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitHitMissionTargetMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
+    }
+}
+
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitHitMissionTargetMessage {
+
+}
+
+impl fmt::Display for PlayerUnitHitMissionTargetMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' ",
-            (self as &FlattiverseMessage).timestamp(),
-            (self as &PlayerUnitHitMissionTargetMessage).player_unit().kind(),
-            (self as &PlayerUnitHitMissionTargetMessage).player_unit().name(),
-            (self as &PlayerUnitHitMissionTargetMessage).player_unit_player().name(),
+            self.timestamp(),
+            self.player_unit().kind(),
+            self.player_unit().name(),
+            self.player_unit_player().name(),
         )?;
 
         if let Some(ref team) = self.team {

@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -10,29 +8,14 @@ use Player;
 use Connector;
 use UniversalEnumerable;
 
-use unit::ControllableInfo;
-
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use unit::ControllableInfo;
 
-downcast!(PlayerUnitHitOwnTargetMessage);
-pub trait PlayerUnitHitOwnTargetMessage : GameMessage {
+use message::any_game_message::prelude::*;
 
-    fn player_unit_player(&self) -> &Arc<Player>;
-
-    fn player_unit(&self) -> &Arc<ControllableInfo>;
-
-    fn mission_target_name(&self) -> &str;
-
-    fn mission_target_team(&self) -> &Option<Arc<Team>>;
-}
-
-pub struct PlayerUnitHitOwnTargetMessageData {
+pub struct PlayerUnitHitOwnTargetMessage {
     data:   GameMessageData,
     player: Arc<Player>,
     info:   Arc<ControllableInfo>,
@@ -40,11 +23,11 @@ pub struct PlayerUnitHitOwnTargetMessageData {
     team:   Option<Arc<Team>>,
 }
 
-impl PlayerUnitHitOwnTargetMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitHitOwnTargetMessageData, Error> {
+impl PlayerUnitHitOwnTargetMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitHitOwnTargetMessage, Error> {
         let data   = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
-        Ok(PlayerUnitHitOwnTargetMessageData {
+        Ok(PlayerUnitHitOwnTargetMessage {
             data,
             player: player.clone(),
             info:   {
@@ -66,55 +49,45 @@ impl PlayerUnitHitOwnTargetMessageData {
             },
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerUnitHitOwnTargetMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn player_unit_player(&self) -> &Arc<Player> {
+        &self.player
     }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitHitOwnTargetMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
+
+    pub fn player_unit(&self) -> &Arc<ControllableInfo> {
+        &self.info
     }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitHitOwnTargetMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
+
+    pub fn mission_target_name(&self) -> &str {
+        &self.name
     }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitHitOwnTargetMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn mission_target_team(&self) -> &Option<Arc<Team>> {
+        &self.team
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerUnitHitOwnTargetMessageData> + BorrowMut<PlayerUnitHitOwnTargetMessageData> + GameMessage> PlayerUnitHitOwnTargetMessage for T {
-    fn player_unit_player(&self) -> &Arc<Player> {
-        &self.borrow().player
-    }
-
-    fn player_unit(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().info
-    }
-
-    fn mission_target_name(&self) -> &str {
-        &self.borrow().name
-    }
-
-    fn mission_target_team(&self) -> &Option<Arc<Team>> {
-        &self.borrow().team
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitHitOwnTargetMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerUnitHitOwnTargetMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitHitOwnTargetMessage {
+
+}
+
+impl fmt::Display for PlayerUnitHitOwnTargetMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' ",
-            (self as &FlattiverseMessage).timestamp(),
-            (self as &PlayerUnitHitOwnTargetMessage).player_unit().kind(),
-            (self as &PlayerUnitHitOwnTargetMessage).player_unit().name(),
-            (self as &PlayerUnitHitOwnTargetMessage).player_unit_player().name(),
+            self.timestamp(),
+            self.player_unit().kind(),
+            self.player_unit().name(),
+            self.player_unit_player().name(),
         )?;
 
         if let Some(ref team) = self.team {

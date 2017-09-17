@@ -57,8 +57,7 @@ use unit::*;
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
-use message::from_reader;
-use message::FlattiverseMessage;
+use message::AnyMessage;
 
 pub const PROTOCOL_VERSION  : u32       = 35;
 pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 0);
@@ -84,7 +83,7 @@ pub struct Connector {
 }
 
 impl Connector {
-    pub fn new(email: &str, password: &str, compression_enabled: bool, benchmark: Option<PerformanceMark>) -> Result<(Arc<Connector>, Receiver<Box<FlattiverseMessage>>), Error> {
+    pub fn new(email: &str, password: &str, compression_enabled: bool, benchmark: Option<PerformanceMark>) -> Result<(Arc<Connector>, Receiver<AnyMessage>), Error> {
         // param check
         if email.len() < 6 || email.len() > 256 || password.is_empty() {
             return Err(Error::EmailAndOrPasswordInvalid);
@@ -200,7 +199,7 @@ impl Connector {
 
     }
 
-    fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<Box<FlattiverseMessage>>) -> Result<(), Error> {
+    fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<AnyMessage>) -> Result<(), Error> {
         match packet.command() {
             0x02|0x03|0x14|0x20|0x24|0x28|0x30|0x81|0x83|0x84|0x85|0x90 => {},
             _id@_ => {
@@ -445,19 +444,7 @@ impl Connector {
                 };
             }
             0x30 => { // new message
-                match from_reader(&connector, &packet) {
-                    Err(e) => {
-                        match e {
-                            Error::IoError(ref backtrace, _) => println!("Backtrace {:?}", backtrace),
-                            _ => {}
-                        }
-                        println!("Failed to decode message: {:?}", e)
-                    },
-                    Ok(message) => {
-                        // println!("{}", message);
-                        messages.send(message)?;
-                    }
-                };
+                messages.send(AnyMessage::from_reader(&connector, &packet, &mut packet.read() as &mut BinaryReader)?)?;
             },
             0x60 => { // create tournament
                 let group = connector.universe_group(packet.path_universe_group())?;

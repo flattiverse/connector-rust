@@ -1,22 +1,18 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
-use Connector;
 use Player;
-use unit::ControllableInfo;
+use Connector;
 
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessageData;
+use unit::ControllableInfo;
 
-downcast!(PlayerUnitBuildMessage);
+use message::any_player_unit_build_message::prelude::*;
+
 pub trait PlayerUnitBuildMessage : GameMessage {
 
     fn player(&self) -> &Arc<Player>;
@@ -26,7 +22,7 @@ pub trait PlayerUnitBuildMessage : GameMessage {
     fn player_unit_builder(&self) -> &Arc<ControllableInfo>;
 }
 
-pub struct PlayerUnitBuildMessageData {
+pub(crate) struct PlayerUnitBuildMessageData {
     data:   GameMessageData,
     player: Arc<Player>,
     unit:   Arc<ControllableInfo>,
@@ -49,39 +45,31 @@ impl PlayerUnitBuildMessageData {
     }
 }
 
-impl Borrow<GameMessageData> for PlayerUnitBuildMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitBuildMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitBuildMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitBuildMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitBuildMessageData {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitBuildMessageData {
 
-impl<T: 'static + Borrow<PlayerUnitBuildMessageData> + BorrowMut<PlayerUnitBuildMessageData> + GameMessage> PlayerUnitBuildMessage for T {
+}
+
+impl PlayerUnitBuildMessage for PlayerUnitBuildMessageData {
     fn player(&self) -> &Arc<Player> {
-        &self.borrow().player
+        &self.player
     }
 
     fn player_unit(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().unit
+        &self.unit
     }
 
     fn player_unit_builder(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().builder
+        &self.builder
     }
 }
 

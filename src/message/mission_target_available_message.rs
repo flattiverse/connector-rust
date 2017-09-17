@@ -1,8 +1,6 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Team;
 use Error;
@@ -11,27 +9,17 @@ use Connector;
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use message::any_game_message::prelude::*;
 
-downcast!(MissionTargetAvailableMessage);
-pub trait MissionTargetAvailableMessage : GameMessage {
-    fn mission_target_name(&self) -> &str;
-
-    fn mission_target_team(&self) -> &Arc<Team>;
-}
-
-pub struct MissionTargetAvailableMessageData {
+pub struct MissionTargetAvailableMessage {
     data:   GameMessageData,
     name:   String,
     team:   Arc<Team>,
 }
 
-impl MissionTargetAvailableMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<MissionTargetAvailableMessageData, Error> {
-        Ok(MissionTargetAvailableMessageData {
+impl MissionTargetAvailableMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<MissionTargetAvailableMessage, Error> {
+        Ok(MissionTargetAvailableMessage {
             data:   GameMessageData::from_packet(connector, packet, reader)?,
             team:   {
                 let id = reader.read_unsigned_byte()?;
@@ -44,45 +32,34 @@ impl MissionTargetAvailableMessageData {
             name:   reader.read_string()?,
         })
     }
-}
 
-impl Borrow<GameMessageData> for MissionTargetAvailableMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn mission_target_name(&self) -> &str {
+        &self.name
     }
-}
-impl BorrowMut<GameMessageData> for MissionTargetAvailableMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for MissionTargetAvailableMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for MissionTargetAvailableMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn mission_target_team(&self) -> &Arc<Team> {
+        &self.team
     }
 }
 
-
-impl<T: 'static + Borrow<MissionTargetAvailableMessageData> + BorrowMut<MissionTargetAvailableMessageData> + GameMessage> MissionTargetAvailableMessage for T {
-
-    fn mission_target_name(&self) -> &str {
-        &self.borrow().name
-    }
-
-    fn mission_target_team(&self) -> &Arc<Team> {
-        &self.borrow().team
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for MissionTargetAvailableMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for MissionTargetAvailableMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for MissionTargetAvailableMessage {
+
+}
+
+impl fmt::Display for MissionTargetAvailableMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] MissionTarget \"{}\" of Team {} is available again.",
-            (self as &FlattiverseMessage).timestamp(),
+            self.timestamp(),
             self.name,
             self.team.name(),
         )

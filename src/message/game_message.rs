@@ -1,48 +1,41 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Connector;
 
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
-
 use net::Packet;
 use net::BinaryReader;
 
+use message::any_game_message::prelude::*;
 
-pub trait GameMessage : FlattiverseMessage {
+pub trait GameMessage : Message {
 
 }
 
-pub struct GameMessageData {
-    data: FlattiverseMessageData
+pub(crate) struct GameMessageData {
+    data: MessageData
 }
 
 
 impl GameMessageData {
     pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<GameMessageData, Error> {
         Ok(GameMessageData {
-            data:   FlattiverseMessageData::from_packet(connector, packet, reader)?
+            data: MessageData::from_packet(connector, packet, reader)?
         })
     }
 }
 
-impl Borrow<FlattiverseMessageData> for GameMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        &self.data
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for GameMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        &mut self.data
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for GameMessageData {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl<T: 'static + Borrow<GameMessageData> + FlattiverseMessage> GameMessage for T {
+impl GameMessage for GameMessageData {
 
 }
 

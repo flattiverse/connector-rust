@@ -1,43 +1,30 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use Error;
 use Player;
 use Connector;
 use UniversalEnumerable;
 
-use unit::ControllableInfo;
-
 use net::Packet;
 use net::BinaryReader;
 
-use message::GameMessage;
-use message::GameMessageData;
-use message::FlattiverseMessage;
-use message::FlattiverseMessageData;
+use unit::ControllableInfo;
 
-downcast!(PlayerUnitContinuedMessage);
-pub trait PlayerUnitContinuedMessage : GameMessage {
+use message::any_game_message::prelude::*;
 
-    fn player_unit_player(&self) -> &Arc<Player>;
-
-    fn player_unit(&self) -> &Arc<ControllableInfo>;
-}
-
-pub struct PlayerUnitContinuedMessageData {
+pub struct PlayerUnitContinuedMessage {
     data:   GameMessageData,
     player: Arc<Player>,
     info:   Arc<ControllableInfo>,
 }
 
-impl PlayerUnitContinuedMessageData {
-    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitContinuedMessageData, Error> {
+impl PlayerUnitContinuedMessage {
+    pub fn from_packet(connector: &Arc<Connector>, packet: &Packet, reader: &mut BinaryReader) -> Result<PlayerUnitContinuedMessage, Error> {
         let data   = GameMessageData::from_packet(connector, packet, reader)?;
         let player = connector.player_for(reader.read_u16()?)?;
-        Ok(PlayerUnitContinuedMessageData {
+        Ok(PlayerUnitContinuedMessage {
             data,
             player: player.clone(),
             info:   {
@@ -46,47 +33,37 @@ impl PlayerUnitContinuedMessageData {
             }
         })
     }
-}
 
-impl Borrow<GameMessageData> for PlayerUnitContinuedMessageData {
-    fn borrow(&self) -> &GameMessageData {
-        &self.data
+    pub fn player_unit_player(&self) -> &Arc<Player> {
+        &self.player
     }
-}
-impl BorrowMut<GameMessageData> for PlayerUnitContinuedMessageData {
-    fn borrow_mut(&mut self) -> &mut GameMessageData {
-        &mut self.data
-    }
-}
-impl Borrow<FlattiverseMessageData> for PlayerUnitContinuedMessageData {
-    fn borrow(&self) -> &FlattiverseMessageData {
-        (self.borrow() as &GameMessageData).borrow()
-    }
-}
-impl BorrowMut<FlattiverseMessageData> for PlayerUnitContinuedMessageData {
-    fn borrow_mut(&mut self) -> &mut FlattiverseMessageData {
-        (self.borrow_mut() as &mut GameMessageData).borrow_mut()
+
+    pub fn player_unit(&self) -> &Arc<ControllableInfo> {
+        &self.info
     }
 }
 
-
-impl<T: 'static + Borrow<PlayerUnitContinuedMessageData> + BorrowMut<PlayerUnitContinuedMessageData> + GameMessage> PlayerUnitContinuedMessage for T {
-    fn player_unit_player(&self) -> &Arc<Player> {
-        &self.borrow().player
-    }
-
-    fn player_unit(&self) -> &Arc<ControllableInfo> {
-        &self.borrow().info
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl Message for PlayerUnitContinuedMessage {
+    fn timestamp(&self) -> &DateTime {
+        self.data.timestamp()
     }
 }
 
-impl fmt::Display for PlayerUnitContinuedMessageData {
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl GameMessage for PlayerUnitContinuedMessage {
+
+}
+
+impl fmt::Display for PlayerUnitContinuedMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{}] {:?} '{}' of '{}' continued game.",
-            (self as &FlattiverseMessage).timestamp(),
-            (self as &PlayerUnitContinuedMessage).player_unit().kind(),
-            (self as &PlayerUnitContinuedMessage).player_unit().name(),
-            (self as &PlayerUnitContinuedMessage).player_unit_player().name(),
+            self.timestamp(),
+            self.player_unit().kind(),
+            self.player_unit().name(),
+            self.player_unit_player().name(),
         )
     }
 }
