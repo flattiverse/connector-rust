@@ -7,6 +7,7 @@ use std::ops::Add;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono;
 use chrono::naive::NaiveDateTime;
 
 use dotnet::TimeSpan;
@@ -25,15 +26,17 @@ pub struct DateTime {
 impl DateTime {
     pub fn from_ticks(ticks: i64) -> DateTime {
         DateTime {
-            ticks: ticks
+            ticks
         }
     }
 
     pub fn now() -> DateTime {
+
         let time   = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let millis = MILLIS_OFFSET - (time.as_secs() as i64 * 1_000_i64 + (time.subsec_nanos() as i64 / 1_000_000_i64));
+        let secs_ticks = ((time.as_secs() as i64 * 1_000_i64) - MILLIS_OFFSET) * TICKS_PER_MILLI;
+        let nano_ticks = time.subsec_nanos() as i64 / 100_i64;
         DateTime {
-            ticks: (millis * TICKS_PER_MILLI)
+            ticks: secs_ticks + nano_ticks
         }
     }
 
@@ -47,15 +50,13 @@ impl DateTime {
 
     pub fn naive_date_time(&self) -> NaiveDateTime {
         let secs = self.millis() / 1_000;
-        NaiveDateTime::from_timestamp(
-            secs,
-            0u32 // TODO
-        )
+        let nano = (self.millis() as u64 * 1_000_000_u64) % 1_000_000_000_u64;
+        NaiveDateTime::from_timestamp(secs, nano as u32)
     }
 
     pub fn elapsed_millis(&self) -> i64 {
-        let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        self.millis() - (time.as_secs() as i64 * 1_000_i64 + (time.subsec_nanos() as i64 / 1_000_000_i64))
+        let now = chrono::Local::now().naive_local();
+        now.signed_duration_since(self.naive_date_time()).num_milliseconds()
     }
 }
 
