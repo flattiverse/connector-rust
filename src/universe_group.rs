@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
+use std::sync::RwLockWriteGuard;
 
 use Task;
 use Team;
@@ -381,8 +382,8 @@ impl UniverseGroup {
         self.game_type
     }
 
-    pub fn teams(&self) -> &RwLock<UniversalHolder<Team>> {
-        &self.teams
+    pub fn teams(&self) -> RwLockReadGuard<UniversalHolder<Team>> {
+        self.teams.read().unwrap()
     }
 
     pub fn team(&self, index: u8) -> Result<Arc<Team>, Error> {
@@ -402,8 +403,12 @@ impl UniverseGroup {
     }
 
     // TODO change public method to RwLockReadGuard
-    pub fn players(&self) -> &RwLock<ManagedArray<Arc<Player>>> {
-        &self.players
+    pub fn players(&self) -> RwLockReadGuard<ManagedArray<Arc<Player>>> {
+        self.players.read().unwrap()
+    }
+
+    pub(crate) fn players_mut(&self) -> Result<RwLockWriteGuard<ManagedArray<Arc<Player>>>, Error> {
+        Ok(self.players.write()?)
     }
 
     pub fn universes(&self) -> RwLockReadGuard<UniversalHolder<Universe>> {

@@ -93,7 +93,7 @@ impl Tournament {
             }),
             teams: {
                 let group = universe_group;
-                let len = group.teams().read()?.len();
+                let len = group.teams().len();
                 let teams: ManagedArray<Arc<RwLock<TournamentTeam>>> = ManagedArray::with_capacity(len);
 
                 for i in 0..len {

@@ -329,7 +329,7 @@ impl Connector {
                 player.set_universe_group(Arc::downgrade(&group))?;
                 player.set_team(group.team_weak(packet.path_sub()))?;
 
-                group.players().write()?.insert(player.clone())?;
+                group.players_mut()?.insert(player.clone())?;
 
                 player.update_assignment(&packet)?;
                 // println!("Updated assignement, clan: {:?}", player.clan());
@@ -346,7 +346,7 @@ impl Connector {
                     let player_id = player.id();
 
                     // TODO WTF!
-                    let mut players = group.players().write()?;
+                    let mut players = group.players_mut()?;
                     let mut index = 0_isize;
                     let mut wipe_at = -1_isize;
                     for player in players.as_ref() {

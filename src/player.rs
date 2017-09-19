@@ -432,7 +432,7 @@ impl Player {
         Ok(())
     }
 
-    pub fn name(&self) -> &String {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
