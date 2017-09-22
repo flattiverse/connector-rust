@@ -1,25 +1,22 @@
 
-
-use std::borrow::Borrow;
+use std::fmt;
 
 use Error;
+
 use unit::UnitKind;
 
 use net::Packet;
 use net::BinaryReader;
 
-use downcast::Any;
+pub trait UniverseEvent : fmt::Display {
 
-downcast!(UniverseEvent);
-pub trait UniverseEvent : Any {
+    fn unit_kind(&self) -> UnitKind;
 
-    fn kind(&self) -> UnitKind;
-
-    fn name(&self) -> &str;
+    fn unit_name(&self) -> &str;
 }
 
 #[derive(Debug)]
-pub struct UniverseEventData {
+pub(crate) struct UniverseEventData {
     kind: UnitKind,
     name: String
 }
@@ -33,12 +30,18 @@ impl UniverseEventData {
     }
 }
 
-impl<T: 'static + Borrow<UniverseEventData>> UniverseEvent for T {
-    fn kind(&self) -> UnitKind {
-        self.borrow().kind
+impl UniverseEvent for UniverseEventData {
+    fn unit_kind(&self) -> UnitKind {
+        self.kind
     }
 
-    fn name(&self) -> &str {
-        &self.borrow().name
+    fn unit_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl fmt::Display for UniverseEventData {
+    fn fmt(&self, _: &mut fmt::Formatter) -> fmt::Result {
+        unimplemented!()
     }
 }

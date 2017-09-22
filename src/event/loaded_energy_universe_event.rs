@@ -1,69 +1,60 @@
 
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
+use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(LoadedEnergyUniverseEvent);
-pub trait LoadedEnergyUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn energy(&self) -> f32;
-
-    fn particles(&self) -> f32;
-
-    fn ions(&self) -> f32;
-}
-
-
 #[derive(Debug)]
-pub struct LoadedEnergyUniverseEventData {
+pub struct LoadedEnergyUniverseEvent {
     data: UniverseEventData,
     energy: f32,
     particles: f32,
     ions: f32
 }
 
-impl LoadedEnergyUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<LoadedEnergyUniverseEventData, Error> {
-        Ok(LoadedEnergyUniverseEventData {
+impl LoadedEnergyUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<LoadedEnergyUniverseEvent, Error> {
+        Ok(LoadedEnergyUniverseEvent {
             data:       UniverseEventData::from_reader(packet, reader)?,
             energy:     reader.read_single()?,
             particles:  reader.read_single()?,
             ions:       reader.read_single()?
         })
     }
-}
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for LoadedEnergyUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn energy(&self) -> f32 {
+        self.energy
+    }
+
+    pub fn particles(&self) -> f32 {
+        self.particles
+    }
+
+    pub fn ions(&self) -> f32 {
+        self.ions
     }
 }
 
-
-impl<T: 'static + Borrow<LoadedEnergyUniverseEventData> + UniverseEvent + Display + Debug> LoadedEnergyUniverseEvent for T {
-    fn energy(&self) -> f32 {
-        self.borrow().energy
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for LoadedEnergyUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn particles(&self) -> f32 {
-        self.borrow().particles
-    }
-
-    fn ions(&self) -> f32 {
-        self.borrow().ions
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for LoadedEnergyUniverseEventData {
+impl fmt::Display for LoadedEnergyUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "LoadedEnergyUniverseEvent: {}; {}; {}",
             self.energy,

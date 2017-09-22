@@ -1,11 +1,10 @@
 
-
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
+use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
@@ -13,24 +12,8 @@ use net::Packet;
 use net::BinaryReader;
 use net::is_set_u8;
 
-downcast!(DamageUniverseEvent);
-pub trait DamageUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn hull_damage(&self) -> f32;
-
-    fn hull_damage_was_critical_strike(&self) -> bool;
-
-    fn shield_damage(&self) -> f32;
-
-    fn shield_damage_was_critical_strike(&self) -> bool;
-
-    fn energy_damage(&self) -> f32;
-
-    fn energy_damage_was_critical_strike(&self) -> bool;
-}
-
 #[derive(Debug)]
-pub struct DamageUniverseEventData {
+pub struct DamageUniverseEvent {
     data: UniverseEventData,
     hull_damage: f32,
     hull_damage_was_critical_strike: bool,
@@ -40,10 +23,10 @@ pub struct DamageUniverseEventData {
     energy_damage_was_critical_strike: bool,
 }
 
-impl DamageUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<DamageUniverseEventData, Error> {
+impl DamageUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<DamageUniverseEvent, Error> {
         let header = reader.read_unsigned_byte()?;
-        Ok(DamageUniverseEventData {
+        Ok(DamageUniverseEvent {
             data: UniverseEventData::from_reader(packet, reader)?,
 
             hull_damage:    reader.read_single()?,
@@ -55,44 +38,45 @@ impl DamageUniverseEventData {
             energy_damage_was_critical_strike:  is_set_u8(header, 0x04),
         })
     }
-}
 
+    pub fn hull_damage(&self) -> f32 {
+        self.hull_damage
+    }
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for DamageUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn hull_damage_was_critical_strike(&self) -> bool {
+        self.hull_damage_was_critical_strike
+    }
+
+    pub fn shield_damage(&self) -> f32 {
+        self.shield_damage
+    }
+
+    pub fn shield_damage_was_critical_strike(&self) -> bool {
+        self.shield_damage_was_critical_strike
+    }
+
+    pub fn energy_damage(&self) -> f32 {
+        self.energy_damage
+    }
+
+    pub fn energy_damage_was_critical_strike(&self) -> bool {
+        self.energy_damage_was_critical_strike
     }
 }
 
-
-impl<T: 'static + Borrow<DamageUniverseEventData> + UniverseEvent + Display + Debug> DamageUniverseEvent for T {
-    fn hull_damage(&self) -> f32 {
-        self.borrow().hull_damage
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for DamageUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn hull_damage_was_critical_strike(&self) -> bool {
-        self.borrow().hull_damage_was_critical_strike
-    }
-
-    fn shield_damage(&self) -> f32 {
-        self.borrow().shield_damage
-    }
-
-    fn shield_damage_was_critical_strike(&self) -> bool {
-        self.borrow().shield_damage_was_critical_strike
-    }
-
-    fn energy_damage(&self) -> f32 {
-        self.borrow().energy_damage
-    }
-
-    fn energy_damage_was_critical_strike(&self) -> bool {
-        self.borrow().energy_damage_was_critical_strike
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for DamageUniverseEventData {
+impl fmt::Display for DamageUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "DamageUniverseEvent: {}{}; {}{}; {}{}",
             self.hull_damage,

@@ -1,34 +1,19 @@
 
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
 use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(TransferredEnergyUniverseEvent);
-pub trait TransferredEnergyUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn energy(&self) -> f32;
-
-    fn particles(&self) -> f32;
-
-    fn ions(&self) -> f32;
-
-    fn source_kind(&self) -> UnitKind;
-
-    fn source_name(&self) -> &str;
-}
-
 
 #[derive(Debug)]
-pub struct TransferredEnergyUniverseEventData {
+pub struct TransferredEnergyUniverseEvent {
     data:           UniverseEventData,
     energy:         f32,
     particles:      f32,
@@ -37,9 +22,9 @@ pub struct TransferredEnergyUniverseEventData {
     source_name:    String,
 }
 
-impl TransferredEnergyUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<TransferredEnergyUniverseEventData, Error> {
-        Ok(TransferredEnergyUniverseEventData {
+impl TransferredEnergyUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<TransferredEnergyUniverseEvent, Error> {
+        Ok(TransferredEnergyUniverseEvent {
             data:       UniverseEventData::from_reader(packet, reader)?,
             energy:     reader.read_single()?,
             particles:  reader.read_single()?,
@@ -48,38 +33,41 @@ impl TransferredEnergyUniverseEventData {
             source_name:reader.read_string()?,
         })
     }
-}
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for TransferredEnergyUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn energy(&self) -> f32 {
+        self.energy
+    }
+
+    pub fn particles(&self) -> f32 {
+        self.particles
+    }
+
+    pub fn ions(&self) -> f32 {
+        self.ions
+    }
+
+    pub fn source_unit_kind(&self) -> UnitKind {
+        self.source_kind
+    }
+
+    pub fn source_unit_name(&self) -> &str {
+        &self.source_name
     }
 }
 
-impl<T: 'static + Borrow<TransferredEnergyUniverseEventData> + UniverseEvent + Display + Debug> TransferredEnergyUniverseEvent for T {
-    fn energy(&self) -> f32 {
-        self.borrow().energy
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for TransferredEnergyUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn particles(&self) -> f32 {
-        self.borrow().particles
-    }
-
-    fn ions(&self) -> f32 {
-        self.borrow().ions
-    }
-
-    fn source_kind(&self) -> UnitKind {
-        self.borrow().source_kind
-    }
-
-    fn source_name(&self) -> &str {
-        &self.borrow().source_name
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for TransferredEnergyUniverseEventData {
+impl fmt::Display for TransferredEnergyUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TransferredEnergyUniverseEvent: {}; {}, {} from {}",
             self.energy,

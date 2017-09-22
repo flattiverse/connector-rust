@@ -1,61 +1,54 @@
 
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
+use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(RepairUniverseEvent);
-pub trait RepairUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn hull_repair(&self) -> f32;
-
-    fn shield_load(&self) -> f32;
-}
-
-
 #[derive(Debug)]
-pub struct RepairUniverseEventData {
+pub struct RepairUniverseEvent {
     data: UniverseEventData,
     hull_repair: f32,
     shield_load: f32,
 }
 
-impl RepairUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<RepairUniverseEventData, Error> {
-        Ok(RepairUniverseEventData {
+impl RepairUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<RepairUniverseEvent, Error> {
+        Ok(RepairUniverseEvent {
             data:           UniverseEventData::from_reader(packet, reader)?,
             hull_repair:    reader.read_single()?,
             shield_load:    reader.read_single()?,
         })
     }
-}
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for RepairUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn hull_repair(&self) -> f32 {
+        self.hull_repair
+    }
+
+    pub fn shield_load(&self) -> f32 {
+        self.shield_load
     }
 }
 
-
-impl<T: 'static + Borrow<RepairUniverseEventData> + UniverseEvent + Display + Debug> RepairUniverseEvent for T {
-    fn hull_repair(&self) -> f32 {
-        self.borrow().hull_repair
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for RepairUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn shield_load(&self) -> f32 {
-        self.borrow().shield_load
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for RepairUniverseEventData {
+impl fmt::Display for RepairUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RepairUniverseEvent: {}; {}",
             self.hull_repair,

@@ -1,31 +1,18 @@
 
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
+use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(TractorbeamUniverseEvent);
-pub trait TractorbeamUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn direction(&self) -> f32;
-
-    fn range(&self) -> f32;
-
-    fn force(&self) -> f32;
-
-    fn self_affected(&self) -> bool;
-}
-
-
 #[derive(Debug)]
-pub struct TractorbeamUniverseEventData {
+pub struct TractorbeamUniverseEvent {
     data:           UniverseEventData,
     direction:      f32,
     range:          f32,
@@ -33,9 +20,9 @@ pub struct TractorbeamUniverseEventData {
     self_affected:  bool,
 }
 
-impl TractorbeamUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<TractorbeamUniverseEventData, Error> {
-        Ok(TractorbeamUniverseEventData {
+impl TractorbeamUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<TractorbeamUniverseEvent, Error> {
+        Ok(TractorbeamUniverseEvent {
             data:           UniverseEventData::from_reader(packet, reader)?,
             direction:      reader.read_single()?,
             range:          reader.read_single()?,
@@ -43,34 +30,37 @@ impl TractorbeamUniverseEventData {
             self_affected:  reader.read_byte()? == 1,
         })
     }
-}
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for TractorbeamUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn direction(&self) -> f32 {
+        self.direction
+    }
+
+    pub fn range(&self) -> f32 {
+        self.range
+    }
+
+    pub fn force(&self) -> f32 {
+        self.force
+    }
+
+    pub fn is_self_affected(&self) -> bool {
+        self.self_affected
     }
 }
 
-impl<T: 'static + Borrow<TractorbeamUniverseEventData> + UniverseEvent + Display + Debug> TractorbeamUniverseEvent for T {
-    fn direction(&self) -> f32 {
-        self.borrow().direction
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for TractorbeamUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn range(&self) -> f32 {
-        self.borrow().range
-    }
-
-    fn force(&self) -> f32 {
-        self.borrow().force
-    }
-
-    fn self_affected(&self) -> bool {
-        self.borrow().self_affected
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for TractorbeamUniverseEventData {
+impl fmt::Display for TractorbeamUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TractorbeamUniverseEvent: {}° range={} force={} self_affected={}",
             self.direction,

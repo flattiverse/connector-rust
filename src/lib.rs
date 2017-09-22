@@ -9,9 +9,6 @@ extern crate flate2;
 extern crate rand;
 pub extern crate backtrace;
 
-#[macro_use]
-pub extern crate downcast;
-
 pub mod net;
 pub mod unit;
 pub mod item;

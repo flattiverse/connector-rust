@@ -1,61 +1,54 @@
 
 use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::borrow::Borrow;
 
 use Error;
+
+use unit::UnitKind;
+
 use event::UniverseEvent;
 use event::UniverseEventData;
 
 use net::Packet;
 use net::BinaryReader;
 
-downcast!(HarvestUniverseEvent);
-pub trait HarvestUniverseEvent : UniverseEvent + Display + Debug {
-
-    fn amount(&self) -> f32;
-
-    fn hue(&self) -> f32;
-}
-
-
 #[derive(Debug)]
-pub struct HarvestUniverseEventData {
+pub struct HarvestUniverseEvent {
     data: UniverseEventData,
     amount: f32,
     hue: f32,
 }
 
-impl HarvestUniverseEventData {
-    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<HarvestUniverseEventData, Error> {
-        Ok(HarvestUniverseEventData {
+impl HarvestUniverseEvent {
+    pub fn from_packet(packet: &Packet, reader: &mut BinaryReader) -> Result<HarvestUniverseEvent, Error> {
+        Ok(HarvestUniverseEvent {
             data:   UniverseEventData::from_reader(packet, reader)?,
             amount: reader.read_single()?,
             hue:    reader.read_single()?,
         })
     }
-}
 
+    pub fn amount(&self) -> f32 {
+        self.amount
+    }
 
-// implicitly implement UniverseEvent
-impl Borrow<UniverseEventData> for HarvestUniverseEventData {
-    fn borrow(&self) -> &UniverseEventData {
-        &self.data
+    pub fn hue(&self) -> f32 {
+        self.hue
     }
 }
 
-impl<T: 'static + Borrow<HarvestUniverseEventData> + UniverseEvent + Display + Debug> HarvestUniverseEvent for T {
-    fn amount(&self) -> f32 {
-        self.borrow().amount
+// TODO replace with delegation directive
+// once standardized: https://github.com/rust-lang/rfcs/pull/1406
+impl UniverseEvent for HarvestUniverseEvent {
+    fn unit_kind(&self) -> UnitKind {
+        self.data.unit_kind()
     }
 
-    fn hue(&self) -> f32 {
-        self.borrow().hue
+    fn unit_name(&self) -> &str {
+        self.data.unit_name()
     }
 }
 
-impl Display for HarvestUniverseEventData {
+impl fmt::Display for HarvestUniverseEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "HarvestUniverseEvent: {}; {}°",
             self.amount,
