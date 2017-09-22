@@ -179,7 +179,6 @@ impl Connector {
             writer.write_byte(features)?;
 
             if let Some(ref mark) = self.benchmark {
-                println!("Writing: {:?}", mark.performance_discrete_mark());
                 mark.write(writer)?;
             }
 
