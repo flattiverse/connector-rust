@@ -95,7 +95,7 @@ impl Universe {
         packet.set_path_universe_group(self_group.id());
         packet.set_path_universe(self.id);
 
-        connector.send(&packet);
+        connector.send(&packet)?;
         block.wait()?;
 
         let mut vec = Vec::new();
