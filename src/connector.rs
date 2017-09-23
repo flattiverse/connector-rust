@@ -53,6 +53,7 @@ use controllable::AnyControllable;
 use controllable::ControllableDesign;
 
 use unit::*;
+use event::*;
 
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
@@ -609,7 +610,13 @@ impl Connector {
                 }
 
             },
-            // TODO missing entries
+            // TODO missing 0x91: administrative: View Result Entry Received
+            0x92 => { // Event Result Entry Received
+                let group = connector.universe_group(packet.path_universe_group())?;
+                let universe = group.universe(packet.path_universe()).upgrade().ok_or(Error::InvalidUniverse(packet.path_universe()))?;
+                let event = AnyUniverseEvent::from_packet(packet, &mut packet.read() as &mut BinaryReader)?;
+                universe.events().write()?.push(event);
+            },
             _ => {
                 println!("Received packet with unimplemented command: {:?}", packet);
             }

@@ -1,6 +1,7 @@
 
 use std::sync::Arc;
 use std::sync::Weak;
+use std::sync::RwLock;
 
 use Error;
 use Connector;
@@ -9,6 +10,8 @@ use UniversalEnumerable;
 
 use net::Packet;
 use net::BinaryReader;
+
+use event::AnyUniverseEvent;
 
 
 /// This implementation does not provide administrative
@@ -22,6 +25,8 @@ pub struct Universe {
     description:String,
     start:      bool,
     respawn:    bool,
+
+    events:     RwLock<Vec<AnyUniverseEvent>>,
 }
 
 impl Universe {
@@ -34,6 +39,8 @@ impl Universe {
             description:    reader.read_string()?,
             start:          reader.read_bool()?,
             respawn:        reader.read_bool()?,
+
+            events:         RwLock::new(Vec::new()),
         })
     }
 
@@ -66,6 +73,39 @@ impl Universe {
     /// Whether this [Universe] allows respawning
     pub fn respawn(&self) -> bool {
         self.respawn
+    }
+
+    /// Administrative functionality
+    pub fn query_events(&self) -> Result<Vec<AnyUniverseEvent>, Error> {
+        let connector = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
+        let player = connector.player().upgrade().ok_or(Error::PlayerNotAvailable)?;
+        let other_group = player.universe_group().upgrade().ok_or(Error::PlayerNotInUniverseGroup)?;
+        let self_group = self.universe_group.upgrade().ok_or(Error::UniverseNotInUniverseGroup)?;
+
+        if other_group.id() != self_group.id() {
+            return Err(Error::PlayerAlreadyInAnotherUniverseGroup(other_group.id()))
+        }
+
+        let block = connector.block_manager().block()?;
+        let mut block = block.lock()?;
+        let mut packet = Packet::new();
+
+        packet.set_command(0x42);
+        packet.set_session(block.id());
+        packet.set_path_universe_group(self_group.id());
+        packet.set_path_universe(self.id);
+
+        connector.send(&packet);
+        block.wait()?;
+
+        let mut vec = Vec::new();
+        ::std::mem::swap(&mut *self.events.write()?, &mut vec);
+
+        Ok(vec)
+    }
+
+    pub(crate) fn events(&self) -> &RwLock<Vec<AnyUniverseEvent>> {
+        &self.events
     }
 }
 

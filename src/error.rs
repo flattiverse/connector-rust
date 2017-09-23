@@ -74,6 +74,7 @@ pub enum Error {
     InvalidRangeValue(f32),
     InvalidForceValue(f32),
     InvalidCrystalName(String),
+    InvalidUniverse(u8),
     InvalidUniverseGroup(u16),
     InvalidTeam(u8),
     PendingShutdown,
@@ -82,6 +83,7 @@ pub enum Error {
     WithReason(String),
     NotCrystalCargoItem(Backtrace),
     NotControllableShip(Backtrace),
+    UniverseNotInUniverseGroup,
 }
 
 impl Error {
