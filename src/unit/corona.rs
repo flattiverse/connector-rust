@@ -4,6 +4,7 @@ use std::fmt;
 use Error;
 use net::BinaryReader;
 
+#[derive(Clone, PartialOrd, PartialEq)]
 pub struct Corona {
     radius: f32,
     energy: f32,
