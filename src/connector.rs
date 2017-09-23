@@ -79,11 +79,13 @@ pub struct Connector {
     crystals:       RwLock<ManagedArray<Arc<CrystalCargoItem>>>,
     controllables:  RwLock<ManagedArray<AnyControllable>>,
 
+    receiver: Arc<Mutex<Receiver<AnyMessage>>>,
+
     benchmark: Option<PerformanceMark>,
 }
 
 impl Connector {
-    pub fn new(email: &str, password: &str, compression_enabled: bool, benchmark: Option<PerformanceMark>) -> Result<(Arc<Connector>, Receiver<AnyMessage>), Error> {
+    pub fn new(email: &str, password: &str, compression_enabled: bool, benchmark: Option<PerformanceMark>) -> Result<Arc<Connector>, Error> {
         // param check
         if email.len() < 6 || email.len() > 256 || password.is_empty() {
             return Err(Error::EmailAndOrPasswordInvalid);
@@ -120,6 +122,7 @@ impl Connector {
             crystals:       RwLock::new(ManagedArray::with_capacity(64)),
             controllables:  RwLock::new(ManagedArray::with_capacity(256)),
 
+            receiver: Arc::new(Mutex::new(message_receiver)),
             benchmark,
         };
 
@@ -151,7 +154,7 @@ impl Connector {
         });
 
         connector.login(email, password, compression_enabled)?;
-        Ok((connector, message_receiver))
+        Ok(connector)
     }
 
     fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
@@ -931,6 +934,28 @@ impl Connector {
         }
 
         Ok(vec)
+    }
+
+    /// The [Receiver] for messages
+    pub fn messages(&self) -> &Arc<Mutex<Receiver<AnyMessage>>> {
+        &self.receiver
+    }
+
+    pub fn next_message(&self) -> Option<AnyMessage> {
+        let lock = match self.receiver.lock() {
+            Ok(lock) => lock,
+            Err(err) => {
+                println!("Failed to acquire lock for self.receiver: {:?}", err);
+                return None;
+            }
+        };
+        match lock.try_recv() {
+            Ok(message) => Some(message),
+            Err(_) => {
+                // either TryRecvError::Empty or TryRecvError::Disconnected
+                None
+            }
+        }
     }
 
     pub fn has_flows(&self) -> Result<bool, Error> {
