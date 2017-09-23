@@ -950,7 +950,10 @@ impl Connector {
             }
         };
         match lock.try_recv() {
-            Ok(message) => Some(message),
+            Ok(message) => {
+                self.register_task_quitely_if_unknown(Task::UsedMessages);
+                Some(message)
+            },
             Err(_) => {
                 // either TryRecvError::Empty or TryRecvError::Disconnected
                 None
