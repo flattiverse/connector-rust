@@ -199,6 +199,12 @@ impl Vector {
     }
 }
 
+impl Default for Vector {
+    fn default() -> Self {
+        Vector::new(0_f32, 0_f32)
+    }
+}
+
 impl PartialEq for Vector {
     fn eq(&self, other: &Vector) -> bool {
         Vector::equals(self, other.length())
