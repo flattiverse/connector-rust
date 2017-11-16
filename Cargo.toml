@@ -1,5 +1,5 @@
 [package]
-description = "Connector library for the flattiverse.com game server"
+description = "Connector library for the flattiverse.com game server. At the moment there is no functionality provided until this state has been approved by flattiverse.com."
 homepage = "https://www.flattiverse.com/"
 name = "flattiverse_connector"
 version = "0.9.6"
