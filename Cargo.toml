@@ -4,6 +4,9 @@ homepage = "https://www.flattiverse.com/"
 name = "flattiverse_connector"
 version = "0.9.6"
 authors = ["Michael Watzko <michael@watzko.de>"]
+license = "MIT"
+
+[lib]
 
 [dependencies]
 byteorder = "1.1.0"
