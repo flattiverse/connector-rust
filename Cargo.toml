@@ -1,5 +1,6 @@
 [package]
-name = "flattiverse"
+description = "Connector library for the flattiverse.com game server"
+name = "flattiverse_connector"
 version = "0.9.6"
 authors = ["Michael Watzko <michael@watzko.de>"]
 
