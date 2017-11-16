@@ -1,8 +1,8 @@
 [package]
-description = "Connector library for the flattiverse.com game server. At the moment there is no functionality provided until this state has been approved by flattiverse.com."
+description = "Connector library for the flattiverse.com game server."
 homepage = "https://www.flattiverse.com/"
 name = "flattiverse_connector"
-version = "35.0.0"
+version = "35.0.1"
 authors = ["Michael Watzko <michael@watzko.de>"]
 keywords = ["connector", "flattiverse"]
 categories = ["games", "network-programming"]
