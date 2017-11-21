@@ -82,6 +82,12 @@ impl Vector {
         self
     }
 
+    pub fn set(&mut self, x: f32, y: f32) -> &mut Self {
+        self.x = x;
+        self.y = y;
+        self
+    }
+
     pub fn angle(&self) -> f32 {
         if self.x == 0f32 && self.y == 0f32 {
             self.last_angle
