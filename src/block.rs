@@ -56,7 +56,7 @@ impl Block {
                 });
 
             } else {
-                return Err(Error::ErrorCode(packet.path_sub()))
+                return Err(Error::error_code(packet.path_sub()))
             }
         }
 
