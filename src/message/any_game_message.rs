@@ -54,6 +54,7 @@ impl Deref for AnyGameMessage {
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitCollidedWithUnitMessage      (ref message) => message.deref(),
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitCommittedSuicideMessage      (ref message) => message.deref(),
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByBadHullRefreshingPowerUpMessage(ref message) => message.deref(),
+                &AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByPolicyMessage      (ref message) => message.deref(),
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitLoggedOffMessage             (ref message) => message.deref(),
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitResetMessage                 (ref message) => message.deref(),
                 &AnyPlayerUnitDeceasedMessage::PlayerUnitShotByPlayerUnitMessage      (ref message) => message.deref(),

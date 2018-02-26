@@ -60,8 +60,8 @@ use item::CrystalCargoItem;
 
 use message::AnyMessage;
 
-pub const PROTOCOL_VERSION  : u32       = 35;
-pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 0);
+pub const PROTOCOL_VERSION  : u32       = 36;
+pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 1);
 
 pub const TASK_COUNT : usize   = 32;
 

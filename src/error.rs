@@ -170,6 +170,7 @@ impl Error {
             0x92 => Some("Not enough energy for this action."),
             0x93 => Some("Not enough particles for this action."),
             0x94 => Some("Not enough ions for this action."),
+            0x95 => Some("The request will result in a packet too big to transfer. Limit or reduce sent data in the call. (Short descriptions or binary data.)"),
             0x98 => Some("No matching ship class found."),
             0x99 => Some("Name is already in use."),
             0x9A => Some("Name doesn't match specification."),
