@@ -804,6 +804,7 @@ impl Connector {
         Ok(self.flows.read()?.len() > 0)
     }
 
+    /// Whether the commit was successful
     pub fn flow_control_check(&self, tick: u16) -> Result<bool, Error> {
         let self_tick = *self.tick.read()?;
         if tick != self_tick && tick != 0_u16 {
@@ -821,10 +822,10 @@ impl Connector {
 
 
         let block = self.block_manager.block()?;
+        let mut block = block.lock()?;
         let mut packet = Packet::new();
 
         {
-            let block = block.lock()?;
             packet.set_command(0x05);
             packet.set_session(block.id());
 
@@ -833,7 +834,7 @@ impl Connector {
         }
 
         self.send(&packet)?;
-        let mut block = block.lock()?;
+        // let mut block = block.lock()?;
         match block.wait() {
             Ok(_) => Ok(true),
             Err(Error::TickIsGone) => Ok(false),
