@@ -1,6 +1,6 @@
 
 #[repr(u8)]
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum Mobility {
     Still = 0,
     Steady = 1,
