@@ -85,7 +85,7 @@ impl UnitData {
             let count = reader.read_unsigned_byte()?;
             let mut list = Vec::new();
 
-            for _ in 0..count {
+            for _ in 0..(count as u16 + 1_u16) {
                 list.push(OrbitingState::from_reader(reader)?);
             }
 
