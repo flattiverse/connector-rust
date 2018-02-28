@@ -1,7 +1,7 @@
 
 use std::fmt;
+use std::io::Result;
 
-use Error;
 use net::BinaryReader;
 
 #[derive(Clone, PartialOrd, PartialEq)]
@@ -13,7 +13,7 @@ pub struct Corona {
 }
 
 impl Corona {
-    pub fn from_reader(reader: &mut BinaryReader) -> Result<Corona, Error> {
+    pub fn from_reader(reader: &mut BinaryReader) -> Result<Corona> {
         Ok(Corona {
             radius:     reader.read_single()?,
             energy:     reader.read_single()?,
