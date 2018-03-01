@@ -7,6 +7,7 @@ extern crate chrono;
 extern crate hostname;
 extern crate flate2;
 extern crate rand;
+extern crate atomic;
 pub extern crate backtrace;
 
 pub mod net;

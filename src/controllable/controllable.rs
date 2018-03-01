@@ -16,6 +16,9 @@ use Universe;
 use Connector;
 use UniversalEnumerable;
 
+use atomic::Atomic;
+use atomic::Ordering;
+
 use unit::AnyUnit;
 use unit::UnitKind;
 use unit::ScanInfo;
@@ -674,20 +677,7 @@ pub trait Controllable : Send + Sync {
 }
 
 struct ControllableDataMut {
-    energy: f32,
-    particles: f32,
-    ions: f32,
-    hull: f32,
-    shield: f32,
-    pending_shutdown: bool,
-    weapon_production_status: f32,
-    build_progress: f32,
     build_position: Option<Vector>,
-    haste_time: u16,
-    double_damage_time: u16,
-    quad_damage_time: u16,
-    cloak_time: u16,
-    active: bool,
     is_building: Option<AnyControllable>,
     is_built_by: Option<AnyControllable>,
     universe:    Weak<Universe>,
@@ -757,6 +747,23 @@ pub(crate) struct ControllableData {
     mutable:     RwLock<ControllableDataMut>,
     crystals:    RwLock<Vec<Arc<CrystalCargoItem>>>,
     cargo_items: RwLock<Vec<AnyCargoItem>>,
+
+
+    energy:     Atomic<f32>,
+    particles:  Atomic<f32>,
+    ions:       Atomic<f32>,
+    hull:       Atomic<f32>,
+    shield:     Atomic<f32>,
+
+    pending_shutdown:         Atomic<bool>,
+    weapon_production_status: Atomic<f32>,
+    build_progress:           Atomic<f32>,
+
+    haste_time:         Atomic<u16>,
+    double_damage_time: Atomic<u16>,
+    quad_damage_time:   Atomic<u16>,
+    cloak_time:         Atomic<u16>,
+    active:             Atomic<bool>,
 }
 
 impl ControllableData {
@@ -856,21 +863,24 @@ impl ControllableData {
             scan_list:              RwLock::new(Vec::new()),
             crystals:               RwLock::new(Vec::new()),
             cargo_items:            RwLock::new(Vec::new()),
+            energy:                 Atomic::new(0_f32),
+            particles:              Atomic::new(0_f32),
+            ions:                   Atomic::new(0_f32),
+            hull:                   Atomic::new(0_f32),
+            shield:                 Atomic::new(0_f32),
+
+            active:                 Atomic::new(true),
+            haste_time:             Atomic::new(0_u16),
+            double_damage_time:     Atomic::new(0_u16),
+            quad_damage_time:       Atomic::new(0_u16),
+            build_progress:         Atomic::new(0_f32),
+            cloak_time:             Atomic::new(0u16),
+
+            pending_shutdown:         Atomic::new(false),
+            weapon_production_status: Atomic::new(0_f32),
+
             mutable: RwLock::new(ControllableDataMut {
-                active:                 true,
-                haste_time:             0u16,
-                double_damage_time:     0u16,
-                quad_damage_time:       0u16,
-                energy:                 0f32,
-                particles:              0f32,
-                ions:                   0f32,
-                hull:                   0f32,
-                shield:                 0f32,
                 build_position:         None,
-                build_progress:         0f32,
-                weapon_production_status:0f32,
-                cloak_time:             0u16,
-                pending_shutdown:       false,
                 is_building:            None,
                 is_built_by:            None,
                 universe,
@@ -1110,23 +1120,23 @@ impl Controllable for ControllableData {
     }
 
     fn energy(&self) -> f32 {
-        self.mutable.read().unwrap().energy
+        self.energy.load(Ordering::Relaxed)
     }
 
     fn particles(&self) -> f32 {
-        self.mutable.read().unwrap().particles
+        self.particles.load(Ordering::Relaxed)
     }
 
     fn ions(&self) -> f32 {
-        self.mutable.read().unwrap().ions
+        self.ions.load(Ordering::Relaxed)
     }
 
     fn hull(&self) -> f32 {
-        self.mutable.read().unwrap().hull
+        self.hull.load(Ordering::Relaxed)
     }
 
     fn shield(&self) -> f32 {
-        self.mutable.read().unwrap().shield
+        self.shield.load(Ordering::Relaxed)
     }
 
     fn build_position(&self) -> Option<Vector> {
@@ -1134,7 +1144,7 @@ impl Controllable for ControllableData {
     }
 
     fn build_progress(&self) -> f32 {
-        self.mutable.read().unwrap().build_progress
+        self.build_progress.load(Ordering::Relaxed)
     }
 
     fn is_building(&self) -> Option<AnyControllable> {
@@ -1146,7 +1156,7 @@ impl Controllable for ControllableData {
     }
 
     fn weapon_production_status(&self) -> f32 {
-        self.mutable.read().unwrap().weapon_production_status
+        self.weapon_production_status.load(Ordering::Relaxed)
     }
 
     fn crystals(&self) -> RwLockReadGuard<Vec<Arc<CrystalCargoItem>>> {
@@ -1162,19 +1172,19 @@ impl Controllable for ControllableData {
     }
 
     fn haste_time(&self) -> u16 {
-        self.mutable.read().unwrap().haste_time
+        self.haste_time.load(Ordering::Relaxed)
     }
 
     fn double_damage_time(&self) -> u16 {
-        self.mutable.read().unwrap().double_damage_time
+        self.double_damage_time.load(Ordering::Relaxed)
     }
 
     fn quad_damage_time(&self) -> u16 {
-        self.mutable.read().unwrap().quad_damage_time
+        self.quad_damage_time.load(Ordering::Relaxed)
     }
 
     fn cloak_time(&self) -> u16 {
-        self.mutable.read().unwrap().cloak_time
+        self.cloak_time.load(Ordering::Relaxed)
     }
 
     fn connector(&self) -> &Weak<Connector> {
@@ -1182,11 +1192,11 @@ impl Controllable for ControllableData {
     }
 
     fn is_active(&self) -> bool {
-        self.mutable.read().unwrap().active
+        self.active.load(Ordering::Relaxed)
     }
 
     fn is_pending_shutdown(&self) -> bool {
-        self.mutable.read().unwrap().pending_shutdown
+        self.pending_shutdown.load(Ordering::Relaxed)
     }
 
     fn scan_list(&self) -> &RwLock<Vec<AnyUnit>> {
@@ -1197,53 +1207,58 @@ impl Controllable for ControllableData {
 
     fn update(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.mutable.write()?;
 
 
         if let Some(connector) = self.connector.upgrade() {
             if let Some(player) = connector.player().upgrade() {
                 if let Some(group) = player.universe_group().upgrade() {
+                    let mut mutable = self.mutable.write()?;
                     mutable.universe = group.universe(packet.path_universe());
                 }
             }
         }
 
-        mutable.energy             = reader.read_single()?;
-        mutable.particles          = reader.read_single()?;
-        mutable.ions               = reader.read_single()?;
-        mutable.hull               = reader.read_single()?;
-        mutable.shield             = reader.read_single()?;
-        mutable.pending_shutdown   = reader.read_bool()?;
+
+        self.energy             .store(reader.read_single()?, Ordering::Relaxed);
+        self.particles          .store(reader.read_single()?, Ordering::Relaxed);
+        self.ions               .store(reader.read_single()?, Ordering::Relaxed);
+        self.hull               .store(reader.read_single()?, Ordering::Relaxed);
+        self.shield             .store(reader.read_single()?, Ordering::Relaxed);
+        self.pending_shutdown   .store(reader.read_bool()?,   Ordering::Relaxed);
+
         Ok(())
     }
 
     fn update_extended(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
-        let mut mutable = self.mutable.write()?;
 
-        mutable.weapon_production_status   = reader.read_single()?;
+        self.weapon_production_status.store(reader.read_single()?, Ordering::Relaxed);
         let header                      = reader.read_byte()?;
 
         if is_set_u8(header, 0x03) {
-            mutable.build_progress = 0f32;
+            self.build_progress.store(0_f32, Ordering::Relaxed);
         }
 
+
         if is_set_u8(header, 0x01) {
+            let mut mutable = self.mutable.write()?;
             match self.connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
-                    mutable.build_progress   = reader.read_single()?;
-                    mutable.is_building     = connector.controllable_opt(reader.read_unsigned_byte()?);
+                    self.build_progress.store(reader.read_single()?, Ordering::Relaxed);
+                    mutable.is_building    = connector.controllable_opt(reader.read_unsigned_byte()?);
                     mutable.build_position = Some(Vector::from_reader_with_connector(reader, &connector)?);
                 }
             };
         } else {
+            let mut mutable = self.mutable.write()?;
             mutable.build_position = None;
             mutable.is_building    = None;
         }
 
         if is_set_u8(header, 0x02) {
-            mutable.build_progress = reader.read_single()?;
+            let mut mutable = self.mutable.write()?;
+            self.build_progress.store(reader.read_single()?, Ordering::Relaxed);
             mutable.is_built_by    = match self.connector.upgrade() {
                 None => return Err(Error::ConnectorNotAvailable),
                 Some(connector) => {
@@ -1251,25 +1266,26 @@ impl Controllable for ControllableData {
                 }
             };
         } else {
+            let mut mutable = self.mutable.write()?;
             mutable.is_built_by = None;
         }
 
         if is_set_u8(header, 0x10) {
-            mutable.haste_time = reader.read_u16()?;
+            self.haste_time.store(reader.read_u16()?, Ordering::Relaxed);
         } else {
-            mutable.haste_time = 0u16;
+            self.haste_time.store(0_u16, Ordering::Relaxed);
         }
 
         if is_set_u8(header, 0x40) {
-            mutable.quad_damage_time = reader.read_u16()?;
+            self.quad_damage_time.store(reader.read_u16()?, Ordering::Relaxed);
         } else {
-            mutable.haste_time = 0u16;
+            self.quad_damage_time.store(0_u16, Ordering::Relaxed);
         }
 
         if is_set_u8(header, 0x80) {
-            mutable.cloak_time = reader.read_u16()?;
+            self.cloak_time.store(reader.read_u16()?, Ordering::Relaxed);
         } else {
-            mutable.cloak_time = 0u16;
+            self.cloak_time.store(0_u16, Ordering::Relaxed);
         }
 
         Ok(())
@@ -1292,7 +1308,7 @@ impl Controllable for ControllableData {
     }
 
     fn set_active(&self, active: bool) -> Result<(), Error> {
-        self.mutable.write()?.active = active;
+        self.active.store(active, Ordering::Relaxed);
         Ok(())
     }
 

@@ -23,7 +23,7 @@ impl BinaryChatMessage {
             data:   ChatMessageData::from_packet(connector, packet, reader)?,
             to:     connector.player_for(reader.read_u16()?)?,
             message:{
-                let count = reader.read_u16()? as usize;
+                let count = reader.read_unsigned_byte()? as usize;
                 reader.read_bytes(count)?
             },
         })

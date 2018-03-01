@@ -1,11 +1,13 @@
 
 use std::sync::Weak;
-use std::sync::RwLock;
 
 use Error;
 use DateTime;
 use Connector;
 use ManualResetEvent;
+
+use atomic::Atomic;
+use atomic::Ordering;
 
 use std::thread;
 use std::thread::ThreadId;
@@ -16,10 +18,10 @@ pub struct UniverseGroupFlowControl {
     pre_wait:  ManualResetEvent,
     wait_ev:   ManualResetEvent,
 
-    limit_stamp: RwLock<DateTime>,
+    limit_stamp: Atomic<DateTime>,
 
-    tick:   RwLock<u16>,
-    ready:  RwLock<bool>,
+    tick:   Atomic<u16>,
+    ready:  Atomic<bool>,
     thread: ThreadId,
 }
 
@@ -36,11 +38,11 @@ impl UniverseGroupFlowControl {
             thread:     thread::current().id(),
             wait_ev:    ManualResetEvent::new(false),
             pre_wait:   ManualResetEvent::new(false),
-            ready:      RwLock::new(true),
+            ready:      Atomic::new(true),
 
             // defaults
-            tick:           RwLock::new(0u16),
-            limit_stamp:    RwLock::new(DateTime::from_ticks(0_i64)),
+            tick:           Atomic::new(0u16),
+            limit_stamp:    Atomic::new(DateTime::from_ticks(0_i64)),
         }
     }
 
@@ -50,12 +52,12 @@ impl UniverseGroupFlowControl {
     }
 
     pub fn set_pre_wait(&self, limit_stamp: DateTime, tick: u16) -> Result<(), Error> {
-        *self.limit_stamp.write()? = limit_stamp;
+        self.limit_stamp.store(limit_stamp, Ordering::Relaxed);
 
 
-        if *self.ready.read()? {
-            *self.tick .write()? = tick;
-            *self.ready.write()? = false;
+        if self.ready.load(Ordering::Relaxed) {
+            self.tick.store(tick, Ordering::Relaxed);
+            self.ready.store(false, Ordering::Relaxed);
         }
 
         self.pre_wait.set()?;
@@ -63,7 +65,7 @@ impl UniverseGroupFlowControl {
     }
 
     pub fn set_wait(&self, limit_stamp: DateTime) -> Result<(), Error> {
-        *self.limit_stamp.write()? = limit_stamp;
+        self.limit_stamp.store(limit_stamp, Ordering::Relaxed);
         self.wait_ev.set()?;
         Ok(())
     }
@@ -72,17 +74,17 @@ impl UniverseGroupFlowControl {
     pub fn pre_wait(&self) -> Result<i64, Error> {
         Self::check_thread(self.thread)?;
         self.pre_wait.wait_one()?;
-        Ok(self.limit_stamp.read()?.elapsed_millis())
+        Ok(self.limit_stamp.load(Ordering::Relaxed).elapsed_millis())
     }
 
     pub fn wait(&self) -> Result<i64, Error> {
         Self::check_thread(self.thread)?;
         self.wait_ev.wait_one()?;
-        Ok(self.limit_stamp.read()?.elapsed_millis())
+        Ok(self.limit_stamp.load(Ordering::Relaxed).elapsed_millis())
     }
 
-    pub fn ready(&self) -> Result<bool, Error> {
-        Ok(*self.ready.read()?)
+    pub fn ready(&self) -> bool {
+        self.ready.load(Ordering::Relaxed)
     }
 
     /// Commits this instance. The return
@@ -92,11 +94,11 @@ impl UniverseGroupFlowControl {
         Self::check_thread(self.thread)?;
         self.wait_ev .reset()?;
         self.pre_wait.reset()?;
-        *self.ready.write()? = true;
+        self.ready.store(true, Ordering::Relaxed);
         match self.connector.upgrade() {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
-                let tick = *self.tick.read()?;
+                let tick = self.tick.load(Ordering::Relaxed);
                 connector.flow_control_check(tick)
             }
         }

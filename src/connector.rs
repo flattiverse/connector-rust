@@ -58,6 +58,9 @@ use event::*;
 use item::AnyCargoItem;
 use item::CrystalCargoItem;
 
+use atomic::Atomic;
+use atomic::Ordering;
+
 use message::AnyMessage;
 
 pub const PROTOCOL_VERSION  : u32       = 36;
@@ -73,7 +76,7 @@ pub struct Connector {
     sync_account_queries:   Mutex<()>,
     sync_control_flow:      Mutex<()>,
 
-    tick:           RwLock<u16>,
+    tick:           Atomic<u16>,
     tasks:          RwLock<[bool; TASK_COUNT]>,
     flows:          RwLock<Vec<Arc<UniverseGroupFlowControl>>>,
     uni_groups:     RwLock<ManagedArray<Arc<UniverseGroup>>>,
@@ -116,7 +119,7 @@ impl Connector {
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
             sync_control_flow:    Mutex::new(()),
-            tick:           RwLock::new(0_u16),
+            tick:           Atomic::new(0_u16),
             tasks:          RwLock::new([false; TASK_COUNT]),
             flows:          RwLock::new(Vec::new()),
             uni_groups:     RwLock::new(ManagedArray::with_capacity(128)),
@@ -216,7 +219,7 @@ impl Connector {
             },
             0x02 => { // pre-wait
                 let tick = packet.path_sub() as u16;
-                *connector.tick.write()? = tick;
+                connector.tick.store(tick, Ordering::Relaxed);
 
                 // sync flow control
                 let _ = connector.sync_control_flow.lock()?;
@@ -245,14 +248,14 @@ impl Connector {
 
                     {
                         packet.set_command(0x05);
-                        packet.set_path_sub(*connector.tick.read()? as u8 & 0xFF);
+                        packet.set_path_sub(connector.tick.load(Ordering::Relaxed) as u8);
                     }
 
                     connector.send(&packet)?;
                 } else {
                     let mut allow_flow_control_ready = true;
                     for flow in flows.iter() {
-                        if !flow.ready()? {
+                        if !flow.ready() {
                             allow_flow_control_ready = false;
                             break;
                         }
@@ -263,7 +266,7 @@ impl Connector {
 
                         {
                             packet.set_command(0x05);
-                            packet.set_path_sub(*connector.tick.read()? as u8 & 0xFF);
+                            packet.set_path_sub(connector.tick.load(Ordering::Relaxed) as u8);
                         }
 
                         connector.send(&packet)?;
@@ -806,7 +809,7 @@ impl Connector {
 
     /// Whether the commit was successful
     pub fn flow_control_check(&self, tick: u16) -> Result<bool, Error> {
-        let self_tick = *self.tick.read()?;
+        let self_tick = self.tick.load(Ordering::Relaxed);
         if tick != self_tick && tick != 0_u16 {
             return Ok(false);
         }
@@ -814,7 +817,7 @@ impl Connector {
         {
             let lock = self.flows.read()?;
             for ref flow in lock.iter() {
-                if !flow.ready()? {
+                if !flow.ready() {
                     return Ok(true);
                 }
             }

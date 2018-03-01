@@ -1,19 +1,21 @@
 
 use std::cmp::Ordering;
-use std::sync::RwLock;
 
 use Error;
 use net::BinaryReader;
 
+use atomic;
+use atomic::Atomic;
+
 #[derive(Debug)]
 pub struct TimeSpan {
-    ticks: RwLock<i64>
+    ticks: Atomic<i64>
 }
 
 impl TimeSpan {
     pub fn new(ticks: i64) -> TimeSpan {
         TimeSpan {
-            ticks: RwLock::new(ticks)
+            ticks: Atomic::new(ticks)
         }
     }
 
@@ -44,7 +46,7 @@ impl TimeSpan {
     }
 
     pub fn ticks(&self) -> i64 {
-        *self.ticks.read().unwrap()
+        self.ticks.load(atomic::Ordering::Relaxed)
     }
 
     pub fn seconds(&self) -> i64 {
@@ -62,23 +64,23 @@ impl TimeSpan {
     }
 
     pub(crate) fn update(&self, reader: &mut BinaryReader) -> Result<(), Error> {
-        *self.ticks.write()? = reader.read_u32()? as i64;
+        self.ticks.store(reader.read_u32()? as i64, atomic::Ordering::Relaxed);
         Ok(())
     }
 }
 
 impl PartialEq<TimeSpan> for TimeSpan {
     fn eq(&self, other: &TimeSpan) -> bool {
-        let ticks_me = *self.ticks.read().unwrap();
-        let ticks_ot = *other.ticks.read().unwrap();
+        let ticks_me = self.ticks();
+        let ticks_ot = other.ticks();
         ticks_me == ticks_ot
     }
 }
 
 impl PartialOrd<TimeSpan> for TimeSpan {
     fn partial_cmp(&self, other: &TimeSpan) -> Option<Ordering> {
-        let ticks_me = *self.ticks.read().unwrap();
-        let ticks_ot = *other.ticks.read().unwrap();
+        let ticks_me = self.ticks();
+        let ticks_ot = other.ticks();
         ticks_me.partial_cmp(&ticks_ot)
     }
 }
