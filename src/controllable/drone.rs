@@ -304,7 +304,7 @@ impl Controllable for Drone {
         self.controllable.cargo_items()
     }
 
-    fn universe(&self) -> &Weak<Universe> {
+    fn universe(&self) -> Weak<Universe> {
         self.controllable.universe()
     }
 

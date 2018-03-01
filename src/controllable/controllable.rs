@@ -177,7 +177,7 @@ pub trait Controllable : Send + Sync {
 
     fn cargo_items(&self) -> RwLockReadGuard<Vec<AnyCargoItem>>;
 
-    fn universe(&self) -> &Weak<Universe>;
+    fn universe(&self) -> Weak<Universe>;
 
     fn haste_time(&self) -> u16;
 
@@ -690,6 +690,7 @@ struct ControllableDataMut {
     active: bool,
     is_building: Option<AnyControllable>,
     is_built_by: Option<AnyControllable>,
+    universe:    Weak<Universe>,
 }
 
 
@@ -751,7 +752,6 @@ pub(crate) struct ControllableData {
     tractor_beam: EnergyCost,
     tractor_beam_range: f32,
     scores:      Arc<Scores>,
-    universe:    Weak<Universe>,
     connector:   Weak<Connector>,
     scan_list:   RwLock<Vec<AnyUnit>>,
     mutable:     RwLock<ControllableDataMut>,
@@ -777,7 +777,6 @@ impl ControllableData {
         Ok(ControllableData {
             id,
             connector: Arc::downgrade(connector),
-            universe,
 
             revision:                       reader.read_i64()?,
             class:                          reader.read_string()?,
@@ -874,6 +873,7 @@ impl ControllableData {
                 pending_shutdown:       false,
                 is_building:            None,
                 is_built_by:            None,
+                universe,
             })
         })
     }
@@ -1157,8 +1157,8 @@ impl Controllable for ControllableData {
         self.cargo_items.read().unwrap()
     }
 
-    fn universe(&self) -> &Weak<Universe> {
-        &self.universe
+    fn universe(&self) -> Weak<Universe> {
+        self.mutable.read().unwrap().universe.clone()
     }
 
     fn haste_time(&self) -> u16 {
@@ -1198,6 +1198,15 @@ impl Controllable for ControllableData {
     fn update(&self, packet: &Packet) -> Result<(), Error> {
         let reader = &mut packet.read() as &mut BinaryReader;
         let mut mutable = self.mutable.write()?;
+
+
+        if let Some(connector) = self.connector.upgrade() {
+            if let Some(player) = connector.player().upgrade() {
+                if let Some(group) = player.universe_group().upgrade() {
+                    mutable.universe = group.universe(packet.path_universe());
+                }
+            }
+        }
 
         mutable.energy             = reader.read_single()?;
         mutable.particles          = reader.read_single()?;
