@@ -13,7 +13,7 @@ pub enum Error {
     RequestedPacketSizeIsInvalid{max: u32, was: u32},
     NoFreeSlots,
     FailedToFetchBlock,
-    Timeout(::std::sync::mpsc::RecvTimeoutError),
+    Timeout,
     ErrorCode(u8, Option<&'static str>),
     ServerError {
         exception_type: String,

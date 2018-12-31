@@ -27,7 +27,6 @@ mod polynominal;
 mod task;
 mod vector;
 
-mod block;
 mod index_list;
 mod block_manager;
 mod universe_group;
@@ -68,7 +67,6 @@ pub use task::*;
 pub use vector::*;
 
 pub use color::*;
-pub use block::*;
 pub use index_list::*;
 pub use block_manager::*;
 pub use managed_array::*;
