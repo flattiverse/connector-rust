@@ -61,7 +61,7 @@ impl<T: Write> BinaryWriter for T {
     fn write_string(&mut self, str: &str) -> Result<()> {
         let bytes = str.as_bytes();
         self.write_7bit_encoded_int(bytes.len() as u32)?;
-        self.write(&bytes)?;
+        self.write_all(&bytes)?;
         Ok(())
     }
 
