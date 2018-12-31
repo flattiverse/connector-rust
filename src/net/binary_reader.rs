@@ -129,8 +129,8 @@ impl<T: Read> BinaryReader for T {
 
     /// Reads available bytes but not more than specified
     fn read_bytes_available(&mut self, up_to_size: usize) -> Result<Vec<u8>> {
-        let mut v = Vec::with_capacity(up_to_size);
-        self.read(&mut v)?;
+        let mut v = vec![0u8; up_to_size];
+        let _ = self.read(&mut v[..])?;
         Ok(v)
     }
 
