@@ -115,7 +115,7 @@ impl PerformanceTest {
             }
 
             let array = (rand.gen::<u8>() / 2_u8) as usize;
-            let from  = (rand.next_f32() * 786_432_f32) as usize;
+            let from  = (rand.gen::<f32>() * 786_432_f32) as usize;
             let to           = from + 262_144;
             tmp_data.clone_from_slice(&ram_data[array][from..to]);
 

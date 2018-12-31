@@ -1,4 +1,3 @@
-#![feature(const_fn)]
 #![allow(dead_code)]
 
 extern crate byteorder;
