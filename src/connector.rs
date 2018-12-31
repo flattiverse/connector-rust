@@ -717,7 +717,7 @@ impl Connector {
     }
 
 
-    fn answer(&self, answer: Box<Packet>) {
+    fn answer(&self, answer: Packet) {
         self.block_manager.answer(answer)
     }
 

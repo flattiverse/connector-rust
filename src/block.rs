@@ -19,9 +19,9 @@ use block_manager::BLOCK_OFFSET;
 const WAIT_TIME_MILLIS : u64 = 3 * 1000;
 
 pub struct Block {
-    pub(crate) blocks: Arc<Mutex<Vec<Option<Sender<Box<Packet>>>>>>,
+    pub(crate) blocks: Arc<Mutex<Vec<Option<Sender<Packet>>>>>,
     pub(crate) id: u8,
-    pub(crate) receiver: Receiver<Box<Packet>>,
+    pub(crate) receiver: Receiver<Packet>,
     pub(crate) timestamp: Instant
 }
 
@@ -31,7 +31,7 @@ impl Block {
         self.id
     }
 
-    pub fn wait(&mut self) -> Result<Box<Packet>, Error> {
+    pub fn wait(&mut self) -> Result<Packet, Error> {
         let time_passed = Instant::now().duration_since(self.timestamp);
         let max_time_wait = Duration::from_millis(WAIT_TIME_MILLIS);
 
@@ -41,7 +41,7 @@ impl Block {
             max_time_wait.sub(time_passed)
         };
 
-        let packet : Box<Packet> = match self.receiver.recv_timeout(time_wait) {
+        let packet : Packet = match self.receiver.recv_timeout(time_wait) {
             Ok(packet) => packet,
             Err(e) => return Err(Error::Timeout(e))
         };

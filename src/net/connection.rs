@@ -20,7 +20,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub fn new(addr: &SocketAddr, max_recv_load: u32, sink: Sender<Box<Packet>>) -> Result<Connection, Error> {
+    pub fn new(addr: &SocketAddr, max_recv_load: u32, sink: Sender<Packet>) -> Result<Connection, Error> {
         let stream= TcpStream::connect(addr)?;
         stream.set_nodelay(true)?;
 
@@ -32,10 +32,10 @@ impl Connection {
 
             // TODO check shutdown behavior
             loop {
-                let packet = Box::new(Packet::from_reader(
+                let packet = Packet::from_reader(
                     max_recv_load,
                     &mut reader
-                ).expect("Failed to read packet"));
+                ).expect("Failed to read packet");
                 sink.send(packet).expect("Failed to send new package")
             }
         });
