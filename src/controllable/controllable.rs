@@ -212,18 +212,16 @@ pub trait Controllable : Send + Sync {
             }
         };
 
-        let block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
 
-        {
-            let block = block.lock()?;
-            packet.set_command(0x88);
-            packet.set_session(block.id());
-            packet.set_path_sub(self.id());
-        }
+        let mut packet = Packet::new();
+        let mut block = connector.block_manager().block()?;
+
+        packet.set_command(0x88);
+        packet.set_session(block.id());
+        packet.set_path_sub(self.id());
 
         connector.send(&packet)?;
-        block.lock()?.wait()?;
+        block.wait()?;
         Ok(())
     }
 
@@ -263,20 +261,17 @@ pub trait Controllable : Send + Sync {
         };
 
         // TODO no scan sync - any issues with that?
-        let block = connector.block_manager().block()?;
+        let mut block = connector.block_manager().block()?;
 
-        {
-            let mut block = block.lock()?;
-            packet.set_session(block.id());
+        packet.set_session(block.id());
 
-            connector.send(&packet)?;
-            block.wait()?;
+        connector.send(&packet)?;
+        block.wait()?;
 
-            let mut vec = Vec::new(); // replacement list
-            mem::swap(&mut *self.scan_list().write()?, &mut vec);
+        let mut vec = Vec::new(); // replacement list
+        mem::swap(&mut *self.scan_list().write()?, &mut vec);
 
-            Ok(vec)
-        }
+        Ok(vec)
     }
 
     fn accelerate(&self, movement: &Vector) -> Result<(), Error> {
@@ -287,8 +282,7 @@ pub trait Controllable : Send + Sync {
         packet.set_path_ship(self.id());
         movement.write(&mut packet.write() as &mut BinaryWriter)?;
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
         packet.set_session(block.id());
 
         connector.send(&packet)?;
@@ -338,8 +332,7 @@ pub trait Controllable : Send + Sync {
         };
 
         let id = {
-            let block = connector.block_manager().block()?;
-            let mut block = block.lock()?;
+            let mut block = connector.block_manager().block()?;
 
             packet.set_session(block.id());
             connector.send(&packet)?;
@@ -360,8 +353,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -386,8 +378,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -412,8 +403,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -438,8 +428,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -459,8 +448,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -488,8 +476,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -556,8 +543,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -603,8 +589,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;
@@ -653,8 +638,7 @@ pub trait Controllable : Send + Sync {
             Some(connector) => connector
         };
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
 
         packet.set_session(block.id());
         connector.send(&packet)?;

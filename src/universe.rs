@@ -86,8 +86,7 @@ impl Universe {
             return Err(Error::PlayerAlreadyInAnotherUniverseGroup(other_group.id()))
         }
 
-        let block = connector.block_manager().block()?;
-        let mut block = block.lock()?;
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
 
         packet.set_command(0x42);

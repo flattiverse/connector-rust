@@ -28,17 +28,17 @@ impl BlockManager {
         }
     }
 
-    pub fn block(&self) -> Result<Arc<Mutex<Block>>, Error> {
+    pub fn block(&self) -> Result<Block, Error> {
         let (tx, rx) = channel();
         let mut lock = self.blocks.lock().expect("Failed to acquire lock");
         let index = Self::find_next_free(&lock)?;
         lock[index] = Some(tx);
-        Ok(Arc::new(Mutex::new(Block {
+        Ok(Block {
             blocks: self.blocks.clone(),
             receiver: rx,
             id: (index + BLOCK_OFFSET) as u8,
             timestamp: Instant::now(),
-        })))
+        })
     }
 
     fn find_next_free(vec: &Vec<Option<Sender<Packet>>>) -> Result<usize, Error> {

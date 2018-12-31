@@ -162,7 +162,7 @@ impl Connector {
     }
 
     fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
-        let block = self.block_manager.block()?;
+        let mut block = self.block_manager.block()?;
         let mut packet = Packet::new();
 
         {
@@ -193,14 +193,10 @@ impl Connector {
             writer.write_all(&Self::sha512(password)[..])?;
         }
 
-        {
-            let mut block = block.lock().expect("Failed to acquire lock");
-            packet.set_session(block.id());
-            self.send(&packet)?;
-            let response = block.wait()?;
-            println!("Response: {:?}", response);
-        }
-
+        packet.set_session(block.id());
+        self.send(&packet)?;
+        let response = block.wait()?;
+        println!("Response: {:?}", response);
         Ok(())
 
     }
@@ -774,19 +770,15 @@ impl Connector {
     }
 
     pub fn register_task(&self, task: Task) -> Result<(), Error> {
-        let block = self.block_manager().block()?;
-
+        let mut block = self.block_manager().block()?;
         let mut packet = Packet::new();
 
-        {
-            let block = block.lock()?;
-            packet.set_session(block.id());
-            packet.set_command(0x07u8);
-            packet.set_path_sub(task as u8);
-        }
+        packet.set_session(block.id());
+        packet.set_command(0x07u8);
+        packet.set_path_sub(task as u8);
 
         self.send(&packet)?;
-        block.lock()?.wait()?;
+        block.wait()?;
 
         self.tasks.write()?[task as usize] = true;
         Ok(())
@@ -824,8 +816,7 @@ impl Connector {
         }
 
 
-        let block = self.block_manager.block()?;
-        let mut block = block.lock()?;
+        let mut block = self.block_manager.block()?;
         let mut packet = Packet::new();
 
         {
@@ -905,9 +896,8 @@ impl Connector {
         let mut vec     = Vec::new();
         let mut packet  = Packet::new();
 
-        let block    = self.block_manager().block()?;
+        let mut block    = self.block_manager().block()?;
         let response = {
-            let mut block = block.lock()?;
             packet.set_command(0x10);
             packet.set_session(block.id());
 

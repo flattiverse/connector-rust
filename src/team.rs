@@ -85,12 +85,12 @@ impl Team {
             }
         }
 
-        let block = connector.block_manager().block()?;
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
 
         packet.set_command(0x31);
         packet.set_path_sub(self.id);
-        packet.set_session(block.lock().unwrap().id());
+        packet.set_session(block.id());
 
         {
             let writer = &mut packet.write() as &mut BinaryWriter;
@@ -98,7 +98,7 @@ impl Team {
         }
 
         connector.send(&packet)?;
-        block.lock().unwrap().wait()?;
+        block.wait()?;
         Ok(())
     }
 

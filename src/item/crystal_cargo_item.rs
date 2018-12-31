@@ -289,9 +289,7 @@ impl CrystalCargoItem {
         // lock account queries for the rest of this function
         let connector = self.cargo.connector.upgrade().unwrap();
         let _ = connector.sync_account_queries().lock().unwrap();
-        let manager = connector.block_manager().block()?;
-        let mut block = manager.lock().unwrap();
-
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
 
         packet.set_command(0x71_u8);
@@ -319,8 +317,7 @@ impl CrystalCargoItem {
         // lock account queries for the rest of this function
         let connector = self.cargo.connector.upgrade().unwrap();
         let _ = connector.sync_account_queries().lock().unwrap();
-        let manager = connector.block_manager().block()?;
-        let mut block = manager.lock().unwrap();
+        let mut block = connector.block_manager().block()?;
 
         let mut packet = Packet::new();
 

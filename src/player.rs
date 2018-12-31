@@ -112,18 +112,15 @@ impl Player {
         match self.connector.upgrade() {
             None            => Err(Error::ConnectorNotAvailable),
             Some(connector) => Ok({
-                let block = connector.block_manager().block()?;
+                let mut block = connector.block_manager().block()?;
                 let mut packet = Packet::new();
 
-                {
-                    let block = block.lock()?;
-                    packet.set_command(if small {0x02_u8} else {0x03_u8});
-                    packet.set_session(block.id());
-                    packet.set_path_player(self.id);
-                }
+                packet.set_command(if small {0x02_u8} else {0x03_u8});
+                packet.set_session(block.id());
+                packet.set_path_player(self.id);
 
                 connector.send(&packet)?;
-                let response = block.lock()?.wait()?;
+                let response = block.wait()?;
 
                 match connector.player().upgrade() {
                     None => {},
@@ -194,15 +191,12 @@ impl Player {
         match self.connector.upgrade() {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
-                let block = connector.block_manager().block()?;
+                let mut block = connector.block_manager().block()?;
                 let mut packet = Packet::new();
 
-                {
-                    let block = block.lock()?;
-                    packet.set_command(0x30_u8);
-                    packet.set_path_player(self.id);
-                    packet.set_session(block.id());
-                }
+                packet.set_command(0x30_u8);
+                packet.set_path_player(self.id);
+                packet.set_session(block.id());
 
                 {
                     let writer = packet.write() as &mut BinaryWriter;
@@ -210,7 +204,7 @@ impl Player {
                 }
 
                 connector.send(&packet)?;
-                block.lock()?.wait()?;
+                block.wait()?;
                 Ok(())
             }
         }
@@ -229,15 +223,12 @@ impl Player {
         match self.connector.upgrade() {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
-                let block = connector.block_manager().block()?;
+                let mut block = connector.block_manager().block()?;
                 let mut packet = Packet::new();
 
-                {
-                    let block = block.lock()?;
-                    packet.set_command(0x33_u8);
-                    packet.set_path_player(self.id);
-                    packet.set_session(block.id());
-                }
+                packet.set_command(0x33_u8);
+                packet.set_path_player(self.id);
+                packet.set_session(block.id());
 
                 {
                     let writer = packet.write() as &mut BinaryWriter;
@@ -246,7 +237,7 @@ impl Player {
                 }
 
                 connector.send(&packet)?;
-                block.lock()?.wait()?;
+                block.wait()?;
                 Ok(())
             }
         }
@@ -280,15 +271,12 @@ impl Player {
                 let mut packets = Vec::with_capacity(data.len());
 
                 for i in 0..data.len() {
-                    let block = connector.block_manager().block()?;
+                    let mut block = connector.block_manager().block()?;
                     let mut packet = Packet::new();
 
-                    {
-                        let block = block.lock()?;
-                        packet.set_command(0x33_u8);
-                        packet.set_path_player(self.id);
-                        packet.set_session(block.id());
-                    }
+                    packet.set_command(0x33_u8);
+                    packet.set_path_player(self.id);
+                    packet.set_session(block.id());
 
                     {
                         let writer = packet.write() as &mut BinaryWriter;
@@ -303,7 +291,7 @@ impl Player {
 
                 connector.send_many(&packets)?;
                 for i in 0..blocks.len() {
-                    blocks[i].lock()?.wait()?;
+                    blocks[i].wait()?;
                 }
                 Ok(())
             }

@@ -172,18 +172,15 @@ impl UniverseGroup {
         match self.connector.upgrade() {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
-                let block = connector.block_manager().block()?;
+                let mut block = connector.block_manager().block()?;
                 let mut packet = Packet::new();
 
-                {
-                    let block = block.lock()?;
-                    packet.set_command(0x20);
-                    packet.set_session(block.id());
-                    packet.set_path_universe_group(self.id);
-                }
+                packet.set_command(0x20);
+                packet.set_session(block.id());
+                packet.set_path_universe_group(self.id);
 
                 connector.send(&packet)?;
-                let response = block.lock()?.wait()?;
+                let response = block.wait()?;
 
                 Ok(Vec::from(response.read()))
             }
@@ -227,9 +224,8 @@ impl UniverseGroup {
 
         // TODO missing crystals check
 
-        let block = connector.block_manager().block()?;
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
-        let mut block  = block.lock()?;
 
         packet.set_command(0x80);
         packet.set_session(block.id());
@@ -267,9 +263,8 @@ impl UniverseGroup {
             return Err(Error::StillOpenFlowControlsInUniverseGroup(self.id));
         }
 
-        let block = connector.block_manager().block()?;
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
-        let mut block  = block.lock()?;
 
         packet.set_command(0x06);
         packet.set_session(block.id());
@@ -299,9 +294,8 @@ impl UniverseGroup {
             }
         };
 
-        let block = connector.block_manager().block()?;
+        let mut block = connector.block_manager().block()?;
         let mut packet = Packet::new();
-        let mut block  = block.lock()?;
 
         packet.set_command(0x32);
         packet.set_session(block.id());
@@ -324,9 +318,8 @@ impl UniverseGroup {
         }
 
         let connector  = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
-        let block      = connector.block_manager().block()?;
+        let mut block      = connector.block_manager().block()?;
         let mut packet = Packet::new();
-        let mut block  = block.lock()?;
 
         packet.set_command(0x04);
         packet.set_session(block.id());
