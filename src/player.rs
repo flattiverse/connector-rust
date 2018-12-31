@@ -242,7 +242,7 @@ impl Player {
                 {
                     let writer = packet.write() as &mut BinaryWriter;
                     writer.write_u8(data.len() as u8)?;
-                    writer.write(data)?;
+                    writer.write_all(data)?;
                 }
 
                 connector.send(&packet)?;
@@ -293,7 +293,7 @@ impl Player {
                     {
                         let writer = packet.write() as &mut BinaryWriter;
                         writer.write_u8(data[i].len() as u8)?;
-                        writer.write(data[i])?;
+                        writer.write_all(data[i])?;
                     }
 
 
