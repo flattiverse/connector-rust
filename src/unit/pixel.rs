@@ -71,7 +71,7 @@ impl Pixel {
 
     pub fn is_relevant(&self) -> bool {
         let color = self.color();
-        color.red() > 0_f32 || color.green() > 0_f32 || color.blue() != 1_f32
+        color.red() > 0_f32 || color.green() > 0_f32 || (color.blue() - 1_f32).abs() > ::std::f32::EPSILON
     }
 }
 

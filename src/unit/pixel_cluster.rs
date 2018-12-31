@@ -30,7 +30,7 @@ impl PixelCluster {
                 } else {
                     let bytes = reader.read_bytes_available(count as usize)?;
                     let read = &mut &bytes[..] as &mut Read;
-                    let mut decoder = GzDecoder::new(read)?;
+                    let mut decoder = GzDecoder::new(read);
                     let mut vec = Vec::new();
                     decoder.read_to_end(&mut vec)?;
                     vec
