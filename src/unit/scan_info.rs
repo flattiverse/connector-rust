@@ -37,7 +37,7 @@ impl ScanInfo {
         from_degree %= 360_f32;
         to_degree   %= 360_f32;
 
-        if from_degree == to_degree {
+        if (from_degree - to_degree).abs() <= ::std::f32::EPSILON {
             span = 360_f32;
 
         } else if from_degree < to_degree {
