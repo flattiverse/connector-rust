@@ -1,3 +1,4 @@
+
 use std::ops::Sub;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,8 +21,8 @@ pub struct BlockManager {
     blocks: Vec<Arc<BlockInner>>
 }
 
-impl BlockManager {
-    pub fn new() -> BlockManager {
+impl Default for BlockManager {
+    fn default() -> Self {
         BlockManager {
             blocks: {
                 let mut vec = Vec::with_capacity(BLOCK_COUNT);
@@ -36,7 +37,9 @@ impl BlockManager {
             }
         }
     }
+}
 
+impl BlockManager {
     pub fn block(&self) -> Result<Block, Error> {
         let inner = self.blocks
             .iter()

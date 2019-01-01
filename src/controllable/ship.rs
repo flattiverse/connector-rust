@@ -37,7 +37,7 @@ impl Ship {
         }
 
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x81);
         packet.set_session(block.id());

@@ -213,7 +213,7 @@ pub trait Controllable : Send + Sync {
         };
 
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
         let mut block = connector.block_manager().block()?;
 
         packet.set_command(0x88);
@@ -243,7 +243,7 @@ pub trait Controllable : Send + Sync {
             });
         }
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
         packet.set_command(0x90);
         packet.set_path_ship(self.id());
 
@@ -276,7 +276,7 @@ pub trait Controllable : Send + Sync {
 
     fn accelerate(&self, movement: &Vector) -> Result<(), Error> {
         let connector = self.connector().upgrade().clone().ok_or(Error::ConnectorNotAvailable)?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x91);
         packet.set_path_ship(self.id());
@@ -303,7 +303,7 @@ pub trait Controllable : Send + Sync {
             return Err(Error::InvalidDirection);
         }
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x85);
         packet.set_path_ship(self.id());
@@ -314,7 +314,7 @@ pub trait Controllable : Send + Sync {
             writer.write_string(name)?;
             writer.write_f32(direction)?;
 
-            if crystals.len() == 0 {
+            if crystals.is_empty() {
                 writer.write_byte(0x00)?;
 
             } else {
@@ -343,7 +343,7 @@ pub trait Controllable : Send + Sync {
     }
 
     fn kill(&self) -> Result<(), Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x82);
         packet.set_path_ship(self.id());
@@ -363,7 +363,7 @@ pub trait Controllable : Send + Sync {
     }
 
     fn repair_hull(&self, hull: f32) -> Result<(), Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x83);
         packet.set_path_ship(self.id());
@@ -388,7 +388,7 @@ pub trait Controllable : Send + Sync {
     }
 
     fn load_shields(&self, amount: f32) -> Result<(), Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x84);
         packet.set_path_ship(self.id());
@@ -413,7 +413,7 @@ pub trait Controllable : Send + Sync {
     }
 
     fn harvest_nebula(&self, amount: f32) -> Result<(), Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x86);
         packet.set_path_ship(self.id());
@@ -438,7 +438,7 @@ pub trait Controllable : Send + Sync {
     }
 
     fn flush_cargo(&self) -> Result<(), Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x87);
         packet.set_path_ship(self.id());
@@ -462,7 +462,7 @@ pub trait Controllable : Send + Sync {
             return Err(Error::InvalidName);
         }
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
         packet.set_command(0x89);
         packet.set_path_ship(self.id());
 
@@ -517,7 +517,7 @@ pub trait Controllable : Send + Sync {
             return Err(Error::TooManySubDirections(sub_directions.len()));
         }
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0xA0);
         packet.set_path_ship(self.id());
@@ -571,7 +571,7 @@ pub trait Controllable : Send + Sync {
             return Err(Error::InvalidIonsValue(ions));
         }
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0xA1);
         packet.set_path_ship(self.id());
@@ -621,7 +621,7 @@ pub trait Controllable : Send + Sync {
 
         direction %= 360_f32;
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0xA2);
         packet.set_path_ship(self.id());

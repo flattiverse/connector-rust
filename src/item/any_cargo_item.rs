@@ -22,7 +22,7 @@ impl AnyCargoItem {
             0x00 => AnyCargoItem::Nebula       (Arc::new(NebulaCargoItem       ::from_reader(connector, reader, master)?)),
             0x01 => AnyCargoItem::Crystal      (Arc::new(CrystalCargoItem      ::from_reader(connector, reader, master)?)),
             0x02 => AnyCargoItem::MissionTarget(Arc::new(MissionTargetCargoItem::from_reader(connector, reader, master)?)),
-            id@_ => return Err(Error::InvalidCargoItem(id)),
+            id => return Err(Error::InvalidCargoItem(id)),
         })
     }
 }
@@ -32,9 +32,9 @@ impl Deref for AnyCargoItem {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyCargoItem::Nebula       (ref item) => item.deref(),
-            &AnyCargoItem::Crystal      (ref item) => item.deref(),
-            &AnyCargoItem::MissionTarget(ref item) => item.deref(),
+            AnyCargoItem::Nebula       (ref item) => item.deref(),
+            AnyCargoItem::Crystal      (ref item) => item.deref(),
+            AnyCargoItem::MissionTarget(ref item) => item.deref(),
         }
     }
 }

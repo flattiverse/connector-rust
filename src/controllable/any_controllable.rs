@@ -63,11 +63,11 @@ impl Deref for AnyControllable {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyControllable::Platform(ref controllable) => controllable.deref(),
-            &AnyControllable::Probe   (ref controllable) => controllable.deref(),
-            &AnyControllable::Drone   (ref controllable) => controllable.deref(),
-            &AnyControllable::Ship    (ref controllable) => controllable.deref(),
-            &AnyControllable::Base    (ref controllable) => controllable.deref(),
+            AnyControllable::Platform(ref controllable) => controllable.deref(),
+            AnyControllable::Probe   (ref controllable) => controllable.deref(),
+            AnyControllable::Drone   (ref controllable) => controllable.deref(),
+            AnyControllable::Ship    (ref controllable) => controllable.deref(),
+            AnyControllable::Base    (ref controllable) => controllable.deref(),
         }
     }
 }

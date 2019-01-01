@@ -19,9 +19,9 @@ impl OrbitingState {
         let angle;
 
         if rotation_interval < 0i16 {
-            angle = (0f32-rotation as f32) / (rotation_interval as f32 * 360f32 + start_angle);
+            angle = (0f32-f32::from(rotation)) / (f32::from(rotation_interval) * 360f32 + start_angle);
         } else {
-            angle = (rotation as f32) / (rotation_interval as f32 * 360f32 + start_angle);
+            angle = f32::from(rotation) / (f32::from(rotation_interval) * 360f32 + start_angle);
         }
 
         Ok(OrbitingState {

@@ -21,11 +21,11 @@ impl TimeSpan {
 
     pub fn from_dhmsm(days: i32, hours: i32, minutes: i32, seconds: i32, millis: i32) -> TimeSpan {
         Self::new(
-            days            as i64 * 864_000_000_000_i64 // * ticks per day
-                + hours     as i64 *  36_000_000_000_i64 // * ticks per hour
-                + minutes   as i64 *     600_000_000_i64 // * ticks per minute
-                + seconds   as i64 *      10_000_000_i64 // * ticks per seconds
-                + millis    as i64 *          10_000_i64 // * ticks per milliseconds
+            i64::from(days         ) * 864_000_000_000_i64 // * ticks per day
+                + i64::from(hours  ) *  36_000_000_000_i64 // * ticks per hour
+                + i64::from(minutes) *     600_000_000_i64 // * ticks per minute
+                + i64::from(seconds) *      10_000_000_i64 // * ticks per seconds
+                + i64::from(millis ) *          10_000_i64 // * ticks per milliseconds
         )
     }
 
@@ -64,7 +64,7 @@ impl TimeSpan {
     }
 
     pub(crate) fn update(&self, reader: &mut BinaryReader) -> Result<(), Error> {
-        self.ticks.store(reader.read_u32()? as i64, atomic::Ordering::Relaxed);
+        self.ticks.store(i64::from(reader.read_u32()?), atomic::Ordering::Relaxed);
         Ok(())
     }
 }

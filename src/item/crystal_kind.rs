@@ -39,7 +39,7 @@ impl CrystalKind {
             3 => CrystalKind::Mastery,
             4 => CrystalKind::Divine,
             5 => CrystalKind::Special,
-            id@_ => return Err(Error::InvalidCrystalKind(id))
+            id => return Err(Error::InvalidCrystalKind(id))
         })
     }
 }

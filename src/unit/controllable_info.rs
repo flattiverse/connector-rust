@@ -71,7 +71,7 @@ impl ControllableInfo {
             0x02 => UnitKind::PlayerDrone,
             0x03 => UnitKind::PlayerShip,
             0x04 => UnitKind::PlayerBase,
-            id@_ => return Err(Error::InvalidControllableInfo(id))
+            id => return Err(Error::InvalidControllableInfo(id))
         };
 
         Self::new(kind, &packet, player)
@@ -84,7 +84,7 @@ impl ControllableInfo {
             revision:               reader.read_i64()?,
             class:                  reader.read_string()?,
             name:                   reader.read_string()?,
-            level:                  reader.read_unsigned_byte()? as i32,
+            level:                  i32::from(reader.read_unsigned_byte()?),
             efficiency_tactical:    reader.read_single()?,
             efficiency_economical:  reader.read_single()?,
             hull_max:               reader.read_single()?,

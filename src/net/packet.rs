@@ -11,7 +11,7 @@ const HEADER_FLAG_UNIVERSE          : u8 = 0x10;
 const HEADER_FLAG_SHIP              : u8 = 0x08;
 const HEADER_FLAG_SUB               : u8 = 0x04;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Packet {
     command: u8,
     session: u8,
@@ -24,21 +24,8 @@ pub struct Packet {
 }
 
 impl Packet {
-    pub fn new() -> Packet {
-        Packet {
-            command: 0,
-            session: 0,
-            path_universe_group: 0,
-            path_universe: 0,
-            path_player: 0,
-            path_ship: 0,
-            path_sub: 0,
-            data: Vec::new()
-        }
-    }
-
     pub(crate) fn from_reader(max_packet_size: u32, reader: &mut BinaryReader) -> Result<Packet, Error> {
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
         let header = reader.read_byte()?;
 
         packet.command = reader.read_byte()?;
@@ -70,7 +57,7 @@ impl Packet {
         match header & 0x03 {
             0x00 => packet.data = Vec::with_capacity(0),
             0x01 => {
-                let data_length = reader.read_byte()? as u32 + 1;
+                let data_length = u32::from(reader.read_byte()?) + 1;
                 if data_length > max_packet_size {
                     return Err(Error::RequestedPacketSizeIsInvalid {
                         max: max_packet_size,
@@ -80,7 +67,7 @@ impl Packet {
                 packet.data = reader.read_bytes(data_length as usize)?;
             },
             0x02 => {
-                let data_length = reader.read_u16()? as u32 + 257;
+                let data_length = u32::from(reader.read_u16()?) + 257;
                 if data_length > max_packet_size {
                     return Err(Error::RequestedPacketSizeIsInvalid {
                         max: max_packet_size,
@@ -107,6 +94,10 @@ impl Packet {
 
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 
     pub fn read(&self) -> &[u8] {
@@ -156,7 +147,7 @@ impl Packet {
         } else if self.data.len() > 256 {
             header |= 0x02;
 
-        } else if self.data.len() > 0 {
+        } else if !self.data.is_empty() {
             header |= 0x01;
         }
 
@@ -195,7 +186,7 @@ impl Packet {
             writer.write_u16((self.data.len() - 257) as u16)?;
             writer.write_all(&self.data)?;
 
-        } else if self.data.len() > 0 {
+        } else if !self.data.is_empty() {
             writer.write_u8((self.data.len() - 1) as u8)?;
             writer.write_all(&self.data)?;
         }

@@ -71,6 +71,10 @@ impl<T: Clone> ManagedArray<T> {
         self.array.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.array.is_empty()
+    }
+
     pub fn iter(&self) -> Iter<Option<T>> {
         self.array.iter()
     }

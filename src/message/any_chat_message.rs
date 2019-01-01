@@ -23,10 +23,10 @@ impl Deref for AnyChatMessage {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyChatMessage::BinaryChatMessage   (ref message) => message.deref(),
-            &AnyChatMessage::BroadCastChatMessage(ref message) => message.deref(),
-            &AnyChatMessage::TeamCastChatMessage (ref message) => message.deref(),
-            &AnyChatMessage::UniCastChatMessage  (ref message) => message.deref(),
+            AnyChatMessage::BinaryChatMessage   (ref message) => message.deref(),
+            AnyChatMessage::BroadCastChatMessage(ref message) => message.deref(),
+            AnyChatMessage::TeamCastChatMessage (ref message) => message.deref(),
+            AnyChatMessage::UniCastChatMessage  (ref message) => message.deref(),
         }
     }
 }

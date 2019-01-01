@@ -16,7 +16,7 @@ impl<T> IndexList<T> {
             index: if avoid_zero {1} else {0},
             values: Vec::with_capacity(size),
             value: None,
-            avoid_zero: avoid_zero
+            avoid_zero
         };
 
         // fill the whole Vec
@@ -31,8 +31,8 @@ impl<T> IndexList<T> {
         match self.values.get(index) {
             None => None,
             Some(ref option) => match option {
-                &&Some(ref arc) => Some(arc.clone()),
-                &&None => None
+                Some(ref arc) => Some(arc.clone()),
+                None => None
             }
         }
     }
@@ -41,8 +41,8 @@ impl<T> IndexList<T> {
         match self.values.get(index) {
             None => Weak::new(),
             Some(ref option) => match option {
-                &&Some(ref arc) => Arc::downgrade(arc),
-                &&None => Weak::new()
+                Some(ref arc) => Arc::downgrade(arc),
+                None => Weak::new()
             }
         }
     }
@@ -73,5 +73,9 @@ impl<T> IndexList<T> {
 
     pub fn len(&self) -> usize {
         self.values.capacity()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 }

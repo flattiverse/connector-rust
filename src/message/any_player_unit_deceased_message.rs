@@ -29,15 +29,15 @@ impl Deref for AnyPlayerUnitDeceasedMessage {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitCollidedWithPlayerUnitMessage  (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitCollidedWithUnitMessage        (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitCommittedSuicideMessage        (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByBadHullRefreshingPowerUpMessage(ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByPolicyMessage        (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitLoggedOffMessage               (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitResetMessage                   (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitShotByPlayerUnitMessage        (ref message) => message.deref(),
-            &AnyPlayerUnitDeceasedMessage::PlayerUnitShotByUnitMessage              (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitCollidedWithPlayerUnitMessage  (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitCollidedWithUnitMessage        (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitCommittedSuicideMessage        (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByBadHullRefreshingPowerUpMessage(ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitDeceasedByPolicyMessage        (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitLoggedOffMessage               (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitResetMessage                   (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitShotByPlayerUnitMessage        (ref message) => message.deref(),
+            AnyPlayerUnitDeceasedMessage::PlayerUnitShotByUnitMessage              (ref message) => message.deref(),
         }
     }
 }

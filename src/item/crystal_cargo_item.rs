@@ -97,7 +97,7 @@ impl CrystalCargoItem {
 
         } else {
             hue                                         = reader.read_single()?;
-            data.level                                  = reader.read_byte()? as i32;
+            data.level                                  = i32::from(reader.read_byte()?);
             data.energy_critical_strike_chance_offset   = reader.read_single()?;
             data.shield_critical_strike_chance_offset   = reader.read_single()?;
             data.hull_critical_strike_chance_offset     = reader.read_single()?;
@@ -290,7 +290,7 @@ impl CrystalCargoItem {
         let connector = self.cargo.connector.upgrade().unwrap();
         let _ = connector.sync_account_queries().lock().unwrap();
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x71_u8);
         packet.set_session(block.id());
@@ -319,7 +319,7 @@ impl CrystalCargoItem {
         let _ = connector.sync_account_queries().lock().unwrap();
         let mut block = connector.block_manager().block()?;
 
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x70_u8);
         packet.set_session(block.id());

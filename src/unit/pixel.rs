@@ -31,9 +31,9 @@ impl Pixel {
                 Mobility::Still
             ),
             color: Color::from_rgb(
-                r as f32 / 255_f32,
-                g as f32 / 255_f32,
-                b as f32 / 255_f32,
+                f32::from(r) / 255_f32,
+                f32::from(g) / 255_f32,
+                f32::from(b) / 255_f32,
             )
         }
     }
@@ -42,9 +42,9 @@ impl Pixel {
         Ok(Pixel {
             unit:   UnitData::from_reader(connector, universe_group, packet, reader)?,
             color:  Color::from_rgb(
-                reader.read_unsigned_byte()? as f32 / 255_f32,
-                reader.read_unsigned_byte()? as f32 / 255_f32,
-                reader.read_unsigned_byte()? as f32 / 255_f32,
+                f32::from(reader.read_unsigned_byte()?) / 255_f32,
+                f32::from(reader.read_unsigned_byte()?) / 255_f32,
+                f32::from(reader.read_unsigned_byte()?) / 255_f32,
             ),
         })
     }

@@ -40,9 +40,9 @@ impl Polynomial {
         if let Some(connector) = self.connector.upgrade() {
             connector.register_task_quitely_if_unknown(Task::UsedPolynominal);
         }
-        return self.coefficient2 * position * position
+        self.coefficient2 * position * position
              + self.coefficient1 * position
-             + self.coefficient0;
+             + self.coefficient0
     }
 
     pub fn write(&self, writer: &mut BinaryWriter) -> Result<(), Error> {

@@ -42,7 +42,7 @@ impl<T: Write> BinaryWriter for T {
         loop {
             // once again
             // salting with some magic numbers
-            let num   : u32     = (value >> 7) & 0x01FFFFFF;
+            let num   : u32     = (value >> 7) & 0x01_FF_FF_FF;
             let mut b : [u8; 1] = [value as u8 & 0x7F];
 
             if num != 0 {

@@ -10,6 +10,7 @@ mod ship;
 mod drone;
 mod probe;
 mod platform;
+#[allow(clippy::module_inception)]
 mod controllable;
 mod any_controllable;
 mod controllable_design;

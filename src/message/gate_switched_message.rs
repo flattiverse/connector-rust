@@ -35,7 +35,7 @@ impl GateSwitchedMessage {
             let index = reader.read_unsigned_byte()?;
 
             player = Some(p_strong.clone());
-            info   = Some(p_strong.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?);
+            info   = Some(p_strong.controllable_info(index).ok_or_else(|| Error::InvalidControllableInfo(index))?);
         } else  {
             player = None;
             info   = None;
@@ -103,7 +103,7 @@ impl fmt::Display for GateSwitchedMessage {
 
         write!(f, " triggered Switch {}. {} Gate", self.switch, self.gates.len())?;
 
-        if self.gates.len() > 0 {
+        if !self.gates.is_empty() {
             write!(f, "s")?;
         }
 

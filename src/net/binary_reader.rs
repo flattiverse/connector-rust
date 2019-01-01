@@ -51,7 +51,7 @@ impl<T: Read> BinaryReader for T {
         while i < 5 {
             let mut b : [u8; 1] = [0; 1];
             self.read_exact(&mut b)?;
-            num  |= ((b[0] & 127) as u32) << num2;
+            num  |= u32::from(b[0] & 127) << num2;
             num2 += 7;
 
             if b[0] & 128u8 == 0 {

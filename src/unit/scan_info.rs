@@ -55,6 +55,7 @@ impl ScanInfo {
         })
     }
 
+    #[allow(clippy::wrong_self_convention)]
     pub fn from_degree(&self) -> f32 {
         self.from_degree
     }

@@ -111,13 +111,13 @@ impl Connector {
         */
 
         let (messages, message_receiver) = channel();
-        let (connection_read, connection_write) = Connection::new(&addr, 262144)?;
+        let (connection_read, connection_write) = Connection::new(&addr, 262_144)?;
 
 
         let connector = Arc::new(Connector {
             players: RwLock::new(UniversalHolder::new(IndexList::new(false, 4096))),
             connection: Mutex::new(connection_write),
-            block_manager: BlockManager::new(),
+            block_manager: BlockManager::default(),
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
             sync_control_flow:    Mutex::new(()),
@@ -156,7 +156,7 @@ impl Connector {
 
     fn login(&self, email: &str, password: &str, compression_enabled: bool) -> Result<(), Error> {
         let mut block = self.block_manager.block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         {
             let writer = (&mut packet.write()) as &mut BinaryWriter;
@@ -197,7 +197,7 @@ impl Connector {
     fn handle_packet(connector: &Arc<Connector>, packet: &Packet, messages: &Sender<AnyMessage>) -> Result<(), Error> {
         match packet.command() {
             0x02|0x03|0x14|0x20|0x24|0x28|0x30|0x81|0x83|0x84|0x85|0x90 => {},
-            _id@_ => {
+            _id => {
                 // println!("## Processing command: 0x{:02x}", _id)
             },
         };
@@ -207,7 +207,7 @@ impl Connector {
                 connector.send(&packet)?;
             },
             0x02 => { // pre-wait
-                let tick = packet.path_sub() as u16;
+                let tick = u16::from(packet.path_sub());
                 connector.tick.store(tick, Ordering::Relaxed);
 
                 // sync flow control
@@ -224,7 +224,7 @@ impl Connector {
                 );
 
                 for flow in connector.flows.read()?.iter() {
-                    flow.set_pre_wait(time.clone(), tick)?;
+                    flow.set_pre_wait(time, tick)?;
                 }
             },
             0x03 => { // wait
@@ -233,7 +233,7 @@ impl Connector {
                 let flows= connector.flows.read()?;
 
                 if flows.is_empty() {
-                    let mut packet = Packet::new();
+                    let mut packet = Packet::default();
 
                     {
                         packet.set_command(0x05);
@@ -251,7 +251,7 @@ impl Connector {
                     }
 
                     if allow_flow_control_ready {
-                        let mut packet = Packet::new();
+                        let mut packet = Packet::default();
 
                         {
                             packet.set_command(0x05);
@@ -274,7 +274,7 @@ impl Connector {
                 );
 
                 for flow in connector.flows.read()?.iter() {
-                    flow.set_wait(time.clone())?;
+                    flow.set_wait(time)?;
                 }
 
 
@@ -342,18 +342,16 @@ impl Connector {
 
                     // TODO WTF!
                     let mut players = group.players_mut()?;
-                    let mut index = 0_isize;
-                    let mut wipe_at = -1_isize;
-                    for player in players.as_ref() {
-                        if let &Some(ref player) = player {
+                    let mut wipe_at = None;
+                    for (index, player) in players.as_ref().iter().enumerate() {
+                        if let Some(ref player) = player {
                             if player.id() == player_id {
-                                wipe_at = index;
+                                wipe_at = Some(index);
                                 break;
                             }
                         }
-                        index += 1;
                     }
-                    if wipe_at >= 0 {
+                    if let Some(wipe_at) = wipe_at {
                         players.wipe_index(wipe_at as usize);
                     } else {
                         panic!("...");
@@ -432,8 +430,8 @@ impl Connector {
                 let team = group.team(packet.path_sub())?;
 
                 match team.scores() {
-                    &None => return Err(Error::ScoresNotAvailable),
-                    &Some(ref scores) => {
+                    None => return Err(Error::ScoresNotAvailable),
+                    Some(ref scores) => {
                         scores.update(&mut packet.read() as &mut BinaryReader)?;
                     }
                 };
@@ -462,7 +460,7 @@ impl Connector {
                     }
                 };
 
-                if packet.read().len() == 0 {
+                if packet.read().is_empty() {
                     group.set_tournament(None)?;
                 }
             },
@@ -474,8 +472,8 @@ impl Connector {
             },
             0x81 => { // 'ControllableDynamicPacket'
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
-                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
-                    &Some(ref controllable) => {
+                    None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    Some(ref controllable) => {
                         controllable.update(packet)?;
                     }
                 }
@@ -483,8 +481,8 @@ impl Connector {
             0x82 => { // 'ControllableRemoved'
                 let mut controllables = connector.controllables.write()?;
                 match controllables.get(packet.path_ship() as usize) {
-                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
-                    &Some(ref controllable) => {
+                    None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    Some(ref controllable) => {
                         controllable.set_active(false)?;
                     }
                 };
@@ -492,8 +490,8 @@ impl Connector {
             },
             0x83 => { // 'ControllableDynamicExtendedPacket'
                 match connector.controllables.read()?.get(packet.path_ship() as usize) {
-                    &None => return Err(Error::InvalidControllable(packet.path_ship())),
-                    &Some(ref controllable) => {
+                    None => return Err(Error::InvalidControllable(packet.path_ship())),
+                    Some(ref controllable) => {
                         controllable.update_extended(packet)?;
                     }
                 }
@@ -563,7 +561,7 @@ impl Connector {
 
 
                 let player = connector.player_for(packet.path_player())?;
-                let info   = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllableInfo(packet.path_ship()))?;
+                let info   = player.controllable_info(packet.path_ship()).ok_or_else(|| Error::InvalidControllableInfo(packet.path_ship()))?;
                 info.set_crystals(crystals)?;
             },
             0x89 => { // 'ControllableCrystalPacket'
@@ -574,7 +572,7 @@ impl Connector {
             0x8A => { // 'ControllableInfoCargoPacket'
                 let cargo_items = Connector::read_all_cargo_items(&connector, packet)?;
                 let player = connector.player_for(packet.path_player())?;
-                let info = player.controllable_info(packet.path_ship()).ok_or(Error::InvalidControllable(packet.path_ship()))?;
+                let info = player.controllable_info(packet.path_ship()).ok_or_else(|| Error::InvalidControllable(packet.path_ship()))?;
                 info.set_cargo_items(cargo_items)?;
             },
             0x8B => { // 'ControllableInfoCargoPacket'
@@ -605,7 +603,7 @@ impl Connector {
             // TODO missing 0x91: administrative: View Result Entry Received
             0x92 => { // Event Result Entry Received
                 let group = connector.universe_group(packet.path_universe_group())?;
-                let universe = group.universe(packet.path_universe()).upgrade().ok_or(Error::InvalidUniverse(packet.path_universe()))?;
+                let universe = group.universe(packet.path_universe()).upgrade().ok_or_else(|| Error::InvalidUniverse(packet.path_universe()))?;
                 let event = AnyUniverseEvent::from_packet(packet, &mut packet.read() as &mut BinaryReader)?;
                 universe.events().write()?.push(event);
             },
@@ -716,8 +714,8 @@ impl Connector {
 
     pub fn send_many(&self, packets: &[Packet]) -> Result<(), Error> {
         let mut connection = self.connection.lock()?;
-        for i in 0..packets.len() {
-            connection.send(&packets[i])?;
+        for packet in packets {
+            connection.send(packet)?;
         }
         connection.flush()
     }
@@ -764,7 +762,7 @@ impl Connector {
 
     pub fn register_task(&self, task: Task) -> Result<(), Error> {
         let mut block = self.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_session(block.id());
         packet.set_command(0x07u8);
@@ -785,7 +783,7 @@ impl Connector {
                 return Ok(true);
             }
         }
-        return Ok(false);
+        Ok(false)
     }
 
     pub fn flow_controls(&self) -> Result<bool, Error> {
@@ -801,7 +799,7 @@ impl Connector {
 
         {
             let lock = self.flows.read()?;
-            for ref flow in lock.iter() {
+            for flow in lock.iter() {
                 if !flow.ready() {
                     return Ok(true);
                 }
@@ -810,7 +808,7 @@ impl Connector {
 
 
         let mut block = self.block_manager.block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         {
             packet.set_command(0x05);
@@ -835,14 +833,14 @@ impl Connector {
 
     pub fn universe_group(&self, index: u16) -> Result<Arc<UniverseGroup>, Error> {
         let lock = self.uni_groups.read()?;
-        lock.get(index as usize).clone().ok_or(Error::InvalidUniverseGroup(index))
+        lock.get(index as usize).clone().ok_or_else(|| Error::InvalidUniverseGroup(index))
     }
 
     pub fn universe_group_for_name(&self, name: &str) -> Result<Arc<UniverseGroup>, Error> {
         let lock = self.uni_groups.read()?;
         for index in 0..lock.len() {
             let group = lock.get(index);
-            if let &Some(ref group) = group {
+            if let Some(ref group) = group {
                 if group.name().eq(name) {
                     return Ok(group.clone());
                 }
@@ -855,8 +853,8 @@ impl Connector {
         let crystals = self.crystals.read()?;
         for i in 0..crystals.len() {
             match crystals.get(i) {
-                &None => {},
-                &Some(ref arc) => {
+                None => {},
+                Some(ref arc) => {
                     if arc.name().eq(name) {
                         return Ok(arc.clone());
                     }
@@ -867,7 +865,7 @@ impl Connector {
     }
 
     pub fn controllable(&self, index: u8) -> Result<AnyControllable, Error> {
-        self.controllables.read()?.get(index as usize).clone().ok_or(Error::InvalidControllable(index))
+        self.controllables.read()?.get(index as usize).clone().ok_or_else(|| Error::InvalidControllable(index))
     }
 
     pub fn controllable_opt(&self, index: u8) -> Option<AnyControllable> {
@@ -887,7 +885,7 @@ impl Connector {
         let _ = self.sync_account_queries().lock()?;
 
         let mut vec     = Vec::new();
-        let mut packet  = Packet::new();
+        let mut packet  = Packet::default();
 
         let mut block    = self.block_manager().block()?;
         let response = {
@@ -972,7 +970,7 @@ impl Connector {
             return false;
         }
 
-        if name.starts_with(" ") || name.ends_with(" ") {
+        if name.starts_with(' ') || name.ends_with(' ') {
             return false;
         }
 
@@ -991,7 +989,7 @@ impl Connector {
                 _ => return false,
             };
         }
-        return true;
+        true
     }
 
     pub fn benchmark() -> Result<PerformanceMark, Error> {

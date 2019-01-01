@@ -27,9 +27,8 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
         let mut list = Vec::new();
 
         for i in 0..self.list.len() {
-            match self.list.get(i) {
-                Some(arc) => list.push(arc.clone()),
-                _ => {}
+            if let Some(arc) = self.list.get(i) {
+                list.push(arc.clone());
             }
         }
 
@@ -60,6 +59,10 @@ impl<T: UniversalEnumerable> UniversalHolder<T> {
 
     pub fn len(&self) -> usize {
         self.list.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.list.is_empty()
     }
 }
 

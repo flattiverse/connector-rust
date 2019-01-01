@@ -32,7 +32,7 @@ impl PlayerUnitHitOwnTargetMessage {
             player: player.clone(),
             info:   {
                 let index = reader.read_unsigned_byte()?;
-                player.controllable_info(index).ok_or(Error::InvalidControllableInfo(index))?
+                player.controllable_info(index).ok_or_else(|| Error::InvalidControllableInfo(index))?
             },
             name:   reader.read_string()?,
             team:   {

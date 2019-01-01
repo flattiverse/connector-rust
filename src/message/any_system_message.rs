@@ -19,8 +19,8 @@ impl Deref for AnySystemMessage {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnySystemMessage::SystemMessage(ref message) => message.deref(),
-            &AnySystemMessage::MOTDMessage  (ref message) => message.deref(),
+            AnySystemMessage::SystemMessage(ref message) => message.deref(),
+            AnySystemMessage::MOTDMessage  (ref message) => message.deref(),
         }
     }
 }

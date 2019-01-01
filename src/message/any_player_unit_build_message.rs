@@ -23,9 +23,9 @@ impl Deref for AnyPlayerUnitBuildMessage {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyPlayerUnitBuildMessage::PlayerUnitBuildCancelledMessage(ref message) => message.deref(),
-            &AnyPlayerUnitBuildMessage::PlayerUnitBuildFinishedMessage (ref message) => message.deref(),
-            &AnyPlayerUnitBuildMessage::PlayerUnitBuildStartMessage    (ref message) => message.deref(),
+            AnyPlayerUnitBuildMessage::PlayerUnitBuildCancelledMessage(ref message) => message.deref(),
+            AnyPlayerUnitBuildMessage::PlayerUnitBuildFinishedMessage (ref message) => message.deref(),
+            AnyPlayerUnitBuildMessage::PlayerUnitBuildStartMessage    (ref message) => message.deref(),
         }
     }
 }

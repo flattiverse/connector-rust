@@ -32,12 +32,12 @@ impl Deref for AnyRefreshingPowerUp {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyRefreshingPowerUp::EnergyRefreshingPowerUp        (ref unit) => unit.deref(),
-            &AnyRefreshingPowerUp::HullRefreshingPowerUp          (ref unit) => unit.deref(),
-            &AnyRefreshingPowerUp::IonsRefreshingPowerUp          (ref unit) => unit.deref(),
-            &AnyRefreshingPowerUp::ParticlesRefreshingPowerUp     (ref unit) => unit.deref(),
-            &AnyRefreshingPowerUp::ShieldRefreshingPowerUp        (ref unit) => unit.deref(),
-            &AnyRefreshingPowerUp::ShotProductionRefreshingPowerUp(ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::EnergyRefreshingPowerUp        (ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::HullRefreshingPowerUp          (ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::IonsRefreshingPowerUp          (ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::ParticlesRefreshingPowerUp     (ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::ShieldRefreshingPowerUp        (ref unit) => unit.deref(),
+            AnyRefreshingPowerUp::ShotProductionRefreshingPowerUp(ref unit) => unit.deref(),
         }
     }
 }

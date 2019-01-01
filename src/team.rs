@@ -36,7 +36,7 @@ impl Team {
 
         Ok(Team {
             universe_group: Arc::downgrade(&universe_group),
-            connector: connector,
+            connector,
             id: packet.path_sub(),
             color: Color::from_rgb(
                 reader.read_single()?,
@@ -44,7 +44,7 @@ impl Team {
                 reader.read_single()?,
             ),
             name: reader.read_string()?,
-            scores: scores,
+            scores,
         })
     }
 
@@ -86,7 +86,7 @@ impl Team {
         }
 
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x31);
         packet.set_path_sub(self.id);

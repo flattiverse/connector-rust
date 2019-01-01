@@ -98,8 +98,8 @@ impl Tournament {
 
                 for i in 0..len {
                     match teams.get(i) {
-                        &None => break,
-                        &Some(ref team) => {
+                        None => break,
+                        Some(ref team) => {
                             team.write()?.set_wins(reader.read_unsigned_byte()?);
                         }
                     }
@@ -138,7 +138,7 @@ impl Tournament {
 
     pub fn update(&self, packet: &Packet) -> Result<(), Error> {
         let mut mutable = self.mutable.write()?;
-        if packet.read().len() == 0 {
+        if packet.read().is_empty() {
             mutable.stage = TournamentStage::Ended;
             return Ok(());
         }
@@ -149,7 +149,7 @@ impl Tournament {
         mutable.set        = TournamentSet  ::from_id(reader.read_byte()?)?;
 
         for i in 0..self.teams.len() {
-            if let &Some(ref team) = self.teams.get(i) {
+            if let Some(ref team) = self.teams.get(i) {
                 team.write()?.set_wins(reader.read_byte()?);
             }
         }

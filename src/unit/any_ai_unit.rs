@@ -42,11 +42,11 @@ impl Deref for AnyAiUnit {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyAiUnit::AiBase    (ref unit) => unit.deref(),
-            &AnyAiUnit::AiDrone   (ref unit) => unit.deref(),
-            &AnyAiUnit::AiPlatform(ref unit) => unit.deref(),
-            &AnyAiUnit::AiProbe   (ref unit) => unit.deref(),
-            &AnyAiUnit::AiShip    (ref unit) => unit.deref(),
+            AnyAiUnit::AiBase    (ref unit) => unit.deref(),
+            AnyAiUnit::AiDrone   (ref unit) => unit.deref(),
+            AnyAiUnit::AiPlatform(ref unit) => unit.deref(),
+            AnyAiUnit::AiProbe   (ref unit) => unit.deref(),
+            AnyAiUnit::AiShip    (ref unit) => unit.deref(),
         }
     }
 }

@@ -39,13 +39,13 @@ impl Deref for AnyUniverseEvent {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyUniverseEvent::Damage           (ref event) => event.deref(),
-            &AnyUniverseEvent::Harvest          (ref event) => event.deref(),
-            &AnyUniverseEvent::LoadedEnergy     (ref event) => event.deref(),
-            &AnyUniverseEvent::Repair           (ref event) => event.deref(),
-            &AnyUniverseEvent::Scan             (ref event) => event.deref(),
-            &AnyUniverseEvent::Tractorbeam      (ref event) => event.deref(),
-            &AnyUniverseEvent::TransferredEnergy(ref event) => event.deref(),
+            AnyUniverseEvent::Damage           (ref event) => event.deref(),
+            AnyUniverseEvent::Harvest          (ref event) => event.deref(),
+            AnyUniverseEvent::LoadedEnergy     (ref event) => event.deref(),
+            AnyUniverseEvent::Repair           (ref event) => event.deref(),
+            AnyUniverseEvent::Scan             (ref event) => event.deref(),
+            AnyUniverseEvent::Tractorbeam      (ref event) => event.deref(),
+            AnyUniverseEvent::TransferredEnergy(ref event) => event.deref(),
         }
     }
 }

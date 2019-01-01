@@ -38,7 +38,7 @@ impl PerformanceTest {
     }
 
     pub fn test_sequence(&self, time: &TimeSpan) -> Result<(), Error> {
-        let mut stop_watch = StopWatch::new();
+        let mut stop_watch = StopWatch::default();
         let mut last_view  = TimeSpan::new(0);
 
         let mut last_result = 0_i64;
@@ -51,6 +51,7 @@ impl PerformanceTest {
         stop_watch.start();
 
         loop {
+            #[allow(clippy::mut_range_bound)]
             for _ in result..planned_phase {
                 result += 1;
             }
@@ -110,6 +111,7 @@ impl PerformanceTest {
 
 
         loop {
+            #[allow(clippy::mut_range_bound)]
             for _ in result..planned_phase {
                 result += 1;
             }

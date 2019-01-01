@@ -113,7 +113,7 @@ impl Player {
             None            => Err(Error::ConnectorNotAvailable),
             Some(connector) => Ok({
                 let mut block = connector.block_manager().block()?;
-                let mut packet = Packet::new();
+                let mut packet = Packet::default();
 
                 packet.set_command(if small {0x02_u8} else {0x03_u8});
                 packet.set_session(block.id());
@@ -156,7 +156,7 @@ impl Player {
         let mut stats = self.stats.write()?;
         stats.rank   = reader.read_u32()?;
         stats.level  = reader.read_unsigned_byte()?;
-        stats.elo    = reader.read_u16()? as i32;
+        stats.elo    = i32::from(reader.read_u16()?);
 
         self.game_scores    .update(reader)?;
         self.player_scores  .update(reader)?;
@@ -192,7 +192,7 @@ impl Player {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
                 let mut block = connector.block_manager().block()?;
-                let mut packet = Packet::new();
+                let mut packet = Packet::default();
 
                 packet.set_command(0x30_u8);
                 packet.set_path_player(self.id);
@@ -224,7 +224,7 @@ impl Player {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
                 let mut block = connector.block_manager().block()?;
-                let mut packet = Packet::new();
+                let mut packet = Packet::default();
 
                 packet.set_command(0x33_u8);
                 packet.set_path_player(self.id);
@@ -254,9 +254,9 @@ impl Player {
             return Err(Error::InvalidMessageList);
         }
 
-        for i in 0..data.len() {
-            if data[i].is_empty() || data[i].len() > 255 {
-                return Err(Error::InvalidMessageAtIndex(i as u8));
+        for (index, data) in data.iter().enumerate() {
+            if data.is_empty() || data.len() > 255 {
+                return Err(Error::InvalidMessageAtIndex(index as u8));
             }
         }
 
@@ -270,9 +270,9 @@ impl Player {
                 let mut blocks = Vec::with_capacity(data.len());
                 let mut packets = Vec::with_capacity(data.len());
 
-                for i in 0..data.len() {
+                for data in data {
                     let block = connector.block_manager().block()?;
-                    let mut packet = Packet::new();
+                    let mut packet = Packet::default();
 
                     packet.set_command(0x33_u8);
                     packet.set_path_player(self.id);
@@ -280,8 +280,8 @@ impl Player {
 
                     {
                         let writer = packet.write() as &mut BinaryWriter;
-                        writer.write_u8(data[i].len() as u8)?;
-                        writer.write_all(data[i])?;
+                        writer.write_u8(data.len() as u8)?;
+                        writer.write_all(data)?;
                     }
 
 
@@ -290,8 +290,8 @@ impl Player {
                 }
 
                 connector.send_many(&packets)?;
-                for i in 0..blocks.len() {
-                    blocks[i].wait()?;
+                for block in &mut blocks {
+                    block.wait()?;
                 }
                 Ok(())
             }

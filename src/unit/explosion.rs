@@ -43,7 +43,7 @@ impl Explosion {
                 let p_strong = connector.player_for(reader.read_u16()?)?;
                 player  = Arc::downgrade(&p_strong);
                 let id  = reader.read_unsigned_byte()?;
-                let i_strong = p_strong.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
+                let i_strong = p_strong.controllable_info(id).ok_or_else(|| Error::InvalidControllableInfo(id))?;
                 info = Arc::downgrade(&i_strong);
                 kind    = i_strong.kind();
                 name    = String::from(i_strong.name());

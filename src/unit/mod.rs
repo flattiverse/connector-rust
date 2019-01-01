@@ -10,6 +10,7 @@ mod controllable_info;
 
 mod sun;
 mod buoy;
+#[allow(clippy::module_inception)]
 mod unit;
 mod moon;
 mod shot;

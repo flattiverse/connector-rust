@@ -33,11 +33,11 @@ impl Deref for AnyPlayerUnit {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyPlayerUnit::PlayerBase    (ref unit) => unit.deref(),
-            &AnyPlayerUnit::PlayerDrone   (ref unit) => unit.deref(),
-            &AnyPlayerUnit::PlayerPlatform(ref unit) => unit.deref(),
-            &AnyPlayerUnit::PlayerProbe   (ref unit) => unit.deref(),
-            &AnyPlayerUnit::PlayerShip    (ref unit) => unit.deref(),
+            AnyPlayerUnit::PlayerBase    (ref unit) => unit.deref(),
+            AnyPlayerUnit::PlayerDrone   (ref unit) => unit.deref(),
+            AnyPlayerUnit::PlayerPlatform(ref unit) => unit.deref(),
+            AnyPlayerUnit::PlayerProbe   (ref unit) => unit.deref(),
+            AnyPlayerUnit::PlayerShip    (ref unit) => unit.deref(),
         }
     }
 }

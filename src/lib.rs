@@ -1,4 +1,8 @@
 #![allow(dead_code)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::excessive_precision)]
+#![allow(clippy::new_ret_no_self)]
+#![allow(clippy::useless_let_if_seq)]
 
 extern crate byteorder;
 extern crate sha2;

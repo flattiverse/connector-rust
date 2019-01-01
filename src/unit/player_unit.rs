@@ -32,7 +32,7 @@ impl PlayerUnitData {
             player: Arc::downgrade(&player),
             c_info: {
                 let id = reader.read_unsigned_byte()?;
-                let info = player.controllable_info(id).ok_or(Error::InvalidControllableInfo(id))?;
+                let info = player.controllable_info(id).ok_or_else(|| Error::InvalidControllableInfo(id))?;
                 Arc::downgrade(&info)
             },
             b_info:   {

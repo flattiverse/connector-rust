@@ -1,9 +1,9 @@
+#![allow(clippy::mutex_atomic)]
 
 use std::sync::Mutex;
 use std::sync::Condvar;
 
 use crate::Error;
-
 
 pub struct ManualResetEvent {
     mutex: Mutex<bool>,

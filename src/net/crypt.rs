@@ -10,14 +10,16 @@ pub struct CryptStream {
     last_lfsr: u8
 }
 
-impl CryptStream {
-    pub fn new() -> CryptStream {
+impl Default for CryptStream {
+    fn default() -> Self {
         CryptStream {
             lfsr: DEFAULT_LFSR-1,
             last_lfsr: 0
         }
     }
+}
 
+impl CryptStream {
     pub fn with_lfsr(lfsr: u32) -> CryptStream {
         CryptStream {
             lfsr: if lfsr == 0 {0x1337_1338} else {lfsr},
@@ -26,8 +28,8 @@ impl CryptStream {
     }
 
     pub fn crypt_in_place(&mut self, buffer: &mut [u8]) {
-        for i in 0..buffer.len() {
-            buffer[i] = self.crypt(buffer[i]);
+        for byte in buffer {
+            *byte = self.crypt(*byte);
         }
     }
 
@@ -40,7 +42,7 @@ impl CryptStream {
     pub fn crypt(&mut self, value: u8) -> u8 {
         for _ in 0..9 {
             let left = self.lfsr / 2;
-            let right = if self.lfsr & 0x01 == 0x01 {3489660929u32} else {0u32};
+            let right = if self.lfsr & 0x01 == 0x01 {3_489_660_929_u32} else {0_u32};
 
             self.lfsr = left ^ right;
         }
@@ -59,14 +61,14 @@ pub struct CryptRead<T: Read> {
 impl<T: Read> CryptRead<T> {
     pub fn new(source: T) -> CryptRead<T> {
         CryptRead {
-            source: source,
-            crypt: CryptStream::new()
+            source,
+            crypt: CryptStream::default()
         }
     }
 
     pub fn with_lfsr(source: T, lfsr: u32) -> CryptRead<T> {
         CryptRead {
-            source: source,
+            source,
             crypt: CryptStream::with_lfsr(lfsr)
         }
     }
@@ -97,14 +99,14 @@ pub struct CryptWrite<T: Write> {
 impl<T: Write> CryptWrite<T> {
     pub fn new(sink: T) -> CryptWrite<T> {
         CryptWrite {
-            sink: sink,
-            crypt: CryptStream::new()
+            sink,
+            crypt: CryptStream::default()
         }
     }
 
     pub fn with_lfsr(sink: T, lfsr: u32) -> CryptWrite<T> {
         CryptWrite {
-            sink: sink,
+            sink,
             crypt: CryptStream::with_lfsr(lfsr)
         }
     }

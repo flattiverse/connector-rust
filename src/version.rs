@@ -4,8 +4,8 @@ use std::fmt::Debug;
 use std::fmt::Result;
 use std::fmt::Formatter;
 
-const MODIFIER_MAJOR : u32 = 16777216;
-const MODIFIER_MINOR : u32 = 65536;
+const MODIFIER_MAJOR : u32 = 16_777_216;
+const MODIFIER_MINOR : u32 = 65_536;
 const MODIFIER_BUILD : u32 = 256;
 
 
@@ -14,6 +14,7 @@ pub struct Version {
 }
 
 impl Version {
+    #[allow(clippy::cast_lossless)] // u32::from() is not const
     pub const fn new(major: u8, minor: u8, build: u8, revision: u8) -> Version {
         Version {
             raw_version: major as u32 * MODIFIER_MAJOR

@@ -173,7 +173,7 @@ impl UniverseGroup {
             None => Err(Error::ConnectorNotAvailable),
             Some(connector) => {
                 let mut block = connector.block_manager().block()?;
-                let mut packet = Packet::new();
+                let mut packet = Packet::default();
 
                 packet.set_command(0x20);
                 packet.set_session(block.id());
@@ -225,7 +225,7 @@ impl UniverseGroup {
         // TODO missing crystals check
 
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x80);
         packet.set_session(block.id());
@@ -241,7 +241,7 @@ impl UniverseGroup {
         let response = block.wait()?;
         match connector.controllable(response.path_ship())? {
             AnyControllable::Ship(ship) => Ok(ship),
-            _ => return Err(Error::not_controllable_ship())
+            _ => Err(Error::not_controllable_ship())
         }
     }
 
@@ -264,7 +264,7 @@ impl UniverseGroup {
         }
 
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x06);
         packet.set_session(block.id());
@@ -295,7 +295,7 @@ impl UniverseGroup {
         };
 
         let mut block = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x32);
         packet.set_session(block.id());
@@ -319,7 +319,7 @@ impl UniverseGroup {
 
         let connector  = self.connector.upgrade().ok_or(Error::ConnectorNotAvailable)?;
         let mut block      = connector.block_manager().block()?;
-        let mut packet = Packet::new();
+        let mut packet = Packet::default();
 
         packet.set_command(0x04);
         packet.set_session(block.id());
@@ -380,7 +380,7 @@ impl UniverseGroup {
     }
 
     pub fn team(&self, index: u8) -> Result<Arc<Team>, Error> {
-        self.teams.read()?.get_for_index(index as usize).ok_or(Error::InvalidTeam(index))
+        self.teams.read()?.get_for_index(index as usize).ok_or_else(|| Error::InvalidTeam(index))
     }
 
     pub fn team_weak(&self, index: u8) -> Weak<Team> {

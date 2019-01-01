@@ -32,19 +32,19 @@ impl Deref for AnyPowerUp {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            &AnyPowerUp::CloakPowerUp       (ref unit) => unit.deref(),
-            &AnyPowerUp::DoubleDamagePowerUp(ref unit) => unit.deref(),
-            &AnyPowerUp::HastPowerUp        (ref unit) => unit.deref(),
-            &AnyPowerUp::QuadDamagePowerUp  (ref unit) => unit.deref(),
-            &AnyPowerUp::RefreshingPowerUp  (ref unit) => match unit {
-                &AnyRefreshingPowerUp::EnergyRefreshingPowerUp        (ref unit) => unit.deref(),
-                &AnyRefreshingPowerUp::HullRefreshingPowerUp          (ref unit) => unit.deref(),
-                &AnyRefreshingPowerUp::IonsRefreshingPowerUp          (ref unit) => unit.deref(),
-                &AnyRefreshingPowerUp::ParticlesRefreshingPowerUp     (ref unit) => unit.deref(),
-                &AnyRefreshingPowerUp::ShieldRefreshingPowerUp        (ref unit) => unit.deref(),
-                &AnyRefreshingPowerUp::ShotProductionRefreshingPowerUp(ref unit) => unit.deref(),
+            AnyPowerUp::CloakPowerUp       (ref unit) => unit.deref(),
+            AnyPowerUp::DoubleDamagePowerUp(ref unit) => unit.deref(),
+            AnyPowerUp::HastPowerUp        (ref unit) => unit.deref(),
+            AnyPowerUp::QuadDamagePowerUp  (ref unit) => unit.deref(),
+            AnyPowerUp::RefreshingPowerUp  (ref unit) => match unit {
+                AnyRefreshingPowerUp::EnergyRefreshingPowerUp        (ref unit) => unit.deref(),
+                AnyRefreshingPowerUp::HullRefreshingPowerUp          (ref unit) => unit.deref(),
+                AnyRefreshingPowerUp::IonsRefreshingPowerUp          (ref unit) => unit.deref(),
+                AnyRefreshingPowerUp::ParticlesRefreshingPowerUp     (ref unit) => unit.deref(),
+                AnyRefreshingPowerUp::ShieldRefreshingPowerUp        (ref unit) => unit.deref(),
+                AnyRefreshingPowerUp::ShotProductionRefreshingPowerUp(ref unit) => unit.deref(),
             },
-            &AnyPowerUp::TotalRefreshPowerUp(ref unit) => unit.deref(),
+            AnyPowerUp::TotalRefreshPowerUp(ref unit) => unit.deref(),
         }
     }
 }
