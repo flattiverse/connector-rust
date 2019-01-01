@@ -2,7 +2,7 @@
 description = "Connector library for the flattiverse.com game server."
 homepage = "https://www.flattiverse.com/"
 name = "flattiverse_connector"
-version = "36.1.0"
+version = "36.1.1"
 authors = ["Michael Watzko <michael@watzko.de>"]
 keywords = ["connector", "flattiverse"]
 categories = ["games", "network-programming"]
