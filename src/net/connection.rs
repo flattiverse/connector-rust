@@ -1,52 +1,63 @@
-
-use std::net::SocketAddr;
-use std::net::TcpStream;
-use std::net::Shutdown;
-
-use std::thread;
-use std::sync::mpsc::Sender;
-use std::io::Write;
-
-use net::Packet;
 use net::CryptRead;
 use net::CryptWrite;
-
+use net::Packet;
+use std::io::Write;
+use std::net::Shutdown;
+use std::net::SocketAddr;
+use std::net::TcpStream;
+use std::thread;
 use Error;
 
-
-pub struct Connection {
-    stream: TcpStream,
-    write: CryptWrite<TcpStream>
-}
+pub struct Connection;
 
 impl Connection {
-    pub fn new(addr: &SocketAddr, max_recv_load: u32, sink: Sender<Packet>) -> Result<Connection, Error> {
-        let stream= TcpStream::connect(addr)?;
+    pub fn new(
+        addr: &SocketAddr,
+        max_recv_load: u32,
+    ) -> Result<(ConnectionRead, ConnectionWrite), Error> {
+        let stream = TcpStream::connect(addr)?;
         stream.set_nodelay(true)?;
 
-        let stream_reader = stream.try_clone()?;
-
-        thread::spawn(move || {
-            // capture
-            let mut reader = CryptRead ::new(stream_reader);
-
-            // TODO check shutdown behavior
-            loop {
-                let packet = Packet::from_reader(
-                    max_recv_load,
-                    &mut reader
-                ).expect("Failed to read packet");
-                sink.send(packet).expect("Failed to send new package")
-            }
-        });
-
-
-        Ok(Connection{
-            write: CryptWrite::new(stream.try_clone()?),
-            stream: stream,
-        })
+        Ok((
+            ConnectionRead {
+                max_recv_load,
+                read: CryptRead::new(stream.try_clone()?),
+            },
+            ConnectionWrite {
+                stream: stream.try_clone()?,
+                write: CryptWrite::new(stream),
+            },
+        ))
     }
+}
 
+pub struct ConnectionRead {
+    max_recv_load: u32,
+    read: CryptRead<TcpStream>,
+}
+
+impl ConnectionRead {
+    pub fn spawn<S: FnMut(Packet) + Send + 'static>(mut self, mut sink: S) {
+        thread::Builder::new()
+            .name(String::from("ConnectionRead"))
+            .spawn(move || {
+                // TODO check shutdown behavior
+                loop {
+                    let packet = Packet::from_reader(self.max_recv_load, &mut self.read)
+                        .expect("Failed to read packet");
+                    sink(packet);
+                }
+            })
+            .unwrap();
+    }
+}
+
+pub struct ConnectionWrite {
+    stream: TcpStream,
+    write: CryptWrite<TcpStream>,
+}
+
+impl ConnectionWrite {
     pub fn flush(&mut self) -> Result<(), Error> {
         self.write.flush()?;
         Ok(())

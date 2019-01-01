@@ -46,6 +46,7 @@ use ManualResetEvent;
 
 use net::Packet;
 use net::Connection;
+use net::ConnectionWrite;
 use net::BinaryWriter;
 use net::BinaryReader;
 
@@ -69,7 +70,7 @@ pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 1);
 pub const TASK_COUNT : usize   = 32;
 
 pub struct Connector {
-    connection: Mutex<Connection>,
+    connection: Mutex<ConnectionWrite>,
     block_manager: BlockManager,
     player:                 RwLock<Weak<Player>>,
     players:                RwLock<UniversalHolder<Player>>,
@@ -109,12 +110,13 @@ impl Connector {
         this.crystals           = new UniversalHolder<>(crystalsArray);
         */
 
-        let (tx, rx) = channel();
-        let (message_sender, message_receiver) = channel();
+        let (messages, message_receiver) = channel();
+        let (connection_read, connection_write) = Connection::new(&addr, 262144)?;
 
-        let connector = Connector {
+
+        let connector = Arc::new(Connector {
             players: RwLock::new(UniversalHolder::new(IndexList::new(false, 4096))),
-            connection: Mutex::new(Connection::new(&addr, 262144, tx)?),
+            connection: Mutex::new(connection_write),
             block_manager: BlockManager::new(),
             player: RwLock::new(Weak::default()),
             sync_account_queries: Mutex::new(()),
@@ -128,34 +130,25 @@ impl Connector {
 
             receiver: Arc::new(Mutex::new(message_receiver)),
             benchmark,
-        };
+        });
 
-        let connector = Arc::new(connector);
-        let connector_thread = connector.clone();
-
-        thread::spawn(move || {
-            // capture
-            let connector = connector_thread;
-            let messages = message_sender;
-            let rx = rx;
-
-            loop {
-                let packet = rx.recv().expect("Failed to retrieve packet");
-
-                // answer the ping beforehand
+        {
+            let connector = connector.clone();
+            connection_read.spawn(move |packet| {
+                // directly forward a session response
                 if packet.session() != 0x00 {
                     connector.answer(packet);
-                    continue;
+                } else {
+                    match Connector::handle_packet(&connector, &packet, &messages) {
+                        Ok(_) => {},
+                        Err(ref e) => {
+                            println!("Failed to handle message {:?}: {:?}", e, packet);
+                        }
+                    };
                 }
 
-                match Connector::handle_packet(&connector, &packet, &messages) {
-                    Ok(_) => {},
-                    Err(ref e) => {
-                        println!("Failed to handle message {:?}: {:?}", e, packet);
-                    }
-                };
-            }
-        });
+            });
+        }
 
         connector.login(email, password, compression_enabled)?;
         Ok(connector)
