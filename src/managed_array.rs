@@ -1,7 +1,7 @@
 
 use std::slice::Iter;
 
-use Error;
+use crate::Error;
 
 pub struct ManagedArray<T: Clone> {
     index:    isize,

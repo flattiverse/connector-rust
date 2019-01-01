@@ -2,8 +2,8 @@
 use std::fmt;
 use std::sync::RwLock;
 
-use Error;
-use net::BinaryReader;
+use crate::Error;
+use crate::net::BinaryReader;
 
 
 #[derive(Debug)]

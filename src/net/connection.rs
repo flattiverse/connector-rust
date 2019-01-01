@@ -1,12 +1,12 @@
-use net::CryptRead;
-use net::CryptWrite;
-use net::Packet;
+use crate::net::CryptRead;
+use crate::net::CryptWrite;
+use crate::net::Packet;
 use std::io::Write;
 use std::net::Shutdown;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 use std::thread;
-use Error;
+use crate::Error;
 
 pub struct Connection;
 

@@ -1,16 +1,16 @@
 
 use std::fmt;
 
-use Error;
+use crate::Error;
 
-use unit::ScanInfo;
-use unit::UnitKind;
+use crate::unit::ScanInfo;
+use crate::unit::UnitKind;
 
-use event::UniverseEvent;
-use event::UniverseEventData;
+use crate::event::UniverseEvent;
+use crate::event::UniverseEventData;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
 #[derive(Debug)]
 pub struct ScanUniverseEvent {

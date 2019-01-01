@@ -5,39 +5,39 @@ pub(crate) mod prelude {
     pub use ::std::sync::RwLock;
     pub use ::std::sync::RwLockReadGuard;
 
-    pub use Team;
-    pub use Vector;
-    pub use Scores;
-    pub use Universe;
-    pub use UniverseGroup;
+    pub use crate::Team;
+    pub use crate::Vector;
+    pub use crate::Scores;
+    pub use crate::Universe;
+    pub use crate::UniverseGroup;
 
-    pub use unit::Unit;
-    pub use unit::UnitKind;
-    pub use unit::ScanInfo;
-    pub use unit::Mobility;
-    pub use unit::OrbitingState;
+    pub use crate::unit::Unit;
+    pub use crate::unit::UnitKind;
+    pub use crate::unit::ScanInfo;
+    pub use crate::unit::Mobility;
+    pub use crate::unit::OrbitingState;
 
-    pub(crate) use unit::UnitData;
+    pub(crate) use crate::unit::UnitData;
 
-    pub use item::AnyCargoItem;
-    pub use item::CrystalCargoItem;
+    pub use crate::item::AnyCargoItem;
+    pub use crate::item::CrystalCargoItem;
 
-    pub use controllable::AnyControllable;
+    pub use crate::controllable::AnyControllable;
 
-    pub use controllable::EnergyCost;
-    pub use controllable::ScanEnergyCost;
-    pub use controllable::WeaponEnergyCost;
+    pub use crate::controllable::EnergyCost;
+    pub use crate::controllable::ScanEnergyCost;
+    pub use crate::controllable::WeaponEnergyCost;
 }
 
 use std::ops::Deref;
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::*;
+use crate::unit::*;
 
 
 use self::prelude::*;

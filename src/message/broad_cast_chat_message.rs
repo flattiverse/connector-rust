@@ -2,15 +2,15 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Error;
-use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Connector;
+use crate::UniverseGroup;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use message::any_chat_message::prelude::*;
+use crate::message::any_chat_message::prelude::*;
 
 pub struct BroadCastChatMessage {
     data:   ChatMessageData,

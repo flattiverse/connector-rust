@@ -3,13 +3,13 @@ use std::sync::Arc;
 use std::ops::Deref;
 
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use controllable::*;
+use crate::controllable::*;
 
 pub(crate) mod prelude {
     pub use ::std::sync::Arc;
@@ -17,23 +17,23 @@ pub(crate) mod prelude {
     pub use ::std::sync::RwLock;
     pub use ::std::sync::RwLockReadGuard;
 
-    pub use Vector;
-    pub use Scores;
-    pub use Universe;
+    pub use crate::Vector;
+    pub use crate::Scores;
+    pub use crate::Universe;
 
-    pub use unit::Unit;
-    pub use unit::AnyUnit;
-    pub use unit::UnitKind;
-    pub use unit::ScanInfo;
+    pub use crate::unit::Unit;
+    pub use crate::unit::AnyUnit;
+    pub use crate::unit::UnitKind;
+    pub use crate::unit::ScanInfo;
 
-    pub use item::AnyCargoItem;
-    pub use item::CrystalCargoItem;
+    pub use crate::item::AnyCargoItem;
+    pub use crate::item::CrystalCargoItem;
 
-    pub use controllable::AnyControllable;
+    pub use crate::controllable::AnyControllable;
 
-    pub use controllable::EnergyCost;
-    pub use controllable::ScanEnergyCost;
-    pub use controllable::WeaponEnergyCost;
+    pub use crate::controllable::EnergyCost;
+    pub use crate::controllable::ScanEnergyCost;
+    pub use crate::controllable::WeaponEnergyCost;
 }
 
 #[derive(Clone)]

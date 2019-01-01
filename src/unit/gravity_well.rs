@@ -2,8 +2,8 @@
 
 use std::fmt;
 
-use Error;
-use net::BinaryReader;
+use crate::Error;
+use crate::net::BinaryReader;
 
 #[derive(Clone, PartialOrd, PartialEq, Debug)]
 pub struct GravityWell {

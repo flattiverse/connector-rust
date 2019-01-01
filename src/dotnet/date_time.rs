@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono;
 use chrono::naive::NaiveDateTime;
 
-use dotnet::TimeSpan;
+use crate::dotnet::TimeSpan;
 
 // FUCK YOU M$
 const MILLIS_OFFSET : i64 = -1970 * 365 * 24 * 60 * 60 * 1_000

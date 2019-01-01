@@ -3,15 +3,15 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
-use Error;
-use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Connector;
+use crate::UniverseGroup;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use event::AnyUniverseEvent;
+use crate::event::AnyUniverseEvent;
 
 
 /// This implementation does not provide administrative

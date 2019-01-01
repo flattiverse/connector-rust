@@ -1,10 +1,10 @@
 
 use std::sync::Weak;
 
-use Error;
-use DateTime;
-use Connector;
-use ManualResetEvent;
+use crate::Error;
+use crate::DateTime;
+use crate::Connector;
+use crate::ManualResetEvent;
 
 use atomic::Atomic;
 use atomic::Ordering;

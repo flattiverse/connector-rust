@@ -1,14 +1,14 @@
 
-use Error;
-use Connector;
-use UniverseGroup;
+use crate::Error;
+use crate::Connector;
+use crate::UniverseGroup;
 
-use unit::UnitData;
+use crate::unit::UnitData;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::any_unit::prelude::*;
+use crate::unit::any_unit::prelude::*;
 
 pub trait AiUnit : Unit {
 

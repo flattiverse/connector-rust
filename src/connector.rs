@@ -21,48 +21,48 @@ use sha2::Sha512;
 
 use hostname;
 
-use Task;
-use Team;
-use Error;
-use Player;
-use Vector;
-use Version;
-use Universe;
-use DateTime;
-use TimeSpan;
-use IndexList;
-use Tournament;
-use PlatformKind;
-use BlockManager;
-use ManagedArray;
-use UniverseGroup;
-use UniversalHolder;
-use UniversalEnumerable;
-use UniverseGroupFlowControl;
+use crate::Task;
+use crate::Team;
+use crate::Error;
+use crate::Player;
+use crate::Vector;
+use crate::Version;
+use crate::Universe;
+use crate::DateTime;
+use crate::TimeSpan;
+use crate::IndexList;
+use crate::Tournament;
+use crate::PlatformKind;
+use crate::BlockManager;
+use crate::ManagedArray;
+use crate::UniverseGroup;
+use crate::UniversalHolder;
+use crate::UniversalEnumerable;
+use crate::UniverseGroupFlowControl;
 
-use PerformanceMark;
-use PerformanceTest;
-use ManualResetEvent;
+use crate::PerformanceMark;
+use crate::PerformanceTest;
+use crate::ManualResetEvent;
 
-use net::Packet;
-use net::Connection;
-use net::ConnectionWrite;
-use net::BinaryWriter;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::Connection;
+use crate::net::ConnectionWrite;
+use crate::net::BinaryWriter;
+use crate::net::BinaryReader;
 
-use controllable::AnyControllable;
-use controllable::ControllableDesign;
+use crate::controllable::AnyControllable;
+use crate::controllable::ControllableDesign;
 
-use unit::*;
-use event::*;
+use crate::unit::*;
+use crate::event::*;
 
-use item::AnyCargoItem;
-use item::CrystalCargoItem;
+use crate::item::AnyCargoItem;
+use crate::item::CrystalCargoItem;
 
 use atomic::Atomic;
 use atomic::Ordering;
 
-use message::AnyMessage;
+use crate::message::AnyMessage;
 
 pub const PROTOCOL_VERSION  : u32       = 36;
 pub const CONNECTOR_VERSION : Version   = Version::new(0, 9, 6, 1);

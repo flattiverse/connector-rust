@@ -2,16 +2,16 @@
 use std::sync::Arc;
 use std::ops::Deref;
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
 pub(crate) mod prelude {
-    pub use dotnet::DateTime;
+    pub use crate::dotnet::DateTime;
 
-    pub(crate) use message::*;
+    pub(crate) use crate::message::*;
 }
 
 use self::prelude::*;

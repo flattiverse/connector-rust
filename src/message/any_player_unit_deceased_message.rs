@@ -3,10 +3,10 @@ use std::sync::Arc;
 use std::ops::Deref;
 
 pub(crate) mod prelude {
-    pub use Player;
-    pub use unit::ControllableInfo;
+    pub use crate::Player;
+    pub use crate::unit::ControllableInfo;
 
-    pub(crate) use message::any_game_message::prelude::*;
+    pub(crate) use crate::message::any_game_message::prelude::*;
 }
 
 use self::prelude::*;

@@ -1,6 +1,6 @@
 
-use Error;
-use net::BinaryWriter;
+use crate::Error;
+use crate::net::BinaryWriter;
 
 #[derive(Clone, Debug)]
 pub struct ScanInfo {

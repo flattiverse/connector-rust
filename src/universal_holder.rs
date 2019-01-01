@@ -2,7 +2,7 @@
 use std::sync::Arc;
 use std::sync::Weak;
 
-use IndexList;
+use crate::IndexList;
 
 pub trait UniversalEnumerable {
     fn name(&self) -> &str;

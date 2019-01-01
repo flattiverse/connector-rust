@@ -3,14 +3,14 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
-use Error;
-use Connector;
-use UniverseGroup;
-use net::Packet;
-use net::BinaryReader;
+use crate::Error;
+use crate::Connector;
+use crate::UniverseGroup;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use ManagedArray;
-use TournamentTeam;
+use crate::ManagedArray;
+use crate::TournamentTeam;
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]

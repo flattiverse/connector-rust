@@ -1,7 +1,7 @@
 
-use Error;
-use UniversalEnumerable;
-use net::BinaryReader;
+use crate::Error;
+use crate::UniversalEnumerable;
+use crate::net::BinaryReader;
 
 pub struct GateSwitchInfo {
     name:   String,

@@ -5,31 +5,31 @@ use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
 
-use Task;
-use Team;
-use Error;
-use Player;
-use TimeSpan;
-use GameType;
-use Universe;
-use Connector;
-use ConnectorArc;
-use IndexList;
-use Difficulty;
-use Tournament;
-use ManagedArray;
-use UniversalHolder;
-use UniversalEnumerable;
-use UniverseGroupFlowControl;
-use PerformanceRequirement;
+use crate::Task;
+use crate::Team;
+use crate::Error;
+use crate::Player;
+use crate::TimeSpan;
+use crate::GameType;
+use crate::Universe;
+use crate::Connector;
+use crate::ConnectorArc;
+use crate::IndexList;
+use crate::Difficulty;
+use crate::Tournament;
+use crate::ManagedArray;
+use crate::UniversalHolder;
+use crate::UniversalEnumerable;
+use crate::UniverseGroupFlowControl;
+use crate::PerformanceRequirement;
 
-use controllable::Ship;
-use controllable::AnyControllable;
+use crate::controllable::Ship;
+use crate::controllable::AnyControllable;
 
-use net::Packet;
-use net::BinaryReader;
-use net::BinaryWriter;
-use net::is_set_u8;
+use crate::net::Packet;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
+use crate::net::is_set_u8;
 
 pub struct UniverseGroup {
     id:         u16,

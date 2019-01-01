@@ -5,13 +5,13 @@ use std::sync::Weak;
 use std::borrow::Borrow;
 
 
-use Team;
-use Error;
-use Connector;
-use UniverseGroup;
+use crate::Team;
+use crate::Error;
+use crate::Connector;
+use crate::UniverseGroup;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
 pub struct TournamentTeam {
     team: Team,

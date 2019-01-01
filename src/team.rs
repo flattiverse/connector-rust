@@ -5,17 +5,17 @@ use std::cmp::PartialEq;
 use std::sync::Arc;
 use std::sync::Weak;
 
-use Error;
-use Color;
-use Scores;
-use GameType;
-use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Color;
+use crate::Scores;
+use crate::GameType;
+use crate::Connector;
+use crate::UniverseGroup;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
-use net::BinaryWriter;
+use crate::net::Packet;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
 
 pub struct Team {
     universe_group: Weak<UniverseGroup>,

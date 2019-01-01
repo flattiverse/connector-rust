@@ -1,12 +1,12 @@
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::UnitData;
-use unit::any_unit::prelude::*;
+use crate::unit::UnitData;
+use crate::unit::any_unit::prelude::*;
 
 pub struct Asteroid {
     unit:       UnitData,

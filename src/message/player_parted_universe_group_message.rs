@@ -2,16 +2,16 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Team;
-use Error;
-use Player;
-use Connector;
-use UniverseGroup;
+use crate::Team;
+use crate::Error;
+use crate::Player;
+use crate::Connector;
+use crate::UniverseGroup;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use message::any_game_message::prelude::*;
+use crate::message::any_game_message::prelude::*;
 
 pub struct PlayerPartedUniverseGroupMessage {
     data:   GameMessageData,

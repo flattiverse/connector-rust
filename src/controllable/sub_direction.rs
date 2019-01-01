@@ -1,9 +1,9 @@
 
-use Error;
-use Vector;
+use crate::Error;
+use crate::Vector;
 
-use net::BinaryReader;
-use net::BinaryWriter;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
 
 #[derive(Clone, Debug)]
 pub struct SubDirection {

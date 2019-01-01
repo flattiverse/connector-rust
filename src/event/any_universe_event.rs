@@ -2,12 +2,12 @@
 use std::sync::Arc;
 use std::ops::Deref;
 
-use Error;
+use crate::Error;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use event::*;
+use crate::event::*;
 
 pub enum AnyUniverseEvent {
     Damage          (Arc<DamageUniverseEvent>),

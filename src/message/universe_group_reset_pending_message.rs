@@ -2,16 +2,16 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Error;
-use TimeSpan;
-use Connector;
-use UniverseGroup;
-use UniversalEnumerable;
+use crate::Error;
+use crate::TimeSpan;
+use crate::Connector;
+use crate::UniverseGroup;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use message::any_game_message::prelude::*;
+use crate::message::any_game_message::prelude::*;
 
 pub struct UniverseGroupResetPendingMessage {
     data:   GameMessageData,

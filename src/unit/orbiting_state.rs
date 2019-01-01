@@ -1,6 +1,6 @@
 
-use Error;
-use net::BinaryReader;
+use crate::Error;
+use crate::net::BinaryReader;
 
 pub struct OrbitingState {
     distance: f32,

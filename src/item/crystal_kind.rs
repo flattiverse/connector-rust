@@ -1,5 +1,5 @@
 
-use Error;
+use crate::Error;
 
 #[repr(u8)]
 #[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]

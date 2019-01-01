@@ -3,11 +3,11 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::Weak;
 
-use Task;
-use Error;
-use Connector;
-use net::BinaryReader;
-use net::BinaryWriter;
+use crate::Task;
+use crate::Error;
+use crate::Connector;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
 
 #[derive(Clone)]
 pub struct Polynomial {

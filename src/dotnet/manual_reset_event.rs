@@ -2,7 +2,7 @@
 use std::sync::Mutex;
 use std::sync::Condvar;
 
-use Error;
+use crate::Error;
 
 
 pub struct ManualResetEvent {

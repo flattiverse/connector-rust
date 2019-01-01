@@ -2,11 +2,11 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Task;
-use Error;
-use Connector;
-use net::BinaryReader;
-use net::BinaryWriter;
+use crate::Task;
+use crate::Error;
+use crate::Connector;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
 
 const TOLERANCE : f32 = 0.25f32;
 

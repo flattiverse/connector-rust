@@ -4,12 +4,12 @@ use sha2::Digest;
 use sha2::Sha256;
 
 
-use Error;
-use Connector;
-use net::CryptRead;
-use net::CryptWrite;
-use net::BinaryReader;
-use net::BinaryWriter;
+use crate::Error;
+use crate::Connector;
+use crate::net::CryptRead;
+use crate::net::CryptWrite;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone)]

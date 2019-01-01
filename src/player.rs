@@ -3,24 +3,24 @@ use std::sync::Arc;
 use std::sync::Weak;
 use std::sync::RwLock;
 
-use Team;
-use Task;
-use Error;
-use Scores;
-use Version;
-use IndexList;
-use Connector;
-use PlatformKind;
-use PerformanceMark;
-use UniversalHolder;
-use UniversalEnumerable;
-use UniverseGroup;
-use dotnet::TimeSpan;
-use unit::ControllableInfo;
-use net::Packet;
-use net::BinaryReader;
-use net::BinaryWriter;
-use net::is_set_u8;
+use crate::Team;
+use crate::Task;
+use crate::Error;
+use crate::Scores;
+use crate::Version;
+use crate::IndexList;
+use crate::Connector;
+use crate::PlatformKind;
+use crate::PerformanceMark;
+use crate::UniversalHolder;
+use crate::UniversalEnumerable;
+use crate::UniverseGroup;
+use crate::dotnet::TimeSpan;
+use crate::unit::ControllableInfo;
+use crate::net::Packet;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
+use crate::net::is_set_u8;
 
 
 struct PlayerStats {
@@ -271,7 +271,7 @@ impl Player {
                 let mut packets = Vec::with_capacity(data.len());
 
                 for i in 0..data.len() {
-                    let mut block = connector.block_manager().block()?;
+                    let block = connector.block_manager().block()?;
                     let mut packet = Packet::new();
 
                     packet.set_command(0x33_u8);

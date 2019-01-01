@@ -1,5 +1,5 @@
 
-use Error;
+use crate::Error;
 
 #[derive(Copy, Clone)]
 pub struct Color {

@@ -2,7 +2,7 @@
 use std::fmt;
 use std::io::Result;
 
-use net::BinaryReader;
+use crate::net::BinaryReader;
 
 #[derive(Clone, PartialOrd, PartialEq)]
 pub struct Corona {

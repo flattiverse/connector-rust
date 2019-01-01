@@ -2,14 +2,14 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Error;
-use Player;
-use Connector;
+use crate::Error;
+use crate::Player;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use message::any_chat_message::prelude::*;
+use crate::message::any_chat_message::prelude::*;
 
 pub struct UnicastChatMessage {
     data:   ChatMessageData,

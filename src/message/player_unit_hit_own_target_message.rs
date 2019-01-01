@@ -2,18 +2,18 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Team;
-use Error;
-use Player;
-use Connector;
-use UniversalEnumerable;
+use crate::Team;
+use crate::Error;
+use crate::Player;
+use crate::Connector;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::ControllableInfo;
+use crate::unit::ControllableInfo;
 
-use message::any_game_message::prelude::*;
+use crate::message::any_game_message::prelude::*;
 
 pub struct PlayerUnitHitOwnTargetMessage {
     data:   GameMessageData,

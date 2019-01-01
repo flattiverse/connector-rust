@@ -2,16 +2,16 @@
 use std::fmt;
 use std::sync::Arc;
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use message::Message;
-use message::MessageData;
+use crate::message::Message;
+use crate::message::MessageData;
 
-use message::any_system_message::prelude::*;
+use crate::message::any_system_message::prelude::*;
 
 pub trait SystemMessage : Message {
     fn message(&self) -> &str;

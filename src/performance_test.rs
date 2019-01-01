@@ -8,11 +8,11 @@ use std::thread;
 use std::sync::Arc;
 use std::sync::RwLock;
 
-use Error;
-use TimeSpan;
-use StopWatch;
-use ManualResetEvent;
-use net::BinaryWriter;
+use crate::Error;
+use crate::TimeSpan;
+use crate::StopWatch;
+use crate::ManualResetEvent;
+use crate::net::BinaryWriter;
 
 pub struct PerformanceTest {
     result:  RwLock<i64>,

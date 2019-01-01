@@ -54,40 +54,40 @@ mod tournament_team;
 
 
 
-pub use dotnet::*;
+pub use crate::dotnet::*;
 
 
-pub use error::*;
-pub use version::*;
-pub use connector::*;
-pub use difficulty::*;
-pub use polynominal::*;
+pub use crate::error::*;
+pub use crate::version::*;
+pub use crate::connector::*;
+pub use crate::difficulty::*;
+pub use crate::polynominal::*;
 
-pub use task::*;
-pub use vector::*;
+pub use crate::task::*;
+pub use crate::vector::*;
 
-pub use color::*;
-pub use index_list::*;
-pub use block_manager::*;
-pub use managed_array::*;
+pub use crate::color::*;
+pub use crate::index_list::*;
+pub use crate::block_manager::*;
+pub use crate::managed_array::*;
 
-pub use scores::*;
-pub use message::*;
-pub use player::*;
-pub use platform_kind::*;
-pub use performance_test::*;
-pub use performance_mark::*;
-pub use performance_requirement::*;
+pub use crate::scores::*;
+pub use crate::message::*;
+pub use crate::player::*;
+pub use crate::platform_kind::*;
+pub use crate::performance_test::*;
+pub use crate::performance_mark::*;
+pub use crate::performance_requirement::*;
 
-pub use team::*;
-pub use universe::*;
-pub use game_type::*;
-pub use stop_watch::*;
-pub use universe_group::*;
-pub use universal_holder::*;
-pub use universe_group_flow_control::*;
+pub use crate::team::*;
+pub use crate::universe::*;
+pub use crate::game_type::*;
+pub use crate::stop_watch::*;
+pub use crate::universe_group::*;
+pub use crate::universal_holder::*;
+pub use crate::universe_group_flow_control::*;
 
-pub use tournament::*;
-pub use tournament_team::*;
+pub use crate::tournament::*;
+pub use crate::tournament_team::*;
 
 

@@ -4,19 +4,19 @@ use std::sync::Weak;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 
-use Error;
-use Player;
-use Scores;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Player;
+use crate::Scores;
+use crate::UniversalEnumerable;
 
-use unit::UnitKind;
+use crate::unit::UnitKind;
 
-use item::AnyCargoItem;
-use item::CrystalCargoItem;
+use crate::item::AnyCargoItem;
+use crate::item::CrystalCargoItem;
 
-use net::Packet;
-use net::BinaryReader;
-use net::is_set_u8;
+use crate::net::Packet;
+use crate::net::BinaryReader;
+use crate::net::is_set_u8;
 
 struct ControllableInfoMut {
     hull:           f32,

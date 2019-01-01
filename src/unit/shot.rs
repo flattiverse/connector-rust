@@ -1,16 +1,16 @@
 
-use Error;
-use Player;
-use Connector;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Player;
+use crate::Connector;
+use crate::UniversalEnumerable;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::ControllableInfo;
-use unit::any_unit::prelude::*;
+use crate::unit::ControllableInfo;
+use crate::unit::any_unit::prelude::*;
 
-use controllable::SubDirection;
+use crate::controllable::SubDirection;
 
 pub struct Shot {
     unit:   UnitData,

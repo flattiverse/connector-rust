@@ -9,35 +9,35 @@ use std::sync::Weak;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 
-use Error;
-use Scores;
-use Vector;
-use Universe;
-use Connector;
-use UniversalEnumerable;
+use crate::Error;
+use crate::Scores;
+use crate::Vector;
+use crate::Universe;
+use crate::Connector;
+use crate::UniversalEnumerable;
 
 use atomic::Atomic;
 use atomic::Ordering;
 
-use unit::AnyUnit;
-use unit::UnitKind;
-use unit::ScanInfo;
+use crate::unit::AnyUnit;
+use crate::unit::UnitKind;
+use crate::unit::ScanInfo;
 
-use item::AnyCargoItem;
-use item::CrystalCargoItem;
+use crate::item::AnyCargoItem;
+use crate::item::CrystalCargoItem;
 
-use controllable::AnyControllable;
+use crate::controllable::AnyControllable;
 
-use controllable::EnergyCost;
-use controllable::ScanEnergyCost;
-use controllable::WeaponEnergyCost;
-use controllable::SubDirection;
+use crate::controllable::EnergyCost;
+use crate::controllable::ScanEnergyCost;
+use crate::controllable::WeaponEnergyCost;
+use crate::controllable::SubDirection;
 
 
-use net::Packet;
-use net::BinaryReader;
-use net::BinaryWriter;
-use net::is_set_u8;
+use crate::net::Packet;
+use crate::net::BinaryReader;
+use crate::net::BinaryWriter;
+use crate::net::is_set_u8;
 
 pub trait Controllable : Send + Sync {
 

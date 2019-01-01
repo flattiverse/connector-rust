@@ -3,9 +3,9 @@ use std::sync::Arc;
 use std::ops::Deref;
 
 pub(crate) mod prelude {
-    pub use Player;
+    pub use crate::Player;
 
-    pub(crate) use message::any_flattiverse_message::prelude::*;
+    pub(crate) use crate::message::any_flattiverse_message::prelude::*;
 }
 
 use self::prelude::*;

@@ -1,8 +1,8 @@
 
 use std::cmp::Ordering;
 
-use Error;
-use net::BinaryReader;
+use crate::Error;
+use crate::net::BinaryReader;
 
 use atomic;
 use atomic::Atomic;

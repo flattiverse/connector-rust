@@ -2,7 +2,7 @@
 use std::time::Instant;
 
 
-use TimeSpan;
+use crate::TimeSpan;
 
 pub struct StopWatch {
     start: Instant,

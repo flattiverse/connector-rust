@@ -1,12 +1,12 @@
 
 use std::fmt;
 
-use Error;
+use crate::Error;
 
-use unit::UnitKind;
+use crate::unit::UnitKind;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
 pub trait UniverseEvent : fmt::Display {
 

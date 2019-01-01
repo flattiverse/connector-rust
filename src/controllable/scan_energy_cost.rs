@@ -2,13 +2,13 @@
 use std::sync::Arc;
 use std::ops::Deref;
 
-use Error;
-use Connector;
-use Polynomial;
-use controllable::EnergyCost;
-use controllable::Controllable;
+use crate::Error;
+use crate::Connector;
+use crate::Polynomial;
+use crate::controllable::EnergyCost;
+use crate::controllable::Controllable;
 
-use net::BinaryReader;
+use crate::net::BinaryReader;
 
 #[derive(Clone)]
 pub struct ScanEnergyCost {

@@ -2,11 +2,11 @@
 use std::sync::Arc;
 use std::sync::Weak;
 
-use Error;
-use Connector;
-use net::BinaryReader;
+use crate::Error;
+use crate::Connector;
+use crate::net::BinaryReader;
 
-use item::CargoItemKind;
+use crate::item::CargoItemKind;
 
 
 pub trait CargoItem : Sync + Send {

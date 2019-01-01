@@ -7,9 +7,9 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use std::time::Instant;
 
-use Error;
-use net::Packet;
-use net::BinaryReader;
+use crate::Error;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
 pub const BLOCK_COUNT      : usize    = 255;
 pub const BLOCK_OFFSET     : usize    =   1;
@@ -73,7 +73,7 @@ impl Block {
     }
 
     pub fn wait(&mut self) -> Result<Packet, Error> {
-        let packet : Packet = match self.inner.await(self.timestamp, WAIT_TIME_MILLIS) {
+        let packet : Packet = match self.inner.r#await(self.timestamp, WAIT_TIME_MILLIS) {
             Some(packet) => packet,
             None => return Err(Error::Timeout)
         };
@@ -133,7 +133,7 @@ impl BlockInner {
         self.cond.notify_all();
     }
 
-    fn await(&self, time: Instant, timeout: Duration) -> Option<Packet> {
+    fn r#await(&self, time: Instant, timeout: Duration) -> Option<Packet> {
         let mut lock = self.data.lock().expect("Failed to acquire lock for BlockInner::data");
         let mut elapsed = time.elapsed();
         while elapsed < timeout {

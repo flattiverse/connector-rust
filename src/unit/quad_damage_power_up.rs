@@ -1,11 +1,11 @@
 
-use Error;
-use Connector;
+use crate::Error;
+use crate::Connector;
 
-use net::Packet;
-use net::BinaryReader;
+use crate::net::Packet;
+use crate::net::BinaryReader;
 
-use unit::any_power_up::prelude::*;
+use crate::unit::any_power_up::prelude::*;
 
 pub struct QuadDamagePowerUp {
     unit:   PowerUpData,
