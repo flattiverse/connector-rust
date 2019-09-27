@@ -25,15 +25,6 @@ impl Packet {
         let (packet_len, mut offset) = if oob {
             (usize::from(header & 0b0000_1111), 1)
         } else {
-            let packet_len = 1
-                + (header & 0b1000_0000).min(1)
-                + (header & 0b0100_0000).min(1)
-                + (header & 0b0000_1000).min(2)
-                + (header & 0b0000_0100).min(1)
-                + ((header & 0b0000_0010) * 2)
-                + (header & 0b0000_0001).min(1);
-            let packet_len = usize::from(packet_len);
-
             match (header & 0b0011_0000) >> 4 {
                 0 => {
                     // no payload
