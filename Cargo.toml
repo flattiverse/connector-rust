@@ -2,7 +2,7 @@
 description = "Connector library for the flattiverse.com game server."
 homepage = "https://www.flattiverse.com/"
 name = "flattiverse_connector"
-version = "36.1.1"
+version = "0.0.0"
 authors = ["Michael Watzko <michael@watzko.de>"]
 keywords = ["connector", "flattiverse"]
 categories = ["games", "network-programming"]
@@ -12,11 +12,8 @@ edition = "2018"
 [lib]
 
 [dependencies]
-byteorder = "1.2"
-sha2 = "0.8"
-chrono = "0.4"
-hostname = "0.1"
-flate2 = "1"
-backtrace = "0.3"
-rand = "0.6"
-atomic = "0.4"
+tokio = "0.2.0-alpha.5"
+bytes = "0.4.12"
+aes = "0.3.2"
+sha2 = "0.8.0"
+byteorder = "1.3.2"
