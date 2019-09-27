@@ -1,5 +1,5 @@
 use byteorder::{ByteOrder, NetworkEndian};
-use bytes::{Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
 pub struct Packet {
@@ -110,5 +110,85 @@ impl Packet {
             },
             out_of_band: oob,
         })
+    }
+
+    pub fn write(&self, data: &mut BytesMut) {
+        let payload_len = self.payload.as_ref().map(Bytes::len).unwrap_or(0);
+        data.reserve(payload_len + 10);
+        let mut header = 0_u8;
+
+        if !self.out_of_band {
+            if self.command > 0 {
+                header |= 0b1000_0000;
+            }
+
+            if self.session > 0 {
+                header |= 0b0100_0000;
+            }
+
+            if self.base_address > 0 {
+                header |= 0b0000_1000;
+            }
+
+            if self.sub_address > 0 {
+                header |= 0b0000_0100;
+            }
+
+            if self.id > 0 {
+                header |= 0b0000_0010;
+            }
+
+            if self.helper > 0 {
+                header |= 0b0000_0001;
+            }
+
+            if payload_len > 65_536 {
+                panic!(
+                    "Payload is not allowed to exceed 65 KiB but is {}",
+                    payload_len
+                );
+            } else if payload_len > 256 {
+                header |= 0b0010_0000;
+            } else if payload_len > 0 {
+                header |= 0b0001_0000;
+            }
+        }
+
+        if self.out_of_band {
+            data.put_u8(0b0011_0000 | payload_len as u8);
+            for _ in 0..payload_len {
+                data.put_u8(0x55);
+            }
+        } else {
+            data.put_u8(header);
+
+            if payload_len > 256 {
+                data.put_u32_be((payload_len - 1) as u32);
+            } else if payload_len > 0 {
+                data.put_u8((payload_len - 1) as u8);
+            }
+
+            if self.command > 0 {
+                data.put_u8(self.command);
+            }
+
+            if self.session > 0 {
+                data.put_u8(self.session);
+            }
+
+            if self.base_address > 0 {
+                data.put_u16_be(self.base_address);
+            }
+
+            if self.id > 0 {
+                data.put_u32_be(self.id);
+            }
+
+            if self.helper > 0 {
+                data.put_u8(self.helper);
+            } else if let Some(payload) = &self.payload {
+                data.put_slice(&payload[..]);
+            }
+        }
     }
 }
