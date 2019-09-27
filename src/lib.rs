@@ -1,3 +1,4 @@
 pub mod codec;
-mod crypt;
-mod packet;
+pub mod com;
+pub mod crypt;
+pub mod packet;
