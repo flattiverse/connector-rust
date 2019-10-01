@@ -7,6 +7,6 @@ pub mod com;
 
 #[tokio::main]
 async fn main() {
-    Connection::connect("abc", "def").await.unwrap();
+    Connection::connect("Anonymous", "Password").await.unwrap();
     println!("async");
 }
