@@ -1,7 +1,8 @@
-use aes::block_cipher_trait::generic_array::GenericArray;
+use aes::block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use aes::{Aes128, Aes256};
 use block_modes::block_padding::{Pkcs7, ZeroPadding};
 use block_modes::{BlockMode, Cbc};
+use core::slice;
 use sha2::digest::FixedOutput;
 use sha2::{Digest, Sha256, Sha512};
 
@@ -34,13 +35,7 @@ pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
 
     for _ in 0..7 {
         println!("encrypting...");
-        for i in 0..SLOWNESS_LEN / 16 {
-            let mut block = [0u8; 16];
-            block.copy_from_slice(&slowness[i * 16..(i + 1) * 16]);
-            let mut blocks = [GenericArray::from(block)];
-            aes.encrypt_blocks(&mut blocks);
-            (&mut slowness[i * 16..(i + 1) * 16]).copy_from_slice(&blocks[0][..]);
-        }
+        aes.encrypt_blocks(to_blocks(&mut slowness[..]));
         /*
         let src = slowness.clone();
         aes.encrypt(
@@ -82,4 +77,13 @@ pub fn sha256(salt: &str) -> [u8; 32] {
     let mut sha = Sha256::default();
     sha.input(salt.as_bytes());
     sha.fixed_result().into()
+}
+
+pub(crate) fn to_blocks<N>(data: &mut [u8]) -> &mut [GenericArray<u8, N>]
+where
+    N: ArrayLength<u8>,
+{
+    let n = N::to_usize();
+    debug_assert!(data.len() % n == 0);
+    unsafe { slice::from_raw_parts_mut(data.as_ptr() as *mut GenericArray<u8, N>, data.len() / n) }
 }
