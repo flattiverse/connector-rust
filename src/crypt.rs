@@ -1,16 +1,22 @@
-use crypto::aes::cbc_encryptor;
-use crypto::aes::KeySize::{KeySize128, KeySize256};
-use crypto::blockmodes::NoPadding;
-use crypto::buffer::{RefReadBuffer, RefWriteBuffer};
+use aes::block_cipher_trait::generic_array::GenericArray;
+use aes::{Aes128, Aes256};
+use block_modes::block_padding::{Pkcs7, ZeroPadding};
+use block_modes::{BlockMode, Cbc};
 use sha2::digest::FixedOutput;
 use sha2::{Digest, Sha256, Sha512};
 
 const SLOWNESS_LEN: usize = 80_000_000;
 const BLOCK_SIZE: usize = 80;
 
+pub type Aes128Cbc = Cbc<Aes128, ZeroPadding>;
+pub type Aes256Cbc = Cbc<Aes256, ZeroPadding>;
+
 pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
     let s_data = sha512(&salt.to_lowercase());
     let p_data = sha512(password);
+
+    println!("user: {:x?}", &s_data[..]);
+    println!("pass: {:x?}", &p_data[..]);
 
     let mut slowness = vec![0u8; SLOWNESS_LEN];
 
@@ -22,28 +28,42 @@ pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
         slowness[8..72].copy_from_slice(&s_data[0..64]);
         slowness[72..80].copy_from_slice(&p_data[56..64]);
     }
+    println!("slow: {:x?}", &slowness[..80]);
 
-    let mut aes = cbc_encryptor(KeySize128, &p_data[0..32], &s_data[32..32 + 16], NoPadding);
+    let mut aes = Aes256Cbc::new_var(&p_data[0..32], &s_data[32..32 + 16]).unwrap();
 
     for _ in 0..7 {
         println!("encrypting...");
+        for i in 0..SLOWNESS_LEN / 16 {
+            let mut block = [0u8; 16];
+            block.copy_from_slice(&slowness[i * 16..(i + 1) * 16]);
+            let mut blocks = [GenericArray::from(block)];
+            aes.encrypt_blocks(&mut blocks);
+            (&mut slowness[i * 16..(i + 1) * 16]).copy_from_slice(&blocks[0][..]);
+        }
+        /*
         let src = slowness.clone();
         aes.encrypt(
             &mut RefReadBuffer::new(&src[..]),
             &mut RefWriteBuffer::new(&mut slowness[..]),
             false,
         )
-        .unwrap();
+        .unwrap();*/
     }
     println!("encrypting... done");
 
     let mut iv = [0u8; 16];
+    let mut blocks = [GenericArray::clone_from_slice(&mut slowness[..16])];
+    aes.encrypt_blocks(&mut blocks);
+    iv.copy_from_slice(&blocks[0][..16]);
+    /*
     aes.encrypt(
         &mut RefReadBuffer::new(&slowness[0..16]),
         &mut RefWriteBuffer::new(&mut iv[0..16]),
         false,
     )
     .unwrap();
+    */
 
     return iv;
 }

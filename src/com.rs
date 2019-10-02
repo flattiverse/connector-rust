@@ -1,12 +1,11 @@
 
 use std::io::Error;
 
-use crypto::aes::{cbc_decryptor, cbc_encryptor};
-use crypto::aes::KeySize::{KeySize256, KeySize128};
-use crypto::blockmodes::NoPadding;
-use crypto::buffer::{RefReadBuffer, RefWriteBuffer};
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use crate::crypt::Aes128Cbc;
+use block_modes::BlockMode;
 
 
 pub struct Connection {
@@ -19,7 +18,7 @@ impl Connection {
         let mut packet_data = [0u8; 64];
 
         let user_hash = crate::crypt::sha256(&user.to_lowercase());
-        println!("{} {:?}", user_hash.len(), user_hash);
+        println!("{} {:x?}", user_hash.len(), user_hash);
 
         (&mut packet_data[0..16]).copy_from_slice(&iv);
         for i in 0..32 {
@@ -28,6 +27,7 @@ impl Connection {
 
         let connect = TcpStream::connect("galaxy.flattiverse.com:80");
         let password_hash = crate::crypt::hash_password(user, password);
+        println!("pass: {:x?}", password_hash);
 
 
         let mut stream = connect.await?;
@@ -37,24 +37,26 @@ impl Connection {
 
 
         let (server_iv, data) = (&packet_data[..48]).split_at(16);
-        println!("{} {:?}", server_iv.len(), &server_iv[..]);
-        println!("{} {:?}", data.len(), &data[..]);
+        println!("{} {:x?}", server_iv.len(), &server_iv[..]);
+        println!("{} {:x?}", data.len(), &data[..]);
 
-        let mut send = cbc_encryptor(KeySize128, &password_hash[..], &iv[..], NoPadding);
-        let mut recv = cbc_decryptor(KeySize128, &password_hash[..], &server_iv[..], NoPadding);
+        let mut send = Aes128Cbc::new_var(&password_hash[..], &iv[..]).unwrap();
+        let mut recv = Aes128Cbc::new_var(&password_hash[..], &server_iv[..]).unwrap();
 
-        let mut challenge = [0u8; 32];
-        recv.decrypt(&mut RefReadBuffer::new(&data[..32]), &mut RefWriteBuffer::new(&mut challenge[..32]), false).unwrap();
-
-        for i in 0..16 {
-            challenge[i] ^= challenge[i + 16];
+        recv.decrypt(&mut packet_data[16..16+32]).unwrap();
+        for i in 16..32 {
+            packet_data[i] = packet_data[i] ^ packet_data[i + 16];
         }
 
-        send.encrypt(&mut RefReadBuffer::new(&challenge[..16]), &mut RefWriteBuffer::new(&mut packet_data[..16]), false).unwrap();
-        stream.write_all(&packet_data[..16]).await?;
+        //send.encrypt(&mut RefReadBuffer::new(&challenge[..16]), &mut RefWriteBuffer::new(&mut packet_data[..16]), false).unwrap();
+        send.encrypt(&mut packet_data[16..32], 16);
+        stream.write_all(&packet_data[16..32]).await?;
         stream.read_exact(&mut packet_data[..16]).await.expect("Wrong password");
 
-        if u16::from(packet_data[14]) + u16::from(packet_data[15]) * 256 != 1 {
+        let version = u16::from(packet_data[14]) + u16::from(packet_data[15]) * 256;
+        println!("Flattiverse version: {}", version);
+
+        if version != 1 {
             panic!("Invalid protocol version");
         }
 
