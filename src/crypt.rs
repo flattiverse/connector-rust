@@ -1,8 +1,9 @@
+use core::slice;
+
 use aes::block_cipher_trait::generic_array::{ArrayLength, GenericArray};
 use aes::{Aes128, Aes256};
-use block_modes::block_padding::{Pkcs7, ZeroPadding};
+use block_modes::block_padding::ZeroPadding;
 use block_modes::{BlockMode, Cbc};
-use core::slice;
 use sha2::digest::FixedOutput;
 use sha2::{Digest, Sha256, Sha512};
 

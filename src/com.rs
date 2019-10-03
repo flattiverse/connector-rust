@@ -1,20 +1,21 @@
-
 use std::io::Error;
-
-
-use tokio::net::TcpStream;
-use crate::crypt::{Aes128Cbc, to_blocks};
-use crate::codec::Flattiverse;
-use crate::packet::Packet;
-use block_modes::BlockMode;
-use tokio::prelude::*;
-use tokio::codec::Framed;
 use std::thread::sleep;
 use std::time::Duration;
 
+use block_modes::BlockMode;
+use futures_util::stream::SplitSink;
+use futures_util::stream::SplitStream;
+use tokio::codec::Framed;
+use tokio::net::TcpStream;
+use tokio::prelude::*;
+
+use crate::codec::Flattiverse;
+use crate::crypt::{Aes128Cbc, to_blocks};
+use crate::packet::Packet;
 
 pub struct Connection {
-
+    sink: SplitSink<Framed<TcpStream, Flattiverse>, Packet>,
+    stream: SplitStream<Framed<TcpStream, Flattiverse>>,
 }
 
 impl Connection {
@@ -68,19 +69,37 @@ impl Connection {
         let protocol = Flattiverse::new(send, recv);
         let mut framed = Framed::new(stream, protocol);
 
-        let (mut sink, mut stream) = framed.split();
 
         for _ in 0..100 {
             sleep(Duration::from_millis(100));
-            sink.send(Packet::default()).await.unwrap();
-            sink.send(Packet::new_oob()).await.unwrap();
-            sink.flush().await.unwrap();
-            println!("{:?}", stream.next().await);
+            framed.send(Packet::default()).await.unwrap();
+            framed.send(Packet::new_oob()).await.unwrap();
+            framed.flush().await.unwrap();
+            println!("{:?}", framed.next().await);
         }
 
-        Ok(Self {
+        let (sink, stream) = framed.split();
 
+        Ok(Self {
+            sink,
+            stream
         })
+    }
+
+    pub async fn send(&mut self, packet: Packet) -> Result<(), Error> {
+        self.sink.send(packet).await
+    }
+
+    pub async fn flush(&mut self) -> Result<(), Error> {
+        self.send(Packet::new_oob()).await
+    }
+
+    pub async fn receive(&mut self) -> Option<Result<Packet, Error>> {
+        self.stream.next().await
+    }
+
+    pub fn split(self) -> (impl Sink<Packet>, impl Stream<Item = Result<Packet, Error>>) {
+        (self.sink, self.stream)
     }
 
     fn random_init_vector() -> [u8; 16] {
