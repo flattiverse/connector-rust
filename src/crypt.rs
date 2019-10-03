@@ -33,34 +33,15 @@ pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
 
     let mut aes = Aes256Cbc::new_var(&p_data[0..32], &s_data[32..32 + 16]).unwrap();
 
-    for _ in 0..7 {
-        println!("encrypting...");
+    for i in 0..7 {
+        println!("encrypting... {}", i);
         aes.encrypt_blocks(to_blocks(&mut slowness[..]));
-        /*
-        let src = slowness.clone();
-        aes.encrypt(
-            &mut RefReadBuffer::new(&src[..]),
-            &mut RefWriteBuffer::new(&mut slowness[..]),
-            false,
-        )
-        .unwrap();*/
     }
     println!("encrypting... done");
 
-    let mut iv = [0u8; 16];
     let mut blocks = [GenericArray::clone_from_slice(&mut slowness[..16])];
     aes.encrypt_blocks(&mut blocks);
-    iv.copy_from_slice(&blocks[0][..16]);
-    /*
-    aes.encrypt(
-        &mut RefReadBuffer::new(&slowness[0..16]),
-        &mut RefWriteBuffer::new(&mut iv[0..16]),
-        false,
-    )
-    .unwrap();
-    */
-
-    return iv;
+    return blocks[0].into();
 }
 
 pub fn sha512(salt: &str) -> [u8; 64] {
