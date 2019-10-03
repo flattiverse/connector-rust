@@ -12,6 +12,8 @@ const BLOCK_SIZE: usize = 80;
 pub type Aes128Cbc = Cbc<Aes128, ZeroPadding>;
 pub type Aes256Cbc = Cbc<Aes256, ZeroPadding>;
 
+pub const AES128CBC_BLOCK_BYTE_LENGTH: usize = 128 / 8;
+
 pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
     let s_data = sha512(&salt.to_lowercase());
     let p_data = sha512(password);

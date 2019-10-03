@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, NetworkEndian};
 use bytes::{BufMut, Bytes, BytesMut};
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct Packet {
     command: u8,
     session: u8,
@@ -9,18 +9,25 @@ pub struct Packet {
     helper: u8,
     base_address: u16,
     sub_address: u8,
-    payload: Option<Bytes>,
-    out_of_band: bool,
+    pub(crate) payload: Option<Bytes>,
+    pub(crate) out_of_band: bool,
 }
 
 impl Packet {
+    pub(crate) fn new_oob() -> Self {
+        Packet {
+            out_of_band: true,
+            ..Default::default()
+        }
+    }
+
     pub fn try_parse(data: &mut BytesMut) -> Option<Self> {
         if data.is_empty() {
             return None;
         }
 
         let header = data[0];
-        let oob = (header & 0b0011_0000) != 0;
+        let oob = (header & 0b0011_0000) == 0b0011_0000;
 
         let (packet_len, mut offset) = if oob {
             (usize::from(header & 0b0000_1111), 1)
@@ -103,6 +110,7 @@ impl Packet {
                 0
             },
             payload: if packet_len == 0 {
+                let _header = data.split_to(offset);
                 None
             } else {
                 let _header = data.split_to(offset);
