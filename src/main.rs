@@ -15,6 +15,9 @@ extern crate log;
 extern crate num_derive;
 extern crate num_traits;
 
+#[macro_use]
+pub mod macros;
+
 pub mod codec;
 pub mod packet;
 pub mod entity;
@@ -24,11 +27,12 @@ pub mod players;
 pub mod com;
 pub mod io;
 
+
 #[tokio::main]
 async fn main() {
     init_logger(
         env!("CARGO_PKG_NAME"),
-        None
+        Some(LevelFilter::Debug)
     ).unwrap();
     info!("Logger init");
     let mut connection = Connection::connect("Anonymous", "Password").await.unwrap();
@@ -37,9 +41,9 @@ async fn main() {
 
     for _ in 0..100 {
         sleep(Duration::from_millis(100));
-        connection.send(Packet::default()).await.unwrap();
-        connection.send(Packet::new_oob()).await.unwrap();
-        connection.flush().await.unwrap();
+        //connection.send(Packet::default()).await.unwrap();
+        //connection.send(Packet::new_oob()).await.unwrap();
+        //connection.flush().await.unwrap();
 
         let packet = connection.receive().await;
         println!("{:?}", packet);

@@ -1,3 +1,6 @@
+#[macro_use]
+pub mod macros;
+
 pub mod codec;
 pub mod com;
 pub mod crypt;

@@ -118,11 +118,7 @@ impl TryFrom<&Packet> for Universe {
             default_privileges: Privileges::from_u8(reader.read_u8()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             avatar: Vec::default(),
-            teams: {
-                let mut vec = Vec::with_capacity(DEFAULT_TEAMS);
-                (0..DEFAULT_TEAMS).for_each(|_| vec.push(None));
-                vec
-            },
+            teams: vec_of_none!(DEFAULT_TEAMS),
         })
     }
 }

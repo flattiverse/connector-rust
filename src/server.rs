@@ -2,6 +2,8 @@ use crate::entity::command_id;
 use crate::entity::Universe;
 use crate::packet::Packet;
 use crate::players::Team;
+#[macro_use]
+use crate::macros::*;
 use backtrace::Backtrace;
 use std::convert::TryFrom;
 use std::error::Error;
@@ -17,17 +19,19 @@ pub struct Server {
 impl Server {
     pub fn new() -> Self {
         Self {
-            universes: {
-                let mut vec = Vec::with_capacity(DEFAULT_UNIVERSES);
-                (0..DEFAULT_UNIVERSES).for_each(|_| vec.push(None));
-                vec
-            },
+            universes: vec_of_none!(DEFAULT_UNIVERSES),
         }
     }
 
     pub(crate) fn update(&mut self, packet: &Packet) -> Result<(), UpdateError> {
         match packet.command {
-            command_id::S2C_LOGIN_COMPLETED => info!("Login completed"),
+            command_id::S2C_LOGIN_COMPLETED => {
+                info!("Login completed");
+                self.universes
+                    .iter()
+                    .flat_map(|u| u.as_ref())
+                    .for_each(|u| info!("Universe: {:#?}", u));
+            }
             command_id::S2C_UNIVERSE_META_INFO_UPDATED => self.update_universe(packet)?,
             command_id::S2C_UNIVERSE_TEAM_META_INFO_UPDATE => self.update_universe_team(packet)?,
             command => warn!("Unknown command: {}", command),
@@ -41,17 +45,9 @@ impl Server {
             packet.base_address,
             packet.payload.is_none()
         );
-        let universe = if packet.payload.is_some() {
-            Some(Universe::try_from(packet)?)
-        } else {
-            None
-        };
+        let universe = map_payload_with_try_from!(packet, Universe);
         debug!("Received universe {:#?}", universe);
-        if self.universes.len() < usize::from(packet.base_address) {
-            let diff = usize::from(packet.base_address) - self.universes.len();
-            self.universes.reserve(diff);
-            (0..diff).for_each(|_| self.universes.push(None));
-        }
+        expand_vec_of_none_if_necessary!(self.universes, usize::from(packet.base_address));
         self.universes[usize::from(packet.base_address)] = universe;
         Ok(())
     }
@@ -66,11 +62,8 @@ impl Server {
         let universe = self.universes[usize::from(packet.base_address)]
             .as_mut()
             .unwrap();
-        let team = if packet.payload.is_some() {
-            Some(Team::try_from(packet)?)
-        } else {
-            None
-        };
+        let team = map_payload_with_try_from!(packet, Team);
+        expand_vec_of_none_if_necessary!(universe.teams, usize::from(packet.sub_address));
         universe.teams[usize::from(packet.sub_address)] = team;
         Ok(())
     }
