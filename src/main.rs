@@ -7,8 +7,13 @@ use log4rs::config::{Config, Appender, Logger, Root};
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate num_derive;
+extern crate num_traits;
+
 pub mod codec;
 pub mod packet;
+pub mod entity;
 pub mod crypt;
 pub mod com;
 pub mod io;

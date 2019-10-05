@@ -5,12 +5,12 @@ use crate::io::BinaryReader;
 
 #[derive(Default, Debug)]
 pub struct Packet {
-    command: u8,
-    session: u8,
-    id: u32,
-    helper: u8,
-    base_address: u16,
-    sub_address: u8,
+    pub(crate) command: u8,
+    pub(crate) session: u8,
+    pub(crate) id: u32,
+    pub(crate) helper: u8,
+    pub(crate) base_address: u16,
+    pub(crate) sub_address: u8,
     pub(crate) payload: Option<Bytes>,
     pub(crate) out_of_band: bool,
 }

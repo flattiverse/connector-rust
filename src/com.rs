@@ -12,8 +12,10 @@ use tokio::prelude::*;
 use crate::codec::Flattiverse;
 use crate::crypt::{Aes128Cbc, to_blocks};
 use crate::packet::Packet;
+use crate::entity::Universe;
 
 pub struct Connection {
+    version: u16,
     sink: SplitSink<Framed<TcpStream, Flattiverse>, Packet>,
     stream: SplitStream<Framed<TcpStream, Flattiverse>>,
 }
@@ -24,7 +26,7 @@ impl Connection {
         let mut packet_data = [0u8; 64];
 
         let user_hash = crate::crypt::sha256(&user.to_lowercase());
-        println!("{} {:x?}", user_hash.len(), user_hash);
+        debug!("user hash: {} {:x?}", user_hash.len(), user_hash);
 
         (&mut packet_data[0..16]).copy_from_slice(&iv);
         for i in 0..32 {
@@ -33,7 +35,7 @@ impl Connection {
 
         let connect = TcpStream::connect("galaxy.flattiverse.com:80");
         let password_hash = crate::crypt::hash_password(user, password);
-        println!("pass: {:x?}", password_hash);
+        debug!("pass hash: {:x?}", password_hash);
 
 
         let mut stream = connect.await?;
@@ -43,8 +45,8 @@ impl Connection {
 
 
         let (server_iv, data) = (&packet_data[..48]).split_at(16);
-        println!("{} {:x?}", server_iv.len(), &server_iv[..]);
-        println!("{} {:x?}", data.len(), &data[..]);
+        debug!("server iv: {} {:x?}", server_iv.len(), &server_iv[..]);
+        debug!(" local iv: {} {:x?}", data.len(), &data[..]);
 
         let mut send = Aes128Cbc::new_var(&password_hash[..], &iv[..]).unwrap();
         let mut recv = Aes128Cbc::new_var(&password_hash[..], &server_iv[..]).unwrap();
@@ -58,12 +60,14 @@ impl Connection {
         send.encrypt_blocks(to_blocks(&mut packet_data[16..32]));
         stream.write_all(&packet_data[16..32]).await?;
         stream.read_exact(&mut packet_data[..16]).await.expect("Wrong password");
+        info!("Connected to flattiverse server");
 
         let version = u16::from(packet_data[14]) + u16::from(packet_data[15]) * 256;
-        println!("Flattiverse version: {}", version);
 
         if version != 1 {
-            panic!("Invalid protocol version");
+            panic!("Invalid protocol version: {}", version);
+        } else {
+            info!("Using protocol version {}", version);
         }
 
         let protocol = Flattiverse::new(send, recv);
@@ -75,12 +79,21 @@ impl Connection {
             framed.send(Packet::default()).await.unwrap();
             framed.send(Packet::new_oob()).await.unwrap();
             framed.flush().await.unwrap();
-            println!("{:?}", framed.next().await);
+
+            let packet = framed.next().await;
+            println!("{:?}", packet);
+            if let Some(Ok(packet)) = packet {
+                use std::convert::TryFrom;
+                if packet.command == crate::entity::command_id::S2C_UNIVERSE_META_INFO_UPDATED {
+                    println!("{:#?}", Universe::try_from(&packet));
+                }
+            }
         }
 
         let (sink, stream) = framed.split();
 
         Ok(Self {
+            version,
             sink,
             stream
         })
