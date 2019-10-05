@@ -7,8 +7,10 @@ use tokio::codec::Encoder;
 
 use crate::crypt::{to_blocks, Aes128Cbc, AES128CBC_BLOCK_BYTE_LENGTH};
 use crate::packet::Packet;
+use byteorder::LittleEndian;
 
 const BLOCK_LENGTH: usize = AES128CBC_BLOCK_BYTE_LENGTH;
+type FlattiverseEndian = LittleEndian;
 
 pub struct Flattiverse {
     send: Aes128Cbc,

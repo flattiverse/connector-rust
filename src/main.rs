@@ -11,6 +11,7 @@ pub mod codec;
 pub mod packet;
 pub mod crypt;
 pub mod com;
+pub mod io;
 
 #[tokio::main]
 async fn main() {
