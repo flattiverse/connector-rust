@@ -1,6 +1,4 @@
 use std::io::Error;
-use std::thread::sleep;
-use std::time::Duration;
 
 use block_modes::BlockMode;
 use futures_util::stream::SplitSink;
@@ -12,7 +10,6 @@ use tokio::prelude::*;
 use crate::codec::Flattiverse;
 use crate::crypt::{Aes128Cbc, to_blocks};
 use crate::packet::Packet;
-use crate::entity::Universe;
 
 pub struct Connection {
     version: u16,

@@ -20,6 +20,7 @@ pub mod packet;
 pub mod entity;
 pub mod server;
 pub mod crypt;
+pub mod players;
 pub mod com;
 pub mod io;
 

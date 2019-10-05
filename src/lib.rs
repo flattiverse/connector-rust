@@ -4,6 +4,7 @@ pub mod crypt;
 pub mod entity;
 pub mod io;
 pub mod packet;
+pub mod players;
 pub mod server;
 
 pub extern crate futures_util;

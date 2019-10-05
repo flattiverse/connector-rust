@@ -23,6 +23,10 @@ impl Packet {
         }
     }
 
+    pub fn payload(&self) -> &[u8] {
+        self.payload.as_ref().map(|v| &v[..]).unwrap_or(&[][..])
+    }
+
     pub fn try_parse(data: &mut BytesMut) -> Option<Self> {
         if data.is_empty() {
             return None;

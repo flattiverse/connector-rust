@@ -8,21 +8,25 @@ use num_traits::FromPrimitive;
 
 use crate::io::BinaryReader;
 use crate::packet::Packet;
+use crate::players::Team;
+
+const DEFAULT_TEAMS: usize = 16;
 
 #[derive(Debug)]
 pub struct Universe {
-    id: u16,
-    name: String,
-    description: String,
-    difficulty: Difficulty,
-    mode: UniverseMode,
-    owner_id: u32,
-    max_players: u16,
-    max_ships_per_player: u8,
-    max_ships_per_team: u16,
-    status: Status,
-    default_privileges: Privileges,
-    avatar: Vec<u8>,
+    pub(crate) id: u16,
+    pub(crate) name: String,
+    pub(crate) description: String,
+    pub(crate) difficulty: Difficulty,
+    pub(crate) mode: UniverseMode,
+    pub(crate) owner_id: u32,
+    pub(crate) max_players: u16,
+    pub(crate) max_ships_per_player: u8,
+    pub(crate) max_ships_per_team: u16,
+    pub(crate) status: Status,
+    pub(crate) default_privileges: Privileges,
+    pub(crate) avatar: Vec<u8>,
+    pub(crate) teams: Vec<Option<Team>>,
 }
 
 impl Universe {
@@ -81,15 +85,21 @@ pub(crate) mod command_id {
     /// Issued whenever a universe definition has been created, updated or when a
     /// universe has been deleted.
     ///
-    /// data: nothing for a deleted universe, universe-data for a updated or new universe
+    /// data: nothing for a deleted universe, universe-data for an updated or new universe
     pub(crate) const S2C_UNIVERSE_META_INFO_UPDATED: u8 = 0x10;
+
+    /// Issued whenever a team definition has been created, updated or when a team has
+    /// been deleted.
+    ///
+    /// data: nothing for a deleted team, team-data for an updated or newly created team
+    pub(crate) const S2C_UNIVERSE_TEAM_META_INFO_UPDATE: u8 = 0x11;
 }
 
 impl TryFrom<&Packet> for Universe {
     type Error = IoError;
 
     fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
-        let reader = &mut &packet.payload.as_ref().unwrap()[..] as &mut dyn BinaryReader;
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
 
         Ok(Universe {
             id: packet.base_address,
@@ -108,6 +118,11 @@ impl TryFrom<&Packet> for Universe {
             default_privileges: Privileges::from_u8(reader.read_u8()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             avatar: Vec::default(),
+            teams: {
+                let mut vec = Vec::with_capacity(DEFAULT_TEAMS);
+                (0..DEFAULT_TEAMS).for_each(|_| vec.push(None));
+                vec
+            },
         })
     }
 }
