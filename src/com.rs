@@ -71,25 +71,7 @@ impl Connection {
         }
 
         let protocol = Flattiverse::new(send, recv);
-        let mut framed = Framed::new(stream, protocol);
-
-
-        for _ in 0..100 {
-            sleep(Duration::from_millis(100));
-            framed.send(Packet::default()).await.unwrap();
-            framed.send(Packet::new_oob()).await.unwrap();
-            framed.flush().await.unwrap();
-
-            let packet = framed.next().await;
-            println!("{:?}", packet);
-            if let Some(Ok(packet)) = packet {
-                use std::convert::TryFrom;
-                if packet.command == crate::entity::command_id::S2C_UNIVERSE_META_INFO_UPDATED {
-                    println!("{:#?}", Universe::try_from(&packet));
-                }
-            }
-        }
-
+        let framed = Framed::new(stream, protocol);
         let (sink, stream) = framed.split();
 
         Ok(Self {

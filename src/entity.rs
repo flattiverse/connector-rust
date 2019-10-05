@@ -15,7 +15,7 @@ pub struct Universe {
     name: String,
     description: String,
     difficulty: Difficulty,
-    mode: Mode,
+    mode: UniverseMode,
     owner_id: u32,
     max_players: u16,
     max_ships_per_player: u8,
@@ -25,8 +25,60 @@ pub struct Universe {
     avatar: Vec<u8>,
 }
 
+impl Universe {
+    pub fn id(&self) -> u16 {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn difficulty(&self) -> Difficulty {
+        self.difficulty
+    }
+
+    pub fn mode(&self) -> UniverseMode {
+        self.mode
+    }
+
+    pub fn owner_iod(&self) -> u32 {
+        self.owner_id
+    }
+
+    pub fn max_players(&self) -> u16 {
+        self.max_players
+    }
+
+    pub fn max_ships_per_player(&self) -> u8 {
+        self.max_ships_per_player
+    }
+
+    pub fn max_ships_per_team(&self) -> u16 {
+        self.max_ships_per_team
+    }
+
+    pub fn status(&self) -> Status {
+        self.status
+    }
+
+    pub fn default_privileges(&self) -> Privileges {
+        self.default_privileges
+    }
+}
+
 pub(crate) mod command_id {
-    /// Issued, whenever a universe definition has been created, updated or when a
+    /// Issued after the login has completed. This marks also that the client
+    /// has received all necessary information about `Universe`s and thereof.
+    ///
+    /// data: none
+    pub(crate) const S2C_LOGIN_COMPLETED: u8 = 0x0F;
+
+    /// Issued whenever a universe definition has been created, updated or when a
     /// universe has been deleted.
     ///
     /// data: nothing for a deleted universe, universe-data for a updated or new universe
@@ -37,10 +89,6 @@ impl TryFrom<&Packet> for Universe {
     type Error = IoError;
 
     fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
-        if packet.command != command_id::S2C_UNIVERSE_META_INFO_UPDATED {
-            panic!("Invalid command")
-        }
-
         let reader = &mut &packet.payload.as_ref().unwrap()[..] as &mut dyn BinaryReader;
 
         Ok(Universe {
@@ -49,7 +97,7 @@ impl TryFrom<&Packet> for Universe {
             description: reader.read_string()?,
             difficulty: Difficulty::from_u8(reader.read_u8()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
-            mode: Mode::from_u8(reader.read_u8()?)
+            mode: UniverseMode::from_u8(reader.read_u8()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             owner_id: reader.read_u32()?,
             max_players: reader.read_u16()?,
@@ -65,7 +113,7 @@ impl TryFrom<&Packet> for Universe {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, Copy, Clone)]
 pub enum Difficulty {
     Easy = 0,
     Medium = 1,
@@ -74,15 +122,15 @@ pub enum Difficulty {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
-pub enum Mode {
+#[derive(Debug, FromPrimitive, Copy, Clone)]
+pub enum UniverseMode {
     Mission = 0,
     ShootTheFlag = 1,
     Domination = 2,
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, Copy, Clone)]
 pub enum Status {
     Online = 0,
     Offline = 1,
@@ -90,7 +138,7 @@ pub enum Status {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, Copy, Clone)]
 pub enum Privileges {
     Join = 1,
     ManageUnits = 2,
