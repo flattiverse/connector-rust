@@ -2,7 +2,7 @@ use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Config, Appender, Logger, Root};
-use crate::server::Server;
+use crate::state::State;
 use std::thread::sleep;
 use std::time::Duration;
 use crate::packet::Packet;
@@ -21,7 +21,7 @@ pub mod macros;
 pub mod codec;
 pub mod packet;
 pub mod entity;
-pub mod server;
+pub mod state;
 pub mod crypt;
 pub mod players;
 pub mod com;
@@ -36,7 +36,7 @@ async fn main() {
     ).unwrap();
     info!("Logger init");
     let mut connection = Connection::connect("Anonymous", "Password").await.unwrap();
-    let mut server = Server::new();
+    let mut state = State::new();
 
 
     for _ in 0..100 {
@@ -48,7 +48,7 @@ async fn main() {
         let packet = connection.receive().await;
         println!("{:?}", packet);
         if let Some(Ok(packet)) = packet {
-            server.update(&packet).unwrap();
+            state.update(&packet).unwrap();
         }
     }
 

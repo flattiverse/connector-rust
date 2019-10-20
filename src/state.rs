@@ -12,11 +12,11 @@ use std::io::Error as IoError;
 
 const DEFAULT_UNIVERSES: usize = 16;
 
-pub struct Server {
+pub struct State {
     universes: Vec<Option<Universe>>,
 }
 
-impl Server {
+impl State {
     pub fn new() -> Self {
         Self {
             universes: vec_of_none!(DEFAULT_UNIVERSES),
