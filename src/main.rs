@@ -52,6 +52,13 @@ async fn main() {
         }
     }
 
+    /*
+                self.universes
+                    .iter()
+                    .flat_map(|u| u.as_ref())
+                    .for_each(|u| info!("Universe: {:#?}", u));
+                    */
+
 
     println!("async");
 }

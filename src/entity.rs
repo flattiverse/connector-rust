@@ -76,11 +76,33 @@ impl Universe {
 }
 
 pub(crate) mod command_id {
+
+    /// Issued to inform the connector to forget a certain player
+    ///
+    /// data: base_address contains the player id
+    pub(crate) const S2C_PLAYER_REMOVED: u8 = 0x0A;
+
+    /// Issued to inform the connector about a new (== yet unknown) player
+    ///
+    /// data: base_address contains the player id, data contains the player data
+    pub(crate) const S2C_NEW_PLAYER: u8 = 0x0B;
+
+    /// Issued when a player (id) is moved. The old id won't be used for this
+    /// player anymore from this point onward.
+    ///
+    /// data: base_address contains the new position, data contains u16 with old position
+    pub(crate) const S2C_PLAYER_DEFRAGMENTED: u8 = 0x0C;
+
+    /// Issued regularly to update the ping value of a player
+    ///
+    /// data: new ping value
+    pub(crate) const S2C_PLAYER_PING_UPDATE: u8 = 0x0D;
+
     /// Issued after the login has completed. This marks also that the client
     /// has received all necessary information about `Universe`s and thereof.
     ///
     /// data: none
-    pub(crate) const S2C_LOGIN_COMPLETED: u8 = 0x0F;
+    pub(crate) const S2C_LOGIN_RESPONSE: u8 = 0x0F;
 
     /// Issued whenever a universe definition has been created, updated or when a
     /// universe has been deleted.

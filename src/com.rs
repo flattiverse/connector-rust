@@ -1,4 +1,5 @@
-use std::io::Error;
+use std::convert::TryFrom;
+use std::io::Error as IoError;
 
 use block_modes::BlockMode;
 use futures_util::stream::SplitSink;
@@ -9,6 +10,7 @@ use tokio::prelude::*;
 
 use crate::codec::Flattiverse;
 use crate::crypt::{Aes128Cbc, to_blocks};
+use crate::io::BinaryReader;
 use crate::packet::Packet;
 
 pub struct Connection {
@@ -18,7 +20,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn connect(user: &str, password: &str) -> Result<Connection, Error> {
+    pub async fn connect(user: &str, password: &str) -> Result<Connection, IoError> {
         let iv = Self::random_init_vector();
         let mut packet_data = [0u8; 64];
 
@@ -78,34 +80,23 @@ impl Connection {
         })
     }
 
-    pub async fn send(&mut self, packet: Packet) -> Result<(), Error> {
+    pub async fn send(&mut self, packet: Packet) -> Result<(), IoError> {
         self.sink.send(packet).await
     }
 
-    pub async fn flush(&mut self) -> Result<(), Error> {
+    pub async fn flush(&mut self) -> Result<(), IoError> {
         self.send(Packet::new_oob()).await
     }
 
-    pub async fn receive(&mut self) -> Option<Result<Packet, Error>> {
+    pub async fn receive(&mut self) -> Option<Result<Packet, IoError>> {
         self.stream.next().await
     }
 
-    pub fn split(self) -> (impl Sink<Packet>, impl Stream<Item = Result<Packet, Error>>) {
+    pub fn split(self) -> (impl Sink<Packet>, impl Stream<Item = Result<Packet, IoError>>) {
         (self.sink, self.stream)
     }
 
     fn random_init_vector() -> [u8; 16] {
         rand::random()
     }
-}
-
-#[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
-pub enum RefuseReason {
-    NotRefused = 0,
-    AlreadyOnline = 1,
-    Pending = 2,
-    OptIn = 3,
-    Banned = 4,
-    ServerFull = 5,
 }
