@@ -98,3 +98,14 @@ impl Connection {
         rand::random()
     }
 }
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive, Copy, Clone)]
+pub enum RefuseReason {
+    NotRefused = 0,
+    AlreadyOnline = 1,
+    Pending = 2,
+    OptIn = 3,
+    Banned = 4,
+    ServerFull = 5,
+}

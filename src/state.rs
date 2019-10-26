@@ -4,6 +4,8 @@ use crate::packet::Packet;
 use crate::players::Team;
 #[macro_use]
 use crate::macros::*;
+use crate::com::RefuseReason;
+use crate::num_traits::FromPrimitive;
 use backtrace::Backtrace;
 use std::convert::TryFrom;
 use std::error::Error;
@@ -26,7 +28,11 @@ impl State {
     pub(crate) fn update(&mut self, packet: &Packet) -> Result<(), UpdateError> {
         match packet.command {
             command_id::S2C_LOGIN_COMPLETED => {
-                info!("Login completed");
+                if packet.helper != 0u8 {
+                    return Err(UpdateError::LoginRefused(
+                        RefuseReason::from_u8(packet.helper).expect("Failed to parse RefuseReason"),
+                    ));
+                }
                 self.universes
                     .iter()
                     .flat_map(|u| u.as_ref())
@@ -71,6 +77,7 @@ impl State {
 
 #[derive(Debug)]
 pub enum UpdateError {
+    LoginRefused(RefuseReason),
     IoError(Backtrace, IoError),
 }
 
@@ -79,6 +86,9 @@ impl Error for UpdateError {}
 impl Display for UpdateError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
+            UpdateError::LoginRefused(reason) => {
+                write!(f, "Login refused with reason: {:?}", reason)
+            }
             UpdateError::IoError(_bt, e) => write!(f, "Internal IoError: {}", e),
         }
     }
