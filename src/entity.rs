@@ -105,17 +105,17 @@ impl TryFrom<&Packet> for Universe {
             id: packet.base_address,
             name: reader.read_string()?,
             description: reader.read_string()?,
-            difficulty: Difficulty::from_u8(reader.read_u8()?)
+            difficulty: Difficulty::from_u8(reader.read_byte()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
-            mode: UniverseMode::from_u8(reader.read_u8()?)
+            mode: UniverseMode::from_u8(reader.read_byte()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             owner_id: reader.read_u32()?,
             max_players: reader.read_u16()?,
-            max_ships_per_player: reader.read_u8()?,
+            max_ships_per_player: reader.read_byte()?,
             max_ships_per_team: reader.read_u16()?,
-            status: Status::from_u8(reader.read_u8()?)
+            status: Status::from_u8(reader.read_byte()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
-            default_privileges: Privileges::from_u8(reader.read_u8()?)
+            default_privileges: Privileges::from_u8(reader.read_byte()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             avatar: Vec::default(),
             teams: vec_of_none!(DEFAULT_TEAMS),
@@ -151,6 +151,7 @@ pub enum Status {
 #[repr(u8)]
 #[derive(Debug, FromPrimitive, Copy, Clone)]
 pub enum Privileges {
+    Nothing = 0,
     Join = 1,
     ManageUnits = 2,
     ManageRegions = 4,

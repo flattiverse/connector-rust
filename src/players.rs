@@ -15,9 +15,9 @@ pub struct Team {
 impl Team {
     pub(crate) fn update(&mut self, reader: &mut dyn BinaryReader) -> Result<(), IoError> {
         self.name = reader.read_string()?;
-        self.color_r = reader.read_single()?;
-        self.color_g = reader.read_single()?;
-        self.color_b = reader.read_single()?;
+        self.color_r = f32::from(reader.read_byte()?) / 255_f32;
+        self.color_g = f32::from(reader.read_byte()?) / 255_f32;
+        self.color_b = f32::from(reader.read_byte()?) / 255_f32;
         Ok(())
     }
 }

@@ -35,7 +35,7 @@ async fn main() {
         Some(LevelFilter::Debug)
     ).unwrap();
     info!("Logger init");
-    let mut connection = Connection::connect("Anonymous", "Password").await.unwrap();
+    let mut connection = Connection::connect("Player1", "Password").await.unwrap();
     let mut state = State::new();
 
 
@@ -48,7 +48,7 @@ async fn main() {
         let packet = connection.receive().await;
         println!("{:?}", packet);
         if let Some(Ok(packet)) = packet {
-            state.update(&packet).unwrap();
+            state.update(&packet).expect("Update failed");
         }
     }
 

@@ -61,7 +61,7 @@ impl State {
         );
         let universe = self.universes[usize::from(packet.base_address)]
             .as_mut()
-            .unwrap();
+            .expect("Failed to update universe because unknown for given base_address");
         let team = map_payload_with_try_from!(packet, Team);
         expand_vec_of_none_if_necessary!(universe.teams, usize::from(packet.sub_address));
         universe.teams[usize::from(packet.sub_address)] = team;
