@@ -1,7 +1,41 @@
-use crate::io::BinaryReader;
-use crate::packet::Packet;
 use std::convert::TryFrom;
 use std::io::Error as IoError;
+
+use crate::io::BinaryReader;
+use crate::packet::Packet;
+
+#[derive(Debug, Clone)]
+pub struct Player {
+    id: i32,
+    name: String,
+    online: bool,
+    ping: f32,
+    account: u32,
+}
+
+impl Player {
+    pub(crate) fn update_ping(&mut self, packet: &Packet) -> Result<(), IoError> {
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+        self.ping = reader.read_single()?;
+        Ok(())
+    }
+}
+
+impl TryFrom<&Packet> for Player {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+
+        Ok(Player {
+            id: i32::from(packet.base_address),
+            account: packet.id,
+            name: reader.read_string()?,
+            online: reader.read_bool()?,
+            ping: reader.read_single()?,
+        })
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct Team {

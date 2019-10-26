@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::io::Error as IoError;
 
 use block_modes::BlockMode;
@@ -10,7 +9,6 @@ use tokio::prelude::*;
 
 use crate::codec::Flattiverse;
 use crate::crypt::{Aes128Cbc, to_blocks};
-use crate::io::BinaryReader;
 use crate::packet::Packet;
 
 pub struct Connection {

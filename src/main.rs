@@ -5,7 +5,6 @@ use log4rs::config::{Config, Appender, Logger, Root};
 use crate::state::State;
 use std::thread::sleep;
 use std::time::Duration;
-use crate::packet::Packet;
 use crate::com::Connection;
 
 #[macro_use]

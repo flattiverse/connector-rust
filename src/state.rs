@@ -1,19 +1,16 @@
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::Display;
 use std::io::Error as IoError;
+use std::mem::replace;
 
 use backtrace::Backtrace;
 
 use crate::entity::command_id;
 use crate::entity::Universe;
 use crate::io::BinaryReader;
-#[macro_use]
-use crate::macros::*;
 use crate::num_traits::FromPrimitive;
 use crate::packet::Packet;
-use crate::players::Team;
-use std::mem::replace;
+use crate::players::{Player, Team};
 
 const DEFAULT_PLAYERS: usize = 16;
 const DEFAULT_UNIVERSES: usize = 16;
@@ -65,7 +62,7 @@ impl State {
         let player = map_payload_with_try_from!(packet, Player);
         debug!("Received player: {:#?}", player);
         self.players[usize::from(packet.base_address)] = player;
-        Ok((()))
+        Ok(())
     }
 
     fn player_defragmented(&mut self, packet: &Packet) -> Result<(), UpdateError> {
@@ -157,37 +154,4 @@ pub enum RefuseReason {
     OptIn = 3,
     Banned = 4,
     ServerFull = 5,
-}
-
-#[derive(Debug, Clone)]
-pub struct Player {
-    id: i32,
-    name: String,
-    online: bool,
-    ping: f32,
-    account: u32,
-}
-
-impl Player {
-    fn update_ping(&mut self, packet: &Packet) -> Result<(), IoError> {
-        let reader = &mut packet.payload() as &mut dyn BinaryReader;
-        self.ping = reader.read_single()?;
-        Ok(())
-    }
-}
-
-impl TryFrom<&Packet> for Player {
-    type Error = IoError;
-
-    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
-        let reader = &mut packet.payload() as &mut dyn BinaryReader;
-
-        Ok(Player {
-            id: i32::from(packet.base_address),
-            account: packet.id,
-            name: reader.read_string()?,
-            online: reader.read_bool()?,
-            ping: reader.read_single()?,
-        })
-    }
 }

@@ -2,8 +2,6 @@ use std::convert::TryFrom;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
 
-use byteorder::ReadBytesExt;
-
 use num_traits::FromPrimitive;
 
 use crate::io::BinaryReader;
