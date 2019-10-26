@@ -2,10 +2,12 @@ use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Config, Appender, Logger, Root};
-use crate::state::State;
+use crate::state::{State, Event};
 use std::thread::sleep;
 use std::time::Duration;
 use crate::com::Connection;
+use crate::entity::Universe;
+use crate::players::Team;
 
 #[macro_use]
 extern crate log;
@@ -38,18 +40,27 @@ async fn main() {
     let mut state = State::new();
 
 
-    for _ in 0..100 {
-        sleep(Duration::from_millis(100));
+    while let Some(Ok(packet)) = connection.receive().await {
+        if let Some(event) = state.update(&packet).expect("Update failed") {
+            match event {
+                Event::PlayerRemoved(_, _) => {},
+                Event::NewPlayer(_, _) => {},
+                Event::PlayerDefragmented(_, _, _) => {},
+                Event::PingUpdated(_, _) => {},
+                Event::LoginCompleted => info!("Login completed"),
+                Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
+                Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
+                Event::UniverseGalaxyMetaInfoUpdated() => {},
+            }
+        }
+    }
+
+    // for _ in 0..100 {
+        // sleep(Duration::from_millis(100));
         //connection.send(Packet::default()).await.unwrap();
         //connection.send(Packet::new_oob()).await.unwrap();
         //connection.flush().await.unwrap();
-
-        let packet = connection.receive().await;
-        println!("{:?}", packet);
-        if let Some(Ok(packet)) = packet {
-            state.update(&packet).expect("Update failed");
-        }
-    }
+    //}
 
     /*
                 self.universes
