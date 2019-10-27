@@ -71,9 +71,36 @@ impl Universe {
     pub fn default_privileges(&self) -> Privileges {
         self.default_privileges
     }
+
+    pub fn join(&self) -> Packet {
+        let mut packet = Packet::default();
+        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
+        packet.sub_address = 0xFE; // auto selection
+        packet
+    }
+
+    pub fn join_with_team(&self, team: u8) -> Packet {
+        let mut packet = Packet::default();
+        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
+        packet.sub_address = team;
+        packet
+    }
+
+    pub fn part(&self) -> Packet {
+        let mut packet = Packet::default();
+        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
+        packet.sub_address = 0xFF;
+        packet
+    }
 }
 
 pub(crate) mod command_id {
+    /// Issued if the client wants to join the universe or if
+    /// the client wants to part the universe
+    ///
+    /// data: base_address contains the universe id, helper contains the team_id,
+    ///       254 for team auto selection or 255 to part
+    pub(crate) const C2S_UNIVERSE_JOIN_PART: u8 = 0x1A;
 
     /// Issued to inform the connector to forget a certain player
     ///

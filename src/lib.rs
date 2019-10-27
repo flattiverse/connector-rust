@@ -8,6 +8,7 @@ pub mod entity;
 pub mod io;
 pub mod packet;
 pub mod players;
+pub mod requests;
 pub mod state;
 
 pub extern crate futures_util;

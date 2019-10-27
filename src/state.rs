@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::ffi::CString;
 use std::fmt::Display;
 use std::io::Error as IoError;
 use std::mem::replace;
@@ -27,6 +26,10 @@ impl State {
             players: vec_of_none!(DEFAULT_PLAYERS),
             universes: vec_of_none!(DEFAULT_UNIVERSES),
         }
+    }
+
+    pub fn universe(&self, index: usize) -> Option<&Universe> {
+        self.universes.get(index).and_then(Option::as_ref)
     }
 
     pub(crate) fn update(&mut self, packet: &Packet) -> Result<Option<Event>, UpdateError> {

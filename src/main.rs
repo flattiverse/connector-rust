@@ -8,6 +8,10 @@ use std::time::Duration;
 use crate::com::Connection;
 use crate::entity::Universe;
 use crate::players::Team;
+use crate::requests::Requests;
+use crate::packet::Packet;
+use tokio::sync::oneshot;
+use futures_util::FutureExt;
 
 #[macro_use]
 extern crate log;
@@ -26,6 +30,7 @@ pub mod state;
 pub mod crypt;
 pub mod players;
 pub mod com;
+pub mod requests;
 pub mod io;
 
 
@@ -39,6 +44,8 @@ async fn main() {
     let mut connection = Connection::connect("Player1", "Password").await.unwrap();
     let mut state = State::new();
 
+    let mut requests = Requests::new();
+
 
     while let Some(Ok(packet)) = connection.receive().await {
         if let Some(event) = state.update(&packet).expect("Update failed") {
@@ -47,7 +54,23 @@ async fn main() {
                 Event::NewPlayer(_, _) => {},
                 Event::PlayerDefragmented(_, _, _) => {},
                 Event::PingUpdated(_, _) => {},
-                Event::LoginCompleted => info!("Login completed"),
+                Event::LoginCompleted => {
+                    info!("Login completed");
+                    if let Some(universe) = state.universe(0) {
+                        let mut join_request = universe.join();
+                        let (sender, receiver) = oneshot::channel();
+                        if let Some(id) = requests.enqueue(sender) {
+                            join_request.session = id as u8;
+                            connection.send(join_request).await.expect("Failed to send join request");
+                            tokio::spawn(
+                                receiver.map(|packet| {
+                                    println!("Received join request response: {:?}", packet);
+
+                                })
+                            );
+                        }
+                    }
+                },
                 Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
                 Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
                 Event::UniverseGalaxyMetaInfoUpdated() => {},
