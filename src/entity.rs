@@ -74,33 +74,37 @@ impl Universe {
 
     pub fn join(&self) -> Packet {
         let mut packet = Packet::default();
-        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
+        packet.command = command_id::C2S_UNIVERSE_JOIN;
         packet.sub_address = 0xFE; // auto selection
         packet
     }
 
     pub fn join_with_team(&self, team: u8) -> Packet {
         let mut packet = Packet::default();
-        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
+        packet.command = command_id::C2S_UNIVERSE_JOIN;
+        packet.base_address = self.id;
         packet.sub_address = team;
         packet
     }
 
     pub fn part(&self) -> Packet {
         let mut packet = Packet::default();
-        packet.command = command_id::C2S_UNIVERSE_JOIN_PART;
-        packet.sub_address = 0xFF;
+        packet.command = command_id::C2S_UNIVERSE_PART;
+        packet.base_address = self.id;
         packet
     }
 }
 
 pub(crate) mod command_id {
-    /// Issued if the client wants to join the universe or if
-    /// the client wants to part the universe
+    /// Issued if the client wants to join the universe
     ///
-    /// data: base_address contains the universe id, helper contains the team_id,
-    ///       254 for team auto selection or 255 to part
-    pub(crate) const C2S_UNIVERSE_JOIN_PART: u8 = 0x1A;
+    /// data: base_address contains the universe id, sub_address contains the team_id
+    pub(crate) const C2S_UNIVERSE_JOIN: u8 = 0x1A;
+
+    /// Issued if the client wants to leave the universe
+    ///
+    /// data: base_address contains the universe id
+    pub(crate) const C2S_UNIVERSE_PART: u8 = 0x1A;
 
     /// Issued to inform the connector to forget a certain player
     ///
