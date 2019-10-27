@@ -19,6 +19,7 @@ pub struct Universe {
     pub(crate) mode: UniverseMode,
     pub(crate) owner_id: u32,
     pub(crate) max_players: u16,
+    pub(crate) max_players_per_team: u16,
     pub(crate) max_ships_per_player: u8,
     pub(crate) max_ships_per_team: u16,
     pub(crate) status: Status,
@@ -75,15 +76,15 @@ impl Universe {
     pub fn join(&self) -> Packet {
         let mut packet = Packet::default();
         packet.command = command_id::C2S_UNIVERSE_JOIN;
-        packet.sub_address = 0xFE; // auto selection
+        packet.sub_address = 0x00; // auto selection
         packet
     }
 
-    pub fn join_with_team(&self, team: u8) -> Packet {
+    pub fn join_with_team(&self, team_id: u8) -> Packet {
         let mut packet = Packet::default();
         packet.command = command_id::C2S_UNIVERSE_JOIN;
         packet.base_address = self.id;
-        packet.sub_address = team;
+        packet.sub_address = team_id;
         packet
     }
 
@@ -162,6 +163,7 @@ impl TryFrom<&Packet> for Universe {
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
             owner_id: reader.read_u32()?,
             max_players: reader.read_u16()?,
+            max_players_per_team: reader.read_u16()?,
             max_ships_per_player: reader.read_byte()?,
             max_ships_per_team: reader.read_u16()?,
             status: Status::from_u8(reader.read_byte()?)

@@ -79,8 +79,7 @@ impl Connection {
     }
 
     pub async fn send(&mut self, packet: Packet) -> Result<(), IoError> {
-        self.sink.send(packet).await?;
-        self.sink.flush().await
+        self.sink.send(packet).await
     }
 
     pub async fn flush(&mut self) -> Result<(), IoError> {

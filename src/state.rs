@@ -114,7 +114,7 @@ impl State {
 
     fn update_universe(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
         debug!(
-            "Going to update universe for {}, delete={}",
+            "Going to update universe at index {}, delete={}",
             packet.base_address,
             packet.payload.is_none()
         );
@@ -131,7 +131,7 @@ impl State {
 
     fn update_universe_team(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
         debug!(
-            "Going to update team {} for universe {}, delete={}",
+            "Going to update team {} for universe at index {}, delete={}",
             packet.sub_address,
             packet.base_address,
             packet.payload.is_some()

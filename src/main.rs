@@ -3,13 +3,10 @@ use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Config, Appender, Logger, Root};
 use crate::state::{State, Event};
-use std::thread::sleep;
-use std::time::Duration;
 use crate::com::Connection;
 use crate::entity::Universe;
 use crate::players::Team;
 use crate::requests::Requests;
-use crate::packet::Packet;
 use tokio::sync::oneshot;
 use futures_util::FutureExt;
 
@@ -41,39 +38,62 @@ async fn main() {
         Some(LevelFilter::Debug)
     ).unwrap();
     info!("Logger init");
-    let mut connection = Connection::connect("Player1", "Password").await.unwrap();
+    let mut connection = Connection::connect("Player2", "Password").await.unwrap();
     let mut state = State::new();
 
     let mut requests = Requests::new();
 
 
     while let Some(Ok(packet)) = connection.receive().await {
-        if let Some(event) = state.update(&packet).expect("Update failed") {
-            match event {
-                Event::PlayerRemoved(_, _) => {},
-                Event::NewPlayer(_, _) => {},
-                Event::PlayerDefragmented(_, _, _) => {},
-                Event::PingUpdated(_, _) => {},
-                Event::LoginCompleted => {
-                    info!("Login completed");
-                    if let Some(universe) = state.universe(0) {
-                        let mut join_request = universe.join();
-                        let (sender, receiver) = oneshot::channel();
-                        if let Some(id) = requests.enqueue(sender) {
-                            join_request.session = id as u8;
-                            connection.send(join_request).await.expect("Failed to send join request");
-                            tokio::spawn(
-                                receiver.map(|packet| {
-                                    println!("Received join request response: {:?}", packet);
-
-                                })
-                            );
+        debug!("Received packet with command 0x{:02x}", packet.command);
+        if let Some(packet) = requests.maybe_respond(packet) {
+            if let Some(event) = state.update(&packet).expect("Update failed") {
+                match event {
+                    Event::PlayerRemoved(_, _) => {},
+                    Event::NewPlayer(_, _) => {},
+                    Event::PlayerDefragmented(_, _, _) => {},
+                    Event::PingUpdated(_, _) => {},
+                    Event::LoginCompleted => {
+                        info!("Login completed");
+                        if let Some(universe) = state.universe(0) {
+                            let mut join_request = universe.join_with_team(1);
+                            let (sender, receiver) = oneshot::channel();
+                            if let Some(id) = requests.enqueue(sender) {
+                                join_request.session = id as u8;
+                                connection.send(join_request).await.expect("Failed to send join request");
+                                connection.flush().await.expect("Failed to flush");
+                                tokio::spawn(
+                                    receiver.map(|packet| {
+                                        println!("Received join request response: {:?}", packet);
+                                    })
+                                );
+                            } else {
+                                warn!("Enqueue for join request failed");
+                            }
+                            {
+                                let (part_sender, part_receiver) = oneshot::channel();
+                                if let Some(id) = requests.enqueue(part_sender) {
+                                    let mut part_request = universe.part();
+                                    part_request.session = id as u8;
+                                    connection.send(part_request).await.expect("Failed to send part request");
+                                    connection.flush().await.expect("Failed to flush");
+                                    tokio::spawn(
+                                        part_receiver.map(|packet| {
+                                            println!("Received part request response: {:?}", packet);
+                                        })
+                                    );
+                                } else {
+                                    warn!("Enqueue for part request failed")
+                                }
+                            }
+                        } else {
+                            eprintln!("No universe at given index");
                         }
-                    }
-                },
-                Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
-                Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
-                Event::UniverseGalaxyMetaInfoUpdated() => {},
+                    },
+                    Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
+                    Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
+                    Event::UniverseGalaxyMetaInfoUpdated() => {},
+                }
             }
         }
     }

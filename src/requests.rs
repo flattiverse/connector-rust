@@ -1,7 +1,4 @@
 use crate::packet::Packet;
-use std::cmp::min;
-use tokio::sync::oneshot::channel;
-use tokio::sync::oneshot::Receiver;
 use tokio::sync::oneshot::Sender;
 
 const MAX_IDS: usize = 254;
@@ -43,12 +40,17 @@ impl Requests {
 
     pub fn maybe_respond(&mut self, packet: Packet) -> Option<Packet> {
         if packet.command == 0xFF {
-            if let Some(Some(mut sender)) = self
+            let session = packet.session;
+            if let Some(Some(sender)) = self
                 .ids
-                .get_mut(usize::from(packet.base_address))
+                .get_mut(usize::from(session) - ID_OFFSET)
                 .map(Option::take)
             {
-                if let Err(packet) = sender.send(packet) {}
+                if let Err(packet) = sender.send(packet) {
+                    warn!("Failed to notify session: {}", packet.session);
+                } else {
+                    debug!("Notified session {}", session);
+                }
             }
             None
         } else {
