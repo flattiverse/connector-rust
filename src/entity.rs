@@ -74,6 +74,10 @@ impl Universe {
     }
 
     pub fn join(&self) -> Packet {
+        debug!(
+            "Issuing join request for universe[{}] '{}' and auto-select team",
+            self.id, self.name,
+        );
         let mut packet = Packet::default();
         packet.command = command_id::C2S_UNIVERSE_JOIN;
         packet.sub_address = 0x00; // auto selection
@@ -81,6 +85,17 @@ impl Universe {
     }
 
     pub fn join_with_team(&self, team_id: u8) -> Packet {
+        debug!(
+            "Issuing join request for universe[{}] '{}' on team[{}] '{}'",
+            self.id,
+            self.name,
+            team_id,
+            self.teams
+                .get(usize::from(team_id))
+                .and_then(Option::<Team>::as_ref)
+                .map(Team::name)
+                .unwrap_or("")
+        );
         let mut packet = Packet::default();
         packet.command = command_id::C2S_UNIVERSE_JOIN;
         packet.base_address = self.id;
@@ -89,6 +104,10 @@ impl Universe {
     }
 
     pub fn part(&self) -> Packet {
+        debug!(
+            "Issuing part request for universe[{}] '{}'",
+            self.id, self.name
+        );
         let mut packet = Packet::default();
         packet.command = command_id::C2S_UNIVERSE_PART;
         packet.base_address = self.id;
