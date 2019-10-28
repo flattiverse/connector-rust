@@ -179,6 +179,10 @@ impl Packet {
                 data.put_u16_le(self.base_address);
             }
 
+            if self.sub_address > 0 {
+                data.put_u8(self.sub_address);
+            }
+
             if self.id > 0 {
                 data.put_u32_le(self.id);
             }
