@@ -67,7 +67,16 @@ async fn main() {
                                 connection.flush().await.expect("Failed to flush");
                                 tokio::spawn(
                                     receiver.map(|packet| {
-                                        println!("Received join request response: {:?}", packet);
+                                        match packet {
+                                            Err(_) => error!("Receiver disconnected"),
+                                            Ok(Err(err)) => {
+                                                error!("   » {}", err.general());
+                                                error!("     {}", err.message());
+                                            },
+                                            Ok(Ok(p)) => {
+                                                println!("Received join request response: {:?}", p);
+                                            }
+                                        }
                                     })
                                 );
                             } else {
@@ -80,7 +89,16 @@ async fn main() {
                                     connection.flush().await.expect("Failed to flush");
                                     tokio::spawn(
                                         part_receiver.map(|packet| {
-                                            println!("Received part request response: {:?}", packet);
+                                            match packet {
+                                                Err(_) => error!("Receiver disconnected"),
+                                                Ok(Err(err)) => {
+                                                    error!("   » {}", err.general());
+                                                    error!("     {}", err.message());
+                                                },
+                                                Ok(Ok(p)) => {
+                                                    println!("Received join request response: {:?}", p);
+                                                }
+                                            }
                                         })
                                     );
                                 } else {
