@@ -1,21 +1,22 @@
-use log::{LevelFilter, SetLoggerError};
-use log4rs::append::console::ConsoleAppender;
-use log4rs::encode::pattern::PatternEncoder;
-use log4rs::config::{Config, Appender, Logger, Root};
-use crate::state::{State, Event};
-use crate::com::Connection;
-use crate::entity::Universe;
-use crate::players::Team;
-use crate::requests::Requests;
-use tokio::sync::oneshot;
-use futures_util::FutureExt;
-
 #[macro_use]
 extern crate log;
-
 #[macro_use]
 extern crate num_derive;
 extern crate num_traits;
+
+use futures_util::FutureExt;
+use log::{LevelFilter, SetLoggerError};
+use log4rs::append::console::ConsoleAppender;
+use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
+use tokio::sync::oneshot;
+
+use crate::com::Connection;
+use crate::entity::Universe;
+use crate::packet::Packet;
+use crate::players::Team;
+use crate::requests::Requests;
+use crate::state::{Event, State};
 
 #[macro_use]
 pub mod macros;
@@ -52,14 +53,16 @@ async fn main() {
                     Event::PlayerRemoved(_, _) => {},
                     Event::NewPlayer(_, _) => {},
                     Event::PlayerDefragmented(_, _, _) => {},
-                    Event::PingUpdated(_, _) => {},
                     Event::LoginCompleted => {
                         info!("Login completed");
-                        if let Some(universe) = state.universe(0) {
-                            let mut join_request = universe.join_with_team(1);
-                            let (sender, receiver) = oneshot::channel();
-                            if let Some(id) = requests.enqueue(sender) {
-                                join_request.session = id as u8;
+                        if let Some(universe) = state.universe(1) {
+                            let mut team_id = 0;
+                            for team in universe.teams.iter().filter_map(Option::<Team>::as_ref) {
+                                println!(" - Team {:?}", team);
+                                team_id = team.id();
+                            }
+                            let mut join_request = universe.join_with_team(team_id);
+                            if let Some(receiver) = requests.enqueue(&mut join_request) {
                                 connection.send(join_request).await.expect("Failed to send join request");
                                 connection.flush().await.expect("Failed to flush");
                                 tokio::spawn(
@@ -71,10 +74,8 @@ async fn main() {
                                 warn!("Enqueue for join request failed");
                             }
                             {
-                                let (part_sender, part_receiver) = oneshot::channel();
-                                if let Some(id) = requests.enqueue(part_sender) {
-                                    let mut part_request = universe.part();
-                                    part_request.session = id as u8;
+                                let mut part_request = universe.part();
+                                if let Some(part_receiver) = requests.enqueue(&mut part_request) {
                                     connection.send(part_request).await.expect("Failed to send part request");
                                     connection.flush().await.expect("Failed to flush");
                                     tokio::spawn(
@@ -90,6 +91,7 @@ async fn main() {
                             eprintln!("No universe at given index");
                         }
                     },
+                    Event::PingUpdated(_, _) => {},
                     Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
                     Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
                     Event::UniverseGalaxyMetaInfoUpdated() => {},
