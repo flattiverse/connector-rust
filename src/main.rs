@@ -9,11 +9,9 @@ use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
-use tokio::sync::oneshot;
 
 use crate::com::Connection;
 use crate::entity::Universe;
-use crate::packet::Packet;
 use crate::players::Team;
 use crate::requests::Requests;
 use crate::state::{Event, State};
@@ -40,8 +38,10 @@ async fn main() {
     ).unwrap();
     info!("Logger init");
     let mut connection = Connection::connect("Player2", "Password").await.unwrap();
-    let mut state = State::new();
 
+    info!("Connection, connection is using protocol version {}", connection.version());
+
+    let mut state = State::new();
     let mut requests = Requests::new();
 
 

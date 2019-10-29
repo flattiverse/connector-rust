@@ -78,6 +78,10 @@ impl Connection {
         })
     }
 
+    pub fn version(&self) -> u16 {
+        self.version
+    }
+
     pub async fn send(&mut self, packet: Packet) -> Result<(), IoError> {
         self.sink.send(packet).await
     }
