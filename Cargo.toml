@@ -1,6 +1,7 @@
 [package]
 description = "Connector library for the flattiverse.com game server."
 homepage = "https://www.flattiverse.com/"
+repository = "https://github.com/flattiverse/connector-rust.git"
 name = "flattiverse_connector"
 version = "0.0.0"
 authors = ["Michael Watzko <michael@watzko.de>"]
