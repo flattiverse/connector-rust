@@ -1,3 +1,4 @@
+use crate::entity::command_id::S2C_SESSION_EXCEPTION;
 use crate::io::BinaryReader;
 use crate::packet::Packet;
 use std::error::Error;
@@ -8,8 +9,11 @@ use tokio::sync::oneshot::{Receiver, Sender};
 const MAX_IDS: usize = 254;
 const ID_OFFSET: usize = 1;
 
+type ResultSender = Sender<Result<Packet, RequestError>>;
+type ResultReceiver = Receiver<Result<Packet, RequestError>>;
+
 pub struct Requests {
-    ids: Vec<Option<Sender<Result<Packet, RequestError>>>>,
+    ids: Vec<Option<ResultSender>>,
     last_index: usize,
 }
 
@@ -27,19 +31,12 @@ impl Requests {
         }
     }
 
-    pub fn enqueue(
-        &mut self,
-        packet: &mut Packet,
-    ) -> Option<Receiver<Result<Packet, RequestError>>> {
+    pub fn enqueue(&mut self, packet: &mut Packet) -> Option<ResultReceiver> {
         let (sender, receiver) = oneshot::channel();
         self.enqueue_with(packet, sender).map(|_| receiver)
     }
 
-    pub fn enqueue_with(
-        &mut self,
-        packet: &mut Packet,
-        sender: Sender<Result<Packet, RequestError>>,
-    ) -> Option<()> {
+    pub fn enqueue_with(&mut self, packet: &mut Packet, sender: ResultSender) -> Option<()> {
         let len = self.ids.len();
         for i in 0..len {
             let index = (i + self.last_index) % len;
@@ -53,43 +50,16 @@ impl Requests {
         None
     }
 
-    pub fn take(&mut self, id: usize) -> Option<Sender<Result<Packet, RequestError>>> {
-        if self.ids.len() < id {
-            self.ids[id].take()
-        } else {
-            None
-        }
-    }
-
     pub fn maybe_respond(&mut self, packet: Packet) -> Option<Packet> {
         if packet.session != 0 {
             let session = packet.session;
-            if let Some(Some(sender)) = self
-                .ids
-                .get_mut(usize::from(session) - ID_OFFSET)
-                .map(Option::take)
-            {
-                if packet.command == 0xFF {
+            if let Some(Some(sender)) = self.take(session) {
+                if packet.command == S2C_SESSION_EXCEPTION {
                     debug!(
                         "Server responded with error message for session {}",
                         session
                     );
-                    let error = match packet.helper {
-                        0x10_u8 => RequestError::JoinRefused(packet.sub_address),
-                        0x11_u8 => RequestError::PartRefused(packet.sub_address),
-                        0xFF_u8 => {
-                            let reader = &mut packet.payload() as &mut dyn BinaryReader;
-                            RequestError::ServerException(format!(
-                                "\
-                                 The server has caught a '{:?}' and forwarded this to you.\n\
-                                 The exception has the following message: \n\n {:?}\n\n\
-                                 The exception has the following stack trace: \n\n {:?}\n\n\
-                                 Please contact your teacher if you are in the Flattiverse course at the HS-Esslingen",
-                                reader.read_string(), reader.read_string(), reader.read_string()
-                            ))
-                        }
-                        code => RequestError::UnknownErrorCode(code, format!("{}", code)),
-                    };
+                    let error = Requests::parse_request_error(&packet);
                     if let Err(Err(err)) = sender.send(Err(error)) {
                         error!("   » {}", err.general());
                         error!("     {}", err.message());
@@ -103,6 +73,31 @@ impl Requests {
             None
         } else {
             Some(packet)
+        }
+    }
+
+    fn take(&mut self, session: u8) -> Option<Option<ResultSender>> {
+        self.ids
+            .get_mut(usize::from(session) - ID_OFFSET)
+            .map(Option::take)
+    }
+
+    fn parse_request_error(packet: &Packet) -> RequestError {
+        match packet.helper {
+            0x10_u8 => RequestError::JoinRefused(packet.sub_address),
+            0x11_u8 => RequestError::PartRefused(packet.sub_address),
+            0xFF_u8 => {
+                let reader = &mut packet.payload() as &mut dyn BinaryReader;
+                RequestError::ServerException(format!(
+                    "\
+                                 The server has caught a '{:?}' and forwarded this to you.\n\
+                                 The exception has the following message: \n\n {:?}\n\n\
+                                 The exception has the following stack trace: \n\n {:?}\n\n\
+                                 Please contact your teacher if you are in the Flattiverse course at the HS-Esslingen",
+                    reader.read_string(), reader.read_string(), reader.read_string()
+                ))
+            }
+            code => RequestError::UnknownErrorCode(code, format!("{}", code)),
         }
     }
 }

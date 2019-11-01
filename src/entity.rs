@@ -175,6 +175,12 @@ pub(crate) mod command_id {
     ///
     /// data: nothing for a deleted team, team-data for an updated or newly created team
     pub(crate) const S2C_UNIVERSE_TEAM_META_INFO_UPDATE: u8 = 0x11;
+
+    /// Issued whenever a session (request) experiences an error. Thus this command
+    /// can only be read when the session is not zero.
+    ///
+    /// data: helper contains the error type, further info is error specific
+    pub(crate) const S2C_SESSION_EXCEPTION: u8 = 0xFF;
 }
 
 impl TryFrom<&Packet> for Universe {

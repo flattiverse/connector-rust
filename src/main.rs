@@ -28,11 +28,12 @@ pub mod connector;
 
 #[tokio::main]
 async fn main() {
-    init_logger(env!("CARGO_PKG_NAME"), Some(LevelFilter::Debug)).unwrap();
+    init_logger(Some(LevelFilter::Debug)).unwrap();
     debug!("Logger init");
 
+    info!("Reaching out to the flattiverse...");
     let mut connector = Connector::login("Player1", "Password").await.unwrap();
-    info!("Successfully logged in");
+    info!("Successfully logged in!");
 
     info!("Available universes:");
     for universe in connector.universes() {
@@ -53,7 +54,7 @@ async fn main() {
     }
 }
 
-pub fn init_logger(package: &str, level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLoggerError> {
+pub fn init_logger(level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLoggerError> {
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
             "{h({d(%Y-%m-%d %H:%M:%S%.3f)}  {M:>30.30}:{L:>03}  {T:>25.25}  {l:>5}  {m})}{n}",
@@ -62,7 +63,7 @@ pub fn init_logger(package: &str, level: Option<LevelFilter>) -> Result<::log4rs
 
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .logger(Logger::builder().build(package, level.unwrap_or(LevelFilter::Info)))
+        .logger(Logger::builder().build( env!("CARGO_PKG_NAME"), level.unwrap_or(LevelFilter::Info)))
         .build(Root::builder().appender("stdout").build(LevelFilter::Info))
         .expect("Failed to create logger config");
 
