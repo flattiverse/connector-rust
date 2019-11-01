@@ -35,6 +35,10 @@ impl State {
         }
     }
 
+    pub fn universes(&self) -> impl Iterator<Item = &Universe> {
+        self.universes.iter().filter_map(Option::as_ref)
+    }
+
     pub fn universe(&self, index: usize) -> Option<&Universe> {
         self.universes.get(index).and_then(Option::as_ref)
     }

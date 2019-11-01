@@ -73,6 +73,14 @@ impl Universe {
         self.default_privileges
     }
 
+    pub fn avatar(&self) -> &[u8] {
+        &self.avatar
+    }
+
+    pub fn teams(&self) -> impl Iterator<Item = &Team> {
+        self.teams.iter().filter_map(Option::as_ref)
+    }
+
     #[must_use]
     pub fn join(&self) -> Packet {
         debug!(

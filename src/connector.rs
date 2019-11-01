@@ -18,6 +18,7 @@ use crate::com::Connection;
 use crate::packet::Packet;
 use crate::requests::{RequestError, Requests};
 use crate::state::{Event, State, UpdateError};
+use crate::entity::Universe;
 
 pub struct Connector {
     sender: Sender<Command>,
@@ -43,8 +44,8 @@ impl Connector {
         Err(UpdateError::from(IoError::from(ErrorKind::ConnectionAborted)))
     }
 
-    pub fn state(&self) -> &State {
-        &self.state
+    pub fn universes(&self) -> impl Iterator<Item = &Universe> {
+        self.state.universes()
     }
 
     pub async fn update_state<'a>(&'a mut self, timeout: Duration) -> Option<Result<Event<'a>, UpdateError>> {

@@ -70,8 +70,10 @@ impl Requests {
                 .map(Option::take)
             {
                 if packet.command == 0xFF {
-                    // error occured
-                    error!("Error occurred for session {}", session);
+                    debug!(
+                        "Server responded with error message for session {}",
+                        session
+                    );
                     let error = match packet.helper {
                         0x10_u8 => RequestError::JoinRefused(packet.sub_address),
                         0x11_u8 => RequestError::PartRefused(packet.sub_address),

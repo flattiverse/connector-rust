@@ -57,14 +57,14 @@ impl Connection {
         send.encrypt_blocks(to_blocks(&mut packet_data[16..32]));
         stream.write_all(&packet_data[16..32]).await?;
         stream.read_exact(&mut packet_data[..16]).await.expect("Wrong password");
-        info!("Connected to flattiverse server");
+        debug!("Connected to flattiverse server");
 
         let version = u16::from(packet_data[14]) + u16::from(packet_data[15]) * 256;
 
         if version != 1 {
             panic!("Invalid protocol version: {}", version);
         } else {
-            info!("Using protocol version {}", version);
+            debug!("Using protocol version {}", version);
         }
 
         let protocol = Flattiverse::new(send, recv);

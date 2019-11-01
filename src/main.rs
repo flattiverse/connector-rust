@@ -4,17 +4,12 @@ extern crate log;
 extern crate num_derive;
 extern crate num_traits;
 
-use futures_util::FutureExt;
 use log::{LevelFilter, SetLoggerError};
 use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
-use crate::com::Connection;
-use crate::entity::Universe;
-use crate::players::Team;
-use crate::requests::Requests;
-use crate::state::{Event, State};
+use crate::connector::Connector;
 
 #[macro_use]
 pub mod macros;
@@ -33,89 +28,27 @@ pub mod connector;
 
 #[tokio::main]
 async fn main() {
-    init_logger(
-        env!("CARGO_PKG_NAME"),
-        Some(LevelFilter::Debug)
-    ).unwrap();
-    info!("Logger init");
-    let mut connection = Connection::connect("Player2", "Password").await.unwrap();
+    init_logger(env!("CARGO_PKG_NAME"), Some(LevelFilter::Debug)).unwrap();
+    debug!("Logger init");
 
-    info!("Connection, connection is using protocol version {}", connection.version());
+    let mut connector = Connector::login("Player1", "Password").await.unwrap();
+    info!("Successfully logged in");
 
-    let mut state = State::new();
-    let mut requests = Requests::new();
+    info!("Available universes:");
+    for universe in connector.universes() {
+        info!("  - {}", universe.name());
 
+        info!("      Teams: ");
+        for team in universe.teams() {
+            info!("        » {}", team.name());
+        }
+    }
 
-    while let Some(Ok(packet)) = connection.receive().await {
-        debug!("Received packet with command 0x{:02x}", packet.command);
-        if let Some(packet) = requests.maybe_respond(packet) {
-            if let Some(event) = state.update(&packet).expect("Update failed") {
-                match event {
-                    Event::PlayerRemoved(_, _) => {},
-                    Event::NewPlayer(_, _) => {},
-                    Event::PlayerDefragmented(_, _, _) => {},
-                    Event::LoginCompleted => {
-                        info!("Login completed");
-                        if let Some(universe) = state.universe(1) {
-                            let mut team_id = 0;
-                            for team in universe.teams.iter().filter_map(Option::<Team>::as_ref) {
-                                println!(" - Team {:?}", team);
-                                team_id = team.id();
-                            }
-                            let mut join_request = universe.join_with_team(team_id);
-                            if let Some(receiver) = requests.enqueue(&mut join_request) {
-                                connection.send(join_request).await.expect("Failed to send join request");
-                                connection.flush().await.expect("Failed to flush");
-                                tokio::spawn(
-                                    receiver.map(|packet| {
-                                        match packet {
-                                            Err(_) => error!("Receiver disconnected"),
-                                            Ok(Err(err)) => {
-                                                error!("   » {}", err.general());
-                                                error!("     {}", err.message());
-                                            },
-                                            Ok(Ok(p)) => {
-                                                println!("Received join request response: {:?}", p);
-                                            }
-                                        }
-                                    })
-                                );
-                            } else {
-                                warn!("Enqueue for join request failed");
-                            }
-                            {
-                                let mut part_request = universe.part();
-                                if let Some(part_receiver) = requests.enqueue(&mut part_request) {
-                                    connection.send(part_request).await.expect("Failed to send part request");
-                                    connection.flush().await.expect("Failed to flush");
-                                    tokio::spawn(
-                                        part_receiver.map(|packet| {
-                                            match packet {
-                                                Err(_) => error!("Receiver disconnected"),
-                                                Ok(Err(err)) => {
-                                                    error!("   » {}", err.general());
-                                                    error!("     {}", err.message());
-                                                },
-                                                Ok(Ok(p)) => {
-                                                    println!("Received join request response: {:?}", p);
-                                                }
-                                            }
-                                        })
-                                    );
-                                } else {
-                                    warn!("Enqueue for part request failed")
-                                }
-                            }
-                        } else {
-                            eprintln!("No universe at given index");
-                        }
-                    },
-                    Event::PingUpdated(_, _) => {},
-                    Event::UniverseMetaInfoUpdated(index, universe) => info!("Updated universe at index {}: {:?}", index, universe.map(Universe::name)),
-                    Event::UniverseTeamMetaInfoUpdated(index, universe, index_team, team) => info!("Updated team at index {} in universe {} which itself is at index {}: {:?}", index_team, universe.name, index, team.map(Team::name)),
-                    Event::UniverseGalaxyMetaInfoUpdated() => {},
-                }
-            }
+    let request = connector.universes().skip(1).next().map(|u| u.join_with_team(0));
+    if let Some(request) = request {
+        match connector.send_request(request).await.await.expect("Connector disconnected") {
+            Ok(_) => info!("Joined successfully"),
+            Err(e) => error!("{}", e),
         }
     }
 }
