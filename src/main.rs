@@ -28,6 +28,7 @@ pub mod players;
 pub mod com;
 pub mod requests;
 pub mod io;
+pub mod connector;
 
 
 #[tokio::main]

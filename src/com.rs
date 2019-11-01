@@ -94,7 +94,7 @@ impl Connection {
         self.stream.next().await
     }
 
-    pub fn split(self) -> (impl Sink<Packet>, impl Stream<Item = Result<Packet, IoError>>) {
+    pub fn split(self) -> (impl Sink<Packet, Error = IoError>, impl Stream<Item = Result<Packet, IoError>>) {
         (self.sink, self.stream)
     }
 

@@ -10,7 +10,7 @@ use crate::players::Team;
 
 const DEFAULT_TEAMS: usize = 16;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Universe {
     pub(crate) id: u16,
     pub(crate) name: String,
@@ -73,6 +73,7 @@ impl Universe {
         self.default_privileges
     }
 
+    #[must_use]
     pub fn join(&self) -> Packet {
         debug!(
             "Issuing join request for universe[{}] '{}' and auto-select team",
@@ -84,6 +85,7 @@ impl Universe {
         packet
     }
 
+    #[must_use]
     pub fn join_with_team(&self, team_id: u8) -> Packet {
         debug!(
             "Issuing join request for universe[{}] '{}' on team[{}] '{}'",
@@ -103,6 +105,7 @@ impl Universe {
         packet
     }
 
+    #[must_use]
     pub fn part(&self) -> Packet {
         debug!(
             "Issuing part request for universe[{}] '{}'",

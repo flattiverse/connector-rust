@@ -13,6 +13,12 @@ pub struct Requests {
     last_index: usize,
 }
 
+impl Default for Requests {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Requests {
     pub fn new() -> Self {
         Self {
@@ -25,17 +31,23 @@ impl Requests {
         &mut self,
         packet: &mut Packet,
     ) -> Option<Receiver<Result<Packet, RequestError>>> {
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue_with(packet, sender).map(|_| receiver)
+    }
+
+    pub fn enqueue_with(
+        &mut self,
+        packet: &mut Packet,
+        sender: Sender<Result<Packet, RequestError>>,
+    ) -> Option<()> {
         let len = self.ids.len();
         for i in 0..len {
             let index = (i + self.last_index) % len;
             if self.ids[index].is_none() {
-                let (sender, receiver) = oneshot::channel();
-
                 self.ids[index] = Some(sender);
                 self.last_index = index + 1;
                 packet.session = (index + ID_OFFSET) as u8;
-
-                return Some(receiver);
+                return Some(());
             }
         }
         None

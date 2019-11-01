@@ -37,7 +37,7 @@ impl TryFrom<&Packet> for Player {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Team {
     id: u8,
     name: String,

@@ -15,9 +15,16 @@ use crate::players::{Player, Team};
 const DEFAULT_PLAYERS: usize = 16;
 const DEFAULT_UNIVERSES: usize = 16;
 
+#[derive(Clone)]
 pub struct State {
     players: Vec<Option<Player>>,
     universes: Vec<Option<Universe>>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl State {
