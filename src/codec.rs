@@ -55,6 +55,7 @@ impl Decoder for Flattiverse {
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let blocks = src.len() / BLOCK_LENGTH;
+        trace!("Bytes {}, Blocks {}", src.len(), blocks);
         if blocks > 0 {
             let len = blocks * BLOCK_LENGTH;
             self.recv.decrypt_blocks(to_blocks(&mut src[..len]));
@@ -62,12 +63,12 @@ impl Decoder for Flattiverse {
             self.recv_block.put_slice(&src[..len]);
             src.advance(len);
         }
-        Ok(Packet::try_parse(&mut self.recv_block).and_then(|p| {
-            if p.out_of_band {
-                None
-            } else {
-                Some(p)
+        trace!("Decrypted Bytes {}", &self.recv_block.len());
+        while let Some(packet) = Packet::try_parse(&mut self.recv_block) {
+            if !packet.out_of_band {
+                return Ok(Some(packet));
             }
-        }))
+        }
+        Ok(None)
     }
 }
