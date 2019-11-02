@@ -57,7 +57,7 @@ async fn main() {
         }
     }
 
-    let request = connector.universes().skip(1).next().map(|u| u.join_with_team(0));
+    let request = connector.universe(1).map(|u| u.join_with_team(0));
     if let Some(request) = request {
         match connector.send_request(request).await.await.expect("Connector disconnected") {
             Ok(_) => info!("Joined successfully"),
@@ -69,7 +69,7 @@ async fn main() {
         info!("Processed event: {:?}", event);
     }
 
-    let request = connector.universes().skip(1).next().map(|u| u.part());
+    let request = connector.universe(1).map(|u| u.part());
     if let Some(request) = request {
         match connector.send_request(request).await.await.expect("Connector disconnected") {
             Ok(_) => info!("Parted successfully"),
