@@ -65,6 +65,17 @@ async fn main() {
         }
     }
 
+    while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
+        info!("Processed event: {:?}", event);
+    }
+
+    let request = connector.universes().skip(1).next().map(|u| u.part());
+    if let Some(request) = request {
+        match connector.send_request(request).await.await.expect("Connector disconnected") {
+            Ok(_) => info!("Parted successfully"),
+            Err(e) => error!("{}", e)
+        }
+    }
 
     while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
         info!("Processed event: {:?}", event);
