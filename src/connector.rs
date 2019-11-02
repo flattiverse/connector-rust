@@ -20,6 +20,7 @@ use crate::requests::{RequestError, Requests};
 use crate::state::{Event, State, UpdateError};
 use crate::entity::Universe;
 use std::future::Future;
+use crate::players::Player;
 
 pub struct Connector {
     sender: Sender<Command>,
@@ -47,10 +48,22 @@ impl Connector {
     }
 
     pub fn universes(&self) -> impl Iterator<Item = &Universe> {
-        self.state.universes()
+        self.state.universes.iter().filter_map(Option::as_ref)
     }
 
-    pub async fn update_state<'a>(&'a mut self, timeout: Duration) -> Option<Result<Event<'a>, UpdateError>> {
+    pub fn universe(&self, index: usize) -> Option<&Universe> {
+        self.state.universes.get(index).and_then(Option::as_ref)
+    }
+
+    pub fn players(&self) -> impl Iterator<Item = &Player> {
+        self.state.players.iter().filter_map(Option::as_ref)
+    }
+
+    pub fn player(&self, index: usize) -> Option<&Player> {
+        self.state.players.get(index).and_then(Option::as_ref)
+    }
+
+    pub async fn update<'a>(&'a mut self, timeout: Duration) -> Option<Result<Event<'a>, UpdateError>> {
         if let Ok(response) = (&mut self.receiver).timeout(timeout).next().await? {
             match response {
                 Response::Packet(packet) => self.state.update(&packet).transpose(),

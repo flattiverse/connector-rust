@@ -65,7 +65,7 @@ async fn main() {
         }
     }
 
-    while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
+    while let Some(event) = connector.update(Duration::from_millis(1000)).await {
         info!("Processed event: {:?}", event);
     }
 
@@ -77,7 +77,7 @@ async fn main() {
         }
     }
 
-    while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
+    while let Some(event) = connector.update(Duration::from_millis(1000)).await {
         info!("Processed event: {:?}", event);
     }
     info!("End of main");

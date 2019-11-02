@@ -18,8 +18,8 @@ const DEFAULT_UNIVERSES: usize = 16;
 
 #[derive(Clone)]
 pub struct State {
-    players: Vec<Option<Player>>,
-    universes: Vec<Option<Universe>>,
+    pub(crate) players: Vec<Option<Player>>,
+    pub(crate) universes: Vec<Option<Universe>>,
 }
 
 impl Default for State {
@@ -34,14 +34,6 @@ impl State {
             players: vec_of_none!(DEFAULT_PLAYERS),
             universes: vec_of_none!(DEFAULT_UNIVERSES),
         }
-    }
-
-    pub fn universes(&self) -> impl Iterator<Item = &Universe> {
-        self.universes.iter().filter_map(Option::as_ref)
-    }
-
-    pub fn universe(&self, index: usize) -> Option<&Universe> {
-        self.universes.get(index).and_then(Option::as_ref)
     }
 
     pub(crate) fn update(&mut self, packet: &Packet) -> Result<Option<Event>, UpdateError> {
