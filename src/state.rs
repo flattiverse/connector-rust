@@ -5,8 +5,8 @@ use std::mem::replace;
 
 use backtrace::Backtrace;
 
-use crate::entity::command_id;
 use crate::entity::Universe;
+use crate::entity::{command_id, Galaxy};
 use crate::io::BinaryReader;
 use crate::num_traits::FromPrimitive;
 use crate::packet::Packet;
@@ -64,6 +64,9 @@ impl State {
             }
             command_id::S2C_UNIVERSE_META_INFO_UPDATED => self.update_universe(packet)?,
             command_id::S2C_UNIVERSE_TEAM_META_INFO_UPDATE => self.update_universe_team(packet)?,
+            command_id::S2C_UNIVERSE_GALAXY_META_INFO_UPDATE => {
+                self.update_universe_galaxy(packet)?
+            }
             command => {
                 warn!("Unknown command: 0x{:02x}", command);
                 return Ok(None);
@@ -145,14 +148,15 @@ impl State {
             "Going to update team {} for universe at index {}, delete={}",
             packet.sub_address,
             packet.base_address,
-            packet.payload.is_some()
+            packet.payload.is_none()
         );
         let index_universe = usize::from(packet.base_address);
         let index_team = usize::from(packet.sub_address);
         let universe = self.universes[index_universe]
             .as_mut()
-            .expect("Failed to update universe because unknown for given base_address");
+            .expect("Failed to update team for universe because unknown for given base_address");
         let team = map_payload_with_try_from!(packet, Team);
+        debug!("Received team: {:#?}", team);
         expand_vec_of_none_if_necessary!(universe.teams, index_team);
         universe.teams[index_team] = team;
         Ok(Event::UniverseTeamMetaInfoUpdated(
@@ -160,6 +164,30 @@ impl State {
             universe,
             index_team,
             universe.teams[index_team].as_ref(),
+        ))
+    }
+
+    fn update_universe_galaxy(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
+        debug!(
+            "Going to update galaxy {} for universe at index {}, delete={}",
+            packet.sub_address,
+            packet.base_address,
+            packet.payload.is_none()
+        );
+        let index_universe = usize::from(packet.base_address);
+        let index_galaxy = usize::from(packet.sub_address);
+        let universe = self.universes[index_universe]
+            .as_mut()
+            .expect("Failed to update galaxy for universe because unknown for given base_address");
+        let galaxy = map_payload_with_try_from!(packet, Galaxy);
+        debug!("Received galaxy: {:#?}", galaxy);
+        expand_vec_of_none_if_necessary!(universe.galaxies, index_galaxy);
+        universe.galaxies[index_galaxy] = galaxy;
+        Ok(Event::UniverseGalaxyMetaInfoUpdated(
+            index_universe,
+            universe,
+            index_galaxy,
+            universe.galaxies[index_galaxy].as_ref(),
         ))
     }
 }
@@ -209,7 +237,7 @@ pub enum Event<'a> {
     LoginCompleted,
     UniverseMetaInfoUpdated(usize, Option<&'a Universe>),
     UniverseTeamMetaInfoUpdated(usize, &'a Universe, usize, Option<&'a Team>),
-    UniverseGalaxyMetaInfoUpdated(),
+    UniverseGalaxyMetaInfoUpdated(usize, &'a Universe, usize, Option<&'a Galaxy>),
 }
 
 #[derive(Debug)]

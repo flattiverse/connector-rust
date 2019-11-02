@@ -10,6 +10,7 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 use crate::connector::Connector;
+use std::time::Duration;
 
 #[macro_use]
 pub mod macros;
@@ -43,6 +44,11 @@ async fn main() {
         for team in universe.teams() {
             info!("        » {}", team.name());
         }
+
+        info!("      Galaxies: ");
+        for galaxy in universe.galaxies() {
+            info!("        » {}", galaxy.name());
+        }
     }
 
     let request = connector.universes().skip(1).next().map(|u| u.join_with_team(0));
@@ -51,6 +57,9 @@ async fn main() {
             Ok(_) => info!("Joined successfully"),
             Err(e) => error!("{}", e),
         }
+    }
+    while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
+        info!("Processed event: {:?}", event);
     }
 }
 
