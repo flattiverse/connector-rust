@@ -86,8 +86,16 @@ impl Universe {
         self.teams.iter().filter_map(Option::as_ref)
     }
 
+    pub fn team(&self, id: u8) -> Option<&Team> {
+        self.teams.get(usize::from(id))
+    }
+
     pub fn galaxies(&self) -> impl Iterator<Item = &Galaxy> {
         self.galaxies.iter().filter_map(Option::as_ref)
+    }
+
+    pub fn galaxy(&self, id: u8) -> Option<&Galaxy> {
+        self.galaxies.get(usize::from(id))
     }
 
     pub fn systems(&self) -> impl Iterator<Item = &System> {
