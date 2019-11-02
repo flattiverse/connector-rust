@@ -44,7 +44,7 @@ impl Packet {
             match (header & 0b0011_0000) >> 4 {
                 0 => 0,
                 1 => usize::from(reader.read_u8().ok()?) + 1,
-                2 => usize::from(reader.read_u16().ok()?) + 1,
+                2 => usize::from(reader.read_uint16().ok()?) + 1,
                 l => panic!("Unexpected header len information {}", l),
             }
         };
@@ -75,7 +75,7 @@ impl Packet {
                     0
                 },
                 base_address: if header & 0b0000_1000 > 0 {
-                    reader.read_u16().ok()?
+                    reader.read_uint16().ok()?
                 } else {
                     0
                 },

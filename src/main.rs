@@ -22,6 +22,7 @@ pub mod state;
 pub mod crypt;
 pub mod players;
 pub mod com;
+pub mod command;
 pub mod requests;
 pub mod io;
 pub mod connector;

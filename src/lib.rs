@@ -5,6 +5,7 @@ pub mod macros;
 
 pub mod codec;
 pub mod com;
+pub mod command;
 pub mod connector;
 pub mod crypt;
 pub mod entity;

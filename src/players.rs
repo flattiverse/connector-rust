@@ -11,12 +11,26 @@ pub struct Player {
     online: bool,
     ping: f32,
     account: u32,
+    universe: Option<u16>,
+    team: Option<u8>,
 }
 
 impl Player {
     pub(crate) fn update_ping(&mut self, packet: &Packet) -> Result<(), IoError> {
         let reader = &mut packet.payload() as &mut dyn BinaryReader;
         self.ping = reader.read_single()?;
+        Ok(())
+    }
+
+    pub(crate) fn update_assignment(&mut self, packet: &Packet) -> Result<(), IoError> {
+        if packet.payload.is_none() {
+            self.universe = None;
+            self.team = None;
+        } else {
+            let reader = &mut packet.payload() as &mut dyn BinaryReader;
+            self.universe = Some(reader.read_uint16()?);
+            self.team = Some(reader.read_byte()?);
+        }
         Ok(())
     }
 }
@@ -33,6 +47,8 @@ impl TryFrom<&Packet> for Player {
             name: reader.read_string()?,
             online: reader.read_bool()?,
             ping: reader.read_single()?,
+            universe: None,
+            team: None,
         })
     }
 }

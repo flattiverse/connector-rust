@@ -34,7 +34,7 @@ pub trait BinaryReader: Read {
     /// Reads available bytes but not more than specified
     fn read_bytes_available(&mut self, up_to_size: usize) -> Result<Vec<u8>>;
 
-    fn read_u16(&mut self) -> Result<u16>;
+    fn read_uint16(&mut self) -> Result<u16>;
 
     fn read_int(&mut self) -> Result<i32>;
 
@@ -135,7 +135,7 @@ impl<T: Read> BinaryReader for T {
         Ok(v)
     }
 
-    fn read_u16(&mut self) -> Result<u16> {
+    fn read_uint16(&mut self) -> Result<u16> {
         let mut b = [0u8; 2];
         self.read_exact(&mut b)?;
         Ok(LittleEndian::read_u16(&b))

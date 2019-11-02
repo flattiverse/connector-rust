@@ -5,8 +5,9 @@ use std::mem::replace;
 
 use backtrace::Backtrace;
 
+use crate::command;
+use crate::entity::Galaxy;
 use crate::entity::Universe;
-use crate::entity::{command_id, Galaxy};
 use crate::io::BinaryReader;
 use crate::num_traits::FromPrimitive;
 use crate::packet::Packet;
@@ -49,11 +50,12 @@ impl State {
             packet.command, packet.base_address
         );
         Ok(Some(match packet.command {
-            command_id::S2C_PLAYER_REMOVED => self.remove_player(packet)?,
-            command_id::S2C_NEW_PLAYER => self.new_player(packet)?,
-            command_id::S2C_PLAYER_DEFRAGMENTED => self.player_defragmented(packet)?,
-            command_id::S2C_PLAYER_PING_UPDATE => self.player_ping_update(packet)?,
-            command_id::S2C_LOGIN_RESPONSE => {
+            command::id::S2C_PLAYER_REMOVED => self.remove_player(packet)?,
+            command::id::S2C_NEW_PLAYER => self.new_player(packet)?,
+            command::id::S2C_PLAYER_DEFRAGMENTED => self.player_defragmented(packet)?,
+            command::id::S2C_PLAYER_PING_UPDATE => self.player_ping_update(packet)?,
+            command::id::S2C_PLAYER_ASSIGNMENT_UPDATE => self.player_assignment_update(packet)?,
+            command::id::S2C_LOGIN_RESPONSE => {
                 if packet.helper != 0u8 {
                     return Err(UpdateError::LoginRefused(
                         RefuseReason::from_u8(packet.helper).expect("Failed to parse RefuseReason"),
@@ -62,9 +64,9 @@ impl State {
                     return Ok(Some(Event::LoginCompleted));
                 }
             }
-            command_id::S2C_UNIVERSE_META_INFO_UPDATED => self.update_universe(packet)?,
-            command_id::S2C_UNIVERSE_TEAM_META_INFO_UPDATE => self.update_universe_team(packet)?,
-            command_id::S2C_UNIVERSE_GALAXY_META_INFO_UPDATE => {
+            command::id::S2C_UNIVERSE_META_INFO_UPDATED => self.update_universe(packet)?,
+            command::id::S2C_UNIVERSE_TEAM_META_INFO_UPDATE => self.update_universe_team(packet)?,
+            command::id::S2C_UNIVERSE_GALAXY_META_INFO_UPDATE => {
                 self.update_universe_galaxy(packet)?
             }
             command => {
@@ -99,7 +101,8 @@ impl State {
     fn player_defragmented(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
         let index_new = usize::from(packet.base_address);
         debug!("Going to move player to new index {}", index_new);
-        let index_old = usize::from((&mut packet.payload() as &mut dyn BinaryReader).read_u16()?);
+        let index_old =
+            usize::from((&mut packet.payload() as &mut dyn BinaryReader).read_uint16()?);
         let player = replace(&mut self.players[index_old], None);
         debug!(
             "Player is moved from old index {}: {:#?}",
@@ -120,7 +123,20 @@ impl State {
             .as_mut()
             .expect("Invalid player index for ping update")
             .update_ping(packet)?;
-        Ok(Event::PingUpdated(
+        Ok(Event::PlayerPingUpdated(
+            index,
+            self.players[index].as_ref().unwrap(),
+        ))
+    }
+
+    fn player_assignment_update(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
+        let index = usize::from(packet.base_address);
+        debug!("Going to update assignment for player at index {}", index);
+        (&mut self.players)[index]
+            .as_mut()
+            .expect("Invalid player index for assignment update")
+            .update_assignment(packet)?;
+        Ok(Event::PlayerAssignmentUpdated(
             index,
             self.players[index].as_ref().unwrap(),
         ))
@@ -233,7 +249,8 @@ pub enum Event<'a> {
     PlayerRemoved(usize, Option<Player>),
     NewPlayer(usize, &'a Player),
     PlayerDefragmented(usize, usize, &'a Player),
-    PingUpdated(usize, &'a Player),
+    PlayerPingUpdated(usize, &'a Player),
+    PlayerAssignmentUpdated(usize, &'a Player),
     LoginCompleted,
     UniverseMetaInfoUpdated(usize, Option<&'a Universe>),
     UniverseTeamMetaInfoUpdated(usize, &'a Universe, usize, Option<&'a Team>),
