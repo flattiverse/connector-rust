@@ -7,7 +7,7 @@ pub(crate) mod id {
     /// Issued if the client wants to leave the universe
     ///
     /// data: base_address contains the universe id
-    pub(crate) const C2S_UNIVERSE_PART: u8 = 0x1A;
+    pub(crate) const C2S_UNIVERSE_PART: u8 = 0x1B;
 
     /// Issued to inform the connector to forget a certain player
     ///
