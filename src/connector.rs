@@ -92,8 +92,6 @@ type CloneSender = oneshot::Sender<Connector>;
 type RequestResponder = oneshot::Sender<Result<Packet, RequestError>>;
 type ListenerSender = Sender<Response>;
 type ListenerReceiver = Receiver<Response>;
-// IN THE FUTURE https://github.com/rust-lang/rust/issues/63063
-// type ConSync = impl Sink<Packet, Error = IoError> + Unpin;
 
 enum Command {
     Clone(CloneSender),
@@ -173,7 +171,7 @@ impl ConnectionHandle {
         // IN THE FUTURE:
         //    self.listeners.drain_filter(|listener| listener.try_send(packet.clone()).is_err());
 
-        // Vec::default does not allocate heap memory until push(..) - so its common usage here is cheap
+        // Vec::default does not allocate heap memory until push(..) - so most of the usage here is cheap
         let mut to_delete = Vec::default();
 
         for (index, listener) in self.listeners.iter_mut().enumerate() {
