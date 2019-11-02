@@ -87,7 +87,7 @@ impl Universe {
     }
 
     pub fn team(&self, id: u8) -> Option<&Team> {
-        self.teams.get(usize::from(id))
+        self.teams.get(usize::from(id)).and_then(Option::as_ref)
     }
 
     pub fn galaxies(&self) -> impl Iterator<Item = &Galaxy> {
@@ -95,7 +95,7 @@ impl Universe {
     }
 
     pub fn galaxy(&self, id: u8) -> Option<&Galaxy> {
-        self.galaxies.get(usize::from(id))
+        self.galaxies.get(usize::from(id)).and_then(Option::as_ref)
     }
 
     pub fn systems(&self) -> impl Iterator<Item = &System> {
