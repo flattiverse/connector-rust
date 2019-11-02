@@ -45,7 +45,7 @@ impl Requests {
             if self.ids[index].is_none() {
                 self.ids[index] = Some(sender);
                 self.last_index = index + 1;
-                packet.session = (index + ID_OFFSET) as u8;
+                packet.session = Some((index + ID_OFFSET) as u8);
                 return Some(());
             }
         }
@@ -53,8 +53,7 @@ impl Requests {
     }
 
     pub fn maybe_respond(&mut self, packet: Packet) -> Option<Packet> {
-        if packet.session != 0 {
-            let session = packet.session;
+        if let Some(session) = packet.session {
             if let Some(Some(sender)) = self.take(session) {
                 if packet.command == S2C_SESSION_EXCEPTION {
                     debug!(
@@ -67,7 +66,7 @@ impl Requests {
                         error!("     {}", err.message());
                     }
                 } else if let Err(Ok(packet)) = sender.send(Ok(packet)) {
-                    warn!("Failed to notify session: {}", packet.session);
+                    warn!("Failed to notify session {} about {:?}", session, packet);
                 } else {
                     debug!("Notified session {}", session);
                 }

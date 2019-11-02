@@ -6,7 +6,7 @@ use crate::io::BinaryReader;
 #[derive(Default, Debug)]
 pub struct Packet {
     pub(crate) command: u8,
-    pub(crate) session: u8,
+    pub(crate) session: Option<u8>,
     pub(crate) id: u32,
     pub(crate) helper: u8,
     pub(crate) base_address: u16,
@@ -70,9 +70,9 @@ impl Packet {
                     0
                 },
                 session: if header & 0b0100_0000 > 0 {
-                    reader.read_u8().ok()?
+                    Some(reader.read_u8().ok()?)
                 } else {
-                    0
+                    None
                 },
                 base_address: if header & 0b0000_1000 > 0 {
                     reader.read_uint16().ok()?
@@ -121,7 +121,7 @@ impl Packet {
                 header |= 0b1000_0000;
             }
 
-            if self.session > 0 {
+            if self.session.is_some() {
                 header |= 0b0100_0000;
             }
 
@@ -171,8 +171,8 @@ impl Packet {
                 data.put_u8(self.command);
             }
 
-            if self.session > 0 {
-                data.put_u8(self.session);
+            if let Some(session) = self.session {
+                data.put_u8(session);
             }
 
             if self.base_address > 0 {
