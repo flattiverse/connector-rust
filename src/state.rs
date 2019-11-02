@@ -6,8 +6,8 @@ use std::mem::replace;
 use backtrace::Backtrace;
 
 use crate::command;
-use crate::entity::Galaxy;
 use crate::entity::Universe;
+use crate::entity::{Galaxy, System};
 use crate::io::BinaryReader;
 use crate::num_traits::FromPrimitive;
 use crate::packet::Packet;
@@ -68,6 +68,9 @@ impl State {
             command::id::S2C_UNIVERSE_TEAM_META_INFO_UPDATE => self.update_universe_team(packet)?,
             command::id::S2C_UNIVERSE_GALAXY_META_INFO_UPDATE => {
                 self.update_universe_galaxy(packet)?
+            }
+            command::id::S2C_UNIVERSE_SYSTEM_META_INFO_UPDATE => {
+                self.update_universe_systems(packet)?
             }
             command => {
                 warn!("Unknown command: 0x{:02x}", command);
@@ -206,6 +209,25 @@ impl State {
             universe.galaxies[index_galaxy].as_ref(),
         ))
     }
+
+    fn update_universe_systems(&mut self, packet: &Packet) -> Result<Event, UpdateError> {
+        debug!(
+            "Going to update systems for universe at index {}",
+            packet.base_address,
+        );
+        let index_universe = usize::from(packet.base_address);
+        let universe = self.universes[index_universe]
+            .as_mut()
+            .expect("Failed to update systems for universe because unknown for given base_address");
+        let systems = System::vec_from(packet)?;
+        debug!("Received list of systems: {:#?}", systems);
+        universe.systems = systems;
+        Ok(Event::UniverseSystemsMetaInfoUpdated(
+            index_universe,
+            universe,
+            &universe.systems,
+        ))
+    }
 }
 
 #[derive(Debug)]
@@ -255,6 +277,7 @@ pub enum Event<'a> {
     UniverseMetaInfoUpdated(usize, Option<&'a Universe>),
     UniverseTeamMetaInfoUpdated(usize, &'a Universe, usize, Option<&'a Team>),
     UniverseGalaxyMetaInfoUpdated(usize, &'a Universe, usize, Option<&'a Galaxy>),
+    UniverseSystemsMetaInfoUpdated(usize, &'a Universe, &'a [System]),
 }
 
 #[derive(Debug)]

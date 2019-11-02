@@ -30,7 +30,7 @@ pub mod connector;
 
 #[tokio::main]
 async fn main() {
-    init_logger(Some(LevelFilter::Trace)).unwrap();
+    init_logger(Some(LevelFilter::Debug)).unwrap();
     debug!("Logger init");
 
     info!("Reaching out to the flattiverse...");
@@ -49,6 +49,11 @@ async fn main() {
         info!("      Galaxies: ");
         for galaxy in universe.galaxies() {
             info!("        » {}", galaxy.name());
+        }
+
+        info!("      Components: ");
+        for system in universe.systems() {
+            info!("        » {:?} [{}, {}]", system.kind(), system.level_start(), system.level_end());
         }
     }
 

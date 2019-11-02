@@ -60,6 +60,11 @@ pub(crate) mod id {
     /// data: nothing for a deleted galaxy, galaxy-data for an updated or newly created galaxy
     pub(crate) const S2C_UNIVERSE_GALAXY_META_INFO_UPDATE: u8 = 0x12;
 
+    /// Issued whenever the system definitions have been changed.
+    ///
+    /// data: List of Systems for a universe, replaces current known list of Systems
+    pub(crate) const S2C_UNIVERSE_SYSTEM_META_INFO_UPDATE: u8 = 0x13;
+
     /// Issued whenever a session (request) experiences an error. Thus this command
     /// can only be read when the session is not zero.
     ///

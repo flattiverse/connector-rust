@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
+use std::ops::RangeInclusive;
 
 use num_traits::FromPrimitive;
 
@@ -29,6 +30,7 @@ pub struct Universe {
     pub(crate) avatar: Vec<u8>,
     pub(crate) teams: Vec<Option<Team>>,
     pub(crate) galaxies: Vec<Option<Galaxy>>,
+    pub(crate) systems: Vec<System>,
 }
 
 impl Universe {
@@ -86,6 +88,10 @@ impl Universe {
 
     pub fn galaxies(&self) -> impl Iterator<Item = &Galaxy> {
         self.galaxies.iter().filter_map(Option::as_ref)
+    }
+
+    pub fn systems(&self) -> impl Iterator<Item = &System> {
+        self.systems.iter()
     }
 
     #[must_use]
@@ -159,6 +165,7 @@ impl TryFrom<&Packet> for Universe {
             avatar: Vec::default(),
             teams: vec_of_none!(DEFAULT_TEAMS),
             galaxies: vec_of_none!(DEFAULT_GALAXIES),
+            systems: Vec::default(),
         })
     }
 }
@@ -227,5 +234,74 @@ impl TryFrom<&Packet> for Galaxy {
             name: reader.read_string()?,
             spawn: reader.read_bool()?,
         })
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive, Copy, Clone)]
+pub enum SystemKind {
+    /// The ships hull, a higher level indicates more hull points TODO ...
+    Hull = 0x00,
+
+    /// The ships armor, a higher level indicates more effective hit-points for TODO ...
+    Armor = 0x01,
+
+    /// The ships primary and short range scanner
+    Scanner0 = 0x08,
+
+    /// The ships secondary and long range scanner
+    Scanner1 = 0x09,
+
+    /// A higher leveled engine allows greater acceleration
+    Engine = 0x10,
+
+    /// A higher leveled thruster allows a greater turn-rate acceleration
+    Thruster = 0x11,
+
+    /// Meaning things like a Solar**Cell**
+    /// A Higher level (Solar)Cell allows faster harvesting (of energy from suns)
+    Cell = 0x18,
+
+    /// The storage capacity of your ship
+    Battery = 0xC0,
+}
+
+#[derive(Debug, Clone)]
+pub struct System {
+    kind: SystemKind,
+    levels: RangeInclusive<u8>,
+}
+
+impl System {
+    pub fn kind(&self) -> SystemKind {
+        self.kind
+    }
+
+    pub fn levels(&self) -> RangeInclusive<u8> {
+        self.levels.clone()
+    }
+
+    // The inclusive start level of this system
+    pub fn level_start(&self) -> u8 {
+        *self.levels.start()
+    }
+
+    /// The inclusive end level for this system
+    pub fn level_end(&self) -> u8 {
+        *self.levels.end()
+    }
+
+    pub(crate) fn vec_from(packet: &Packet) -> Result<Vec<System>, IoError> {
+        let count = packet.payload().len() / 3; // TODO
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+        let mut vec = Vec::with_capacity(count);
+        for _ in 0..count {
+            vec.push(System {
+                kind: SystemKind::from_u8(reader.read_byte()?)
+                    .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                levels: RangeInclusive::new(reader.read_byte()?, reader.read_byte()?),
+            });
+        }
+        Ok(vec)
     }
 }
