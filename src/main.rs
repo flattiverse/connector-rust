@@ -30,7 +30,7 @@ pub mod connector;
 
 #[tokio::main]
 async fn main() {
-    init_logger(Some(LevelFilter::Debug)).unwrap();
+    init_logger(Some(LevelFilter::Trace)).unwrap();
     debug!("Logger init");
 
     info!("Reaching out to the flattiverse...");
@@ -59,9 +59,12 @@ async fn main() {
             Err(e) => error!("{}", e),
         }
     }
+
+
     while let Some(event) = connector.update_state(Duration::from_millis(1000)).await {
         info!("Processed event: {:?}", event);
     }
+    info!("End of main");
 }
 
 pub fn init_logger(level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLoggerError> {

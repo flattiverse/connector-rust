@@ -116,7 +116,7 @@ impl ConnectionHandle {
             Err(e) => {
                 error!("Aborting ConnectionHandle because of the following error: {:?}", e);
             }
-            Ok(()) => info!("ConnectionHandle is shutting down gracefully")
+            Ok(()) => debug!("ConnectionHandle is shutting down gracefully")
         }
     }
 
@@ -139,9 +139,12 @@ impl ConnectionHandle {
     }
 
     async fn process_received(&mut self, packet: Packet) -> Result<(), UpdateError> {
+        debug!("ConnectionHandle received {:?}", packet);
         if let Some(packet) = self.requests.maybe_respond(packet) {
-            self.state.update(&packet)?;
+            let event = self.state.update(&packet)?;
+            debug!("ConnectionHandle state update result event: {:?}", event);
             self.publish_packet(Arc::new(packet));
+            debug!("Packet has been published to all listeners");
         }
         Ok(())
     }
@@ -155,7 +158,10 @@ impl ConnectionHandle {
 
         for (index, listener) in self.listeners.iter_mut().enumerate() {
             if let Err(_) = listener.try_send(packet.clone()) {
+                warn!("Notifying listener at index {} failed", index);
                 to_delete.push(index);
+            } else {
+                debug!("Notifying listener at index {} succeeded", index);
             }
         }
 
