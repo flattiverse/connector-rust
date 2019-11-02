@@ -11,7 +11,7 @@ use tokio::io::ErrorKind;
 use tokio::prelude::Sink;
 use tokio::stream::StreamExt as _;
 use tokio::sync::{mpsc, oneshot};
-use tokio::sync::mpsc::Receiver;
+use tokio::sync::mpsc::{Receiver, channel};
 use tokio::sync::mpsc::Sender;
 
 use crate::com::Connection;
@@ -21,6 +21,9 @@ use crate::state::{Event, State, UpdateError};
 use crate::entity::Universe;
 use std::future::Future;
 use crate::players::Player;
+use std::mem;
+
+const LISTENER_CHANNEL_SIZE: usize = 1024;
 
 pub struct Connector {
     sender: Sender<Command>,
@@ -68,18 +71,22 @@ impl Connector {
             match response {
                 Response::Packet(packet) => self.state.update(&packet).transpose(),
                 Response::Clone(cloner, receiver) => {
-                    if let Err(_) = cloner.send(Connector {
-                        sender: self.sender.clone(),
-                        receiver,
-                        state: self.state.clone(),
-                    }) {
-                        error!("Failed to respond to connector clone response");
-                    }
+                    Self::handle_clone_response(&self.sender, &self.state, cloner, receiver);
                     None
                 }
             }
         } else {
             None
+        }
+    }
+
+    fn handle_clone_response(sender: &Sender<Command>, state: &State, cloner: CloneSender, receiver: ListenerReceiver) {
+        if let Err(_) = cloner.send(Connector {
+            sender: sender.clone(),
+            receiver,
+            state: state.clone(),
+        }) {
+            error!("Failed to respond to connector clone response");
         }
     }
 
@@ -98,6 +105,26 @@ impl Connector {
         async {
             receiver.await.expect("ConnectionHandle gone")
         }
+    }
+}
+
+impl Drop for Connector {
+    fn drop(&mut self) {
+        self.receiver.close(); // from now on, no more Responses will be received
+
+        // stuff out the Connector which is going to be dropped
+        let sender = mem::replace(&mut self.sender, channel(1).0);
+        let mut receiver = mem::replace(&mut self.receiver, channel(1).1);
+        let state = mem::replace(&mut self.state, State::default());
+
+        tokio::spawn(async move {
+            // await all Responses that are enqueued
+            while let Some(response) = receiver.recv().await {
+                if let Response::Clone(cloner, receiver) = response {
+                    Self::handle_clone_response(&sender, &state, cloner, receiver);
+                }
+            }
+        });
     }
 }
 
@@ -125,13 +152,13 @@ struct ConnectionHandle {
 
 impl ConnectionHandle {
     fn new_listener(&mut self) -> ListenerReceiver {
-        let (sender, receiver) = mpsc::channel(1024);
+        let (sender, receiver) = mpsc::channel(LISTENER_CHANNEL_SIZE);
         self.listeners.push(sender);
         receiver
     }
 
     fn spawn(self, connection: Connection) -> Sender<Command> {
-        let (sender, receiver) = mpsc::channel(1024);
+        let (sender, receiver) = mpsc::channel(LISTENER_CHANNEL_SIZE);
         tokio::spawn(self.execute(receiver, connection));
         sender
     }
@@ -163,12 +190,18 @@ impl ConnectionHandle {
     }
 
     async fn process_clone(&mut self, clone_sender: CloneSender) {
-        let (sender, receiver) = mpsc::channel(1024);
-        if let Err(_) = self.listeners[0].send(Response::Clone(clone_sender, receiver)).await {
-            error!("Failed to respond to clone request");
-        } else {
-            self.listeners.push(sender);
+        let (sender, receiver) = mpsc::channel(LISTENER_CHANNEL_SIZE);
+        let mut response = Response::Clone(clone_sender, receiver);
+        for listener in &mut self.listeners {
+            match listener.try_send(response) {
+                Err(r) => response = r.into_inner(),
+                Ok(_) => {
+                    self.listeners.push(sender);
+                    return;
+                },
+            }
         }
+        error!("Failed to find suitable listener to process clone request");
     }
 
     async fn process_received(&mut self, packet: Packet) -> Result<(), UpdateError> {
