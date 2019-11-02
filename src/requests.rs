@@ -8,8 +8,7 @@ use crate::command::id::S2C_SESSION_EXCEPTION;
 use crate::io::BinaryReader;
 use crate::packet::Packet;
 
-const MAX_IDS: usize = 254;
-const ID_OFFSET: usize = 1;
+const MAX_IDS: usize = u8::max_value() as usize + 1;
 
 type ResultSender = Sender<Result<Packet, RequestError>>;
 type ResultReceiver = Receiver<Result<Packet, RequestError>>;
@@ -45,7 +44,7 @@ impl Requests {
             if self.ids[index].is_none() {
                 self.ids[index] = Some(sender);
                 self.last_index = index + 1;
-                packet.session = Some((index + ID_OFFSET) as u8);
+                packet.session = Some(index as u8);
                 return Some(());
             }
         }
@@ -78,9 +77,7 @@ impl Requests {
     }
 
     fn take(&mut self, session: u8) -> Option<Option<ResultSender>> {
-        self.ids
-            .get_mut(usize::from(session) - ID_OFFSET)
-            .map(Option::take)
+        self.ids.get_mut(usize::from(session)).map(Option::take)
     }
 
     fn parse_request_error(packet: &Packet) -> RequestError {
