@@ -51,16 +51,16 @@ impl Connector {
         self.state.universes.iter().filter_map(Option::as_ref)
     }
 
-    pub fn universe(&self, index: usize) -> Option<&Universe> {
-        self.state.universes.get(index).and_then(Option::as_ref)
+    pub fn universe(&self, id: usize) -> Option<&Universe> {
+        self.state.universes.get(id).and_then(Option::as_ref)
     }
 
     pub fn players(&self) -> impl Iterator<Item = &Player> {
         self.state.players.iter().filter_map(Option::as_ref)
     }
 
-    pub fn player(&self, index: usize) -> Option<&Player> {
-        self.state.players.get(index).and_then(Option::as_ref)
+    pub fn player(&self, id: usize) -> Option<&Player> {
+        self.state.players.get(id).and_then(Option::as_ref)
     }
 
     pub async fn update<'a>(&'a mut self, timeout: Duration) -> Option<Result<Event<'a>, UpdateError>> {
