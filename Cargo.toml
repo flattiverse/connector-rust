@@ -13,7 +13,7 @@ edition = "2018"
 [lib]
 
 [dependencies]
-tokio = "0.2.0-alpha"
+futures = "0.3.1"
 futures-util = { package = "futures-util-preview", version = "0.3.0-alpha" }
 bytes = "0.4"
 aes = "0.3"
@@ -25,7 +25,28 @@ log = "0.4"
 num-traits = "0.2"
 num-derive = "0.3"
 backtrace = "0.3"
-log4rs = "0.8"
+log4rs = { version = "0.8", optional = true }
+tokio = { version = "0.2.0-alpha", optional = true }
+wasm-bindgen = {version = "0.2.55", optional = true }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'Document',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Window',
+  "ErrorEvent",
+  "MessageEvent",
+  "WebSocket",
+  "TcpSocket",
+]
+optional = true
+
+[features]
+default = ["log4rs", "tokio"]
+wasm = ["wasm-bindgen", "web-sys"]
 
 [profile.release]
 lto = true

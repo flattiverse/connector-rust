@@ -1,24 +1,32 @@
 use std::io::Error as IoError;
 
+use futures::channel::mpsc::Sender;
+use futures::channel::mpsc::Receiver;
+use futures::channel::mpsc::channel;
 use block_modes::BlockMode;
-use futures_util::stream::SplitSink;
-use futures_util::stream::SplitStream;
-use tokio::codec::Framed;
-use tokio::net::TcpStream;
-use tokio::prelude::*;
-
-use crate::codec::Flattiverse;
-use crate::crypt::{Aes128Cbc, to_blocks};
+use crate::crypt::{Aes128Cbc, to_blocks, AES128CBC_BLOCK_BYTE_LENGTH};
 use crate::packet::Packet;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::TcpSocket;
+use futures::{Sink, Stream};
+
+const BLOCK_LENGTH: usize = AES128CBC_BLOCK_BYTE_LENGTH;
 
 pub struct Connection {
     version: u16,
-    sink: SplitSink<Framed<TcpStream, Flattiverse>, Packet>,
-    stream: SplitStream<Framed<TcpStream, Flattiverse>>,
 }
 
 impl Connection {
-    pub async fn connect(user: &str, password: &str) -> Result<Connection, IoError> {
+    pub async fn connect(user: &str, password: &str) -> Result<Self, IoError> {
+
+        let socket = TcpSocket::new("galaxy.flattiverse.com", 80);
+
+
+        /*
+
+
+
         let iv = Self::random_init_vector();
         let mut packet_data = [0u8; 64];
 
@@ -30,7 +38,6 @@ impl Connection {
             packet_data[i + 16] = user_hash[i] ^ iv[i % 16];
         }
 
-        let connect = TcpStream::connect("galaxy.flattiverse.com:80");
         let password_hash = crate::crypt::hash_password(user, password);
         debug!("pass hash: {:x?}", password_hash);
 
@@ -70,11 +77,12 @@ impl Connection {
         let protocol = Flattiverse::new(send, recv);
         let framed = Framed::new(stream, protocol);
         let (sink, stream) = framed.split();
+        */
+
+        let version = 1;
 
         Ok(Self {
             version,
-            sink,
-            stream
         })
     }
 
@@ -83,22 +91,22 @@ impl Connection {
     }
 
     pub async fn send(&mut self, packet: Packet) -> Result<(), IoError> {
-        self.sink.send(packet).await
+        unimplemented!()
     }
 
     pub async fn flush(&mut self) -> Result<(), IoError> {
-        self.send(Packet::new_oob()).await
+        unimplemented!()
     }
 
     pub async fn receive(&mut self) -> Option<Result<Packet, IoError>> {
-        self.stream.next().await
+        unimplemented!()
     }
 
     pub fn split(self) -> (impl Sink<Packet, Error = IoError>, impl Stream<Item = Result<Packet, IoError>>) {
-        (self.sink, self.stream)
+        unimplemented!()
     }
 
     fn random_init_vector() -> [u8; 16] {
-        rand::random()
+        unimplemented!()
     }
 }

@@ -15,7 +15,6 @@ use std::time::Duration;
 #[macro_use]
 pub mod macros;
 
-pub mod codec;
 pub mod packet;
 pub mod entity;
 pub mod state;
@@ -33,8 +32,10 @@ async fn main() {
     init_logger(Some(LevelFilter::Debug)).unwrap();
     debug!("Logger init");
 
+    let env = std::env::args().collect::<Vec<String>>();
+
     info!("Reaching out to the flattiverse...");
-    let mut connector = Connector::login("Player1", "Password").await.unwrap();
+    let mut connector = Connector::login(&env[1], &env[2]).await.unwrap();
     info!("Successfully logged in!");
 
     info!("Available universes:");
@@ -57,28 +58,41 @@ async fn main() {
         }
     }
 
-    let request = connector.universe(1).map(|u| u.join_with_team(0));
-    if let Some(request) = request {
-        match connector.send_request(request).await.await.expect("Connector disconnected") {
-            Ok(_) => info!("Joined successfully"),
-            Err(e) => error!("{}", e),
+    {
+        let connector = connector.clone();
+        tokio::spawn(async move {
+            let mut connector = connector.await;
+            let request = connector.universe(1).map(|u| u.join_with_team(0));
+            if let Some(request) = request {
+                match connector.send_request(request).await.await.expect("Connector disconnected") {
+                    Ok(_) => info!("Joined successfully"),
+                    Err(e) => error!("{}", e),
+                }
+            }
+
+            /*
+            while let Some(event) = connector.update(Duration::from_millis(1000)).await {
+                info!("Processed event: {:?}", event);
+            }
+
+            let request = connector.universe(1).map(|u| u.part());
+            if let Some(request) = request {
+                match connector.send_request(request).await.await.expect("Connector disconnected") {
+                    Ok(_) => info!("Parted successfully"),
+                    Err(e) => error!("{}", e)
+                }
+            }
+
+            while let Some(event) = connector.update(Duration::from_millis(1000)).await {
+                info!("Processed event: {:?}", event);
+            }*/
+        });
+    }
+
+    loop {
+        while let Some(event) = connector.update(Duration::from_millis(1000)).await {
+            info!("Processed event: {:?}", event);
         }
-    }
-
-    while let Some(event) = connector.update(Duration::from_millis(1000)).await {
-        info!("Processed event: {:?}", event);
-    }
-
-    let request = connector.universe(1).map(|u| u.part());
-    if let Some(request) = request {
-        match connector.send_request(request).await.await.expect("Connector disconnected") {
-            Ok(_) => info!("Parted successfully"),
-            Err(e) => error!("{}", e)
-        }
-    }
-
-    while let Some(event) = connector.update(Duration::from_millis(1000)).await {
-        info!("Processed event: {:?}", event);
     }
     info!("End of main");
 }
