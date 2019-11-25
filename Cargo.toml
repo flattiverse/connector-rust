@@ -28,6 +28,7 @@ backtrace = "0.3"
 log4rs = { version = "0.8", optional = true }
 tokio = { version = "0.2.0-alpha", optional = true }
 wasm-bindgen = {version = "0.2.55", optional = true }
+js-sys = {version = "0.3.32", optional = true}
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -40,13 +41,12 @@ features = [
   "ErrorEvent",
   "MessageEvent",
   "WebSocket",
-  "TcpSocket",
 ]
 optional = true
 
 [features]
 default = ["log4rs", "tokio"]
-wasm = ["wasm-bindgen", "web-sys"]
+wasm = ["wasm-bindgen", "web-sys", "js-sys"]
 
 [profile.release]
 lto = true
