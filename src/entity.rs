@@ -168,8 +168,7 @@ impl TryFrom<&Packet> for Universe {
             max_ships_per_team: reader.read_uint16()?,
             status: Status::from_u8(reader.read_byte()?)
                 .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
-            default_privileges: Privileges::from_u8(reader.read_byte()?)
-                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+            default_privileges: Privileges::from(reader.read_byte()?),
             avatar: Vec::default(),
             teams: vec_of_none!(DEFAULT_TEAMS),
             galaxies: vec_of_none!(DEFAULT_GALAXIES),
@@ -203,15 +202,39 @@ pub enum Status {
     Maintenance = 2,
 }
 
-#[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
-pub enum Privileges {
-    Nothing = 0,
-    Join = 1,
-    ManageUnits = 2,
-    ManageRegions = 4,
-    ManageMaps = 8,
-    ManageUniverse = 16,
+#[derive(Debug, Copy, Clone)]
+pub struct Privileges(u8);
+
+impl From<u8> for Privileges {
+    fn from(value: u8) -> Self {
+        Privileges(value)
+    }
+}
+
+impl Privileges {
+    pub const fn is_nothing(self) -> bool {
+        self.0 == 0
+    }
+
+    pub const fn allowed_to_join(self) -> bool {
+        self.0 & 1 != 0
+    }
+
+    pub const fn allowed_to_manage_units(self) -> bool {
+        self.0 & 2 != 0
+    }
+
+    pub const fn allowed_to_manage_regions(self) -> bool {
+        self.0 & 4 != 0
+    }
+
+    pub const fn allowed_to_manage_systems(self) -> bool {
+        self.0 & 8 != 0
+    }
+
+    pub const fn allowed_to_manage_universes(self) -> bool {
+        self.0 & 16 != 0
+    }
 }
 
 #[derive(Debug, Clone)]
