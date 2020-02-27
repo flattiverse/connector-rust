@@ -1,27 +1,24 @@
-use std::io::Error as IoError;
-use std::sync::Arc;
-use std::time::Duration;
-
-use futures_util::SinkExt;
-use futures_util::stream::select;
-use futures_util::stream::Stream;
-use futures_util::StreamExt;
-use tokio::future::ready;
-use tokio::io::ErrorKind;
-use tokio::prelude::Sink;
-use tokio::stream::StreamExt as _;
-use tokio::sync::{mpsc, oneshot};
-use tokio::sync::mpsc::{Receiver, channel};
-use tokio::sync::mpsc::Sender;
-
 use crate::com::Connection;
+use crate::entity::Universe;
 use crate::packet::Packet;
+use crate::players::Player;
 use crate::requests::{RequestError, Requests};
 use crate::state::{Event, State, UpdateError};
-use crate::entity::Universe;
+use futures::channel::oneshot;
+use futures::stream::select;
+use futures::Stream;
+use futures::{Sink, SinkExt};
 use std::future::Future;
-use crate::players::Player;
+use std::io::Error as IoError;
 use std::mem;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::io::ErrorKind;
+use tokio::stream::StreamExt as _;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::TrySendError;
+use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{channel, Receiver};
 
 const LISTENER_CHANNEL_SIZE: usize = 1024;
 
@@ -42,12 +39,14 @@ impl Connector {
                 return Ok(Connector {
                     receiver: handle.new_listener(),
                     state,
-                    sender: handle.spawn(connection)
+                    sender: handle.spawn(connection),
                 });
             }
         }
 
-        Err(UpdateError::from(IoError::from(ErrorKind::ConnectionAborted)))
+        Err(UpdateError::from(IoError::from(
+            ErrorKind::ConnectionAborted,
+        )))
     }
 
     pub fn universes(&self) -> impl Iterator<Item = &Universe> {
@@ -66,8 +65,13 @@ impl Connector {
         self.state.players.get(id).and_then(Option::as_ref)
     }
 
-    pub async fn update<'a>(&'a mut self, timeout: Duration) -> Option<Result<Event<'a>, UpdateError>> {
-        if let Ok(response) = (&mut self.receiver).timeout(timeout).next().await? {
+    pub async fn update<'a>(
+        &'a mut self,
+        timeout: Duration,
+    ) -> Option<Result<Event<'a>, UpdateError>> {
+        if let Ok(response) =
+            tokio::stream::StreamExt::next(&mut (&mut self.receiver).timeout(timeout)).await?
+        {
             match response {
                 Response::Packet(packet) => self.state.update(&packet).transpose(),
                 Response::Clone(cloner, receiver) => {
@@ -80,7 +84,12 @@ impl Connector {
         }
     }
 
-    fn handle_clone_response(sender: &Sender<Command>, state: &State, cloner: CloneSender, receiver: ListenerReceiver) {
+    fn handle_clone_response(
+        sender: &Sender<Command>,
+        state: &State,
+        cloner: CloneSender,
+        receiver: ListenerReceiver,
+    ) {
         if let Err(_) = cloner.send(Connector {
             sender: sender.clone(),
             receiver,
@@ -90,21 +99,25 @@ impl Connector {
         }
     }
 
-    pub async fn send_request(&mut self, packet: Packet) -> oneshot::Receiver<Result<Packet, RequestError>> {
+    pub async fn send_request(
+        &mut self,
+        packet: Packet,
+    ) -> oneshot::Receiver<Result<Packet, RequestError>> {
         let (sender, receiver) = oneshot::channel();
-        self.sender.send(Command::SendRequest(packet, sender)).await.expect("ConnectionHandle gone");
+        self.sender
+            .send(Command::SendRequest(packet, sender))
+            .await
+            .map_err(drop)
+            .expect("ConnectionHandle gone");
         receiver
     }
-
 
     pub fn clone(&mut self) -> impl Future<Output = Self> {
         let (sender, receiver) = oneshot::channel();
         if let Err(_) = self.sender.try_send(Command::Clone(sender)) {
             panic!("ConnectionHandle gone");
         }
-        async {
-            receiver.await.expect("ConnectionHandle gone")
-        }
+        async { receiver.await.expect("ConnectionHandle gone") }
     }
 }
 
@@ -136,7 +149,7 @@ type ListenerReceiver = Receiver<Response>;
 enum Command {
     Clone(CloneSender),
     Received(Packet),
-    SendRequest(Packet, RequestResponder)
+    SendRequest(Packet, RequestResponder),
 }
 
 enum Response {
@@ -167,23 +180,35 @@ impl ConnectionHandle {
         let (connection, connection_stream) = connection.split();
         let commands = select(
             commands,
-            connection_stream.filter_map(|p| ready(p.map(Command::Received).ok()))
+            tokio::stream::StreamExt::filter_map(connection_stream, |p| {
+                p.map(Command::Received).ok()
+            }),
         );
 
         match self.process_commands(commands, connection).await {
             Err(e) => {
-                error!("Aborting ConnectionHandle because of the following error: {:?}", e);
+                error!(
+                    "Aborting ConnectionHandle because of the following error: {:?}",
+                    e
+                );
             }
-            Ok(()) => debug!("ConnectionHandle is shutting down gracefully")
+            Ok(()) => debug!("ConnectionHandle is shutting down gracefully"),
         }
     }
 
-    async fn process_commands(&mut self, mut commands: impl Stream<Item = Command> + Unpin, mut connection: impl Sink<Packet, Error = IoError> + Unpin) -> Result<(), UpdateError> {
-        while let Some(command) = commands.next().await {
+    async fn process_commands(
+        &mut self,
+        mut commands: impl Stream<Item = Command> + Unpin,
+        mut connection: impl Sink<Packet, Error = IoError> + Unpin,
+    ) -> Result<(), UpdateError> {
+        while let Some(command) = tokio::stream::StreamExt::next(&mut commands).await {
             match command {
                 Command::Clone(sender) => self.process_clone(sender).await,
                 Command::Received(packet) => self.process_received(packet).await?,
-                Command::SendRequest(packet, sender) => self.process_send_request(&mut connection,packet, sender).await?,
+                Command::SendRequest(packet, sender) => {
+                    self.process_send_request(&mut connection, packet, sender)
+                        .await?
+                }
             }
         }
         Ok(())
@@ -192,13 +217,15 @@ impl ConnectionHandle {
     async fn process_clone(&mut self, clone_sender: CloneSender) {
         let (sender, receiver) = mpsc::channel(LISTENER_CHANNEL_SIZE);
         let mut response = Response::Clone(clone_sender, receiver);
+
         for listener in &mut self.listeners {
             match listener.try_send(response) {
-                Err(r) => response = r.into_inner(),
+                Err(TrySendError::Full(inner)) => response = inner,
+                Err(TrySendError::Closed(inner)) => response = inner,
                 Ok(_) => {
                     self.listeners.push(sender);
                     return;
-                },
+                }
             }
         }
         error!("Failed to find suitable listener to process clone request");
@@ -234,7 +261,12 @@ impl ConnectionHandle {
         }
     }
 
-    async fn process_send_request(&mut self, connection: &mut (impl Sink<Packet, Error = IoError> + Unpin), mut packet: Packet, sender: RequestResponder) -> Result<(), UpdateError> {
+    async fn process_send_request(
+        &mut self,
+        connection: &mut (impl Sink<Packet, Error = IoError> + Unpin),
+        mut packet: Packet,
+        sender: RequestResponder,
+    ) -> Result<(), UpdateError> {
         if self.requests.enqueue_with(&mut packet, sender).is_some() {
             connection.send(packet).await?;
             connection.send(Packet::new_oob()).await?;

@@ -1,12 +1,10 @@
-use std::error::Error;
-use std::fmt::{Display, Error as FmtError, Formatter};
-
-use tokio::sync::oneshot;
-use tokio::sync::oneshot::{Receiver, Sender};
-
 use crate::command::id::S2C_SESSION_EXCEPTION;
 use crate::io::BinaryReader;
 use crate::packet::Packet;
+use futures::channel::oneshot;
+use futures::channel::oneshot::{Receiver, Sender};
+use std::error::Error;
+use std::fmt::{Display, Error as FmtError, Formatter};
 
 const MAX_IDS: usize = u8::max_value() as usize + 1;
 

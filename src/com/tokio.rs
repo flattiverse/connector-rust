@@ -1,18 +1,19 @@
-use std::io::Error as IoError;
-
-use bytes::{BufMut, BytesMut};
-use tokio::codec::Decoder;
-use tokio::codec::Encoder;
-
+use crate::crypt::{to_blocks, Aes128Cbc, AES128CBC_BLOCK_BYTE_LENGTH};
+use crate::packet::Packet;
 use block_modes::BlockMode;
-use futures_util::stream::SplitSink;
-use futures_util::stream::SplitStream;
-use tokio::codec::Framed;
+use bytes::{Buf, BufMut, BytesMut};
+use futures::stream::SplitSink;
+use futures::stream::SplitStream;
+use futures::Sink;
+use futures::SinkExt;
+use futures::Stream;
+use futures::StreamExt;
+use std::io::Error as IoError;
 use tokio::net::TcpStream;
 use tokio::prelude::*;
-
-use crate::crypt::{Aes128Cbc, to_blocks, AES128CBC_BLOCK_BYTE_LENGTH};
-use crate::packet::Packet;
+use tokio_util::codec::Decoder;
+use tokio_util::codec::Encoder;
+use tokio_util::codec::Framed;
 
 const BLOCK_LENGTH: usize = AES128CBC_BLOCK_BYTE_LENGTH;
 
@@ -39,12 +40,10 @@ impl Connection {
         let password_hash = crate::crypt::hash_password(user, password);
         debug!("pass hash: {:x?}", password_hash);
 
-
         let mut stream = connect.await?;
         stream.set_nodelay(true)?;
         stream.write_all(&packet_data[..48]).await?;
         stream.read_exact(&mut packet_data[..48]).await?;
-
 
         let (server_iv, data) = (&packet_data[..48]).split_at(16);
         debug!("server iv: {} {:x?}", server_iv.len(), &server_iv[..]);
@@ -53,7 +52,7 @@ impl Connection {
         let mut send = Aes128Cbc::new_var(&password_hash[..], &iv[..]).unwrap();
         let mut recv = Aes128Cbc::new_var(&password_hash[..], &server_iv[..]).unwrap();
 
-        recv.decrypt_blocks(to_blocks(&mut packet_data[16..16+32]));
+        recv.decrypt_blocks(to_blocks(&mut packet_data[16..16 + 32]));
         for i in 16..32 {
             packet_data[i] = packet_data[i] ^ packet_data[i + 16];
         }
@@ -61,7 +60,10 @@ impl Connection {
         //send.encrypt(&mut RefReadBuffer::new(&challenge[..16]), &mut RefWriteBuffer::new(&mut packet_data[..16]), false).unwrap();
         send.encrypt_blocks(to_blocks(&mut packet_data[16..32]));
         stream.write_all(&packet_data[16..32]).await?;
-        stream.read_exact(&mut packet_data[..16]).await.expect("Wrong password");
+        stream
+            .read_exact(&mut packet_data[..16])
+            .await
+            .expect("Wrong password");
         debug!("Connected to flattiverse server");
 
         let version = u16::from(packet_data[14]) + u16::from(packet_data[15]) * 256;
@@ -79,7 +81,7 @@ impl Connection {
         Ok(Self {
             version,
             sink,
-            stream
+            stream,
         })
     }
 
@@ -99,7 +101,12 @@ impl Connection {
         self.stream.next().await
     }
 
-    pub fn split(self) -> (impl Sink<Packet, Error = IoError>, impl Stream<Item = Result<Packet, IoError>>) {
+    pub fn split(
+        self,
+    ) -> (
+        impl Sink<Packet, Error = IoError>,
+        impl Stream<Item = Result<Packet, IoError>>,
+    ) {
         (self.sink, self.stream)
     }
 
@@ -107,9 +114,6 @@ impl Connection {
         rand::random()
     }
 }
-
-
-
 
 pub struct Flattiverse {
     send: Aes128Cbc,

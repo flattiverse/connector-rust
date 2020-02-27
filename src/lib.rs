@@ -14,8 +14,6 @@ pub mod players;
 pub mod requests;
 pub mod state;
 
-pub extern crate futures_util;
-
 #[macro_use]
 extern crate log;
 
