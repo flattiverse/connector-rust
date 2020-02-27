@@ -35,7 +35,7 @@ impl Connector {
         let mut state = State::default();
 
         while let Some(packet) = connection.receive().await.transpose()? {
-            if let Ok(Some(Event::LoginCompleted)) = state.update(&packet) {
+            if let Some(Event::LoginCompleted) = state.update(&packet)? {
                 return Ok(Connector {
                     receiver: handle.new_listener(),
                     state,
