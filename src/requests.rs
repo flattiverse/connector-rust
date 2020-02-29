@@ -82,6 +82,7 @@ impl Requests {
         match packet.helper {
             0x10_u8 => RequestError::JoinRefused(packet.sub_address),
             0x11_u8 => RequestError::PartRefused(packet.sub_address),
+            0x20_u8 => RequestError::UniverseDoesNotExist,
             0xFF_u8 => {
                 let reader = &mut packet.payload() as &mut dyn BinaryReader;
                 RequestError::ServerException(format!(
@@ -102,6 +103,7 @@ impl Requests {
 pub enum RequestError {
     JoinRefused(u8),
     PartRefused(u8),
+    UniverseDoesNotExist,
     ServerException(String),
     UnknownErrorCode(u8, String),
     InternalIoError(std::io::Error),
@@ -112,6 +114,7 @@ impl RequestError {
         match self {
             RequestError::JoinRefused(_) => "Join refused",
             RequestError::PartRefused(_) => "Part refused",
+            RequestError::UniverseDoesNotExist => "Universe does not exist",
             RequestError::ServerException(_) => "Server exception",
             RequestError::UnknownErrorCode(..) => "Unknown error code",
             RequestError::InternalIoError(_) => "Internal IO-Error",
@@ -135,6 +138,7 @@ impl RequestError {
                 0x02 => "You are on another universe",
                 _ => "Denied, but Matthias does not know why :'(",
             },
+            RequestError::UniverseDoesNotExist => "The specified universe doesn't exist",
             RequestError::ServerException(msg) => msg.as_str(),
             RequestError::UnknownErrorCode(_, msg) => msg.as_str(),
             RequestError::InternalIoError(e) => e.description()
