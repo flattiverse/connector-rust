@@ -17,6 +17,16 @@ pub trait BinaryReader: Read {
 
     fn read_string(&mut self) -> Result<String>;
 
+    fn read_string_empty_is_none(&mut self) -> Result<Option<String>> {
+        self.read_string().map(|string| {
+            if string.is_empty() {
+                None
+            } else {
+                Some(string)
+            }
+        })
+    }
+
     fn read_bool(&mut self) -> Result<bool>;
 
     fn read_byte(&mut self) -> Result<u8>;
