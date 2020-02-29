@@ -103,14 +103,17 @@ impl Connector {
     /// See [`Account::query_by_id`]
     ///
     /// [`Account::query_by_name_pattern`]: crate::players::Account::query_by_id
-    pub async fn query_account_by_id(&mut self, id: u32) -> Result<Account, RequestError> {
+    pub async fn query_account_by_id(&mut self, id: u32) -> Result<Option<Account>, RequestError> {
         Account::query_by_id(id).send(self).await?.await
     }
 
     /// See [`Account::query_by_name`]
     ///
     /// [`Account::query_by_name_pattern`]: crate::players::Account::query_by_name
-    pub async fn query_account_by_name(&mut self, name: &str) -> Result<Account, RequestError> {
+    pub async fn query_account_by_name(
+        &mut self,
+        name: &str,
+    ) -> Result<Option<Account>, RequestError> {
         Account::query_by_name(name).send(self).await?.await
     }
 

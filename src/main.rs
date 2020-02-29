@@ -112,6 +112,13 @@ async fn main() {
                 .await
                 .expect("Failed to query")
         );
+        info!(
+            "Random(asdf) account info: {:?}",
+            connector
+                .query_account_by_name("asdf")
+                .await
+                .expect("Failed to query")
+        );
     }));
 
     loop {

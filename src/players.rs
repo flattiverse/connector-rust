@@ -163,7 +163,7 @@ impl Account {
     }
 
     #[must_use]
-    pub fn query_by_id(id: u32) -> Request<Account> {
+    pub fn query_by_id(id: u32) -> Request<Option<Account>> {
         debug!("Issuing account query for account with id={}", id);
         let mut packet = Packet::default();
         packet.command = crate::command::id::C2S_QUERY_ACCOUNT;
@@ -172,7 +172,7 @@ impl Account {
     }
 
     #[must_use]
-    pub fn query_by_name(name: &str) -> Request<Account> {
+    pub fn query_by_name(name: &str) -> Request<Option<Account>> {
         debug!("Issuing account query for account with name={}", name);
         let mut payload = Vec::new();
         {
@@ -288,6 +288,18 @@ impl TryFrom<&Packet> for Account {
     }
 }
 
+impl TryFrom<&Packet> for Option<Account> {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        if packet.payload().is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(Account::try_from(packet)?))
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct AccountIdList(Vec<u32>);
 
@@ -351,11 +363,11 @@ impl<'a> AccountStream<'a> {
         if self.1.is_empty() {
             None
         } else {
-            Some(self.retrieve_next().await)
+            self.retrieve_next().await.transpose()
         }
     }
 
-    async fn retrieve_next(&mut self) -> Result<Account, RequestError> {
+    async fn retrieve_next(&mut self) -> Result<Option<Account>, RequestError> {
         let index = self.1.len() - 1;
         let id = self.1[index];
         let account = Account::query_by_id(id).send(self.0).await?.await?;
