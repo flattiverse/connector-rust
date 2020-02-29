@@ -1,7 +1,9 @@
 use std::convert::TryFrom;
 use std::io::Error as IoError;
+use std::io::ErrorKind as IoErrorKind;
 
 use crate::io::BinaryReader;
+use crate::num_traits::FromPrimitive;
 use crate::packet::Packet;
 
 #[derive(Debug, Clone)]
@@ -95,5 +97,127 @@ impl TryFrom<&Packet> for Team {
         let reader = &mut packet.payload() as &mut dyn BinaryReader;
         team.update(reader)?;
         Ok(team)
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
+pub enum AccountStatus {
+    Banned = 0,
+    OptIn = 1,
+    Normal = 2,
+    ReOptIn = 3,
+    Vanished = 4,
+}
+
+#[derive(Debug, Clone)]
+pub struct Account {
+    id: u32,
+    name: String,
+    status: AccountStatus,
+    kills: u32,
+    deaths: u32,
+    email: Option<String>,
+    email_new: Option<String>,
+}
+
+impl Account {
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn status(&self) -> AccountStatus {
+        self.status
+    }
+
+    /// The total kills of this account
+    pub fn kills(&self) -> u32 {
+        self.kills
+    }
+
+    /// The total deaths of ths account
+    pub fn deaths(&self) -> u32 {
+        self.deaths
+    }
+
+    /// The current E-Mail address of this account. This will be `None`
+    /// if you do not have the privileges to view it.
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_ref().map(AsRef::as_ref)
+    }
+
+    /// The new E-Mail address of this account, which is only populated after
+    /// this account re-oped-in. This will be `None` if you do not have the
+    /// privileges to view it.
+    pub fn email_new(&self) -> Option<&str> {
+        self.email_new.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn check_name(name: &str) -> bool {
+        if name.is_empty() || name.len() < 2 || name.len() > 32 {
+            return false;
+        }
+
+        if [" ", ".", "-", "_"]
+            .iter()
+            .any(|s| name.starts_with(s) || name.ends_with(s))
+        {
+            return false;
+        }
+
+        for char in name.chars() {
+            let dec = char as u32;
+
+            if char >= 'a' && char >= 'z' {
+                continue;
+            }
+
+            if char >= 'A' && char <= 'Z' {
+                continue;
+            }
+
+            if char >= '0' && char <= '9' {
+                continue;
+            }
+
+            if dec >= 192 && dec <= 214 {
+                continue;
+            }
+
+            if dec >= 216 && dec <= 246 {
+                continue;
+            }
+
+            if char == ' ' || char == '.' || char == '-' || char == '_' {
+                continue;
+            }
+
+            return false;
+        }
+
+        true
+    }
+}
+
+impl TryFrom<&Packet> for Account {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+
+        Ok(Account {
+            id: reader.read_u32()?,
+            name: reader.read_string()?,
+            status: AccountStatus::from_u8(reader.read_byte()?)
+                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+            kills: reader.read_u32()?,
+            deaths: reader.read_u32()?,
+            email: reader.read_string_empty_is_none()?,
+            email_new: reader.read_string_empty_is_none()?,
+        })
     }
 }
