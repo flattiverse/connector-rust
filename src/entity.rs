@@ -178,7 +178,7 @@ impl TryFrom<&Packet> for Universe {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
 pub enum Difficulty {
     Easy = 0,
     Medium = 1,
@@ -187,7 +187,7 @@ pub enum Difficulty {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
 pub enum UniverseMode {
     Mission = 0,
     ShootTheFlag = 1,
@@ -195,7 +195,7 @@ pub enum UniverseMode {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
 pub enum Status {
     Online = 0,
     Offline = 1,
@@ -269,7 +269,7 @@ impl TryFrom<&Packet> for Galaxy {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
 pub enum SystemKind {
     /// The ships hull, a higher level indicates more hull points TODO ...
     Hull = 0x00,

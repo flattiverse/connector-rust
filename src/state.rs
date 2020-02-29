@@ -248,7 +248,7 @@ impl From<IoError> for UpdateError {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, Copy, Clone)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
 pub enum RefuseReason {
     NotRefused = 0,
     AlreadyOnline = 1,
