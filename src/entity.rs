@@ -158,16 +158,16 @@ impl TryFrom<&Packet> for Universe {
             name: reader.read_string()?,
             description: reader.read_string()?,
             difficulty: Difficulty::from_u8(reader.read_byte()?)
-                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                .ok_or_else(|| IoError::from(IoErrorKind::InvalidInput))?,
             mode: UniverseMode::from_u8(reader.read_byte()?)
-                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                .ok_or_else(|| IoError::from(IoErrorKind::InvalidInput))?,
             owner_id: reader.read_u32()?,
             max_players: reader.read_uint16()?,
             max_players_per_team: reader.read_uint16()?,
             max_ships_per_player: reader.read_byte()?,
             max_ships_per_team: reader.read_uint16()?,
             status: Status::from_u8(reader.read_byte()?)
-                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                .ok_or_else(|| IoError::from(IoErrorKind::InvalidInput))?,
             default_privileges: Privileges::from(reader.read_byte()?),
             avatar: Vec::default(),
             teams: vec_of_none!(DEFAULT_TEAMS),
@@ -329,7 +329,7 @@ impl System {
         for _ in 0..count {
             vec.push(System {
                 kind: SystemKind::from_u8(reader.read_byte()?)
-                    .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                    .ok_or_else(|| IoError::from(IoErrorKind::InvalidInput))?,
                 levels: RangeInclusive::new(reader.read_byte()?, reader.read_byte()?),
             });
         }

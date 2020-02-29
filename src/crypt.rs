@@ -42,9 +42,9 @@ pub fn hash_password(salt: &str, password: &str) -> [u8; 16] {
     }
     println!("encrypting... done");
 
-    let mut blocks = [GenericArray::clone_from_slice(&mut slowness[..16])];
+    let mut blocks = [GenericArray::clone_from_slice(&slowness[..16])];
     aes.encrypt_blocks(&mut blocks);
-    return blocks[0].into();
+    blocks[0].into()
 }
 
 pub fn sha512(salt: &str) -> [u8; 64] {

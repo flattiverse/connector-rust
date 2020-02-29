@@ -279,7 +279,7 @@ impl TryFrom<&Packet> for Account {
             id: reader.read_u32()?,
             name: reader.read_string()?,
             status: AccountStatus::from_u8(reader.read_byte()?)
-                .ok_or(IoError::from(IoErrorKind::InvalidInput))?,
+                .ok_or_else(|| IoError::from(IoErrorKind::InvalidInput))?,
             kills: reader.read_u32()?,
             deaths: reader.read_u32()?,
             email: reader.read_string_empty_is_none()?,

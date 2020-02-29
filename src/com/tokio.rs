@@ -54,7 +54,7 @@ impl Connection {
 
         recv.decrypt_blocks(to_blocks(&mut packet_data[16..16 + 32]));
         for i in 16..32 {
-            packet_data[i] = packet_data[i] ^ packet_data[i + 16];
+            packet_data[i] ^= packet_data[i + 16];
         }
 
         //send.encrypt(&mut RefReadBuffer::new(&challenge[..16]), &mut RefWriteBuffer::new(&mut packet_data[..16]), false).unwrap();
