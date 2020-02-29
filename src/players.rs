@@ -323,7 +323,7 @@ impl TryFrom<&Packet> for AccountIdList {
 
     fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
         let reader = &mut packet.payload() as &mut dyn BinaryReader;
-        let size = packet.payload().len() / 4;
+        let size = packet.payload().len() / std::mem::size_of::<u32>();
         let mut vec = Vec::with_capacity(size);
         for _ in 0..size {
             vec.push(reader.read_u32()?);
