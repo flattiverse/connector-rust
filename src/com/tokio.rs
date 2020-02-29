@@ -139,6 +139,10 @@ impl Encoder for Flattiverse {
 
     fn encode(&mut self, mut item: Self::Item, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if item.out_of_band {
+            if self.send_block.is_empty() {
+                // there is nothing in the buffer, therefore OOB is useless/not needed
+                return Ok(());
+            }
             let fill_bytes = BLOCK_LENGTH - self.send_block.len() % BLOCK_LENGTH - 1;
             item.payload = Some(vec![0x55u8; fill_bytes].into());
         }
