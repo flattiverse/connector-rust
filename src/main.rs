@@ -15,17 +15,16 @@ use std::time::Duration;
 #[macro_use]
 pub mod macros;
 
-pub mod packet;
-pub mod entity;
-pub mod state;
-pub mod crypt;
-pub mod players;
 pub mod com;
 pub mod command;
-pub mod requests;
-pub mod io;
 pub mod connector;
-
+pub mod crypt;
+pub mod entity;
+pub mod io;
+pub mod packet;
+pub mod players;
+pub mod requests;
+pub mod state;
 
 #[tokio::main]
 async fn main() {
@@ -54,7 +53,12 @@ async fn main() {
 
         info!("      Components: ");
         for system in universe.systems() {
-            info!("        » {:?} [{}, {}]", system.kind(), system.level_start(), system.level_end());
+            info!(
+                "        » {:?} [{}, {}]",
+                system.kind(),
+                system.level_start(),
+                system.level_end()
+            );
         }
     }
 
@@ -64,7 +68,12 @@ async fn main() {
             let mut connector = connector.await;
             let request = connector.universe(1).map(|u| u.join_with_team(0));
             if let Some(request) = request {
-                match connector.send_request(request).await.await.expect("Connector disconnected") {
+                match connector
+                    .send_request(request)
+                    .await
+                    .await
+                    .expect("Connector disconnected")
+                {
                     Ok(_) => info!("Joined successfully"),
                     Err(e) => error!("{}", e),
                 }
@@ -106,7 +115,7 @@ pub fn init_logger(level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLo
 
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .logger(Logger::builder().build( env!("CARGO_PKG_NAME"), level.unwrap_or(LevelFilter::Info)))
+        .logger(Logger::builder().build(env!("CARGO_PKG_NAME"), level.unwrap_or(LevelFilter::Info)))
         .build(Root::builder().appender("stdout").build(LevelFilter::Info))
         .expect("Failed to create logger config");
 
