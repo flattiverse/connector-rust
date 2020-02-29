@@ -1,7 +1,6 @@
+use crate::io::BinaryReader;
 use byteorder::ReadBytesExt;
 use bytes::{BufMut, Bytes, BytesMut};
-
-use crate::io::BinaryReader;
 
 #[derive(Default, Debug)]
 pub struct Packet {
@@ -189,7 +188,9 @@ impl Packet {
 
             if self.helper > 0 {
                 data.put_u8(self.helper);
-            } else if let Some(payload) = &self.payload {
+            }
+
+            if let Some(payload) = &self.payload {
                 data.put_slice(&payload[..]);
             }
         }

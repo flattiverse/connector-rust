@@ -1,10 +1,15 @@
+use crate::connector::Connector;
+use crate::io::{BinaryReader, BinaryWriter};
+use crate::num_traits::FromPrimitive;
+use crate::packet::Packet;
+use crate::requesting::Request;
+use crate::requests::RequestError;
+use bytes::Bytes;
 use std::convert::TryFrom;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
-
-use crate::io::BinaryReader;
-use crate::num_traits::FromPrimitive;
-use crate::packet::Packet;
+use std::ops::Deref;
+use std::ops::DerefMut;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -110,7 +115,7 @@ pub enum AccountStatus {
     Vanished = 4,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct Account {
     id: u32,
     name: String,
@@ -155,6 +160,67 @@ impl Account {
     /// privileges to view it.
     pub fn email_new(&self) -> Option<&str> {
         self.email_new.as_ref().map(AsRef::as_ref)
+    }
+
+    #[must_use]
+    pub fn query_by_id(id: u32) -> Request<Account> {
+        debug!("Issuing account query for account with id={}", id);
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_QUERY_ACCOUNT;
+        packet.id = id;
+        packet.into()
+    }
+
+    #[must_use]
+    pub fn query_by_name(name: &str) -> Request<Account> {
+        debug!("Issuing account query for account with name={}", name);
+        let mut payload = Vec::new();
+        {
+            let writer = &mut payload as &mut dyn BinaryWriter;
+            writer
+                .write_string(name)
+                .expect("Failed to encode name string");
+        }
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_QUERY_ACCOUNT;
+        packet.payload = Some(Bytes::from(payload));
+        packet.into()
+    }
+
+    /// Queries all accounts matching the given pattern. This query
+    /// will return at most 256 matching accounts.
+    ///
+    /// # Arguments
+    ///
+    /// * `name_pattern` - The (regex-ish) pattern for to apply on the account names.
+    ///   This supports wildcards like `%` or `?`. An empty string or `None` will match
+    ///   all account names.
+    ///
+    /// * `only_confirmed` - Whether to query only for confirmed accounts ([`AccountStatus::Normal`])
+    ///   or whether to match any known account, regardless of their status.
+    ///
+    /// [`AccountStatus::Normal`]: crate::players::AccountStatus::Normal
+    #[must_use]
+    pub fn query_by_name_pattern(
+        name_pattern: Option<&str>,
+        only_confirmed: bool,
+    ) -> Request<AccountIdList> {
+        debug!(
+            "Issuing account query with name_pattern={:?}, only_confirmed={}",
+            name_pattern, only_confirmed
+        );
+        let mut payload = Vec::default();
+        let writer = &mut payload as &mut dyn BinaryWriter;
+        writer
+            .write_string(name_pattern.unwrap_or_default())
+            .expect("Failed to encode name_pattern");
+        writer
+            .write_bool(only_confirmed)
+            .expect("Failed to encode only_confirmed");
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_QUERY_ACCOUNTS;
+        packet.payload = Some(Bytes::from(payload));
+        packet.into()
     }
 
     pub fn check_name(name: &str) -> bool {
@@ -219,5 +285,81 @@ impl TryFrom<&Packet> for Account {
             email: reader.read_string_empty_is_none()?,
             email_new: reader.read_string_empty_is_none()?,
         })
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct AccountIdList(Vec<u32>);
+
+impl AccountIdList {
+    pub fn ids(&self) -> impl Iterator<Item = &u32> {
+        self.0.iter()
+    }
+
+    pub fn to_stream<'a>(&self, connector: &'a mut Connector) -> AccountStream<'a> {
+        AccountStream::new(connector, &self.0[..])
+    }
+
+    pub fn into_stream(mut self, connector: &mut Connector) -> AccountStream {
+        self.0.reverse();
+        AccountStream(connector, self.0)
+    }
+}
+
+impl TryFrom<&Packet> for AccountIdList {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+        let size = packet.payload().len() / 4;
+        let mut vec = Vec::with_capacity(size);
+        for _ in 0..size {
+            vec.push(reader.read_u32()?);
+        }
+        Ok(AccountIdList(vec))
+    }
+}
+
+impl Deref for AccountIdList {
+    type Target = Vec<u32>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for AccountIdList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Into<Vec<u32>> for AccountIdList {
+    fn into(self) -> Vec<u32> {
+        self.0
+    }
+}
+
+pub struct AccountStream<'a>(&'a mut Connector, Vec<u32>);
+
+impl<'a> AccountStream<'a> {
+    pub fn new(connector: &'a mut Connector, ids: &[u32]) -> Self {
+        Self(connector, ids.iter().rev().map(ToOwned::to_owned).collect())
+    }
+
+    pub async fn next(&mut self) -> Option<Result<Account, RequestError>> {
+        if self.1.is_empty() {
+            None
+        } else {
+            Some(self.retrieve_next().await)
+        }
+    }
+
+    async fn retrieve_next(&mut self) -> Result<Account, RequestError> {
+        let index = self.1.len() - 1;
+        let id = self.1[index];
+        let account = Account::query_by_id(id).send(self.0).await?.await?;
+        self.1.remove(index);
+        Ok(account)
     }
 }

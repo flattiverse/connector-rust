@@ -104,6 +104,7 @@ pub enum RequestError {
     PartRefused(u8),
     ServerException(String),
     UnknownErrorCode(u8, String),
+    InternalIoError(std::io::Error),
 }
 
 impl RequestError {
@@ -113,6 +114,7 @@ impl RequestError {
             RequestError::PartRefused(_) => "Part refused",
             RequestError::ServerException(_) => "Server exception",
             RequestError::UnknownErrorCode(..) => "Unknown error code",
+            RequestError::InternalIoError(_) => "Internal IO-Error",
         }
     }
 
@@ -135,7 +137,14 @@ impl RequestError {
             },
             RequestError::ServerException(msg) => msg.as_str(),
             RequestError::UnknownErrorCode(_, msg) => msg.as_str(),
+            RequestError::InternalIoError(e) => e.description()
         }
+    }
+}
+
+impl From<std::io::Error> for RequestError {
+    fn from(e: std::io::Error) -> Self {
+        RequestError::InternalIoError(e)
     }
 }
 

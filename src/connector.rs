@@ -1,7 +1,7 @@
 use crate::com::Connection;
 use crate::entity::Universe;
 use crate::packet::Packet;
-use crate::players::Player;
+use crate::players::{Account, AccountStream, Player};
 use crate::requests::{RequestError, Requests};
 use crate::state::{Event, State, UpdateError};
 use futures::channel::oneshot;
@@ -16,6 +16,7 @@ use std::time::Duration;
 use tokio::io::ErrorKind;
 use tokio::stream::StreamExt as _;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::error::TrySendError;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::mpsc::{channel, Receiver};
@@ -65,10 +66,7 @@ impl Connector {
         self.state.players.get(id).and_then(Option::as_ref)
     }
 
-    pub async fn update<'a>(
-        &'a mut self,
-        timeout: Duration,
-    ) -> Option<Result<Event<'a>, UpdateError>> {
+    pub async fn update(&mut self, timeout: Duration) -> Option<Result<Event<'_>, UpdateError>> {
         if let Ok(response) =
             tokio::stream::StreamExt::next(&mut (&mut self.receiver).timeout(timeout)).await?
         {
@@ -90,13 +88,45 @@ impl Connector {
         cloner: CloneSender,
         receiver: ListenerReceiver,
     ) {
-        if let Err(_) = cloner.send(Connector {
-            sender: sender.clone(),
-            receiver,
-            state: state.clone(),
-        }) {
+        if cloner
+            .send(Connector {
+                sender: sender.clone(),
+                receiver,
+                state: state.clone(),
+            })
+            .is_err()
+        {
             error!("Failed to respond to connector clone response");
         }
+    }
+
+    /// See [`Account::query_by_id`]
+    ///
+    /// [`Account::query_by_name_pattern`]: crate::players::Account::query_by_id
+    pub async fn query_account_by_id(&mut self, id: u32) -> Result<Account, RequestError> {
+        Account::query_by_id(id).send(self).await?.await
+    }
+
+    /// See [`Account::query_by_name`]
+    ///
+    /// [`Account::query_by_name_pattern`]: crate::players::Account::query_by_name
+    pub async fn query_account_by_name(&mut self, name: &str) -> Result<Account, RequestError> {
+        Account::query_by_name(name).send(self).await?.await
+    }
+
+    /// See [`Account::query_by_name_pattern`]
+    ///
+    /// [`Account::query_by_name_pattern`]: crate::players::Account::query_by_name_pattern
+    pub async fn query_accounts_by_name_pattern(
+        &mut self,
+        name_pattern: Option<&str>,
+        only_confirmed: bool,
+    ) -> Result<AccountStream<'_>, RequestError> {
+        Ok(Account::query_by_name_pattern(name_pattern, only_confirmed)
+            .send(self)
+            .await?
+            .await?
+            .into_stream(self))
     }
 
     pub async fn send_request(
@@ -112,12 +142,46 @@ impl Connector {
         receiver
     }
 
+    /// This function will submit a clone request for itself and return a new future.
+    /// The returned future then continues to await the clone result to then call the given
+    /// [`FnOnce`] and also await the result of it.
+    ///
+    /// It is a nice wrapper to be able to write
+    /// ```rust2018
+    /// tokio::spawn(connector.with_clone(your_fn_once));
+    /// ```
+    /// instead of
+    /// ```rust2018
+    /// tokio::spawn({
+    ///     let connector = connector.clone();
+    ///     async move {
+    ///         connector.await;
+    ///         your_fn_once(connector).await
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// [`FnOnce`]: FnOnce
+    pub fn with_clone<R: Future, F: FnOnce(Connector) -> R>(
+        &mut self,
+        f: F,
+    ) -> impl Future<Output = R::Output> {
+        let clone = self.clone();
+        async move { f(clone.await).await }
+    }
+
     pub fn clone(&mut self) -> impl Future<Output = Self> {
-        let (sender, receiver) = oneshot::channel();
-        if let Err(_) = self.sender.try_send(Command::Clone(sender)) {
-            panic!("ConnectionHandle gone");
+        // cloning is not cheap, but also not that expensive
+        // and this allows the future below to await the send
+        // and never run into the the full-queue-error-state
+        let mut handle = self.sender.clone();
+        async move {
+            let (sender, receiver) = oneshot::channel();
+            if let Err(SendError(_)) = handle.send(Command::Clone(sender)).await {
+                panic!("ConnectionHandle gone")
+            }
+            receiver.await.expect("ConnectionHandle gone")
         }
-        async { receiver.await.expect("ConnectionHandle gone") }
     }
 }
 
@@ -248,13 +312,20 @@ impl ConnectionHandle {
         let mut to_delete = Vec::default();
 
         for (index, listener) in self.listeners.iter_mut().enumerate() {
-            if let Err(_) = listener.try_send(Response::Packet(packet.clone())) {
-                warn!("Notifying listener at index {} failed", index);
-                to_delete.push(index);
-            } else {
-                debug!("Notifying listener at index {} succeeded", index);
+            match listener.try_send(Response::Packet(packet.clone())) {
+                Err(TrySendError::Closed(_)) => to_delete.push(index),
+                Err(TrySendError::Full(_)) => {
+                    warn!("Notifying listener at index {} failed", index);
+                    to_delete.push(index);
+                }
+                Ok(_) => {
+                    debug!("Notifying listener at index {} succeeded", index);
+                }
             }
         }
+
+        to_delete.sort();
+        to_delete.reverse();
 
         for index in to_delete {
             self.listeners.remove(index);

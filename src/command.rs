@@ -9,6 +9,16 @@ pub(crate) mod id {
     /// data: base_address contains the universe id
     pub(crate) const C2S_UNIVERSE_PART: u8 = 0x1B;
 
+    /// Issued if the client wants to know more details of an account
+    ///
+    /// data: [`Account`] in payload
+    pub(crate) const C2S_QUERY_ACCOUNT: u8 = 0x40;
+
+    /// Issued if the client wants to know more details of many accounts using pattern matching
+    ///
+    /// data: a list of matching account ids
+    pub(crate) const C2S_QUERY_ACCOUNTS: u8 = 0x41;
+
     /// Issued to inform the connector to forget a certain player
     ///
     /// data: base_address contains the player id

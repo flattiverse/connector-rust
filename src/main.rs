@@ -1,3 +1,5 @@
+#![deny(intra_doc_link_resolution_failure)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -23,12 +25,13 @@ pub mod entity;
 pub mod io;
 pub mod packet;
 pub mod players;
+pub mod requesting;
 pub mod requests;
 pub mod state;
 
 #[tokio::main]
 async fn main() {
-    init_logger(Some(LevelFilter::Debug)).unwrap();
+    init_logger(Some(LevelFilter::Info)).unwrap();
     debug!("Logger init");
 
     let env = std::env::args().collect::<Vec<String>>();
@@ -98,12 +101,36 @@ async fn main() {
         });
     }
 
+    tokio::spawn(connector.with_clone(query_all_accounts));
+    tokio::spawn(connector.with_clone(|mut connector| async move {
+        tokio::time::delay_for(Duration::from_secs(2)).await;
+        info!(
+            "Your({}) account info: {:?}",
+            &env[1],
+            connector
+                .query_account_by_name(&env[1])
+                .await
+                .expect("Failed to query")
+        );
+    }));
+
     loop {
         while let Some(event) = connector.update(Duration::from_millis(1000)).await {
             info!("Processed event: {:?}", event);
         }
     }
-    info!("End of main");
+}
+
+async fn query_all_accounts(mut connector: Connector) {
+    info!("Sending account query");
+    let mut stream = connector
+        .query_accounts_by_name_pattern(None, false)
+        .await
+        .expect("Account query failed");
+    info!("Accounts:");
+    while let Some(Ok(account)) = stream.next().await {
+        info!("  - {:?}", account);
+    }
 }
 
 pub fn init_logger(level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLoggerError> {
