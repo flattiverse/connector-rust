@@ -228,33 +228,36 @@ pub enum Status {
     Maintenance = 2,
 }
 
+#[repr(u8)]
+#[derive(Debug, FromPrimitive, Copy, Clone, PartialOrd, PartialEq)]
+pub enum Privilege {
+    Nothing = 0,
+    Join = 1,
+    ManageUnits = 2,
+    ManageRegions = 4,
+    ManageSystems = 8,
+    ManageUniverse = 16,
+}
+
 #[derive(Copy, Clone)]
 pub struct Privileges(u8);
 
 impl fmt::Debug for Privileges {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Privileges")
-            .field("allowed_to_join", &self.allowed_to_join())
-            .field("allowed_to_manage_units", &self.allowed_to_manage_units())
-            .field(
-                "allowed_to_manage_regions",
-                &self.allowed_to_manage_regions(),
-            )
-            .field(
-                "allowed_to_manage_systems",
-                &self.allowed_to_manage_systems(),
-            )
-            .field(
-                "allowed_to_manage_universes",
-                &self.allowed_to_manage_universes(),
-            )
-            .finish()
+        let list = self.list().collect::<Vec<_>>();
+        f.debug_tuple("Privileges").field(&list).finish()
     }
 }
 
 impl From<u8> for Privileges {
     fn from(value: u8) -> Self {
         Privileges(value)
+    }
+}
+
+impl From<&[Privilege]> for Privileges {
+    fn from(slice: &[Privilege]) -> Self {
+        Privileges(slice.iter().map(|p| *p as u8).fold(0u8, |a, b| a ^ b))
     }
 }
 
@@ -265,28 +268,23 @@ impl Into<u8> for Privileges {
 }
 
 impl Privileges {
-    pub const fn is_nothing(self) -> bool {
-        self.0 == 0
+    pub const fn has(&self, privilege: Privilege) -> bool {
+        self.0 & (privilege as u8) != 0
     }
 
-    pub const fn allowed_to_join(self) -> bool {
-        self.0 & 1 != 0
-    }
-
-    pub const fn allowed_to_manage_units(self) -> bool {
-        self.0 & 2 != 0
-    }
-
-    pub const fn allowed_to_manage_regions(self) -> bool {
-        self.0 & 4 != 0
-    }
-
-    pub const fn allowed_to_manage_systems(self) -> bool {
-        self.0 & 8 != 0
-    }
-
-    pub const fn allowed_to_manage_universes(self) -> bool {
-        self.0 & 16 != 0
+    pub fn list(&self) -> impl Iterator<Item = Privilege> {
+        [
+            Privilege::Nothing,
+            Privilege::Join,
+            Privilege::ManageUnits,
+            Privilege::ManageRegions,
+            Privilege::ManageSystems,
+            Privilege::ManageUniverse,
+        ]
+        .iter()
+        .filter_map(|p| if self.has(*p) { Some(*p) } else { None })
+        .collect::<Vec<_>>()
+        .into_iter()
     }
 }
 

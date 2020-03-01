@@ -242,22 +242,12 @@ pub struct PermissionDenied(Privileges);
 
 impl Display for PermissionDenied {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        let mut required = Vec::default();
-        if self.0.allowed_to_join() {
-            required.push("Join");
-        }
-        if self.0.allowed_to_manage_regions() {
-            required.push("ManageRegions");
-        }
-        if self.0.allowed_to_manage_systems() {
-            required.push("ManageSystems");
-        }
-        if self.0.allowed_to_manage_units() {
-            required.push("ManageUnits");
-        }
-        if self.0.allowed_to_manage_universes() {
-            required.push("ManageUniverses");
-        }
+        let required = self
+            .0
+            .list()
+            .map(|p| format!("{:?}", p))
+            .collect::<Vec<String>>();
+
         if required.is_empty() {
             write!(f, "Access denied. However, it seems like you don't need any privileges for what you tried to do?!")
         } else if required.len() == 1 {
