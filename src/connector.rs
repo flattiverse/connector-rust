@@ -12,7 +12,6 @@ use std::future::Future;
 use std::io::Error as IoError;
 use std::mem;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::io::ErrorKind;
 use tokio::stream::StreamExt as _;
 use tokio::sync::mpsc;
@@ -66,19 +65,14 @@ impl Connector {
         self.state.players.get(id).and_then(Option::as_ref)
     }
 
-    pub async fn update(&mut self, timeout: Duration) -> Option<Result<Event<'_>, UpdateError>> {
-        if let Ok(response) =
-            tokio::stream::StreamExt::next(&mut (&mut self.receiver).timeout(timeout)).await?
-        {
-            match response {
-                Response::Packet(packet) => self.state.update(&packet).transpose(),
+    pub async fn update(&mut self) -> Option<Result<Event<'_>, UpdateError>> {
+        loop {
+            match self.receiver.next().await? {
+                Response::Packet(packet) => return self.state.update(&packet).transpose(),
                 Response::Clone(cloner, receiver) => {
                     Self::handle_clone_response(&self.sender, &self.state, cloner, receiver);
-                    None
                 }
             }
-        } else {
-            None
         }
     }
 
@@ -162,6 +156,17 @@ impl Connector {
         receiver
     }
 
+    // TODO panic -> error type?
+    /// Requests to close the underlying connection. Any further calls
+    /// to methods requiring the connection might panic.
+    pub async fn disconnect(&mut self) {
+        self.sender
+            .send(Command::Disconnect)
+            .await
+            .map_err(drop)
+            .expect("ConnectionHandle gone");
+    }
+
     /// This function will submit a clone request for itself and return a new future.
     /// The returned future then continues to await the clone result to then call the given
     /// [`FnOnce`] and also await the result of it.
@@ -234,6 +239,7 @@ enum Command {
     Clone(CloneSender),
     Received(Packet),
     SendRequest(Packet, RequestResponder),
+    Disconnect,
 }
 
 enum Response {
@@ -293,6 +299,7 @@ impl ConnectionHandle {
                     self.process_send_request(&mut connection, packet, sender)
                         .await?
                 }
+                Command::Disconnect => break,
             }
         }
         Ok(())

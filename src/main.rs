@@ -123,12 +123,11 @@ async fn main() {
         );
         query_print_universe_privileges(&mut connector, 0).await;
         query_print_universe_privileges(&mut connector, 15).await;
+        connector.disconnect().await;
     }));
 
-    loop {
-        while let Some(event) = connector.update(Duration::from_millis(1000)).await {
-            info!("Processed event: {:?}", event);
-        }
+    while let Some(event) = connector.update().await {
+        info!("Processed event: {:?}", event);
     }
 }
 
