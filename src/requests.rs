@@ -1,8 +1,10 @@
 use crate::command::id::S2C_SESSION_EXCEPTION;
+use crate::entity::Privileges;
 use crate::io::BinaryReader;
 use crate::packet::Packet;
 use futures::channel::oneshot;
 use futures::channel::oneshot::{Receiver, Sender};
+use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Display, Error as FmtError, Formatter};
 
@@ -80,9 +82,20 @@ impl Requests {
 
     fn parse_request_error(packet: &Packet) -> RequestError {
         match packet.helper {
+            0x01_u8 => RequestError::UniverseServerUnhandled,
+            0x05_u8 => RequestError::PermissionDenied(PermissionDenied(Privileges::from(
+                packet.sub_address,
+            ))),
+            0x06_u8 => RequestError::IllegalName(IllegalName),
+            0x07_u8 => RequestError::UnitDoesntExist,
             0x10_u8 => RequestError::JoinRefused(packet.sub_address),
             0x11_u8 => RequestError::PartRefused(packet.sub_address),
             0x20_u8 => RequestError::UniverseDoesNotExist,
+            0x21_u8 => RequestError::UniverseOffline,
+            0x22_u8 => RequestError::UniverseGoneWhileExecutingRequest,
+            0x24_u8 => RequestError::GalaxyDoesNotExist,
+            0x60_u8 => RequestError::NonEditableUnit,
+            0x61_u8 => RequestError::AmbiguousXmlData(AmbiguousXmlData),
             0xFF_u8 => {
                 let reader = &mut packet.payload() as &mut dyn BinaryReader;
                 RequestError::ServerException(format!(
@@ -101,9 +114,18 @@ impl Requests {
 
 #[derive(Debug)]
 pub enum RequestError {
+    UniverseServerUnhandled,
+    PermissionDenied(PermissionDenied),
+    IllegalName(IllegalName),
+    UnitDoesntExist,
     JoinRefused(u8),
     PartRefused(u8),
     UniverseDoesNotExist,
+    UniverseOffline,
+    UniverseGoneWhileExecutingRequest,
+    GalaxyDoesNotExist,
+    NonEditableUnit,
+    AmbiguousXmlData(AmbiguousXmlData),
     ServerException(String),
     UnknownErrorCode(u8, String),
     InternalIoError(std::io::Error),
@@ -112,17 +134,30 @@ pub enum RequestError {
 impl RequestError {
     pub fn general(&self) -> &str {
         match self {
+            RequestError::UniverseServerUnhandled => "Universe Server Error",
+            RequestError::PermissionDenied(_) => "Permission Denied",
+            RequestError::IllegalName(_) => "Illegal Name",
+            RequestError::UnitDoesntExist => "Unit doesn't exist",
             RequestError::JoinRefused(_) => "Join refused",
             RequestError::PartRefused(_) => "Part refused",
             RequestError::UniverseDoesNotExist => "Universe does not exist",
+            RequestError::UniverseOffline => "Invalid operation",
+            RequestError::UniverseGoneWhileExecutingRequest => "Invalid operation",
+            RequestError::GalaxyDoesNotExist => "Galaxy does not exist",
+            RequestError::NonEditableUnit => "Argument Error",
+            RequestError::AmbiguousXmlData(_) => "Ambiguous Xml Data",
             RequestError::ServerException(_) => "Server exception",
             RequestError::UnknownErrorCode(..) => "Unknown error code",
             RequestError::InternalIoError(_) => "Internal IO-Error",
         }
     }
 
-    pub fn message(&self) -> &str {
-        match self {
+    pub fn message(&self) -> Cow<str> {
+        Cow::Borrowed(match self {
+            RequestError::UniverseServerUnhandled => "The universe server encountered an exception which has not been handled properly in the code. Additionally the proxy can't understand the exact details of this exception. Please forward this incident to info@flattiverse.com.",
+            RequestError::PermissionDenied(pd) => return Cow::Owned(format!("{}", pd.to_string())),
+            RequestError::IllegalName(_) => "The given name is illegal",
+            RequestError::UnitDoesntExist => "The specified unit doesn't exist or is not available in this context.",
             RequestError::JoinRefused(reason) => match reason {
                 0x01 => "You are already assigned to an universe. Pleas part first",
                 0x02 => "You specified an invalid team",
@@ -139,16 +174,33 @@ impl RequestError {
                 _ => "Denied, but Matthias does not know why :'(",
             },
             RequestError::UniverseDoesNotExist => "The specified universe doesn't exist",
+            RequestError::UniverseOffline => "The universe is offline.",
+            RequestError::UniverseGoneWhileExecutingRequest => "The universe disconnected from the proxy while executing your command.",
+            RequestError::GalaxyDoesNotExist => "The specified galaxy doesn't exist",
+            RequestError::NonEditableUnit => "The unit you specified to update can't be altered: Maybe it's a player unit, shot or some other active and dynamically generated unit.",
+            RequestError::AmbiguousXmlData(e) => e.description(),
             RequestError::ServerException(msg) => msg.as_str(),
             RequestError::UnknownErrorCode(_, msg) => msg.as_str(),
             RequestError::InternalIoError(e) => e.description()
-        }
+        })
     }
 }
 
 impl From<std::io::Error> for RequestError {
     fn from(e: std::io::Error) -> Self {
         RequestError::InternalIoError(e)
+    }
+}
+
+impl From<IllegalName> for RequestError {
+    fn from(e: IllegalName) -> Self {
+        RequestError::IllegalName(e)
+    }
+}
+
+impl From<AmbiguousXmlData> for RequestError {
+    fn from(e: AmbiguousXmlData) -> Self {
+        RequestError::AmbiguousXmlData(e)
     }
 }
 
@@ -159,3 +211,70 @@ impl Display for RequestError {
 }
 
 impl Error for RequestError {}
+
+#[derive(Debug)]
+pub struct IllegalName;
+
+impl Display for IllegalName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(f, "The given name is illegal")
+    }
+}
+
+impl Error for IllegalName {}
+
+#[derive(Debug)]
+pub struct AmbiguousXmlData;
+
+impl Display for AmbiguousXmlData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(
+            f,
+            "The XML specification is invalid. Please check the syntax and/or content."
+        )
+    }
+}
+
+impl Error for AmbiguousXmlData {}
+
+#[derive(Debug)]
+pub struct PermissionDenied(Privileges);
+
+impl Display for PermissionDenied {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        let mut required = Vec::default();
+        if self.0.allowed_to_join() {
+            required.push("Join");
+        }
+        if self.0.allowed_to_manage_regions() {
+            required.push("ManageRegions");
+        }
+        if self.0.allowed_to_manage_systems() {
+            required.push("ManageSystems");
+        }
+        if self.0.allowed_to_manage_units() {
+            required.push("ManageUnits");
+        }
+        if self.0.allowed_to_manage_universes() {
+            required.push("ManageUniverses");
+        }
+        if required.is_empty() {
+            write!(f, "Access denied. However, it seems like you don't need any privileges for what you tried to do?!")
+        } else if required.len() == 1 {
+            write!(
+                f,
+                "Access denied. You require the \"{}\" privilege,",
+                required[0]
+            )
+        } else {
+            write!(
+                f,
+                "Access denied. You require the following privileges for this call: \"{}\" and \"{}\".",
+                required.join("\", \""),
+                required[required.len() -1 ]
+            )
+        }
+    }
+}
+
+impl Error for PermissionDenied {}

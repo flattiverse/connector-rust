@@ -1,4 +1,5 @@
 use crate::connector::Connector;
+use crate::io::BinaryReader;
 use crate::packet::Packet;
 use crate::requests::RequestError;
 use futures::channel::oneshot;
@@ -93,5 +94,26 @@ where
 
     fn try_from_ref(value: &V) -> Result<Self, Self::Error> {
         T::try_from(value)
+    }
+}
+
+impl TryFrom<&Packet> for String {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        if packet.payload().is_empty() {
+            Err(IoError::from(IoErrorKind::UnexpectedEof))
+        } else {
+            let reader = &mut packet.payload() as &mut dyn BinaryReader;
+            Ok(reader.read_string()?)
+        }
+    }
+}
+
+impl TryFrom<&Packet> for () {
+    type Error = IoError;
+
+    fn try_from(_packet: &Packet) -> Result<Self, Self::Error> {
+        Ok(())
     }
 }

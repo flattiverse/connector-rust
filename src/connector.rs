@@ -1,5 +1,5 @@
 use crate::com::Connection;
-use crate::entity::{AccountPrivilegesStream, Universe};
+use crate::entity::{AccountPrivilegesStream, Privileges, Universe};
 use crate::packet::Packet;
 use crate::players::{Account, AccountStream, Player};
 use crate::requests::{RequestError, Requests};
@@ -141,6 +141,84 @@ impl Connector {
             .await?
             .await?
             .into_stream(self))
+    }
+
+    /// See [`Universe::alter_privileges`]
+    ///
+    /// [`Universe::alter_privileges`]: crate::entity::Universe::alter_privileges
+    pub async fn alter_privileges_of_universe(
+        &mut self,
+        universe: u16,
+        account: &Account,
+        privileges: Privileges,
+    ) -> Result<(), RequestError> {
+        Ok(self
+            .universe(usize::from(universe))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .alter_privileges(account, privileges)
+            .send(self)
+            .await?
+            .await?)
+    }
+
+    /// See [`Galaxy::query_unit_xml_by_name`]
+    ///
+    /// [`Galaxy::query_unit_xml_by_name`]: crate::entity::Galaxy::query_unit_xml_by_name
+    pub async fn query_unit_xml_by_name(
+        &mut self,
+        universe: u16,
+        galaxy: u8,
+        name: &str,
+    ) -> Result<String, RequestError> {
+        Ok(self
+            .universe(usize::from(universe))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .galaxy(galaxy)
+            .ok_or(RequestError::GalaxyDoesNotExist)?
+            .query_unit_xml_by_name(name)?
+            .send(self)
+            .await?
+            .await?)
+    }
+
+    /// See [`Galaxy::update_unit_xml`]
+    ///
+    /// [`Galaxy::update_unit_xml`]: crate::entity::Galaxy::update_unit_xml
+    pub async fn update_unit_xml(
+        &mut self,
+        universe: u16,
+        galaxy: u8,
+        xml: &str,
+    ) -> Result<(), RequestError> {
+        Ok(self
+            .universe(usize::from(universe))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .galaxy(galaxy)
+            .ok_or(RequestError::GalaxyDoesNotExist)?
+            .update_unit_xml(xml)?
+            .send(self)
+            .await?
+            .await?)
+    }
+
+    /// See [`Galaxy::delete_unit_by_name`]
+    ///
+    /// [`Galaxy::delete_unit_by_name`]: crate::entity::Galaxy::delete_unit_by_name
+    pub async fn delete_unit_by_name(
+        &mut self,
+        universe: u16,
+        galaxy: u8,
+        name: &str,
+    ) -> Result<(), RequestError> {
+        Ok(self
+            .universe(usize::from(universe))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .galaxy(galaxy)
+            .ok_or(RequestError::GalaxyDoesNotExist)?
+            .delete_unit_by_name(name)?
+            .send(self)
+            .await?
+            .await?)
     }
 
     pub async fn send_request(

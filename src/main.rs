@@ -53,7 +53,7 @@ async fn main() {
 
         info!("      Galaxies: ");
         for galaxy in universe.galaxies() {
-            info!("        » {}", galaxy.name());
+            info!("        » {} ({})", galaxy.name(), galaxy.id());
         }
 
         info!("      Components: ");
@@ -123,12 +123,30 @@ async fn main() {
         );
         query_print_universe_privileges(&mut connector, 0).await;
         query_print_universe_privileges(&mut connector, 15).await;
+        query_xml_stuff(&mut connector).await;
         connector.disconnect().await;
     }));
 
     while let Some(event) = connector.update().await {
         info!("Processed event: {:?}", event);
     }
+}
+
+async fn query_xml_stuff(connector: &mut Connector) {
+    connector.update_unit_xml(
+        15, 0, "<Sun Name=\"RustUnit\" Radius=\"300\" PositionX=\"0\" PositionY=\"0\" Gravity=\"0.7\" Radiation=\"2\" PowerOutput=\"150\" />"
+    ).await.expect("Failed to update");
+    info!(
+        "RustUnit: {}",
+        connector
+            .query_unit_xml_by_name(15, 0, "RustUnit")
+            .await
+            .expect("Failed to query RustUnit details")
+    );
+    connector
+        .delete_unit_by_name(15, 0, "RustUnit")
+        .await
+        .expect("Failed to delete RustUnit");
 }
 
 async fn query_all_accounts(mut connector: Connector) {

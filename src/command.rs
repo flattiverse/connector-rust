@@ -24,6 +24,26 @@ pub(crate) mod id {
     /// data: a list of account ids and privileges
     pub(crate) const C2S_QUERY_PRIVILEGES: u8 = 0x44;
 
+    /// Issued if the client wants to change privilege details of a universe
+    ///
+    /// data: None
+    pub(crate) const C2S_UPDATE_PRIVILEGES: u8 = 0x45;
+
+    /// Issued if client wants to know the xml data of an unit
+    ///
+    /// data: a string containing the xml data for the unit
+    pub(crate) const C2S_QUERY_UNIT: u8 = 0x60;
+
+    /// Issued if client wants to update or create an unit via xml
+    ///
+    /// data: None
+    pub(crate) const C2S_UPDATE_OR_CREATE_UNIT: u8 = 0x61;
+
+    /// Issued if client wants to delete an unit
+    ///
+    /// data: None
+    pub(crate) const C2S_DELETE_UNIT: u8 = 0x62;
+
     /// Issued to inform the connector to forget a certain player
     ///
     /// data: base_address contains the player id

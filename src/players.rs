@@ -236,7 +236,7 @@ impl Account {
         for char in name.chars() {
             let dec = char as u32;
 
-            if char >= 'a' && char >= 'z' {
+            if char >= 'a' && char <= 'z' {
                 continue;
             }
 

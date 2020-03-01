@@ -1,11 +1,12 @@
 use crate::command;
 use crate::connector::Connector;
-use crate::io::BinaryReader;
+use crate::io::{BinaryReader, BinaryWriter};
 use crate::packet::Packet;
 use crate::players::{Account, Team};
 use crate::requesting::Request;
-use crate::requests::RequestError;
+use crate::requests::{AmbiguousXmlData, IllegalName, RequestError};
 use byteorder::ReadBytesExt;
+use bytes::Bytes;
 use num_traits::FromPrimitive;
 use std::convert::TryFrom;
 use std::fmt;
@@ -156,6 +157,20 @@ impl Universe {
         packet.base_address = self.id;
         packet.into()
     }
+
+    /// Changes the privileges of the given account for this universe. Use
+    /// [`Universe::default_privileges`] to remove an entry for an account.
+    ///
+    /// [`Universe::default_privileges`]: crate::entity::Universe::default_privileges
+    #[must_use]
+    pub fn alter_privileges(&self, account: &Account, privileges: Privileges) -> Request<()> {
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_UPDATE_PRIVILEGES;
+        packet.base_address = self.id;
+        packet.id = account.id();
+        packet.helper = privileges.into();
+        packet.into()
+    }
 }
 
 impl TryFrom<&Packet> for Universe {
@@ -243,6 +258,12 @@ impl From<u8> for Privileges {
     }
 }
 
+impl Into<u8> for Privileges {
+    fn into(self) -> u8 {
+        self.0
+    }
+}
+
 impl Privileges {
     pub const fn is_nothing(self) -> bool {
         self.0 == 0
@@ -325,11 +346,20 @@ impl<'a> AccountPrivilegesStream<'a> {
 #[derive(Debug, Clone)]
 pub struct Galaxy {
     id: u8,
+    universe: u16,
     name: String,
     spawn: bool,
 }
 
 impl Galaxy {
+    pub const fn id(&self) -> u8 {
+        self.id
+    }
+
+    pub const fn universe(&self) -> u16 {
+        self.universe
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -337,6 +367,69 @@ impl Galaxy {
     /// Whether you can spawn into this galaxy
     pub fn spawn(&self) -> bool {
         self.spawn
+    }
+
+    /// Queries a a unit for this galaxy in xml representation. To succeed,
+    /// the issues requires to have [`ManageUnits`] privileges.
+    ///
+    /// [`ManageUnits`]: crate::entity::Privileges::allowed_to_manage_units
+    pub fn query_unit_xml_by_name(&self, name: &str) -> Result<Request<String>, IllegalName> {
+        if !Unit::check_name(name) {
+            return Err(IllegalName);
+        }
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_QUERY_UNIT;
+        packet.base_address = self.universe;
+        packet.sub_address = self.id;
+        packet.payload = Some(Bytes::from({
+            let mut payload = Vec::default();
+            let writer = &mut payload as &mut dyn BinaryWriter;
+            writer.write_string(name).expect("Failed to encode name");
+            payload
+        }));
+        Ok(packet.into())
+    }
+
+    /// Updates or crates an unit according to the specified xml data. To succeed,
+    /// the issues requires to have [`ManageUnits`] privileges.
+    ///
+    /// [`ManageUnits`]: crate::entity::Privileges::allowed_to_manage_units
+    pub fn update_unit_xml(&self, xml: &str) -> Result<Request<()>, AmbiguousXmlData> {
+        if xml.len() < 5 || xml.len() > 8192 {
+            return Err(AmbiguousXmlData);
+        }
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_UPDATE_OR_CREATE_UNIT;
+        packet.base_address = self.universe;
+        packet.sub_address = self.id;
+        packet.payload = Some(Bytes::from({
+            let mut payload = Vec::default();
+            let writer = &mut payload as &mut dyn BinaryWriter;
+            writer.write_string(xml).expect("Failed to encode xml data");
+            payload
+        }));
+        Ok(packet.into())
+    }
+
+    /// Deletes the unit with the given name. To succeed,
+    /// the issues requires to have [`ManageUnits`] privileges.
+    ///
+    /// [`ManageUnits`]: crate::entity::Privileges::allowed_to_manage_units
+    pub fn delete_unit_by_name(&self, name: &str) -> Result<Request<()>, IllegalName> {
+        if !Unit::check_name(name) {
+            return Err(IllegalName);
+        }
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_DELETE_UNIT;
+        packet.base_address = self.universe;
+        packet.sub_address = self.id;
+        packet.payload = Some(Bytes::from({
+            let mut payload = Vec::default();
+            let writer = &mut payload as &mut dyn BinaryWriter;
+            writer.write_string(name).expect("Failed to encode name");
+            payload
+        }));
+        Ok(packet.into())
     }
 }
 
@@ -347,6 +440,7 @@ impl TryFrom<&Packet> for Galaxy {
         let reader = &mut packet.payload() as &mut dyn BinaryReader;
         Ok(Galaxy {
             id: packet.sub_address,
+            universe: packet.base_address,
             name: reader.read_string()?,
             spawn: reader.read_bool()?,
         })
@@ -419,5 +513,16 @@ impl System {
             });
         }
         Ok(vec)
+    }
+}
+
+pub struct Unit;
+
+impl Unit {
+    /// See [`Account::check_name`]
+    ///
+    /// [`Account::check_name`]: crate::players::Account::check_name
+    pub fn check_name(name: &str) -> bool {
+        Account::check_name(name)
     }
 }
