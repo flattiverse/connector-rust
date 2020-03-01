@@ -19,6 +19,11 @@ pub(crate) mod id {
     /// data: a list of matching account ids
     pub(crate) const C2S_QUERY_ACCOUNTS: u8 = 0x41;
 
+    /// Issued if the client wants to know privilege details of a universe
+    ///
+    /// data: a list of account ids and privileges
+    pub(crate) const C2S_QUERY_PRIVILEGES: u8 = 0x44;
+
     /// Issued to inform the connector to forget a certain player
     ///
     /// data: base_address contains the player id

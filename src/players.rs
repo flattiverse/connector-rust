@@ -8,8 +8,6 @@ use bytes::Bytes;
 use std::convert::TryFrom;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
-use std::ops::Deref;
-use std::ops::DerefMut;
 
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -308,10 +306,6 @@ impl AccountIdList {
         self.0.iter()
     }
 
-    pub fn to_stream<'a>(&self, connector: &'a mut Connector) -> AccountStream<'a> {
-        AccountStream::new(connector, &self.0[..])
-    }
-
     pub fn into_stream(mut self, connector: &mut Connector) -> AccountStream {
         self.0.reverse();
         AccountStream(connector, self.0)
@@ -332,20 +326,6 @@ impl TryFrom<&Packet> for AccountIdList {
     }
 }
 
-impl Deref for AccountIdList {
-    type Target = Vec<u32>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for AccountIdList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 impl Into<Vec<u32>> for AccountIdList {
     fn into(self) -> Vec<u32> {
         self.0
@@ -355,10 +335,6 @@ impl Into<Vec<u32>> for AccountIdList {
 pub struct AccountStream<'a>(&'a mut Connector, Vec<u32>);
 
 impl<'a> AccountStream<'a> {
-    pub fn new(connector: &'a mut Connector, ids: &[u32]) -> Self {
-        Self(connector, ids.iter().rev().map(ToOwned::to_owned).collect())
-    }
-
     pub async fn next(&mut self) -> Option<Result<Account, RequestError>> {
         if self.1.is_empty() {
             None

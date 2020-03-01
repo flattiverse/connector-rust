@@ -1,5 +1,5 @@
 use crate::com::Connection;
-use crate::entity::Universe;
+use crate::entity::{AccountPrivilegesStream, Universe};
 use crate::packet::Packet;
 use crate::players::{Account, AccountStream, Player};
 use crate::requests::{RequestError, Requests};
@@ -126,6 +126,23 @@ impl Connector {
         only_confirmed: bool,
     ) -> Result<AccountStream<'_>, RequestError> {
         Ok(Account::query_by_name_pattern(name_pattern, only_confirmed)
+            .send(self)
+            .await?
+            .await?
+            .into_stream(self))
+    }
+
+    /// See [`Universe::query_privileges`]
+    ///
+    /// [`Universe::query_privileges`]: crate::entity::Universe::query_privileges
+    pub async fn query_privileges_of_universe(
+        &mut self,
+        universe_id: u16,
+    ) -> Result<AccountPrivilegesStream<'_>, RequestError> {
+        Ok(self
+            .universe(usize::from(universe_id))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .query_privileges()
             .send(self)
             .await?
             .await?

@@ -12,6 +12,8 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 use crate::connector::Connector;
+use crate::entity::Universe;
+use crate::players::Account;
 use std::time::Duration;
 
 #[macro_use]
@@ -42,7 +44,7 @@ async fn main() {
 
     info!("Available universes:");
     for universe in connector.universes() {
-        info!("  - {}", universe.name());
+        info!("  - {} ({})", universe.name(), universe.id());
 
         info!("      Teams: ");
         for team in universe.teams() {
@@ -119,6 +121,8 @@ async fn main() {
                 .await
                 .expect("Failed to query")
         );
+        query_print_universe_privileges(&mut connector, 0).await;
+        query_print_universe_privileges(&mut connector, 15).await;
     }));
 
     loop {
@@ -138,6 +142,33 @@ async fn query_all_accounts(mut connector: Connector) {
     while let Some(Ok(account)) = stream.next().await {
         info!("  - {:?}", account);
     }
+    info!("Accounts done");
+}
+
+async fn query_print_universe_privileges(connector: &mut Connector, universe: u16) {
+    info!(
+        "Querying {:?} privileges",
+        connector
+            .universe(usize::from(universe))
+            .map(Universe::name)
+            .expect("Invalid universe")
+    );
+    let mut stream = connector
+        .query_privileges_of_universe(universe)
+        .await
+        .expect("Failed to query universe for privileges");
+    info!("Privileges:");
+    while let Some(result) = stream.next().await {
+        match result {
+            Ok((account, privileges)) => info!(
+                "  - {:?}: {:?}",
+                account.as_ref().map(Account::name),
+                privileges
+            ),
+            Err(e) => error!("{:?}", e),
+        }
+    }
+    info!("Privileges done");
 }
 
 pub fn init_logger(level: Option<LevelFilter>) -> Result<::log4rs::Handle, SetLoggerError> {

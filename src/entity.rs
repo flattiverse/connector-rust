@@ -1,14 +1,17 @@
+use crate::command;
+use crate::connector::Connector;
+use crate::io::BinaryReader;
+use crate::packet::Packet;
+use crate::players::{Account, Team};
+use crate::requesting::Request;
+use crate::requests::RequestError;
+use byteorder::ReadBytesExt;
+use num_traits::FromPrimitive;
 use std::convert::TryFrom;
+use std::fmt;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
 use std::ops::RangeInclusive;
-
-use num_traits::FromPrimitive;
-
-use crate::command;
-use crate::io::BinaryReader;
-use crate::packet::Packet;
-use crate::players::Team;
 
 const DEFAULT_TEAMS: usize = 16;
 const DEFAULT_GALAXIES: usize = 32;
@@ -145,6 +148,14 @@ impl Universe {
         packet.base_address = self.id;
         packet
     }
+
+    #[must_use]
+    pub fn query_privileges(&self) -> Request<AccountPrivileges> {
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_QUERY_PRIVILEGES;
+        packet.base_address = self.id;
+        packet.into()
+    }
 }
 
 impl TryFrom<&Packet> for Universe {
@@ -202,8 +213,29 @@ pub enum Status {
     Maintenance = 2,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct Privileges(u8);
+
+impl fmt::Debug for Privileges {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Privileges")
+            .field("allowed_to_join", &self.allowed_to_join())
+            .field("allowed_to_manage_units", &self.allowed_to_manage_units())
+            .field(
+                "allowed_to_manage_regions",
+                &self.allowed_to_manage_regions(),
+            )
+            .field(
+                "allowed_to_manage_systems",
+                &self.allowed_to_manage_systems(),
+            )
+            .field(
+                "allowed_to_manage_universes",
+                &self.allowed_to_manage_universes(),
+            )
+            .finish()
+    }
+}
 
 impl From<u8> for Privileges {
     fn from(value: u8) -> Self {
@@ -234,6 +266,59 @@ impl Privileges {
 
     pub const fn allowed_to_manage_universes(self) -> bool {
         self.0 & 16 != 0
+    }
+}
+
+pub struct AccountPrivileges(Vec<(u32, Privileges)>);
+
+impl AccountPrivileges {
+    pub fn privileges(&self) -> impl Iterator<Item = &(u32, Privileges)> {
+        self.0.iter()
+    }
+
+    pub fn into_stream(mut self, connector: &mut Connector) -> AccountPrivilegesStream {
+        self.0.reverse();
+        AccountPrivilegesStream(connector, self.0)
+    }
+}
+
+impl TryFrom<&Packet> for AccountPrivileges {
+    type Error = IoError;
+
+    fn try_from(packet: &Packet) -> Result<Self, Self::Error> {
+        let len = packet.payload().len() / (std::mem::size_of::<u8>() + std::mem::size_of::<u32>());
+        let reader = &mut packet.payload() as &mut dyn BinaryReader;
+        let mut vec = Vec::with_capacity(len);
+        for _ in 0..len {
+            vec.push((reader.read_u32()?, Privileges::from(reader.read_u8()?)));
+        }
+        Ok(AccountPrivileges(vec))
+    }
+}
+
+impl Into<Vec<(u32, Privileges)>> for AccountPrivileges {
+    fn into(self) -> Vec<(u32, Privileges)> {
+        self.0
+    }
+}
+
+pub struct AccountPrivilegesStream<'a>(&'a mut Connector, Vec<(u32, Privileges)>);
+
+impl<'a> AccountPrivilegesStream<'a> {
+    pub async fn next(&mut self) -> Option<Result<(Option<Account>, Privileges), RequestError>> {
+        if self.1.is_empty() {
+            None
+        } else {
+            Some(self.retrieve_next().await)
+        }
+    }
+
+    async fn retrieve_next(&mut self) -> Result<(Option<Account>, Privileges), RequestError> {
+        let index = self.1.len() - 1;
+        let (id, privilege) = self.1[index];
+        let account = Account::query_by_id(id).send(self.0).await?.await?;
+        self.1.remove(index);
+        Ok((account, privilege))
     }
 }
 
