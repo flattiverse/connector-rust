@@ -171,6 +171,17 @@ impl Universe {
         packet.helper = privileges.into();
         packet.into()
     }
+
+    /// Removes any privileges of the given account for this universe.
+    #[must_use]
+    pub fn reset_privileges(&self, account: &Account) -> Request<()> {
+        let mut packet = Packet::default();
+        packet.command = crate::command::id::C2S_UPDATE_PRIVILEGES;
+        packet.base_address = self.id;
+        packet.id = account.id();
+        packet.helper = self.default_privileges.into();
+        packet.into()
+    }
 }
 
 impl TryFrom<&Packet> for Universe {

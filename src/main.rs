@@ -12,7 +12,7 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 use crate::connector::Connector;
-use crate::entity::Universe;
+use crate::entity::{Privilege, Privileges, Universe};
 use crate::players::Account;
 use std::time::Duration;
 
@@ -124,12 +124,41 @@ async fn main() {
         query_print_universe_privileges(&mut connector, 0).await;
         query_print_universe_privileges(&mut connector, 15).await;
         query_xml_stuff(&mut connector).await;
+        alter_privileges(&mut connector, &env[1]).await;
         connector.disconnect().await;
     }));
 
     while let Some(event) = connector.update().await {
         info!("Processed event: {:?}", event);
     }
+}
+
+async fn alter_privileges(connector: &mut Connector, acc: &str) {
+    let acc = connector
+        .query_account_by_name(acc)
+        .await
+        .expect("Failed to query account")
+        .expect("Account does not exist");
+    let pvs = Privileges::from(&[Privilege::Join, Privilege::ManageUniverse][..]);
+    connector
+        .alter_privileges_of_universe(0, &acc, pvs)
+        .await
+        .expect("Failed to alter privileges");
+    let mut stream = connector
+        .query_privileges_of_universe(0)
+        .await
+        .expect("Failed to query privileges");
+    while let Some(Ok((acc, p))) = stream.next().await {
+        info!(
+            "{}: {:?}",
+            acc.as_ref().map(|a| a.name()).unwrap_or_default(),
+            p
+        );
+    }
+    connector
+        .reset_privileges_of_universe(0, &acc)
+        .await
+        .expect("Failed to reset privileges");
 }
 
 async fn query_xml_stuff(connector: &mut Connector) {

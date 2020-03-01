@@ -160,6 +160,22 @@ impl Connector {
             .await?
             .await?)
     }
+    /// See [`Universe::reset_privileges`]
+    ///
+    /// [`Universe::reset_privileges`]: crate::entity::Universe::reset_privileges
+    pub async fn reset_privileges_of_universe(
+        &mut self,
+        universe: u16,
+        account: &Account,
+    ) -> Result<(), RequestError> {
+        Ok(self
+            .universe(usize::from(universe))
+            .ok_or(RequestError::UniverseDoesNotExist)?
+            .reset_privileges(account)
+            .send(self)
+            .await?
+            .await?)
+    }
 
     /// See [`Galaxy::query_unit_xml_by_name`]
     ///
