@@ -127,8 +127,8 @@ pub enum CommandResponse {
         id: String,
         result: String,
     },
-    Response {
-        // kind: ResponseKind,
+    #[serde(rename = "success")]
+    Success {
         id: String,
         result: i64,
     },
@@ -138,7 +138,7 @@ impl CommandResponse {
     pub fn id(&self) -> &str {
         match self {
             Self::Error { id, .. } => id,
-            Self::Response { id, .. } => id,
+            Self::Success { id, .. } => id,
         }
     }
 }
