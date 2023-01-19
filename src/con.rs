@@ -14,7 +14,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub const DEFAULT_HOST: &'static str = "flattiverse.com";
+    pub const DEFAULT_HOST: &'static str = "www.flattiverse.com";
 
     pub async fn connect(api_key: &str) -> Result<Self, OpenError> {
         Self::connect_to(Self::DEFAULT_HOST, api_key).await
