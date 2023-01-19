@@ -1,9 +1,10 @@
 use crate::blk::BlockManager;
-use crate::packet::Packet;
+use crate::packet::JsonCommand;
 use futures_util::sink::SinkExt;
 use futures_util::TryStreamExt;
 use serde::Serialize;
 use tokio::net::TcpStream;
+use tokio::sync::oneshot::Receiver;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
@@ -36,8 +37,24 @@ impl Connection {
         Ok(())
     }
 
-    pub async fn send_packet(&mut self, packet: &Packet) -> Result<(), SendError> {
+    pub async fn send(&mut self, packet: &JsonCommand) -> Result<(), SendError> {
         self.send_json_text(&packet).await
+    }
+
+    pub async fn send_block_command(
+        &mut self,
+        f: impl FnOnce(JsonCommand) -> Result<JsonCommand, SendError>,
+    ) -> Result<Receiver<JsonCommand>, SendError> {
+        let (block_id, receiver) = self.block_manager.next_block();
+        let json_cmd = match f(JsonCommand::new(block_id.clone())) {
+            Ok(ok) => ok,
+            Err(e) => {
+                self.block_manager.unblock(&block_id);
+                return Err(e);
+            }
+        };
+        self.send(&json_cmd).await?;
+        Ok(receiver)
     }
 
     pub async fn update(&mut self) {
