@@ -1,5 +1,5 @@
 use crate::con::{Connection, SendError};
-use crate::packet::Vector;
+use crate::packet::{Command, Vector};
 use serde_derive::{Deserialize, Serialize};
 use std::future::Future;
 
@@ -18,24 +18,17 @@ impl Universe {
     pub async fn set_unit(
         &self,
         connection: &mut Connection,
-        unit_json: String,
+        unit: UnitData,
     ) -> Result<impl Future<Output=()>, SendError> {
         let receiver = connection
-            .send_block_command(|payload| {
-                Ok(payload
-                    .with_command("setunit")
-                    .with_parameter(
-                        "data",
-                        serde_json::to_string(&UnitSetData {
-                            universe: self.id.0,
-                            unit: unit_json,
-                        })?,
-                    ))
+            .send_block_command(UnitSetData {
+                universe: self.id.0,
+                unit,
             })
             .await?;
         Ok(async move {
             let response = receiver.await;
-            eprintln!("{response:?}")
+            eprintln!("SET UNIT RESPONSE: {response:?}")
         })
     }
 
@@ -45,36 +38,38 @@ impl Universe {
         name: impl Into<String>,
     ) -> Result<impl Future<Output=()>, SendError> {
         let receiver = connection
-            .send_block_command(|payload| {
-                Ok(payload
-                    .with_command("deleteunit")
-                    .with_parameter("name", name.into())
-                    .with_parameter("universe", self.id.0)
-                )
+            .send_block_command(Command::DeleteUnit {
+                universe: self.id.0,
+                name: name.into(),
             })
             .await?;
 
         Ok(async move {
             let response = receiver.await;
-            eprintln!("{response:?}")
+            eprintln!("DELETE UNIT RESPONSE: {response:?}")
         })
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct UnitSetData {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UnitSetData {
     universe: u16,
-    unit: String,
+    unit: UnitData,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UnitData {
-    #[serde(rename = "universegroup")]
-    universe_group: u16,
-    universe: u16,
-    name: String,
-    position: Vector,
-    radius: f64,
-    gravity: f64,
-    corona: f64,
+    pub name: String,
+    pub position: Vector,
+    pub radius: f64,
+    pub gravity: f64,
+    #[serde(flatten)]
+    pub extension: UnitExtension,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "kind")]
+pub enum UnitExtension {
+    #[serde(rename = "Sun")]
+    Sun { corona: f64 },
 }

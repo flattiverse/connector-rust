@@ -1,36 +1,30 @@
+use crate::units::uni::UnitSetData;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Mul;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct JsonCommand {
+pub struct ServerRequest {
     pub id: String,
-    pub command: String,
     #[serde(flatten)]
     pub parameters: HashMap<String, serde_json::Value>,
+    #[serde(flatten)]
+    pub command: Command,
 }
 
-impl JsonCommand {
-    pub fn new(id: String) -> Self {
-        Self {
-            id,
-            command: String::default(),
-            parameters: HashMap::default(),
-        }
-    }
-
-    pub fn with_command(mut self, command: impl Into<String>) -> Self {
-        self.command = command.into();
-        self
-    }
-
-    pub fn with_parameter(mut self, name: impl Into<String>, value: impl Into<serde_json::Value>) -> Self {
-        self.parameters.insert(name.into(), value.into());
-        self
-    }
+#[derive(Debug, Serialize, Deserialize, derive_more::From)]
+#[serde(tag = "command")]
+pub enum Command {
+    #[serde(rename = "setunit")]
+    SetUnit {
+        #[from(forward)]
+        data: UnitSetData,
+    },
+    #[serde(rename = "deleteunit")]
+    DeleteUnit { universe: u16, name: String },
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
