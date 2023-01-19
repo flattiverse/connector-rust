@@ -57,7 +57,7 @@ pub struct UnitSetData {
     unit: UnitData,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct UnitData {
     pub name: String,
     pub position: Vector,
@@ -67,9 +67,15 @@ pub struct UnitData {
     pub extension: UnitExtension,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(tag = "kind")]
 pub enum UnitExtension {
     #[serde(rename = "Sun")]
     Sun { corona: f64 },
+}
+
+impl Default for UnitExtension {
+    fn default() -> Self {
+        Self::Sun { corona: f64::default() }
+    }
 }

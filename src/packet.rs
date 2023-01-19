@@ -24,7 +24,7 @@ pub enum Command {
     DeleteUnit { universe: u16, name: String },
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
