@@ -39,7 +39,7 @@ impl Universe {
         })
     }
 
-    pub async fn delete(
+    pub async fn delete_unit(
         &self,
         connection: &mut Connection,
         name: impl Into<String>,
@@ -47,8 +47,10 @@ impl Universe {
         let receiver = connection
             .send_block_command(|payload| {
                 Ok(payload
-                    .with_command("DeleteUnit")
-                    .with_parameter("name", name.into()))
+                    .with_command("deleteunit")
+                    .with_parameter("name", name.into())
+                    .with_parameter("universe", self.id.0)
+                )
             })
             .await?;
 
