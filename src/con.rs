@@ -4,6 +4,7 @@ use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
 use serde::Serialize;
 use serde_derive::Deserialize;
+use std::time::UNIX_EPOCH;
 use tokio::net::TcpStream;
 use tokio::sync::oneshot::Receiver;
 use tokio_tungstenite::tungstenite::Message;
@@ -61,7 +62,14 @@ impl Connection {
         Ok(receiver)
     }
 
-    pub async fn update(&mut self) -> Result<(), ReceiveError> {
+    pub async fn send_ping(&mut self) {
+        let _ = self
+            .stream
+            .send(Message::Ping(current_time_millis().to_be_bytes().to_vec()))
+            .await;
+    }
+
+    pub async fn update(&mut self) -> Result<UpdateEvent, ReceiveError> {
         loop {
             match self.stream.next().await {
                 None => return Err(ReceiveError::ConnectionClosed),
@@ -71,15 +79,24 @@ impl Connection {
                     let response = serde_json::from_str::<CommandResponse>(&text)?;
                     eprintln!("RESPONSE {response:?}");
 
-                    if let Err(r) = self
-                        .block_manager
-                        .answer(response)
-                    {
+                    if let Err(r) = self.block_manager.answer(response) {
                         eprintln!("GONE {r:?}");
                     }
                 }
                 Some(Ok(Message::Close(_))) => {
-                    return Ok(());
+                    return Ok(UpdateEvent::ConnectionGracefullyClosed);
+                }
+                Some(Ok(Message::Pong(data))) => {
+                    let mut millis = 0_u64.to_be_bytes();
+                    let millis_len = millis.len();
+                    if millis_len <= data.len() {
+                        millis.copy_from_slice(&data[..millis_len]);
+                        return Ok(UpdateEvent::PingMeasurement {
+                            millis: (current_time_millis()
+                                .saturating_sub(u64::from_be_bytes(millis))
+                                as u32),
+                        });
+                    }
                 }
                 Some(Ok(Message::Ping(ping))) => {
                     self.stream.send(Message::Pong(ping)).await?;
@@ -143,8 +160,11 @@ impl CommandResponse {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub enum ResponseKind {
-    #[serde(rename = "success")]
-    Success,
+pub enum UpdateEvent {
+    ConnectionGracefullyClosed,
+    PingMeasurement { millis: u32 },
+}
+
+fn current_time_millis() -> u64 {
+    UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() as u64
 }

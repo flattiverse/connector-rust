@@ -67,7 +67,7 @@ pub struct UnitData {
     pub extension: UnitExtension,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, strum_macros::AsRefStr)]
 #[serde(tag = "kind")]
 pub enum UnitExtension {
     #[serde(rename = "Sun")]
