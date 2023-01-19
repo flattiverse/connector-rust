@@ -13,3 +13,12 @@ edition = "2021"
 [lib]
 
 [dependencies]
+thiserror = "1.0.38"
+tokio = { version = "1.24.2", features = ["net"] }
+tokio-tungstenite = { version = "0.18.0", features = ["rustls"] }
+futures = "0.3.25"
+futures-util = "0.3.25"
+serde = "1.0.152"
+serde_derive = "1.0.152"
+serde_json = "1.0.91"
+uuid = { version = "1.2.2", features = ["v4", "fast-rng"] }
