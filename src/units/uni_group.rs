@@ -1,15 +1,25 @@
+use crate::con::handle::ConnectionHandle;
 use crate::units::uni::{Universe, UniverseId};
 use std::collections::HashMap;
+use std::sync::Arc;
 
-#[derive(Default)]
 pub struct UniverseGroup {
+    connection: Arc<ConnectionHandle>,
     universes: HashMap<u16, Universe, nohash_hasher::BuildNoHashHasher<u16>>,
 }
 
 impl UniverseGroup {
+    pub fn new(connection: Arc<ConnectionHandle>) -> Self {
+        Self {
+            connection,
+            universes: HashMap::default(),
+        }
+    }
+
     #[inline]
     pub fn add_universe(&mut self, id: UniverseId) {
-        self.universes.insert(id.0, Universe::new(id));
+        self.universes
+            .insert(id.0, Universe::new(id, Arc::clone(&self.connection)));
     }
 
     #[inline]

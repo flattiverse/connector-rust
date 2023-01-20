@@ -1,15 +1,22 @@
 use crate::blk::BlockManager;
+use crate::con::handle::{ConnectionCommand, ConnectionHandle};
 use crate::packet::{Command, ServerRequest};
+use crate::units::uni::UniverseEvent;
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::time::UNIX_EPOCH;
+use std::sync::Arc;
+use std::time::{Duration, UNIX_EPOCH};
+use log::debug;
 use tokio::net::TcpStream;
 use tokio::sync::oneshot::Receiver;
+use tokio::sync::{mpsc, oneshot};
+use tokio::time::interval;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use crate::units::uni::UniverseEvent;
+
+pub mod handle;
 
 pub struct Connection {
     stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -37,7 +44,7 @@ impl Connection {
         self.stream
             .send(Message::Text({
                 let text = serde_json::to_string(data)?;
-                eprintln!("SENDING: {text}");
+                debug!("SENDING: {text}");
                 text
             }))
             .await?;
@@ -53,14 +60,27 @@ impl Connection {
         &mut self,
         command: impl Into<Command>,
     ) -> Result<Receiver<ServerMessage>, SendError> {
-        let (block_id, receiver) = self.block_manager.next_block();
+        let (sender, receiver) = oneshot::channel();
+        self.send_block_command_to(command, sender).await?;
+        Ok(receiver)
+    }
+
+    pub async fn send_block_command_to(
+        &mut self,
+        command: impl Into<Command>,
+        target: oneshot::Sender<ServerMessage>,
+    ) -> Result<(), SendError> {
+        let block_id = self.block_manager.next_block_to(target);
         self.send(&ServerRequest {
-            id: block_id,
+            id: block_id.clone(),
             command: command.into(),
             parameters: Default::default(),
         })
-            .await?;
-        Ok(receiver)
+            .await
+            .map_err(|err| {
+                self.block_manager.unblock(&block_id);
+                err
+            })
     }
 
     pub async fn send_ping(&mut self) {
@@ -76,12 +96,12 @@ impl Connection {
                 None => return Err(ReceiveError::ConnectionClosed),
                 Some(Err(e)) => return Err(ReceiveError::ConnectionError(e)),
                 Some(Ok(Message::Text(text))) => {
-                    eprintln!("RECEIVED {text}");
+                    debug!("RECEIVED {text}");
                     let response = serde_json::from_str::<ServerMessage>(&text)?;
-                    eprintln!("RESPONSE {response:?}");
+                    debug!("RESPONSE {response:?}");
 
                     if let Err(r) = self.block_manager.answer(response) {
-                        eprintln!("GONE {r:?}");
+                        debug!("GONE {r:?}");
                     }
                 }
                 Some(Ok(Message::Close(_))) => {
@@ -106,6 +126,64 @@ impl Connection {
                     return Err(ReceiveError::UnexpectedData(format!("{msg:?}")));
                 }
             }
+        }
+    }
+
+    pub fn spawn(
+        mut self,
+        ping_interval: Duration,
+    ) -> (Arc<ConnectionHandle>, mpsc::UnboundedReceiver<UpdateEvent>) {
+        let mut ping_interval = interval(ping_interval);
+        let (sender, mut receiver) = mpsc::unbounded_channel();
+        let (update_sender, update_receiver) = mpsc::unbounded_channel();
+        let handle = tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    _ = ping_interval.tick() => {
+                        self.send_ping().await;
+                    }
+                    c = receiver.recv() => {
+                        match c {
+                            Some(c) => if let Err(e) = self.execute_command(c).await {
+                                debug!("CONNECTION FAILED  {e:?}");
+                                break;
+                            },
+                            None => {
+                                debug!("CONNECTION SPAWN SHUTTING DOWN");
+                                    break;
+                            }
+                        }
+
+                    }
+                    u = self.update() => {
+                        match u {
+                            Err(e) => {
+                                debug!("CONNECTION FAILED {e:?}");
+                                break;
+                            },
+                            Ok(update) => {
+                                if update_sender.send(update).is_err() {
+                                    debug!("CONNECTION SPAWN SHUTTING DOWN");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        (
+            Arc::new(ConnectionHandle { sender, handle }),
+            update_receiver,
+        )
+    }
+
+    async fn execute_command(&mut self, ccmd: ConnectionCommand) -> Result<(), SendError> {
+        match ccmd {
+            ConnectionCommand::SendBlockCommand {
+                command,
+                block_consumer,
+            } => self.send_block_command_to(command, block_consumer).await,
         }
     }
 }
@@ -159,7 +237,7 @@ impl ServerMessage {
         match self {
             Self::Error { id, .. } => Some(id),
             Self::Success { id, .. } => Some(id),
-            Self::Events { .. } => None
+            Self::Events { .. } => None,
         }
     }
 }

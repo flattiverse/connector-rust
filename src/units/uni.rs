@@ -1,53 +1,45 @@
-use crate::con::{Connection, SendError};
+use crate::con::handle::{ConnectionHandle, ConnectionHandleError};
 use crate::packet::{Command, Vector};
 use serde_derive::{Deserialize, Serialize};
 use std::future::Future;
+use std::sync::Arc;
 
 #[derive(Debug, PartialOrd, PartialEq, Hash, Ord, Eq, Copy, Clone)]
 pub struct UniverseId(pub u16);
 
 pub struct Universe {
+    connection: Arc<ConnectionHandle>,
     id: UniverseId,
 }
 
 impl Universe {
-    pub fn new(id: UniverseId) -> Self {
-        Self { id }
+    pub(crate) fn new(id: UniverseId, ch: Arc<ConnectionHandle>) -> Self {
+        Self { id, connection: ch }
     }
 
-    pub async fn set_unit(
+    #[inline]
+    pub fn set_unit(
         &self,
-        connection: &mut Connection,
         unit: UnitData,
-    ) -> Result<impl Future<Output=()>, SendError> {
-        let receiver = connection
-            .send_block_command(UnitSetData {
-                universe: self.id.0,
-                unit,
-            })
-            .await?;
-        Ok(async move {
-            let response = receiver.await;
-            eprintln!("SET UNIT RESPONSE: {response:?}")
+    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
+    {
+        self.connection.send_block_command_mapped(UnitSetData {
+            universe: self.id.0,
+            unit,
         })
     }
 
-    pub async fn delete_unit(
+    #[inline]
+    pub fn delete_unit(
         &self,
-        connection: &mut Connection,
         name: impl Into<String>,
-    ) -> Result<impl Future<Output=()>, SendError> {
-        let receiver = connection
-            .send_block_command(Command::DeleteUnit {
+    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
+    {
+        self.connection
+            .send_block_command_mapped(Command::DeleteUnit {
                 universe: self.id.0,
                 name: name.into(),
             })
-            .await?;
-
-        Ok(async move {
-            let response = receiver.await;
-            eprintln!("DELETE UNIT RESPONSE: {response:?}")
-        })
     }
 }
 

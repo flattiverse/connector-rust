@@ -11,10 +11,15 @@ pub struct BlockManager {
 
 impl BlockManager {
     pub fn next_block(&mut self) -> (String, Receiver<ServerMessage>) {
-        let id = Uuid::new_v4().to_string();
         let (sender, receiver) = oneshot::channel();
-        self.blocks.push((id.clone(), sender));
+        let id = self.next_block_to(sender);
         (id, receiver)
+    }
+
+    pub fn next_block_to(&mut self, target: Sender<ServerMessage>) -> String {
+        let id = Uuid::new_v4().to_string();
+        self.blocks.push((id.clone(), target));
+        id
     }
 
     pub fn answer(&mut self, response: ServerMessage) -> Result<(), ServerMessage> {
