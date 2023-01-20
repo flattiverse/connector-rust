@@ -1,6 +1,7 @@
 use crate::con::handle::{ConnectionHandle, ConnectionHandleError};
 use crate::packet::{Command, Vector};
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
 
@@ -10,11 +11,16 @@ pub struct UniverseId(pub u16);
 pub struct Universe {
     connection: Arc<ConnectionHandle>,
     id: UniverseId,
+    units: HashMap<String, UnitData>,
 }
 
 impl Universe {
     pub(crate) fn new(id: UniverseId, ch: Arc<ConnectionHandle>) -> Self {
-        Self { id, connection: ch }
+        Self {
+            id,
+            connection: ch,
+            units: HashMap::default(),
+        }
     }
 
     #[inline]
@@ -39,6 +45,16 @@ impl Universe {
             universe: self.id.0,
             name: name.into(),
         })
+    }
+
+    #[inline]
+    pub(crate) fn on_update_unit(&mut self, unit: UnitData) {
+        self.on_new_unit(unit);
+    }
+
+    #[inline]
+    pub(crate) fn on_new_unit(&mut self, unit: UnitData) {
+        self.units.insert(unit.name.clone(), unit);
     }
 }
 
@@ -82,6 +98,8 @@ pub enum UniverseEvent {
     NewUnit { universe: u16, unit: UnitData },
     #[serde(rename = "updateUnits")]
     UpdateUnit { universe: u16, unit: UnitData },
+    #[serde(rename = "userUpdate")]
+    UserUpdate { name: String },
     #[serde(rename = "message")]
     BroadcastMessage { message: BroadcastMessage },
 }

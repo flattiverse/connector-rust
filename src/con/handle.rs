@@ -46,7 +46,7 @@ impl ConnectionHandle {
             Ok(ServerMessage::Success { result, .. }) => {
                 Err(ConnectionHandleError::ServerErrorCode(result))
             }
-            Ok(events @ ServerMessage::Events(..)) => {
+            Ok(events @ (ServerMessage::Events(..) | ServerMessage::Ping)) => {
                 panic!("Unexpected server response: {events:?}")
             }
         }

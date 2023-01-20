@@ -1,10 +1,10 @@
 use crate::blk::BlockManager;
 use crate::con::handle::{ConnectionCommand, ConnectionHandle};
 use crate::packet::{Command, ServerRequest};
-use crate::units::uni::UniverseEvent;
+use crate::units::uni::{BroadcastMessage, UniverseEvent};
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
-use log::debug;
+use log::{debug, error};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
@@ -41,14 +41,14 @@ impl Connection {
 
     #[inline]
     async fn send_json_text(&mut self, data: &impl serde::Serialize) -> Result<(), SendError> {
-        self.stream
+        Ok(self
+            .stream
             .send(Message::Text({
                 let text = serde_json::to_string(data)?;
                 debug!("SENDING: {text}");
                 text
             }))
-            .await?;
-        Ok(())
+            .await?)
     }
 
     #[inline]
@@ -74,20 +74,29 @@ impl Connection {
         self.send(&ServerRequest {
             id: block_id.clone(),
             command: command.into(),
-            parameters: Default::default(),
         })
             .await
             .map_err(|err| {
                 self.block_manager.unblock(&block_id);
-                err
+                err.into()
             })
     }
 
-    pub async fn send_ping(&mut self) {
+    pub async fn send_ws_ping(&mut self) {
         let _ = self
             .stream
             .send(Message::Ping(current_time_millis().to_be_bytes().to_vec()))
             .await;
+    }
+
+    async fn send_pong_response(&mut self) -> Result<(), SendError> {
+        self.send(&ServerRequest {
+            id: "0".to_string(),
+            command: Command::Pong {
+                tick_as_string: current_time_millis().to_string(),
+            },
+        })
+            .await
     }
 
     pub async fn update(&mut self) -> Result<UpdateEvent, ReceiveError> {
@@ -97,11 +106,29 @@ impl Connection {
                 Some(Err(e)) => return Err(ReceiveError::ConnectionError(e)),
                 Some(Ok(Message::Text(text))) => {
                     debug!("RECEIVED {text}");
-                    let response = serde_json::from_str::<ServerMessage>(&text)?;
-                    debug!("RESPONSE {response:?}");
+                    let response = serde_json::from_str::<ServerMessage>(&text).map_err(|e| {
+                        if let Ok(FatalResponse { message }) = serde_json::from_str(&text) {
+                            ReceiveError::Fatal(message)
+                        } else {
+                            e.into()
+                        }
+                    })?;
 
-                    if let Err(r) = self.block_manager.answer(response) {
-                        debug!("GONE {r:?}");
+                    debug!("RESPONSE {response:?}");
+                    match response {
+                        ServerMessage::Ping => {
+                            if let Err(e) = self.send_pong_response().await {
+                                error!("Failed to respond to flattiverse ping request: {e:?}");
+                            }
+                        }
+                        ServerMessage::Events(events) => {
+                            return Ok(UpdateEvent::ServerEvents(events));
+                        }
+                        response => {
+                            if let Err(r) = self.block_manager.answer(response) {
+                                debug!("GONE {r:?}");
+                            }
+                        }
                     }
                 }
                 Some(Ok(Message::Close(_))) => {
@@ -140,7 +167,7 @@ impl Connection {
             loop {
                 tokio::select! {
                     _ = ping_interval.tick() => {
-                        self.send_ping().await;
+                        self.send_ws_ping().await;
                     }
                     c = receiver.recv() => {
                         match c {
@@ -204,8 +231,8 @@ pub enum SendError {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ReceiveError {
-    #[error("Fatal server error: `{message}` on id {id:?}")]
-    Fatal { message: String, id: Option<String> },
+    #[error("Fatal server error: `{0}`")]
+    Fatal(String),
     #[error("Connection is closed")]
     ConnectionClosed,
     #[error("Connection has encountered an error: {0}")]
@@ -214,6 +241,12 @@ pub enum ReceiveError {
     UnexpectedData(String),
     #[error("Failed to decode the JSON response: {0}")]
     DecodeError(#[from] serde_json::Error),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FatalResponse {
+    #[serde(rename = "fatal")]
+    message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,6 +263,8 @@ pub enum ServerMessage {
     },
     #[serde(rename = "events")]
     Events(ServerEvents),
+    #[serde(rename = "ping")]
+    Ping,
 }
 
 impl ServerMessage {
@@ -238,6 +273,7 @@ impl ServerMessage {
             Self::Error { id, .. } => Some(id),
             Self::Success { id, .. } => Some(id),
             Self::Events { .. } => None,
+            Self::Ping => None,
         }
     }
 }
@@ -252,6 +288,8 @@ pub struct ServerEvents {
 pub enum UpdateEvent {
     ConnectionGracefullyClosed,
     PingMeasurement { millis: u32 },
+    ServerEvents(ServerEvents),
+    BroadcastMessage(BroadcastMessage),
 }
 
 fn current_time_millis() -> u64 {

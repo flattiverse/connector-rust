@@ -1,13 +1,10 @@
 use crate::units::uni::UnitSetData;
 use serde_derive::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::ops::Mul;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerRequest {
     pub id: String,
-    #[serde(flatten)]
-    pub parameters: HashMap<String, serde_json::Value>,
     #[serde(flatten)]
     pub command: Command,
 }
@@ -22,6 +19,17 @@ pub enum Command {
     },
     #[serde(rename = "deleteunit")]
     DeleteUnit { universe: u16, name: String },
+    #[serde(rename = "broadcastMessage")]
+    BroadcastMessage { message: Message },
+    Pong {
+        #[serde(rename = "tickAsString")]
+        tick_as_string: String,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize, derive_more::From)]
+pub struct Message {
+    text: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
