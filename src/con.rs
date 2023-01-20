@@ -2,13 +2,14 @@ use crate::blk::BlockManager;
 use crate::packet::{Command, ServerRequest};
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
-use serde::Serialize;
 use serde_derive::Deserialize;
+use serde_derive::Serialize;
 use std::time::UNIX_EPOCH;
 use tokio::net::TcpStream;
 use tokio::sync::oneshot::Receiver;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use crate::units::uni::UniverseEvent;
 
 pub struct Connection {
     stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -32,7 +33,7 @@ impl Connection {
     }
 
     #[inline]
-    async fn send_json_text(&mut self, data: &impl Serialize) -> Result<(), SendError> {
+    async fn send_json_text(&mut self, data: &impl serde::Serialize) -> Result<(), SendError> {
         self.stream
             .send(Message::Text({
                 let text = serde_json::to_string(data)?;
@@ -51,7 +52,7 @@ impl Connection {
     pub async fn send_block_command(
         &mut self,
         command: impl Into<Command>,
-    ) -> Result<Receiver<CommandResponse>, SendError> {
+    ) -> Result<Receiver<ServerMessage>, SendError> {
         let (block_id, receiver) = self.block_manager.next_block();
         self.send(&ServerRequest {
             id: block_id,
@@ -76,7 +77,7 @@ impl Connection {
                 Some(Err(e)) => return Err(ReceiveError::ConnectionError(e)),
                 Some(Ok(Message::Text(text))) => {
                     eprintln!("RECEIVED {text}");
-                    let response = serde_json::from_str::<CommandResponse>(&text)?;
+                    let response = serde_json::from_str::<ServerMessage>(&text)?;
                     eprintln!("RESPONSE {response:?}");
 
                     if let Err(r) = self.block_manager.answer(response) {
@@ -137,9 +138,9 @@ pub enum ReceiveError {
     DecodeError(#[from] serde_json::Error),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
-pub enum CommandResponse {
+pub enum ServerMessage {
     Error {
         id: String,
         result: String,
@@ -149,17 +150,27 @@ pub enum CommandResponse {
         id: String,
         result: i64,
     },
+    #[serde(rename = "events")]
+    Events(ServerEvents),
 }
 
-impl CommandResponse {
-    pub fn id(&self) -> &str {
+impl ServerMessage {
+    pub fn command_id(&self) -> Option<&str> {
         match self {
-            Self::Error { id, .. } => id,
-            Self::Success { id, .. } => id,
+            Self::Error { id, .. } => Some(id),
+            Self::Success { id, .. } => Some(id),
+            Self::Events { .. } => None
         }
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerEvents {
+    pub tick: u64,
+    pub payload: Vec<UniverseEvent>,
+}
+
+#[derive(Debug, Clone)]
 pub enum UpdateEvent {
     ConnectionGracefullyClosed,
     PingMeasurement { millis: u32 },

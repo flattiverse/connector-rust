@@ -76,6 +76,24 @@ pub enum UnitExtension {
 
 impl Default for UnitExtension {
     fn default() -> Self {
-        Self::Sun { corona: f64::default() }
+        Self::Sun {
+            corona: f64::default(),
+        }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+pub enum UniverseEvent {
+    #[serde(rename = "newUnit")]
+    NewUnit { universe: u16, unit: UnitData },
+    #[serde(rename = "message")]
+    BroadcastMessage { message: BroadcastMessage },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BroadcastMessage {
+    sender: String,
+    timestamp: String,
+    text: String,
 }
