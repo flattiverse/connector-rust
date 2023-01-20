@@ -23,7 +23,7 @@ impl Universe {
         unit: UnitData,
     ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
     {
-        self.connection.send_block_command_mapped(UnitSetData {
+        self.connection.send_block_command(UnitSetData {
             universe: self.id.0,
             unit,
         })
@@ -35,11 +35,10 @@ impl Universe {
         name: impl Into<String>,
     ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
     {
-        self.connection
-            .send_block_command_mapped(Command::DeleteUnit {
-                universe: self.id.0,
-                name: name.into(),
-            })
+        self.connection.send_block_command(Command::DeleteUnit {
+            universe: self.id.0,
+            name: name.into(),
+        })
     }
 }
 

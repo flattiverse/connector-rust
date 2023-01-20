@@ -13,25 +13,17 @@ impl ConnectionHandle {
     pub fn send_block_command(
         &self,
         command: impl Into<Command>,
-    ) -> Result<oneshot::Receiver<ServerMessage>, ConnectionHandleError> {
-        let (sender, receiver) = oneshot::channel();
-        match self.sender.send(ConnectionCommand::SendBlockCommand {
-            command: command.into(),
-            block_consumer: sender,
-        }) {
-            Err(_) => Err(ConnectionHandleError::ConnectionGone),
-            Ok(_) => Ok(receiver),
-        }
-    }
-
-    #[inline]
-    pub fn send_block_command_mapped(
-        &self,
-        command: impl Into<Command>,
     ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
     {
+        let (sender, receiver) = oneshot::channel();
         Ok(Self::mapped_response_future(
-            self.send_block_command(command)?,
+            (match self.sender.send(ConnectionCommand::SendBlockCommand {
+                command: command.into(),
+                block_consumer: sender,
+            }) {
+                Err(_) => Err(ConnectionHandleError::ConnectionGone),
+                Ok(_) => Ok(receiver),
+            })?,
         ))
     }
 
