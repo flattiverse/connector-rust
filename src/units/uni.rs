@@ -76,8 +76,12 @@ impl Default for UnitExtension {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum UniverseEvent {
+    #[serde(rename = "universeUpdate")]
+    UniverseUpdate { universe: u16 },
     #[serde(rename = "newUnit")]
     NewUnit { universe: u16, unit: UnitData },
+    #[serde(rename = "updateUnits")]
+    UpdateUnit { universe: u16, unit: UnitData },
     #[serde(rename = "message")]
     BroadcastMessage { message: BroadcastMessage },
 }

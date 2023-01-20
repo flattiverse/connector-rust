@@ -4,11 +4,11 @@ use crate::packet::{Command, ServerRequest};
 use crate::units::uni::UniverseEvent;
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
+use log::debug;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
-use log::debug;
 use tokio::net::TcpStream;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{mpsc, oneshot};
@@ -150,7 +150,7 @@ impl Connection {
                             },
                             None => {
                                 debug!("CONNECTION SPAWN SHUTTING DOWN");
-                                    break;
+                                break;
                             }
                         }
 

@@ -42,7 +42,10 @@ impl ConnectionHandle {
             Ok(ServerMessage::Error { result, .. }) => {
                 Err(ConnectionHandleError::ServerError(result))
             }
-            Ok(ServerMessage::Success { .. }) => Ok(()),
+            Ok(ServerMessage::Success { result, .. }) if result == 0 => Ok(()),
+            Ok(ServerMessage::Success { result, .. }) => {
+                Err(ConnectionHandleError::ServerErrorCode(result))
+            }
             Ok(events @ ServerMessage::Events(..)) => {
                 panic!("Unexpected server response: {events:?}")
             }
@@ -63,4 +66,6 @@ pub enum ConnectionHandleError {
     ConnectionGone,
     #[error("The server encountered an error processing your request: {0}")]
     ServerError(String),
+    #[error("The server encountered an error processing your request: {0}")]
+    ServerErrorCode(i64),
 }
