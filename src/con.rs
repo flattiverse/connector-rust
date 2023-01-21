@@ -261,7 +261,7 @@ pub enum ServerMessage {
     Success {
         id: String,
         #[serde(default)]
-        result: i64,
+        result: f64,
     },
     #[serde(rename = "events")]
     Events(ServerEvents),

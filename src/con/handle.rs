@@ -45,7 +45,7 @@ impl ConnectionHandle {
             Ok(ServerMessage::Error { result, .. }) => {
                 Err(ConnectionHandleError::ServerError(result))
             }
-            Ok(ServerMessage::Success { result, .. }) if result == 0 => Ok(()),
+            Ok(ServerMessage::Success { result, .. }) if result >= 0.0 => Ok(()),
             Ok(ServerMessage::Success { result, .. }) => {
                 Err(ConnectionHandleError::ServerErrorCode(result))
             }
@@ -70,7 +70,7 @@ pub enum ConnectionHandleError {
     #[error("The server encountered an error processing your request: {0}")]
     ServerError(String),
     #[error("The server encountered an error processing your request: {0}")]
-    ServerErrorCode(i64),
+    ServerErrorCode(f64),
     #[error("The unit data given has an invalid extension")]
     UnitCannotBeRegisteredAsShip(UnitData),
 }

@@ -32,6 +32,12 @@ pub enum Command {
     },
     #[serde(rename = "registerShip")]
     RegisterShip { universe: u16, unit: UnitData },
+    #[serde(rename = "thruster")]
+    Thrust {
+        universe: u16,
+        name: String,
+        value: f64,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
