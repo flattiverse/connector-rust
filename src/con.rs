@@ -252,6 +252,7 @@ pub struct FatalResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ServerMessage {
+    #[serde(rename = "error")]
     Error {
         id: String,
         result: String,
@@ -290,6 +291,7 @@ pub enum UpdateEvent {
     PingMeasurement { millis: u32 },
     ServerEvents(ServerEvents),
     BroadcastMessage(BroadcastMessage),
+    TickCompleted { tick: u64 },
 }
 
 fn current_time_millis() -> u64 {

@@ -31,7 +31,7 @@ impl Connector {
         Ok(Self {
             universe_group: {
                 let mut group = UniverseGroup::new(Arc::clone(&handle));
-                group.add_universe(UniverseId(0));
+                group.on_add_universe(UniverseId(0));
                 group
             },
             handle,
@@ -46,8 +46,17 @@ impl Connector {
                 UpdateEvent::ServerEvents(events) => {
                     for event in events.payload {
                         match event {
+                            UniverseEvent::UniverseInfo { universe } => {
+                                self.universe_group.on_add_universe(UniverseId(universe));
+                            }
+                            UniverseEvent::NewUser { name } => {
+                                self.universe_group.on_add_user(User::new(name));
+                            }
+                            UniverseEvent::TickCompleted => {
+                                return Some(UpdateEvent::TickCompleted { tick: events.tick });
+                            }
                             UniverseEvent::UniverseUpdate { universe } => {
-                                self.universe_group.add_universe(UniverseId(universe))
+                                self.universe_group.on_add_universe(UniverseId(universe))
                             }
                             UniverseEvent::NewUnit { universe, unit } => {
                                 if let Some(universe) =

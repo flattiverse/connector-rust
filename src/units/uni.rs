@@ -77,7 +77,7 @@ pub struct UnitData {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, strum_macros::AsRefStr)]
 #[serde(tag = "kind")]
 pub enum UnitExtension {
-    #[serde(rename = "Sun")]
+    #[serde(rename = "sun")]
     Sun { corona: f64 },
 }
 
@@ -92,6 +92,15 @@ impl Default for UnitExtension {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind")]
 pub enum UniverseEvent {
+    #[serde(rename = "universeInfo")]
+    UniverseInfo { universe: u16 },
+    #[serde(rename = "newUser")]
+    NewUser { name: String },
+    #[serde(rename = "tickCompleted")]
+    TickCompleted,
+    //
+    //
+    //
     #[serde(rename = "universeUpdate")]
     UniverseUpdate { universe: u16 },
     #[serde(rename = "newUnit")]
@@ -100,7 +109,7 @@ pub enum UniverseEvent {
     UpdateUnit { universe: u16, unit: UnitData },
     #[serde(rename = "userUpdate")]
     UserUpdate { name: String },
-    #[serde(rename = "message")]
+    #[serde(rename = "broadcast")]
     BroadcastMessage { message: BroadcastMessage },
 }
 

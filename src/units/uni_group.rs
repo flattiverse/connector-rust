@@ -1,5 +1,5 @@
 use crate::con::handle::{ConnectionHandle, ConnectionHandleError};
-use crate::packet::{Command, Message};
+use crate::packet::{Command, Message, MessageKind};
 use crate::plr::User;
 use crate::units::uni::{Universe, UniverseId};
 use std::collections::HashMap;
@@ -22,7 +22,7 @@ impl UniverseGroup {
     }
 
     #[inline]
-    pub(crate) fn add_universe(&mut self, id: UniverseId) {
+    pub(crate) fn on_add_universe(&mut self, id: UniverseId) {
         self.universes
             .insert(id.0, Universe::new(id, Arc::clone(&self.connection)));
     }
@@ -39,7 +39,8 @@ impl UniverseGroup {
     ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
     {
         self.connection
-            .send_block_command(Command::BroadcastMessage {
+            .send_block_command(Command::ChatMessage {
+                kind: MessageKind::Broadcast,
                 message: Message::from(message.into()),
             })
     }
