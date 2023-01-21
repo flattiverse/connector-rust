@@ -107,6 +107,8 @@ pub enum UniverseEvent {
     NewUnit { universe: u16, unit: UnitData },
     #[serde(rename = "removeUnit")]
     RemoveUnit { universe: u16, name: String },
+    #[serde(rename = "broadcast")]
+    BroadcastMessage { message: BroadcastMessage },
     //
     //
     //
@@ -116,8 +118,6 @@ pub enum UniverseEvent {
     UpdateUnit { universe: u16, unit: UnitData },
     #[serde(rename = "userUpdate")]
     UserUpdate { name: String },
-    #[serde(rename = "broadcast")]
-    BroadcastMessage { message: BroadcastMessage },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

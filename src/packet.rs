@@ -25,13 +25,20 @@ pub enum Command {
         #[serde(rename = "tickAsString")]
         tick_as_string: String,
     },
+    #[serde(rename = "createUniverse")]
+    CreateUniverse {
+        name: String,
+        #[serde(rename = "xBounds")]
+        x_bounds: f64,
+        #[serde(rename = "yBounds")]
+        y_bounds: f64,
+    },
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum MessageKind {
     #[serde(rename = "broadcast")]
-    Broadcast
+    Broadcast,
 }
 
 #[derive(Debug, Serialize, Deserialize, derive_more::From)]

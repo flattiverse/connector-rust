@@ -38,11 +38,25 @@ impl UniverseGroup {
         message: impl Into<String>,
     ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
     {
-        self.connection
-            .send_block_command(Command::ChatMessage {
-                kind: MessageKind::Broadcast,
-                message: Message::from(message.into()),
-            })
+        self.connection.send_block_command(Command::ChatMessage {
+            kind: MessageKind::Broadcast,
+            message: Message::from(message.into()),
+        })
+    }
+
+    #[inline]
+    pub fn create_universe(
+        &self,
+        name: impl Into<String>,
+        x_bounds: f64,
+        y_bounds: f64,
+    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
+    {
+        self.connection.send_block_command(Command::CreateUniverse {
+            name: name.into(),
+            x_bounds,
+            y_bounds,
+        })
     }
 
     #[inline]

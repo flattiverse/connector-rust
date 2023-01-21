@@ -79,6 +79,9 @@ impl Connector {
                                     );
                                 }
                             }
+                            UniverseEvent::BroadcastMessage { message } => {
+                                return Some(UpdateEvent::BroadcastMessage(message));
+                            }
                             UniverseEvent::UniverseUpdate { universe } => {
                                 self.universe_group.on_add_universe(UniverseId(universe))
                             }
@@ -96,9 +99,6 @@ impl Connector {
                             }
                             UniverseEvent::UserUpdate { name } => {
                                 self.universe_group.on_add_user(User::new(name));
-                            }
-                            UniverseEvent::BroadcastMessage { message } => {
-                                return Some(UpdateEvent::BroadcastMessage(message));
                             }
                         }
                     }
