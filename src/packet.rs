@@ -9,18 +9,15 @@ pub struct ServerRequest {
     pub command: Command,
 }
 
-#[derive(Debug, Serialize, Deserialize, derive_more::From)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "command")]
 pub enum Command {
     #[serde(rename = "setUnit")]
-    SetUnit {
-        #[from(forward)]
-        data: UnitSetData,
-    },
+    SetUnit { data: UnitSetData },
     #[serde(rename = "deleteUnit")]
     DeleteUnit { universe: u16, name: String },
     #[serde(rename = "message")]
-    ChatMessage { kind: MessageKind, message: Message },
+    Message { kind: MessageKind, message: Message },
     Pong {
         #[serde(rename = "tickAsString")]
         tick_as_string: String,
@@ -39,6 +36,8 @@ pub enum Command {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum MessageKind {
+    #[serde(rename = "uni")]
+    Universe,
     #[serde(rename = "broadcast")]
     Broadcast,
 }

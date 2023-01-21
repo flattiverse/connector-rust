@@ -31,11 +31,15 @@ impl Universe {
     pub fn set_unit(
         &self,
         unit: UnitData,
-    ) -> Result<impl Future<Output = Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
-        self.connection.send_block_command(UnitSetData {
-            universe: self.id.0,
-            unit,
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
+        self.connection.send_block_command(Command::SetUnit {
+            data: UnitSetData {
+                universe: self.id.0,
+                unit,
+            },
         })
     }
 
@@ -43,8 +47,10 @@ impl Universe {
     pub fn delete_unit(
         &self,
         name: impl Into<String>,
-    ) -> Result<impl Future<Output = Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
         self.connection.send_block_command(Command::DeleteUnit {
             universe: self.id.0,
             name: name.into(),
@@ -55,8 +61,10 @@ impl Universe {
     pub fn register_ship(
         &self,
         player_ship: UnitData,
-    ) -> Result<impl Future<Output = Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
         if !matches!(player_ship.extension, UnitExtension::PlayerShip { .. }) {
             return Err(ConnectionHandleError::UnitCannotBeRegisteredAsShip(
                 player_ship,

@@ -1,9 +1,9 @@
 use crate::con::ServerMessage;
 use crate::packet::Command;
+use crate::units::uni::UnitData;
 use std::future::Future;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
-use crate::units::uni::UnitData;
 
 pub struct ConnectionHandle {
     pub(crate) sender: mpsc::UnboundedSender<ConnectionCommand>,
@@ -14,8 +14,10 @@ impl ConnectionHandle {
     pub fn send_block_command(
         &self,
         command: impl Into<Command>,
-    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
         let (sender, receiver) = oneshot::channel();
         Ok(Self::mapped_response_future(
             (match self.sender.send(ConnectionCommand::SendBlockCommand {

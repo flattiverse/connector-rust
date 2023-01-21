@@ -36,9 +36,11 @@ impl UniverseGroup {
     pub fn send_broadcast_message(
         &self,
         message: impl Into<String>,
-    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
-        self.connection.send_block_command(Command::ChatMessage {
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
+        self.connection.send_block_command(Command::Message {
             kind: MessageKind::Broadcast,
             message: Message::from(message.into()),
         })
@@ -50,8 +52,10 @@ impl UniverseGroup {
         name: impl Into<String>,
         x_bounds: f64,
         y_bounds: f64,
-    ) -> Result<impl Future<Output=Result<(), ConnectionHandleError>>, ConnectionHandleError>
-    {
+    ) -> Result<
+        impl Future<Output = Result<(), ConnectionHandleError>> + 'static,
+        ConnectionHandleError,
+    > {
         self.connection.send_block_command(Command::CreateUniverse {
             name: name.into(),
             x_bounds,
@@ -60,7 +64,7 @@ impl UniverseGroup {
     }
 
     #[inline]
-    pub fn iter_universes(&self) -> impl Iterator<Item=&Universe> {
+    pub fn iter_universes(&self) -> impl Iterator<Item = &Universe> {
         self.universes.values()
     }
 
@@ -70,12 +74,12 @@ impl UniverseGroup {
     }
 
     #[inline]
-    pub fn get_universe_mut(&mut self, id: UniverseId) -> Option<&mut Universe> {
+    pub(crate) fn get_universe_mut(&mut self, id: UniverseId) -> Option<&mut Universe> {
         self.universes.get_mut(&id.0)
     }
 
     #[inline]
-    pub fn iter_users(&self) -> impl Iterator<Item=&User> {
+    pub fn iter_users(&self) -> impl Iterator<Item = &User> {
         self.users.values()
     }
 

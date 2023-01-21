@@ -252,9 +252,17 @@ pub struct FatalResponse {
 #[serde(tag = "kind")]
 pub enum ServerMessage {
     #[serde(rename = "error")]
-    Error { id: String, result: String },
+    Error {
+        id: String,
+        #[serde(default)]
+        result: String,
+    },
     #[serde(rename = "success")]
-    Success { id: String, result: i64 },
+    Success {
+        id: String,
+        #[serde(default)]
+        result: i64,
+    },
     #[serde(rename = "events")]
     Events(ServerEvents),
     #[serde(rename = "ping")]
