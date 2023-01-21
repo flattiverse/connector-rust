@@ -56,6 +56,11 @@ impl Universe {
     pub(crate) fn on_new_unit(&mut self, unit: UnitData) {
         self.units.insert(unit.name.clone(), unit);
     }
+
+    #[inline]
+    pub(crate) fn on_remove_unit(&mut self, name: &str) {
+        self.units.remove(name);
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -98,13 +103,15 @@ pub enum UniverseEvent {
     NewUser { name: String },
     #[serde(rename = "tickCompleted")]
     TickCompleted,
+    #[serde(rename = "newUnit")]
+    NewUnit { universe: u16, unit: UnitData },
+    #[serde(rename = "removeUnit")]
+    RemoveUnit { universe: u16, name: String },
     //
     //
     //
     #[serde(rename = "universeUpdate")]
     UniverseUpdate { universe: u16 },
-    #[serde(rename = "newUnit")]
-    NewUnit { universe: u16, unit: UnitData },
     #[serde(rename = "updateUnits")]
     UpdateUnit { universe: u16, unit: UnitData },
     #[serde(rename = "userUpdate")]

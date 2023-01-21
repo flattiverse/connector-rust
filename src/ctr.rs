@@ -55,9 +55,6 @@ impl Connector {
                             UniverseEvent::TickCompleted => {
                                 return Some(UpdateEvent::TickCompleted { tick: events.tick });
                             }
-                            UniverseEvent::UniverseUpdate { universe } => {
-                                self.universe_group.on_add_universe(UniverseId(universe))
-                            }
                             UniverseEvent::NewUnit { universe, unit } => {
                                 if let Some(universe) =
                                     self.universe_group.get_universe_mut(UniverseId(universe))
@@ -65,10 +62,25 @@ impl Connector {
                                     universe.on_new_unit(unit);
                                 } else {
                                     error!(
-                                        "Received update for unknown universe {:?}",
+                                        "Received NewUnit for unknown universe {:?}",
                                         UniverseId(universe)
                                     );
                                 }
+                            }
+                            UniverseEvent::RemoveUnit { universe, name } => {
+                                if let Some(universe) =
+                                    self.universe_group.get_universe_mut(UniverseId(universe))
+                                {
+                                    universe.on_remove_unit(&name);
+                                } else {
+                                    error!(
+                                        "Received RemoveUnit for unknown universe {:?}",
+                                        UniverseId(universe)
+                                    );
+                                }
+                            }
+                            UniverseEvent::UniverseUpdate { universe } => {
+                                self.universe_group.on_add_universe(UniverseId(universe))
                             }
                             UniverseEvent::UpdateUnit { universe, unit } => {
                                 if let Some(universe) =
