@@ -1,12 +1,11 @@
 use crate::con::handle::ConnectionHandle;
 use crate::con::{Connection, OpenError, UpdateEvent};
+use crate::plr::User;
 use crate::units::uni::{UniverseEvent, UniverseId};
 use crate::units::uni_group::UniverseGroup;
-use log::error;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use crate::plr::User;
 
 pub struct Connector {
     handle: Arc<ConnectionHandle>,
@@ -40,72 +39,76 @@ impl Connector {
     }
 
     #[inline]
-    pub async fn update(&mut self) -> Option<UpdateEvent> {
-        loop {
-            match self.updates.recv().await? {
-                UpdateEvent::ServerEvents(events) => {
-                    for event in events.payload {
-                        match event {
-                            UniverseEvent::UniverseInfo { universe } => {
-                                self.universe_group.on_add_universe(UniverseId(universe));
+    pub async fn try_next_update(&mut self) -> Result<Option<UpdateEvent>, UpdateError> {
+        match self
+            .updates
+            .try_recv()
+            .map_err(|_| UpdateError::ConnectionClosed)?
+        {
+            UpdateEvent::ServerEvents(events) => {
+                for event in events.payload {
+                    debug!("EVENT {event:?}");
+                    match event {
+                        UniverseEvent::UniverseInfo { universe } => {
+                            self.universe_group.on_add_universe(UniverseId(universe));
+                        }
+                        UniverseEvent::NewUser { name } => {
+                            self.universe_group.on_add_user(User::new(name));
+                        }
+                        UniverseEvent::TickCompleted => {
+                            return Ok(Some(UpdateEvent::TickCompleted { tick: events.tick }));
+                        }
+                        UniverseEvent::NewUnit { universe, unit } => {
+                            if let Some(universe) =
+                                self.universe_group.get_universe_mut(UniverseId(universe))
+                            {
+                                universe.on_new_unit(unit);
+                            } else {
+                                error!(
+                                    "Received NewUnit for unknown universe {:?}",
+                                    UniverseId(universe)
+                                );
                             }
-                            UniverseEvent::NewUser { name } => {
-                                self.universe_group.on_add_user(User::new(name));
+                        }
+                        UniverseEvent::RemoveUnit { universe, name } => {
+                            if let Some(universe) =
+                                self.universe_group.get_universe_mut(UniverseId(universe))
+                            {
+                                universe.on_remove_unit(&name);
+                            } else {
+                                error!(
+                                    "Received RemoveUnit for unknown universe {:?}",
+                                    UniverseId(universe)
+                                );
                             }
-                            UniverseEvent::TickCompleted => {
-                                return Some(UpdateEvent::TickCompleted { tick: events.tick });
+                        }
+                        UniverseEvent::BroadcastMessage { message } => {
+                            return Ok(Some(UpdateEvent::BroadcastMessage(message)));
+                        }
+                        UniverseEvent::UniverseUpdate { universe } => {
+                            self.universe_group.on_add_universe(UniverseId(universe))
+                        }
+                        UniverseEvent::UpdateUnit { universe, unit } => {
+                            if let Some(universe) =
+                                self.universe_group.get_universe_mut(UniverseId(universe))
+                            {
+                                universe.on_update_unit(unit);
+                            } else {
+                                error!(
+                                    "Received update for unknown universe {:?}",
+                                    UniverseId(universe)
+                                );
                             }
-                            UniverseEvent::NewUnit { universe, unit } => {
-                                if let Some(universe) =
-                                    self.universe_group.get_universe_mut(UniverseId(universe))
-                                {
-                                    universe.on_new_unit(unit);
-                                } else {
-                                    error!(
-                                        "Received NewUnit for unknown universe {:?}",
-                                        UniverseId(universe)
-                                    );
-                                }
-                            }
-                            UniverseEvent::RemoveUnit { universe, name } => {
-                                if let Some(universe) =
-                                    self.universe_group.get_universe_mut(UniverseId(universe))
-                                {
-                                    universe.on_remove_unit(&name);
-                                } else {
-                                    error!(
-                                        "Received RemoveUnit for unknown universe {:?}",
-                                        UniverseId(universe)
-                                    );
-                                }
-                            }
-                            UniverseEvent::BroadcastMessage { message } => {
-                                return Some(UpdateEvent::BroadcastMessage(message));
-                            }
-                            UniverseEvent::UniverseUpdate { universe } => {
-                                self.universe_group.on_add_universe(UniverseId(universe))
-                            }
-                            UniverseEvent::UpdateUnit { universe, unit } => {
-                                if let Some(universe) =
-                                    self.universe_group.get_universe_mut(UniverseId(universe))
-                                {
-                                    universe.on_update_unit(unit);
-                                } else {
-                                    error!(
-                                        "Received update for unknown universe {:?}",
-                                        UniverseId(universe)
-                                    );
-                                }
-                            }
-                            UniverseEvent::UserUpdate { name } => {
-                                self.universe_group.on_add_user(User::new(name));
-                            }
+                        }
+                        UniverseEvent::UserUpdate { name } => {
+                            self.universe_group.on_add_user(User::new(name));
                         }
                     }
                 }
-                event => return Some(event),
             }
+            event => return Ok(Some(event)),
         }
+        Ok(None)
     }
 
     #[inline]
@@ -128,4 +131,10 @@ impl Connector {
 pub enum ConnectorError {
     #[error("Failed to open a connection to the flattiverse: {0}")]
     OpenError(#[from] OpenError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UpdateError {
+    #[error("The connection has been closed")]
+    ConnectionClosed,
 }

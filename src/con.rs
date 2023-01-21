@@ -4,7 +4,6 @@ use crate::packet::{Command, ServerRequest};
 use crate::units::uni::{BroadcastMessage, UniverseEvent};
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
-use log::{debug, error};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use std::sync::Arc;
@@ -75,11 +74,11 @@ impl Connection {
             id: block_id.clone(),
             command: command.into(),
         })
-            .await
-            .map_err(|err| {
-                self.block_manager.unblock(&block_id);
-                err.into()
-            })
+        .await
+        .map_err(|err| {
+            self.block_manager.unblock(&block_id);
+            err.into()
+        })
     }
 
     pub async fn send_ws_ping(&mut self) {
@@ -96,7 +95,7 @@ impl Connection {
                 tick_as_string: current_time_millis().to_string(),
             },
         })
-            .await
+        .await
     }
 
     pub async fn update(&mut self) -> Result<UpdateEvent, ReceiveError> {
@@ -253,15 +252,9 @@ pub struct FatalResponse {
 #[serde(tag = "kind")]
 pub enum ServerMessage {
     #[serde(rename = "error")]
-    Error {
-        id: String,
-        result: String,
-    },
+    Error { id: String, result: String },
     #[serde(rename = "success")]
-    Success {
-        id: String,
-        result: i64,
-    },
+    Success { id: String, result: i64 },
     #[serde(rename = "events")]
     Events(ServerEvents),
     #[serde(rename = "ping")]

@@ -3,6 +3,7 @@ use crate::packet::Command;
 use std::future::Future;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+use crate::units::uni::UnitData;
 
 pub struct ConnectionHandle {
     pub(crate) sender: mpsc::UnboundedSender<ConnectionCommand>,
@@ -68,4 +69,6 @@ pub enum ConnectionHandleError {
     ServerError(String),
     #[error("The server encountered an error processing your request: {0}")]
     ServerErrorCode(i64),
+    #[error("The unit data given has an invalid extension")]
+    UnitCannotBeRegisteredAsShip(UnitData),
 }

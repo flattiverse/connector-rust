@@ -1,4 +1,4 @@
-use crate::units::uni::UnitSetData;
+use crate::units::uni::{UnitData, UnitSetData};
 use serde_derive::{Deserialize, Serialize};
 use std::ops::Mul;
 
@@ -33,6 +33,8 @@ pub enum Command {
         #[serde(rename = "yBounds")]
         y_bounds: f64,
     },
+    #[serde(rename = "registerShip")]
+    RegisterShip { universe: u16, unit: UnitData },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
