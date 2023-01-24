@@ -18,7 +18,8 @@ impl<T: Keeper> CmdLock<T> {
         }
     }
 
-    pub fn instruct_keeper(&self, instruction: T::Instruction) {
+    #[inline]
+    pub fn update(&self, instruction: T::Instruction) {
         AccessGuard::<_, 0>::execute_or_enqueue(self, instruction);
     }
 
@@ -186,7 +187,7 @@ pub mod tests {
             for _ in 0..thread_count {
                 s.spawn(|| {
                     for _ in 0..INSTRUCTIONS_PER_THREAD {
-                        hoard.instruct_keeper(IncrementInstruction);
+                        hoard.update(IncrementInstruction);
                     }
                 });
             }
@@ -208,7 +209,7 @@ pub mod tests {
             for _ in 0..thread_count {
                 s.spawn(|| {
                     for _ in 0..INSTRUCTIONS_PER_THREAD {
-                        hoard.instruct_keeper(IncrementInstruction);
+                        hoard.update(IncrementInstruction);
                     }
                 });
             }
@@ -234,7 +235,7 @@ pub mod tests {
             assert_eq!(0, lock.0);
 
             for _ in 0..INSTRUCTIONS {
-                hoard.instruct_keeper(IncrementInstruction);
+                hoard.update(IncrementInstruction);
                 assert_eq!(0, lock.0);
             }
 
