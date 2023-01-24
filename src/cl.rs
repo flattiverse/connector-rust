@@ -72,6 +72,7 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
     const VALUE_RANGE: usize = usize::MAX >> 1;
     const EXCLUSIVE_FLAG: usize = !Self::VALUE_RANGE;
 
+    #[inline]
     fn try_exclusive(lock: &'a CmdLock<T>) -> Option<Self> {
         // try raise the exclusive flag
         if lock.state.fetch_or(Self::EXCLUSIVE_FLAG, Ordering::SeqCst) & Self::EXCLUSIVE_FLAG == 0 {
@@ -128,6 +129,7 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
 impl<T: Keeper, const OFFSET: usize> Deref for AccessGuard<'_, T, OFFSET> {
     type Target = T;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         // SAFETY: while this ReadGuard exists, the keeper can be accessed
         unsafe { NonNull::new_unchecked(self.0.cell.get()).as_ref() }
@@ -135,6 +137,7 @@ impl<T: Keeper, const OFFSET: usize> Deref for AccessGuard<'_, T, OFFSET> {
 }
 
 impl<T: Keeper, const OFFSET: usize> DerefMut for AccessGuard<'_, T, OFFSET> {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: while this ReadGuard exists, the keeper can be accessed
         unsafe { NonNull::new_unchecked(self.0.cell.get()).as_mut() }
@@ -215,7 +218,13 @@ pub mod tests {
             }
 
             for _ in 0..LOCK_INCREMENT {
-                hoard.lock_blocking().0 += 1;
+                let mut lock = hoard.lock_blocking();
+                let before = lock.0;
+                std::hint::black_box(&mut lock);
+                lock.0 += 1;
+                std::hint::black_box(&mut lock);
+                let after = lock.0;
+                assert_eq!(1, after - before);
             }
         });
 
