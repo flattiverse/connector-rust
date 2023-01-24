@@ -3,13 +3,13 @@ use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub struct CmdLock<T: Keeper> {
+pub struct MsgLock<T: Keeper> {
     state: AtomicUsize,
     cell: UnsafeCell<T>,
-    inbox: crossbeam::queue::SegQueue<T::Instruction>,
+    inbox: crossbeam::queue::SegQueue<T::Message>,
 }
 
-impl<T: Keeper> CmdLock<T> {
+impl<T: Keeper> MsgLock<T> {
     pub const fn new(hoard: T) -> Self {
         Self {
             state: AtomicUsize::new(AccessGuard::<T>::STATE_INIT_VALUE),
@@ -19,7 +19,7 @@ impl<T: Keeper> CmdLock<T> {
     }
 
     #[inline]
-    pub fn update(&self, instruction: T::Instruction) {
+    pub fn update(&self, instruction: T::Message) {
         AccessGuard::<_, 0>::execute_or_enqueue(self, instruction);
     }
 
@@ -54,17 +54,17 @@ impl<T: Keeper> CmdLock<T> {
     }
 }
 
-unsafe impl<T: Keeper> Send for CmdLock<T> where T: Send {}
+unsafe impl<T: Keeper> Send for MsgLock<T> where T: Send {}
 
-unsafe impl<T: Keeper> Sync for CmdLock<T> where T: Sync {}
+unsafe impl<T: Keeper> Sync for MsgLock<T> where T: Sync {}
 
 pub trait Keeper {
-    type Instruction;
+    type Message;
 
-    fn follow(&mut self, cmd: Self::Instruction);
+    fn send(&mut self, cmd: Self::Message);
 }
 
-struct AccessGuard<'a, T: Keeper, const OFFSET: usize = 0>(&'a CmdLock<T>);
+struct AccessGuard<'a, T: Keeper, const OFFSET: usize = 0>(&'a MsgLock<T>);
 
 impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
     // this allows one invalid blind decrement without underflow
@@ -73,7 +73,7 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
     const EXCLUSIVE_FLAG: usize = !Self::VALUE_RANGE;
 
     #[inline]
-    fn try_exclusive(lock: &'a CmdLock<T>) -> Option<Self> {
+    fn try_exclusive(lock: &'a MsgLock<T>) -> Option<Self> {
         // try raise the exclusive flag
         if lock.state.fetch_or(Self::EXCLUSIVE_FLAG, Ordering::SeqCst) & Self::EXCLUSIVE_FLAG == 0 {
             // no one is accessing the lock therefore returning the guard is valid
@@ -85,12 +85,12 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
         }
     }
 
-    fn execute_or_enqueue(lock: &'a CmdLock<T>, instruction: T::Instruction) {
+    fn execute_or_enqueue(lock: &'a MsgLock<T>, instruction: T::Message) {
         // promise the instruction
         lock.state.fetch_add(1, Ordering::SeqCst);
         if let Some(mut guard) = AccessGuard::<T, 1>::try_exclusive(lock) {
             // execute directly
-            guard.deref_mut().follow(instruction);
+            guard.deref_mut().send(instruction);
         } else {
             // failed to lock, but
             // by incrementing the state, an instruction was promised... deliver it!
@@ -116,7 +116,7 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
                     // try again until the instruction has been received
                     loop {
                         if let Some(instruction) = lock.inbox.pop() {
-                            self.deref_mut().follow(instruction);
+                            self.deref_mut().send(instruction);
                             break;
                         }
                     }
@@ -170,10 +170,10 @@ pub mod tests {
     struct Hoard(usize);
 
     impl Keeper for Hoard {
-        type Instruction = IncrementInstruction;
+        type Message = IncrementInstruction;
 
         #[inline]
-        fn follow(&mut self, _: Self::Instruction) {
+        fn send(&mut self, _: Self::Message) {
             self.0 += 1;
         }
     }
@@ -184,7 +184,7 @@ pub mod tests {
         let thread_count: usize =
             available_parallelism().map(NonZeroUsize::get).unwrap_or(1) * 1000;
 
-        let mut hoard = CmdLock::new(Hoard(0));
+        let mut hoard = MsgLock::new(Hoard(0));
 
         std::thread::scope(|s| {
             for _ in 0..thread_count {
@@ -206,7 +206,7 @@ pub mod tests {
         let thread_count: usize =
             available_parallelism().map(NonZeroUsize::get).unwrap_or(1) * 1000;
 
-        let mut hoard = CmdLock::new(Hoard(0));
+        let mut hoard = MsgLock::new(Hoard(0));
 
         std::thread::scope(|s| {
             for _ in 0..thread_count {
@@ -237,7 +237,7 @@ pub mod tests {
     #[test]
     pub fn increment_while_locked() {
         const INSTRUCTIONS: usize = 1_000_000;
-        let mut hoard = CmdLock::new(Hoard(0));
+        let mut hoard = MsgLock::new(Hoard(0));
 
         {
             let lock = hoard.lock_blocking();
