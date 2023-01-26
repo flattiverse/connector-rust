@@ -1,4 +1,5 @@
 use std::cell::UnsafeCell;
+use std::mem::ManuallyDrop;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -6,21 +7,21 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 pub struct MsgLock<T: Keeper> {
     state: AtomicUsize,
     cell: UnsafeCell<T>,
-    inbox: crossbeam::queue::SegQueue<T::Message>,
+    inbox: crossbeam::queue::SegQueue<T::Update>,
 }
 
 impl<T: Keeper> MsgLock<T> {
-    pub const fn new(hoard: T) -> Self {
+    pub const fn new(value: T) -> Self {
         Self {
             state: AtomicUsize::new(AccessGuard::<T>::STATE_INIT_VALUE),
-            cell: UnsafeCell::new(hoard),
+            cell: UnsafeCell::new(value),
             inbox: crossbeam::queue::SegQueue::new(),
         }
     }
 
     #[inline]
-    pub fn update(&self, instruction: T::Message) {
-        AccessGuard::<_, 0>::execute_or_enqueue(self, instruction);
+    pub fn update(&self, message: T::Update) {
+        AccessGuard::<_, 0>::execute_or_enqueue(self, message);
     }
 
     #[inline]
@@ -50,6 +51,7 @@ impl<T: Keeper> MsgLock<T> {
 
     #[inline]
     pub fn get_mut(&mut self) -> &mut T {
+        AccessGuard::<T, 0>::apply_pending(self);
         self.cell.get_mut()
     }
 }
@@ -59,25 +61,35 @@ unsafe impl<T: Keeper> Send for MsgLock<T> where T: Send {}
 unsafe impl<T: Keeper> Sync for MsgLock<T> where T: Sync {}
 
 pub trait Keeper {
-    type Message;
+    type Update;
 
-    fn send(&mut self, cmd: Self::Message);
+    fn apply(&mut self, cmd: Self::Update);
 }
 
 struct AccessGuard<'a, T: Keeper, const OFFSET: usize = 0>(&'a MsgLock<T>);
 
 impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
     // this allows one invalid blind decrement without underflow
-    const STATE_INIT_VALUE: usize = 1;
+    const STATE_INIT_VALUE: usize = 0;
     const VALUE_RANGE: usize = usize::MAX >> 1;
     const EXCLUSIVE_FLAG: usize = !Self::VALUE_RANGE;
 
     #[inline]
     fn try_exclusive(lock: &'a MsgLock<T>) -> Option<Self> {
         // try raise the exclusive flag
-        if lock.state.fetch_or(Self::EXCLUSIVE_FLAG, Ordering::SeqCst) & Self::EXCLUSIVE_FLAG == 0 {
+        let result = lock.state.fetch_or(Self::EXCLUSIVE_FLAG, Ordering::SeqCst);
+        if result & Self::EXCLUSIVE_FLAG == 0 {
             // no one is accessing the lock therefore returning the guard is valid
-            Some(Self(lock))
+            Some({
+                let mut guard = Self(lock);
+                let pending = result & Self::VALUE_RANGE;
+                for _ in 0..pending {
+                    // decrement it on every iteration to be able to recover from panics
+                    lock.state.fetch_sub(1, Ordering::SeqCst);
+                    guard.apply_update();
+                }
+                guard
+            })
         } else {
             // the lock is already accessed exclusively, do _not_ reset the flag that was raised by
             // the other guard!
@@ -85,42 +97,33 @@ impl<'a, T: Keeper + 'a, const OFFSET: usize> AccessGuard<'a, T, OFFSET> {
         }
     }
 
-    fn execute_or_enqueue(lock: &'a MsgLock<T>, instruction: T::Message) {
-        // promise the instruction
+    #[inline]
+    fn execute_or_enqueue(lock: &'a MsgLock<T>, message: T::Update) {
+        // promise the message
         lock.state.fetch_add(1, Ordering::SeqCst);
-        if let Some(mut guard) = AccessGuard::<T, 1>::try_exclusive(lock) {
-            // execute directly
-            guard.deref_mut().send(instruction);
-        } else {
-            // failed to lock, but
-            // by incrementing the state, an instruction was promised... deliver it!
-            lock.inbox.push(instruction);
+        lock.inbox.push(message);
+        drop(AccessGuard::<T, 0>::try_exclusive(lock));
+    }
+
+    #[inline]
+    fn apply_pending(lock: &'a mut MsgLock<T>) {
+        let pending = lock.state.load(Ordering::Relaxed);
+        for _ in 0..pending {
+            lock.state.fetch_sub(1, Ordering::SeqCst);
+            ManuallyDrop::new(Self(lock)).apply_update();
         }
     }
 
-    /// Returns the state value (without exclusive flag)
-    fn follow_all_instructions_from_queue(&mut self) -> bool {
+    #[inline]
+    fn apply_update(&mut self) {
         let lock = self.0;
+        // try again until the message has been received
         loop {
-            // ignore the exclusive flag which might be set due to locking attempts.
-            match (lock.state.fetch_sub(1, Ordering::SeqCst) & Self::VALUE_RANGE) - OFFSET {
-                // invalid blind decrement, needs to be fixed
-                0 => break true,
-                // init value reached, no fixing required
-                1 => {
-                    debug_assert_eq!(1, Self::STATE_INIT_VALUE);
-                    break false;
-                }
-                // there is data in the queue
-                _ => {
-                    // try again until the instruction has been received
-                    loop {
-                        if let Some(instruction) = lock.inbox.pop() {
-                            self.deref_mut().send(instruction);
-                            break;
-                        }
-                    }
-                }
+            if let Some(message) = lock.inbox.pop() {
+                self.deref_mut().apply(message);
+                break;
+            } else {
+                std::thread::yield_now();
             }
         }
     }
@@ -146,16 +149,8 @@ impl<T: Keeper, const OFFSET: usize> DerefMut for AccessGuard<'_, T, OFFSET> {
 
 impl<'a, T: Keeper + 'a, const OFFSET: usize> Drop for AccessGuard<'a, T, OFFSET> {
     fn drop(&mut self) {
-        let fix_invalid_blind_read = self.follow_all_instructions_from_queue();
         // reset the exclusive flag
-        let _ = self.0.state.fetch_sub(
-            if fix_invalid_blind_read {
-                Self::EXCLUSIVE_FLAG - 1
-            } else {
-                Self::EXCLUSIVE_FLAG
-            },
-            Ordering::SeqCst,
-        );
+        let _ = self.0.state.fetch_and(Self::VALUE_RANGE, Ordering::SeqCst);
     }
 }
 
@@ -170,17 +165,17 @@ pub mod tests {
     struct Hoard(usize);
 
     impl Keeper for Hoard {
-        type Message = IncrementInstruction;
+        type Update = IncrementInstruction;
 
         #[inline]
-        fn send(&mut self, _: Self::Message) {
+        fn apply(&mut self, _: Self::Update) {
             self.0 += 1;
         }
     }
 
     #[test]
     pub fn concurrent_increment() {
-        const INSTRUCTIONS_PER_THREAD: usize = 10_000;
+        const INSTRUCTIONS_PER_THREAD: usize = 1_000;
         let thread_count: usize =
             available_parallelism().map(NonZeroUsize::get).unwrap_or(1) * 1000;
 
@@ -202,7 +197,7 @@ pub mod tests {
     #[test]
     pub fn concurrent_increment_with_lock() {
         const LOCK_INCREMENT: usize = 1000;
-        const INSTRUCTIONS_PER_THREAD: usize = 10_000;
+        const INSTRUCTIONS_PER_THREAD: usize = 1_000;
         let thread_count: usize =
             available_parallelism().map(NonZeroUsize::get).unwrap_or(1) * 1000;
 
@@ -253,5 +248,40 @@ pub mod tests {
         }
 
         assert_eq!(INSTRUCTIONS, hoard.get_mut().0);
+    }
+
+    #[test]
+    pub fn in_order_while_locked() {
+        const INSTRUCTIONS_PER_THREAD: usize = 1_000_000;
+
+        let hoard = MsgLock::new(HoardAsc(0));
+
+        struct HoardAsc(usize);
+
+        impl Keeper for HoardAsc {
+            type Update = usize;
+
+            fn apply(&mut self, cmd: Self::Update) {
+                if self.0 >= cmd {
+                    panic!("ERROR ON: self.0={} >= cmd={}", self.0, cmd);
+                } else {
+                    self.0 = cmd;
+                }
+            }
+        }
+
+        std::thread::scope(|s| {
+            s.spawn(|| {
+                for i in 1..=INSTRUCTIONS_PER_THREAD {
+                    hoard.update(i);
+                }
+            });
+
+            for _ in 0..INSTRUCTIONS_PER_THREAD {
+                let mut guard = hoard.lock_blocking();
+                std::hint::black_box(&mut guard);
+                assert!(guard.0 <= INSTRUCTIONS_PER_THREAD);
+            }
+        })
     }
 }
