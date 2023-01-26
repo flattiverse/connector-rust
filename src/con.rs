@@ -30,12 +30,31 @@ impl Connection {
     }
 
     pub async fn connect_to(host: &str, api_key: &str) -> Result<Self, OpenError> {
-        let (stream, response) = connect_async(format!("wss://{host}?auth={api_key}")).await?;
-        println!("{response:?}");
+        let (mut stream, _response) = connect_async(format!("wss://{host}?auth={api_key}")).await?;
+        Self::try_set_tcp_nodelay(&mut stream);
         Ok(Connection {
             stream,
             block_manager: BlockManager::default(),
         })
+    }
+
+    fn try_set_tcp_nodelay(stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+        match stream.get_mut() {
+            MaybeTlsStream::Plain(s) => {
+                if let Err(e) = s.set_nodelay(true) {
+                    warn!("Failed to set TCP_NODELAY: {e:?}");
+                }
+            }
+            // MaybeTlsStream::NativeTls(s) => s.set_nodelay(true)?,
+            MaybeTlsStream::Rustls(s) => {
+                if let Err(e) = s.get_mut().0.set_nodelay(true) {
+                    warn!("Failed to set TCP_NODELAY: {e:?}");
+                }
+            }
+            s => {
+                warn!("Unable to set TCP_NODELAY, unexpected MayeTlsStream-Variant: {s:?}");
+            }
+        };
     }
 
     #[inline]
