@@ -19,7 +19,7 @@ impl Connector {
 
     #[inline]
     pub async fn new(api_key: impl AsRef<str>) -> Result<Self, ConnectorError> {
-        Self::new_to(api_key, Connection::DEFAULT_HOST).await
+        Self::new_to(api_key, Connection::DEFAULT_URL).await
     }
 
     pub async fn new_to(

@@ -1,19 +1,23 @@
-use crate::blk::BlockManager;
-use crate::con::handle::{ConnectionCommand, ConnectionHandle};
-use crate::packet::{Command, ServerRequest};
-use crate::units::uni::{BroadcastMessage, UniverseEvent};
+use std::str::FromStr;
+use std::sync::Arc;
+use std::time::{Duration, UNIX_EPOCH};
+
 use futures_util::sink::SinkExt;
 use futures_util::StreamExt;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use std::sync::Arc;
-use std::time::{Duration, UNIX_EPOCH};
 use tokio::net::TcpStream;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::interval;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use url::Url;
+
+use crate::blk::BlockManager;
+use crate::con::handle::{ConnectionCommand, ConnectionHandle};
+use crate::packet::{Command, ServerRequest};
+use crate::units::uni::{BroadcastMessage, UniverseEvent};
 
 pub mod handle;
 
@@ -23,14 +27,52 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub const DEFAULT_HOST: &'static str = "www.flattiverse.com/api/universes/beginnersGround.ws";
+    pub const DEFAULT_PORT_WEB: u16 = 443;
+    pub const DEFAULT_PORT_PROXY: u16 = 80;
+    pub const ENV_PROXY: &'static str = "http_proxy";
+    pub const DEFAULT_URL: &'static str =
+        "wss://www.flattiverse.com/api/universes/beginnersGround.ws";
 
     pub async fn connect(api_key: &str) -> Result<Self, OpenError> {
-        Self::connect_to(Self::DEFAULT_HOST, api_key).await
+        Self::connect_to(Self::DEFAULT_URL, api_key).await
     }
 
     pub async fn connect_to(host: &str, api_key: &str) -> Result<Self, OpenError> {
-        let (mut stream, _response) = connect_async(format!("wss://{host}?auth={api_key}")).await?;
+        let url = Url::from_str(&format!("{host}?auth={api_key}&version=0"))
+            .map_err(OpenError::MalformedHostUrl)?;
+        let (mut stream, _response) = match std::env::var(Self::ENV_PROXY).ok() {
+            Some(proxy) => {
+                eprintln!(
+                    "detected proxy environment variable {}={proxy}",
+                    Self::ENV_PROXY
+                );
+                let proxy = Url::from_str(&proxy).map_err(OpenError::MalformedProxyUrl)?;
+                let proxy = format!(
+                    "{}:{}",
+                    proxy.host_str().unwrap_or_default(),
+                    proxy
+                        .port_or_known_default()
+                        .unwrap_or(Self::DEFAULT_PORT_PROXY)
+                );
+
+                eprintln!("establishing connection via proxy through {proxy}");
+                let mut stream = TcpStream::connect(proxy)
+                    .await
+                    .map_err(OpenError::ProxyConnectionError)?;
+
+                async_http_proxy::http_connect_tokio(
+                    &mut stream,
+                    url.host_str().unwrap_or_default(),
+                    url.port_or_known_default()
+                        .unwrap_or(Self::DEFAULT_PORT_WEB),
+                )
+                .await?;
+
+                tokio_tungstenite::client_async_tls_with_config(url, stream, None, None).await?
+            }
+            None => connect_async(url).await?,
+        };
+
         Self::try_set_tcp_nodelay(&mut stream);
         Ok(Connection {
             stream,
@@ -235,8 +277,16 @@ impl Connection {
 
 #[derive(thiserror::Error, Debug)]
 pub enum OpenError {
-    #[error("Underlying connection error")]
+    #[error("Underlying connection error: {0}")]
     IoError(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("The provided url is malformed: {0}")]
+    MalformedHostUrl(url::ParseError),
+    #[error("The url to the proxy server is malformed: {0}")]
+    MalformedProxyUrl(url::ParseError),
+    #[error("Failed to connect to the proxy server: {0}")]
+    ProxyConnectionError(std::io::Error),
+    #[error("The proxy server sent and unexpected response: {0}")]
+    ProxyResponseError(#[from] async_http_proxy::HttpError),
 }
 
 #[derive(thiserror::Error, Debug)]
