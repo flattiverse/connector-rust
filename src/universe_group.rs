@@ -1,4 +1,5 @@
 use crate::events::added_unit_event::AddedUnitEvent;
+use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::{ApplicableEvent, FailureEvent};
 use crate::game_mode::GameMode;
@@ -119,6 +120,7 @@ impl UniverseGroup {
                 update.apply(self);
                 Some(Ok(FlattiverseEvent::PlayerRemoved(id)))
             }
+            ServerEvent::UnitRemoved(event) => Some(Ok(FlattiverseEvent::UnitRemoved(event))),
             ServerEvent::UnitAdded(event) => Some(Ok(FlattiverseEvent::UnitAdded(event))),
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {
@@ -173,6 +175,10 @@ pub enum FlattiverseEvent {
     PlayerPartialUpdate(PlayerId),
     /// This event informs of the disconnect of a player from the [`UniverseGroup`].
     PlayerRemoved(PlayerId),
+    /// This event informs of the removal of a unit from the [`UniverseGroup`].
+    UnitRemoved(RemovedUnitEvent),
+    /// This event informs of the addition of a unit to the [`UniverseGroup`].
     UnitAdded(AddedUnitEvent),
+    /// This event informs of the completion of a tick in the [`UniverseGroup`].
     TickProcessed(TickProcessedEvent),
 }

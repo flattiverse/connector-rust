@@ -4,6 +4,7 @@ pub mod added_unit_event;
 pub mod full_update_player_event;
 pub mod partial_update_player_event;
 pub mod removed_player_event;
+pub mod removed_unit_event;
 pub mod tick_processed_event;
 pub mod universe_group_info_event;
 
