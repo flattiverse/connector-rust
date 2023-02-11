@@ -40,6 +40,8 @@ pub struct Player {
     pub kills: u64,
     /// All-Time-Deaths of the player.
     pub deaths: u64,
+    /// All-Time-Collisions of the player.
+    pub collisions: u64,
     pub(crate) ping: Option<u32>,
 }
 

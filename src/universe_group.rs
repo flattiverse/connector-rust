@@ -109,6 +109,16 @@ impl UniverseGroup {
                 update.apply(self);
                 Some(Ok(FlattiverseEvent::PlayerFullUpdate(id)))
             }
+            ServerEvent::PlayerPartialUpdate(update) => {
+                let id = update.id;
+                update.apply(self);
+                Some(Ok(FlattiverseEvent::PlayerPartialUpdate(id)))
+            }
+            ServerEvent::PlayerRemoved(update) => {
+                let id = update.id;
+                update.apply(self);
+                Some(Ok(FlattiverseEvent::PlayerRemoved(id)))
+            }
             ServerEvent::UnitAdded(event) => Some(Ok(FlattiverseEvent::UnitAdded(event))),
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {
@@ -159,6 +169,10 @@ pub enum FlattiverseEvent {
     UniverseGroupInfo,
     /// This event updates all information about a [`Player`].
     PlayerFullUpdate(PlayerId),
+    /// This event contains only mutable information about a [`Player`].
+    PlayerPartialUpdate(PlayerId),
+    /// This event informs of the disconnect of a player from the [`UniverseGroup`].
+    PlayerRemoved(PlayerId),
     UnitAdded(AddedUnitEvent),
     TickProcessed(TickProcessedEvent),
 }

@@ -1,5 +1,7 @@
 use crate::events::added_unit_event::AddedUnitEvent;
 use crate::events::full_update_player_event::FullUpdatePlayerEvent;
+use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
+use crate::events::removed_player_event::RemovedPlayerEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::universe_group_info_event::UniverseGroupInfoEvent;
 use crate::events::FailureEvent;
@@ -36,6 +38,10 @@ pub enum ServerEvent {
     Failure(FailureEvent),
     #[serde(rename = "playerFullUpdate")]
     PlayerFullUpdate(FullUpdatePlayerEvent),
+    #[serde(rename = "playerPartialUpdate")]
+    PlayerPartialUpdate(PartialUpdatePlayerEvent),
+    #[serde(rename = "playerRemoved")]
+    PlayerRemoved(RemovedPlayerEvent),
     #[serde(rename = "unitAdded")]
     UnitAdded(AddedUnitEvent),
     #[serde(rename = "tickProcessed")]
