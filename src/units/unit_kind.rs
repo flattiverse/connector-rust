@@ -1,3 +1,4 @@
+use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -5,7 +6,7 @@ use serde_derive::{Deserialize, Serialize};
 pub enum UnitKind {
     /// A [`Sun`], which may have corona or corona sections.
     #[serde(rename = "sun")]
-    Sun,
+    Sun(Sun),
     #[serde(rename = "planet")]
     Planet,
     #[serde(rename = "moon")]
