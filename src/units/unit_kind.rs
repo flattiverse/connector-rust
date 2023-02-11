@@ -1,4 +1,5 @@
 use crate::units::blackhole::Blackhole;
+use crate::units::comet::Comet;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
@@ -15,7 +16,7 @@ pub enum UnitKind {
     #[serde(rename = "meteoroid")]
     Meteoroid,
     #[serde(rename = "comet")]
-    Comet,
+    Comet(Comet),
     // #[serde(rename = "asteroid")]
     // Asteroid,
     // /// A buoy, which may contain a message.
