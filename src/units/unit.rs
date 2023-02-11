@@ -36,7 +36,7 @@ impl Unit {
             UnitKind::Meteoroid(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Comet(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::PlayerUnit => Mobility::Mobile,
-            UnitKind::Shot => Mobility::Still,
+            UnitKind::Shot(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Explosion(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
         }
