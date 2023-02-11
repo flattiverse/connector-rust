@@ -1,4 +1,4 @@
-use crate::units::orbits::Orbits;
+use crate::units::orbits::Orbit;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -8,9 +8,9 @@ pub enum Mobility {
     Mobile,
 }
 
-impl From<&[Orbits]> for Mobility {
+impl From<&[Orbit]> for Mobility {
     #[inline]
-    fn from(value: &[Orbits]) -> Self {
+    fn from(value: &[Orbit]) -> Self {
         if value.is_empty() {
             Self::Still
         } else {
