@@ -6,7 +6,7 @@ use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::SendQueryError;
 use crate::network::query::{QueryCommand, QueryError, QueryResponse};
 use crate::network::ServerEvent;
-use crate::players::Player;
+use crate::players::{Player, PlayerId};
 use crate::team::Team;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -102,16 +102,20 @@ impl UniverseGroup {
     ) -> Option<Result<FlattiverseEvent, EventError>> {
         debug!("Applying ServerEvent {event:?}");
         match event {
-            ServerEvent::Raw(raw) => return Some(Ok(FlattiverseEvent::Raw(raw))),
-            ServerEvent::Failure(failure) => return Some(Ok(FlattiverseEvent::Failure(failure))),
-            ServerEvent::PlayerFullUpdate(update) => update.apply(self),
-            ServerEvent::UnitAdded(event) => return Some(Ok(FlattiverseEvent::UnitAdded(event))),
-            ServerEvent::TickProcessed(event) => {
-                return Some(Ok(FlattiverseEvent::TickProcessed(event)))
+            ServerEvent::Raw(raw) => Some(Ok(FlattiverseEvent::Raw(raw))),
+            ServerEvent::Failure(failure) => Some(Ok(FlattiverseEvent::Failure(failure))),
+            ServerEvent::PlayerFullUpdate(update) => {
+                let id = update.player.id;
+                update.apply(self);
+                Some(Ok(FlattiverseEvent::PlayerFullUpdate(id)))
             }
-            ServerEvent::UniverseGroupInfo(info) => info.apply(self),
+            ServerEvent::UnitAdded(event) => Some(Ok(FlattiverseEvent::UnitAdded(event))),
+            ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
+            ServerEvent::UniverseGroupInfo(info) => {
+                info.apply(self);
+                Some(Ok(FlattiverseEvent::UniverseGroupInfo))
+            }
         }
-        None
     }
 }
 
@@ -148,6 +152,13 @@ pub enum FlattiverseEvent {
     /// data-transport, etc.. Consider upgrading the connector if this happens and it
     /// is not due to a lost connection.
     Failure(FailureEvent),
+    /// This event notifies about the meta information a [`UniverseGroup`] has, like name,
+    /// description, teams, rules...
+    /// You actually don't need to parse this event because it's also parsed by the connector and
+    /// the results are presented in fields on the [`UniverseGroup`].
+    UniverseGroupInfo,
+    /// This event updates all information about a [`Player`].
+    PlayerFullUpdate(PlayerId),
     UnitAdded(AddedUnitEvent),
     TickProcessed(TickProcessedEvent),
 }
