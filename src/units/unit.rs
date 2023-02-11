@@ -31,7 +31,7 @@ impl Unit {
     pub fn mobility(&self) -> Mobility {
         match &self.kind {
             UnitKind::Sun(unit) => Mobility::from(&unit.orbits[..]),
-            UnitKind::Planet => Mobility::Still,
+            UnitKind::Planet(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Moon(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Meteoroid(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Comet(unit) => Mobility::from(&unit.orbits[..]),

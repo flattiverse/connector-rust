@@ -11,6 +11,7 @@ pub mod meteoroid;
 pub mod mobility;
 pub mod moon;
 pub mod orbits;
+pub mod planet;
 pub mod sun;
 pub mod unit;
 pub mod unit_kind;
