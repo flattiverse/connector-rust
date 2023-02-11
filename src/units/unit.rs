@@ -59,6 +59,16 @@ impl Unit {
 
     /// Whether it is possible to edit this unit vai admin commands.
     pub fn is_map_editable(&self) -> bool {
-        todo!()
+        match &self.kind {
+            UnitKind::Sun(_) => true,
+            UnitKind::Planet(_) => true,
+            UnitKind::Moon(_) => true,
+            UnitKind::Meteoroid(_) => true,
+            UnitKind::Comet(_) => true,
+            UnitKind::PlayerUnit => false,
+            UnitKind::Shot(_) => true,
+            UnitKind::Explosion(_) => true,
+            UnitKind::BlackHole(_) => true,
+        }
     }
 }
