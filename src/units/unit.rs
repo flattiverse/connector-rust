@@ -33,7 +33,7 @@ impl Unit {
             UnitKind::Sun(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Planet => Mobility::Still,
             UnitKind::Moon => Mobility::Still,
-            UnitKind::Meteoroid => Mobility::Still,
+            UnitKind::Meteoroid(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Comet(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::PlayerUnit => Mobility::Mobile,
             UnitKind::Shot => Mobility::Still,

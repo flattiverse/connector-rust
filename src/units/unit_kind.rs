@@ -1,6 +1,7 @@
 use crate::units::blackhole::Blackhole;
 use crate::units::comet::Comet;
 use crate::units::explosion::Explosion;
+use crate::units::meteoroid::Meteoroid;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
@@ -15,7 +16,7 @@ pub enum UnitKind {
     #[serde(rename = "moon")]
     Moon,
     #[serde(rename = "meteoroid")]
-    Meteoroid,
+    Meteoroid(Meteoroid),
     #[serde(rename = "comet")]
     Comet(Comet),
     // #[serde(rename = "asteroid")]
