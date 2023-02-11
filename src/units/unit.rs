@@ -30,7 +30,7 @@ impl Unit {
     /// The [`Mobility`] status of this unit.
     pub fn mobility(&self) -> Mobility {
         match &self.kind {
-            UnitKind::Sun(sun) => Mobility::from(&sun.orbits[..]),
+            UnitKind::Sun(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Planet => Mobility::Still,
             UnitKind::Moon => Mobility::Still,
             UnitKind::Meteoroid => Mobility::Still,
@@ -38,7 +38,7 @@ impl Unit {
             UnitKind::PlayerUnit => Mobility::Mobile,
             UnitKind::Shot => Mobility::Still,
             UnitKind::Explosion => Mobility::Still,
-            UnitKind::BlackHole => Mobility::Still,
+            UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
         }
     }
 

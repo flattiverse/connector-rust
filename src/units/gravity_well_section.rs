@@ -3,7 +3,7 @@ use crate::units::activation_state::ActivationState;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CoronaSection {
+pub struct GravityWellSection {
     #[serde(rename = "angleStart")]
     pub angle_start: f64,
     #[serde(rename = "angleEnd")]
@@ -12,8 +12,7 @@ pub struct CoronaSection {
     pub distance_start: f64,
     #[serde(rename = "distanceEnd")]
     pub distance_end: f64,
-    pub energy: Option<f64>,
-    pub particles: Option<f64>,
+    pub force: Option<f64>,
     pub activation: Option<Activation>,
     #[serde(rename = "activationState")]
     pub activation_state: Option<ActivationStateFrame>,

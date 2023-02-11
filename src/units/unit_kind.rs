@@ -1,3 +1,4 @@
+use crate::units::blackhole::Blackhole;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
@@ -34,5 +35,5 @@ pub enum UnitKind {
     Explosion,
     /// A [`BlackHole`], which may have any gravitational well or gravitational well sections.
     #[serde(rename = "blackhole")]
-    BlackHole,
+    BlackHole(Blackhole),
 }
