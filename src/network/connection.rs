@@ -1,17 +1,19 @@
 use crate::network::connection_handle::ConnectionHandle;
-use crate::network::query::{Query, QueryCommand, QueryKeeper, QueryResult};
+use crate::network::query::{Query, QueryKeeper};
 use crate::network::{ServerEvent, ServerMessage};
 use crate::utils::current_time_millis;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, Mutex};
 use tokio::time::interval;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use url::Url;
 
 pub struct Connection {
     stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
@@ -20,9 +22,46 @@ pub struct Connection {
 
 impl Connection {
     pub const PING_INTERVAL: Duration = Duration::from_secs(1);
+    pub const DEFAULT_PORT_WEB: u16 = 443;
+    pub const DEFAULT_PORT_PROXY: u16 = 80;
+    pub const ENV_PROXY: &'static str = "http_proxy";
 
-    pub async fn connect_to(uri: &str, api_key: &str) -> Result<Self, OpenError> {
-        let (mut stream, _response) = connect_async(format!("{uri}?auth={api_key}")).await?;
+    pub async fn connect_to(url: &str, api_key: &str) -> Result<Self, OpenError> {
+        let url = Url::from_str(&format!("{url}?auth={api_key}&version=0"))
+            .map_err(OpenError::MalformedHostUrl)?;
+        let (mut stream, _response) = match std::env::var(Self::ENV_PROXY).ok() {
+            Some(proxy) => {
+                eprintln!(
+                    "detected proxy environment variable {}={proxy}",
+                    Self::ENV_PROXY
+                );
+                let proxy = Url::from_str(&proxy).map_err(OpenError::MalformedProxyUrl)?;
+                let proxy = format!(
+                    "{}:{}",
+                    proxy.host_str().unwrap_or_default(),
+                    proxy
+                        .port_or_known_default()
+                        .unwrap_or(Self::DEFAULT_PORT_PROXY)
+                );
+
+                eprintln!("establishing connection via proxy through {proxy}");
+                let mut stream = TcpStream::connect(proxy)
+                    .await
+                    .map_err(OpenError::ProxyConnectionError)?;
+
+                async_http_proxy::http_connect_tokio(
+                    &mut stream,
+                    url.host_str().unwrap_or_default(),
+                    url.port_or_known_default()
+                        .unwrap_or(Self::DEFAULT_PORT_WEB),
+                )
+                .await?;
+
+                tokio_tungstenite::client_async_tls_with_config(url, stream, None, None).await?
+            }
+            None => connect_async(url).await?,
+        };
+
         Self::try_set_tcp_nodelay(&mut stream);
         Ok(Self {
             stream,
@@ -56,26 +95,23 @@ impl Connection {
 
         let queries = Arc::new(Mutex::new(self.queries));
 
-        let sender_handle = tokio::spawn({
-            ConnectionSender {
-                sink,
-                queries: Arc::clone(&queries),
-            }
-            .run(receiver, Self::PING_INTERVAL)
-        });
+        let mut sender_handle =
+            tokio::spawn(ConnectionSender { sink }.run(receiver, Self::PING_INTERVAL));
 
         (
             Arc::new(ConnectionHandle {
                 sender: sender.clone(),
+                queries: Arc::clone(&queries),
                 handle: tokio::spawn(async move {
                     let receiver = ConnectionReceiver { stream, queries }.run(sender, event_sender);
                     tokio::select! {
-                        r = sender_handle => {
+                        r = &mut sender_handle => {
                             if let Err(e) = r {
                                 error!("ConnectionSender failed: {e:?}");
                             }
                         },
                         r = receiver => {
+                            sender_handle.abort();
                             if let Err(e) = r {
                                 error!("ConnectionReceiver failed: {e:?}")
                             }
@@ -92,11 +128,18 @@ impl Connection {
 pub enum OpenError {
     #[error("Underlying connection error")]
     IoError(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error("The provided url is malformed: {0}")]
+    MalformedHostUrl(url::ParseError),
+    #[error("The url to the proxy server is malformed: {0}")]
+    MalformedProxyUrl(url::ParseError),
+    #[error("Failed to connect to the proxy server: {0}")]
+    ProxyConnectionError(std::io::Error),
+    #[error("The proxy server sent and unexpected response: {0}")]
+    ProxyResponseError(#[from] async_http_proxy::HttpError),
 }
 
 struct ConnectionSender {
     sink: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
-    queries: Arc<Mutex<QueryKeeper>>,
 }
 
 impl ConnectionSender {
@@ -111,22 +154,17 @@ impl ConnectionSender {
                 _ = ping_interval.tick() => self.send_ping().await?,
                 cmd = receiver.recv() => {
                     match cmd {
-                        Some(SenderData::Query(command, target)) => {
-                            let id = self.queries.lock().await.register_new_for(target);
-                            self.send(Message::Text(serde_json::to_string(&Query {
-                                id,
-                                command,
-                            })?)).await?
+                        Some(SenderData::Query(query)) => {
+                            self.send(Message::Text(serde_json::to_string(&query)?)).await?
                         },
                         Some(SenderData::Raw(message)) => {
                             self.send(message).await?;
                         }
-                        None => break,
+                        None => return Ok(()),
                     }
                 }
             }
         }
-        Ok(())
     }
 
     #[inline]
@@ -138,13 +176,15 @@ impl ConnectionSender {
     #[inline]
     async fn send(&mut self, msg: Message) -> Result<(), SenderError> {
         debug!("SENDING: {msg:?}");
-        Ok(self.sink.send(msg).await?)
+        self.sink.send(msg).await?;
+        self.sink.flush().await?;
+        Ok(())
     }
 }
 
 pub enum SenderData {
     Raw(Message),
-    Query(QueryCommand, oneshot::Sender<QueryResult>),
+    Query(Query),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -167,25 +207,29 @@ impl ConnectionReceiver {
         event_sender: mpsc::UnboundedSender<ConnectionEvent>,
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
+            debug!("Received message {message:?}");
             match message {
-                Message::Text(text) => match serde_json::from_str(&text)? {
-                    ServerMessage::Success { id, result } => {
-                        self.queries.lock().await.answer(&id, Ok(result));
-                    }
-                    ServerMessage::Failure { id, code } => {
-                        self.queries.lock().await.answer(&id, Err(code.into()));
-                    }
-                    ServerMessage::Events { events } => {
-                        for event in events {
-                            if event_sender
-                                .send(ConnectionEvent::ServerEvent(event))
-                                .is_err()
-                            {
-                                break;
+                Message::Text(text) => {
+                    debug!("{text}");
+                    match serde_json::from_str(&text)? {
+                        ServerMessage::Success { id, result } => {
+                            self.queries.lock().await.answer(&id, Ok(result));
+                        }
+                        ServerMessage::Failure { id, code } => {
+                            self.queries.lock().await.answer(&id, Err(code.into()));
+                        }
+                        ServerMessage::Events { events } => {
+                            for event in events {
+                                if event_sender
+                                    .send(ConnectionEvent::ServerEvent(dbg!(event)))
+                                    .is_err()
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
-                },
+                }
                 b @ (Message::Frame(_) | Message::Binary(_)) => {
                     return Err(ReceiveError::UnexpectedData(format!("{b:?}")));
                 }

@@ -1,22 +1,34 @@
 use crate::network::connection::SenderData;
-use crate::network::query::{QueryCommand, QueryResult};
+use crate::network::query::{Query, QueryCommand, QueryKeeper, QueryResult};
 use std::future::Future;
-use tokio::sync::{mpsc, oneshot};
+use std::sync::Arc;
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::task::JoinHandle;
 
 pub struct ConnectionHandle {
     pub(crate) sender: mpsc::UnboundedSender<SenderData>,
+    pub(crate) queries: Arc<Mutex<QueryKeeper>>,
+    #[allow(unused)]
     pub(crate) handle: JoinHandle<()>,
 }
 
 impl ConnectionHandle {
-    pub fn send_query(
+    pub async fn send_query(
         &self,
         command: impl Into<QueryCommand>,
     ) -> Result<impl Future<Output = Result<QueryResult, SendQueryError>> + 'static, SendQueryError>
     {
         let (sender, receiver) = oneshot::channel();
-        match self.sender.send(SenderData::Query(command.into(), sender)) {
+        let id = self
+            .queries
+            .lock()
+            .await
+            .register_new_for(sender)
+            .ok_or(SendQueryError::QueryIdsExhausted)?;
+        match self.sender.send(SenderData::Query(Query {
+            id,
+            command: command.into(),
+        })) {
             Ok(_) => Ok(async move { receiver.await.map_err(|_| SendQueryError::ConnectionGone) }),
             Err(_) => Err(SendQueryError::ConnectionGone),
         }
@@ -27,4 +39,6 @@ impl ConnectionHandle {
 pub enum SendQueryError {
     #[error("The connection is no longer reachable, your request could not be transmitted")]
     ConnectionGone,
+    #[error("Cannot issue more query ids: all possible query ids are in use")]
+    QueryIdsExhausted,
 }

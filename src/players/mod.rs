@@ -1,5 +1,4 @@
 use serde_derive::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
 /// States the kind of player.
@@ -16,25 +15,38 @@ pub enum PlayerKind {
     Admin,
 }
 
+#[repr(transparent)]
+#[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub struct PlayerId(pub(crate) usize);
+
 /// Specifies a player that is currently connected to the [`crate::universe_group::UniverseGroup`].
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Player {
     /// The internal ID of the player.
-    pub id: i32,
+    pub id: PlayerId,
     /// The name of the player.
     pub name: String,
+    /// The kind of the player.
+    #[serde(rename = "playerKind")]
+    pub kind: PlayerKind,
+    /// Whether the player is an admin.
+    pub admin: bool,
+    /// The ELO ranking of the player.
+    #[serde(rename = "pvpScore")]
+    pub pvp_score: f64,
     /// The rank of the player.
-    pub rank: u32,
+    pub rank: i32,
     /// All-Time-Kills of the player.
     pub kills: u64,
     /// All-Time-Deaths of the player.
     pub deaths: u64,
-    pub(crate) ping: AtomicU32,
+    pub(crate) ping: Option<u32>,
 }
 
 impl Player {
     /// The ping of the player.
-    pub fn ping(&self) -> Duration {
-        Duration::from_millis(u64::from(self.ping.load(Ordering::Relaxed)))
+    #[inline]
+    pub fn ping(&self) -> Option<Duration> {
+        self.ping.map(|ping| Duration::from_millis(u64::from(ping)))
     }
 }

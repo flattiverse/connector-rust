@@ -1,9 +1,10 @@
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::oneshot::Sender;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct QueryId(String);
+
+impl QueryId {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Query {
@@ -22,8 +23,8 @@ pub enum QueryCommand {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum QueryResponse {
-    Double(f64),
     Integer(i32),
+    Double(f64),
     String(String),
 }
 
@@ -82,10 +83,46 @@ pub struct QueryKeeper {
 }
 
 impl QueryKeeper {
-    pub fn register_new_for(&mut self, target: Sender<QueryResult>) -> QueryId {
-        let id = QueryId(Uuid::new_v4().to_string());
+    const ALLOWED_LEN: usize = 2;
+    const ALLOWED_CHARS: &'static [char] = &[
+        '.', '-', '_', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+        'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G',
+        'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+        'Z',
+    ];
+
+    pub fn register_new_for(&mut self, target: Sender<QueryResult>) -> Option<QueryId> {
+        let id = self.unused_id()?;
         self.queries.push((id.clone(), target));
-        id
+        Some(id)
+    }
+
+    fn unused_id(&self) -> Option<QueryId> {
+        let mut id = String::with_capacity(Self::ALLOWED_LEN);
+
+        for mut counter in 0..Self::ALLOWED_CHARS.len().pow(Self::ALLOWED_LEN as u32) {
+            // fill the buffer
+            for _ in 0..Self::ALLOWED_LEN {
+                id.push(Self::ALLOWED_CHARS[counter % Self::ALLOWED_CHARS.len()]);
+                counter /= Self::ALLOWED_CHARS.len();
+            }
+
+            if !self.contains(&id) {
+                return Some(QueryId(id));
+            } else {
+                id.clear();
+            }
+        }
+        None
+    }
+
+    fn contains(&self, id: &str) -> bool {
+        for i in 0..self.queries.len() {
+            if self.queries[i].0 .0 == id {
+                return true;
+            }
+        }
+        false
     }
 
     pub fn answer(&mut self, id: &QueryId, result: QueryResult) -> Option<QueryResult> {

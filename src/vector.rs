@@ -1,57 +1,5 @@
-use crate::units::uni::{UnitData, UnitSetData};
 use serde_derive::{Deserialize, Serialize};
 use std::ops::Mul;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServerRequest {
-    pub id: String,
-    #[serde(flatten)]
-    pub command: Command,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "command")]
-pub enum Command {
-    #[serde(rename = "setUnit")]
-    SetUnit { data: UnitSetData },
-    #[serde(rename = "deleteUnit")]
-    DeleteUnit { universe: u16, name: String },
-    #[serde(rename = "message")]
-    Message { kind: MessageKind, message: Message },
-    Pong {
-        #[serde(rename = "tickAsString")]
-        tick_as_string: String,
-    },
-    #[serde(rename = "createUniverse")]
-    CreateUniverse {
-        name: String,
-        #[serde(rename = "xBounds")]
-        x_bounds: f64,
-        #[serde(rename = "yBounds")]
-        y_bounds: f64,
-    },
-    #[serde(rename = "registerShip")]
-    RegisterShip { universe: u16, unit: UnitData },
-    #[serde(rename = "thruster")]
-    Thrust {
-        universe: u16,
-        name: String,
-        value: f64,
-    },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum MessageKind {
-    #[serde(rename = "uni")]
-    Universe,
-    #[serde(rename = "broadcast")]
-    Broadcast,
-}
-
-#[derive(Debug, Serialize, Deserialize, derive_more::From)]
-pub struct Message {
-    text: String,
-}
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Vector {

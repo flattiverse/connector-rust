@@ -1,3 +1,6 @@
+use crate::events::added_unit_event::AddedUnitEvent;
+use crate::events::full_update_player_event::FullUpdatePlayerEvent;
+use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::universe_group_info_event::UniverseGroupInfoEvent;
 use crate::events::FailureEvent;
 use crate::network::query::{QueryId, QueryResponse};
@@ -31,11 +34,12 @@ pub enum ServerEvent {
     /// is not due to a lost connection.
     #[serde(rename = "failure")]
     Failure(FailureEvent),
-    /// This event notifies about the meta information a [`UniverseGroup`] has, like name,
-    /// description, teams, rules... You actually don't need to parse this event because it's also
-    /// parsed by the connector and the results are presented in fields on the [`UniverseGroup`].
-    ///
-    /// [`UniverseGroup`]: crate::universe_group::UniverseGroup
-    #[serde(rename = "failure")]
+    #[serde(rename = "playerFullUpdate")]
+    PlayerFullUpdate(FullUpdatePlayerEvent),
+    #[serde(rename = "unitAdded")]
+    UnitAdded(AddedUnitEvent),
+    #[serde(rename = "tickProcessed")]
+    TickProcessed(TickProcessedEvent),
+    #[serde(rename = "universeGroupInfo")]
     UniverseGroupInfo(UniverseGroupInfoEvent),
 }
