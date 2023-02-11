@@ -37,7 +37,7 @@ impl Unit {
             UnitKind::Comet(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::PlayerUnit => Mobility::Mobile,
             UnitKind::Shot => Mobility::Still,
-            UnitKind::Explosion => Mobility::Still,
+            UnitKind::Explosion(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
         }
     }

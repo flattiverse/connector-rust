@@ -1,5 +1,6 @@
 use crate::units::blackhole::Blackhole;
 use crate::units::comet::Comet;
+use crate::units::explosion::Explosion;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
@@ -33,7 +34,7 @@ pub enum UnitKind {
     Shot,
     /// An explosion. Hope you are far away.
     #[serde(rename = "explosion")]
-    Explosion,
+    Explosion(Explosion),
     /// A [`BlackHole`], which may have any gravitational well or gravitational well sections.
     #[serde(rename = "blackhole")]
     BlackHole(Blackhole),

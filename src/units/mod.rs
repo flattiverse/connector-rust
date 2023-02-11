@@ -4,6 +4,7 @@ pub mod blackhole;
 pub mod comet;
 pub mod corona;
 pub mod corona_section;
+pub mod explosion;
 pub mod gravity_well;
 pub mod gravity_well_section;
 pub mod mobility;
