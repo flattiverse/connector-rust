@@ -29,7 +29,17 @@ pub struct Unit {
 impl Unit {
     /// The [`Mobility`] status of this unit.
     pub fn mobility(&self) -> Mobility {
-        todo!()
+        match &self.kind {
+            UnitKind::Sun(sun) => Mobility::from(&sun.orbits[..]),
+            UnitKind::Planet => Mobility::Still,
+            UnitKind::Moon => Mobility::Still,
+            UnitKind::Meteoroid => Mobility::Still,
+            UnitKind::Comet => Mobility::Still,
+            UnitKind::PlayerUnit => Mobility::Mobile,
+            UnitKind::Shot => Mobility::Still,
+            UnitKind::Explosion => Mobility::Still,
+            UnitKind::BlackHole => Mobility::Still,
+        }
     }
 
     /// The energy output of this unit.
