@@ -9,6 +9,7 @@ pub mod gravity_well;
 pub mod gravity_well_section;
 pub mod meteoroid;
 pub mod mobility;
+pub mod moon;
 pub mod orbits;
 pub mod sun;
 pub mod unit;

@@ -32,7 +32,7 @@ impl Unit {
         match &self.kind {
             UnitKind::Sun(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Planet => Mobility::Still,
-            UnitKind::Moon => Mobility::Still,
+            UnitKind::Moon(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Meteoroid(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Comet(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::PlayerUnit => Mobility::Mobile,
