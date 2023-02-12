@@ -35,7 +35,7 @@ impl Controllable {
     }
 
     pub async fn r#continue(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value.unwrap_or_default() > 0.0 {
+        if self.systems.hull.value > 0.0 {
             Err(GameError::ControllableMustBeDeadToContinue)
         } else {
             Ok(self
@@ -48,7 +48,7 @@ impl Controllable {
     }
 
     pub async fn kill(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value.unwrap_or_default() <= 0.0 {
+        if self.systems.hull.value <= 0.0 {
             Err(GameError::ControllableMustLiveToBeKilled)
         } else {
             Ok(self

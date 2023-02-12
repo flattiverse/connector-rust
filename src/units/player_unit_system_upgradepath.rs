@@ -2,7 +2,7 @@ use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlayerUnitSystemUpgradePath {
     #[serde(rename = "requiredSystem")]
     pub required_component: Option<PlayerUnitSystemIdentifier>,

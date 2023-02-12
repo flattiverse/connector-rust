@@ -20,7 +20,7 @@ pub trait ApplicableEvent<T> {
 
 /// For events that need to load additional data from `T`.
 pub trait Completable<T> {
-    fn complete(&mut self, source: &mut T);
+    fn complete(&mut self, source: &T);
 }
 
 /// This event indicates some critical out-of-game failure like a problem with the

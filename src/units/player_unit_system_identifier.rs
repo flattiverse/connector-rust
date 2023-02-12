@@ -1,9 +1,8 @@
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq, Clone)]
 pub struct PlayerUnitSystemIdentifier {
-    #[serde(rename = "system")]
-    pub kind: PlayerUnitSystemKind,
-    pub level: Option<i32>,
+    pub system: PlayerUnitSystemKind,
+    pub level: Option<u32>,
 }

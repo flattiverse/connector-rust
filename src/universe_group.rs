@@ -15,8 +15,7 @@ use crate::network::query::{QueryCommand, QueryError, QueryResponse, QueryResult
 use crate::network::ServerEvent;
 use crate::players::{Player, PlayerId};
 use crate::team::{Team, TeamId};
-use crate::units::player_unit::PlayerUnitSystems;
-use crate::units::player_unit_system::PlayerUnitSystem;
+use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
 use crate::universe::{Universe, UniverseId};
@@ -48,7 +47,7 @@ pub struct UniverseGroup {
     pub(crate) teams: [Option<Team>; 16],
     pub(crate) universes: [Option<Universe>; 64],
     pub(crate) controllables: [Option<Controllable>; 32],
-    // systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradepath>,
+    pub(crate) systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradePath>,
     receiver: mpsc::UnboundedReceiver<ConnectionEvent>,
 }
 
@@ -93,6 +92,7 @@ impl UniverseGroup {
                 [EMPTY; 64]
             },
             controllables: Default::default(),
+            systems: HashMap::default(),
             receiver,
         })
     }
@@ -152,7 +152,7 @@ impl UniverseGroup {
             energy_output: 0.0,
             alive: false,
             turn_rate: 0.0,
-            systems: self.default_player_unit_systems(),
+            systems: Default::default(),
         });
 
         Ok({
@@ -171,34 +171,6 @@ impl UniverseGroup {
         })
     }
 
-    fn default_player_unit_systems(&self) -> PlayerUnitSystems {
-        PlayerUnitSystems {
-            hull: PlayerUnitSystem {
-                level: 0,
-                value: None,
-                kind: PlayerUnitSystemKind::Hull,
-                system: PlayerUnitSystemUpgradePath {
-                    required_component: None,
-                    kind: PlayerUnitSystemKind::Hull,
-                    level: 0,
-                    energy: 0.0,
-                    particles: 0.0,
-                    iron: 0.0,
-                    carbon: 0.0,
-                    silicon: 0.0,
-                    platinum: 0.0,
-                    gold: 0.0,
-                    time: 0,
-                    value0: 0.0,
-                    value1: 0.0,
-                    value2: 0.0,
-                    area_increase: 0.0,
-                    weight_increase: 0.0,
-                },
-            },
-        }
-    }
-
     pub async fn chat(
         &self,
         message: impl Into<String>,
@@ -210,6 +182,17 @@ impl UniverseGroup {
             .await?)
     }
 
+    pub(crate) fn get_player_unit_system_upgrade_path(
+        &self,
+        system: PlayerUnitSystemKind,
+        level: impl Into<Option<u32>>,
+    ) -> Option<&PlayerUnitSystemUpgradePath> {
+        self.systems.get(&PlayerUnitSystemIdentifier {
+            system,
+            level: level.into(),
+        })
+    }
+
     /// You yourself as [`PlayerId'].
     #[inline]
     pub fn player_id(&self) -> PlayerId {
@@ -219,7 +202,10 @@ impl UniverseGroup {
     /// You yourself as [`Player'] instance.
     #[inline]
     pub fn player(&self) -> &Player {
-        self.players[self.player.0].as_ref().unwrap()
+        self.players
+            .get(self.player.0)
+            .and_then(|p| p.as_ref())
+            .expect("Players not initialized yet")
     }
 
     /// Iterate over all known [`Player`]s
@@ -282,20 +268,40 @@ impl UniverseGroup {
             .find_map(|c| c.as_ref().filter(|c| c.name == name))
     }
 
+    /// Waits for the next [`FlattiverseEvent`], potentially waiting forever.
+    pub async fn next_event(&mut self) -> Result<FlattiverseEvent, EventError> {
+        loop {
+            let connection_event = self.receiver.recv().await.ok_or(EventError::Disconnected)?;
+            if let Some(result) = self.on_connection_event(connection_event) {
+                return result;
+            }
+        }
+    }
+
+    /// Polls the next [`FlattiverseEvent`], potentially returning `None` - but immediately.
     pub fn poll_next_event(&mut self) -> Option<Result<FlattiverseEvent, EventError>> {
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Empty) => return None,
                 Err(TryRecvError::Disconnected) => return Some(Err(EventError::Disconnected)),
-                Ok(ConnectionEvent::PingMeasured(duration)) => {
-                    return Some(Ok(FlattiverseEvent::PingMeasured(duration)));
-                }
-                Ok(ConnectionEvent::ServerEvent(event)) => {
-                    if let Some(update) = self.on_server_event(event) {
-                        return Some(update);
+                Ok(event) => {
+                    if let Some(result) = self.on_connection_event(event) {
+                        return Some(result);
                     }
                 }
             }
+        }
+    }
+
+    fn on_connection_event(
+        &mut self,
+        event: ConnectionEvent,
+    ) -> Option<Result<FlattiverseEvent, EventError>> {
+        match event {
+            ConnectionEvent::PingMeasured(duration) => {
+                Some(Ok(FlattiverseEvent::PingMeasured(duration)))
+            }
+            ConnectionEvent::ServerEvent(event) => self.on_server_event(event),
         }
     }
 

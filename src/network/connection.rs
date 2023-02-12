@@ -207,32 +207,28 @@ impl ConnectionReceiver {
         event_sender: mpsc::UnboundedSender<ConnectionEvent>,
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
-            debug!("Received message {message:?}");
             match message {
-                Message::Text(text) => {
-                    debug!("{text}");
-                    match serde_json::from_str(&text)? {
-                        ServerMessage::Success { id, result } => {
-                            self.queries
-                                .lock()
-                                .await
-                                .answer(&id, Ok(result.unwrap_or(QueryResponse::Empty)));
-                        }
-                        ServerMessage::Failure { id, code } => {
-                            self.queries.lock().await.answer(&id, Err(code.into()));
-                        }
-                        ServerMessage::Events { events } => {
-                            for event in events {
-                                if event_sender
-                                    .send(ConnectionEvent::ServerEvent(dbg!(event)))
-                                    .is_err()
-                                {
-                                    break;
-                                }
+                Message::Text(text) => match dbg!(serde_json::from_str(&dbg!(text))?) {
+                    ServerMessage::Success { id, result } => {
+                        self.queries
+                            .lock()
+                            .await
+                            .answer(&id, Ok(result.unwrap_or(QueryResponse::Empty)));
+                    }
+                    ServerMessage::Failure { id, code } => {
+                        self.queries.lock().await.answer(&id, Err(code.into()));
+                    }
+                    ServerMessage::Events { events } => {
+                        for event in events {
+                            if event_sender
+                                .send(ConnectionEvent::ServerEvent(event))
+                                .is_err()
+                            {
+                                break;
                             }
                         }
                     }
-                }
+                },
                 b @ (Message::Frame(_) | Message::Binary(_)) => {
                     return Err(ReceiveError::UnexpectedData(format!("{b:?}")));
                 }

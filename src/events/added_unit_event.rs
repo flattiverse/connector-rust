@@ -14,9 +14,9 @@ pub struct AddedUnitEvent {
 }
 
 impl Completable<UniverseGroup> for AddedUnitEvent {
-    fn complete(&mut self, source: &mut UniverseGroup) {
+    fn complete(&mut self, group: &UniverseGroup) {
         if let UnitKind::PlayerUnit(player_unit) = &mut self.unit.kind {
-            // TODO
+            player_unit.systems.complete(group);
         }
     }
 }
