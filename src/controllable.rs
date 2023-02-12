@@ -80,4 +80,35 @@ impl Controllable {
                 .await?)
         }
     }
+
+    pub async fn set_scanner(
+        &self,
+        direction: f64,
+        length: f64,
+        width: f64,
+        enabled: bool,
+    ) -> Result<impl Future<Output = QueryResult>, GameError> {
+        if self.systems.hull.value <= 0.0 {
+            Err(GameError::ControllableMustBeAlive)
+        } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
+            Err(GameError::FloatingPointNumberInvalid)
+        } else {
+            let direction = (direction + 3600.0) % 360.0;
+
+            if direction < 0.0 || length > 300.1 || length < 59.9 || width < 19.9 || width > 60.1 {
+                return Err(GameError::FloatingPointNumberOutOfRange);
+            }
+
+            Ok(self
+                .connection
+                .send_query(QueryCommand::SetControllableScanner {
+                    controllable: self.id,
+                    direction,
+                    length: length.clamp(60.0, 300.0),
+                    width: width.clamp(20.0, 60.0),
+                    enabled,
+                })
+                .await?)
+        }
+    }
 }
