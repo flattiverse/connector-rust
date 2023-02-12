@@ -11,7 +11,7 @@ use std::sync::Weak;
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub struct TeamId(pub(crate) usize);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Team {
     #[serde(skip, default)]
     pub(crate) connection: Weak<ConnectionHandle>,

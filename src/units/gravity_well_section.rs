@@ -2,7 +2,7 @@ use crate::units::activation::Activation;
 use crate::units::activation_state::ActivationState;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GravityWellSection {
     #[serde(rename = "angleStart")]
     pub angle_start: f64,
@@ -18,7 +18,7 @@ pub struct GravityWellSection {
     pub activation_state: Option<ActivationStateFrame>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ActivationStateFrame {
     pub state: ActivationState,
     pub frame: i32,

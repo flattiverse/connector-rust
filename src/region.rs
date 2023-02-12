@@ -4,7 +4,7 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub struct GameRegionId(pub(crate) usize);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GameRegion {
     #[serde(rename = "regionId")]
     pub id: GameRegionId,
@@ -21,7 +21,7 @@ pub struct GameRegion {
     pub region: Region,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Region {
     pub left: f64,
     pub top: f64,

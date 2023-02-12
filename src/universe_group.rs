@@ -411,7 +411,7 @@ pub enum EventError {
     Disconnected,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FlattiverseEvent {
     /// The result of a periodic ping measurement.
     PingMeasured(Duration),

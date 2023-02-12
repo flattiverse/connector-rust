@@ -18,7 +18,7 @@ pub mod connection;
 pub mod connection_handle;
 pub mod query;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind")]
 pub enum ServerMessage {
     #[serde(rename = "success")]
@@ -32,7 +32,7 @@ pub enum ServerMessage {
     Events { events: Vec<ServerEvent> },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind")]
 pub enum ServerEvent {
     /// A Fallback event for debugging purposes, if the event sent from the server is unknown to the

@@ -9,7 +9,7 @@ use std::sync::Arc;
 /// This event notifies about the meta information a [`UniverseGroup`] has, like name,
 /// description, teams, rules... You actually don't need to parse this event because it's also
 /// parsed by the connector and the results are presented in fields on the [`UniverseGroup`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UniverseGroupInfoEvent {
     /// The name of the [`UniverseGroup`].
     pub name: String,
@@ -53,7 +53,7 @@ impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metrics {
     /// The amount of players together in the [`UniverseGroup`].
     #[serde(rename = "maxPlayers")]

@@ -4,7 +4,7 @@ use crate::units::unit_kind::UnitKind;
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdatedUnitEvent {
     pub unit: Unit,
 }

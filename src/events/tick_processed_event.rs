@@ -4,7 +4,7 @@ use std::time::Duration;
 /// This event informs of the completion of a tick in the [`UniverseGroup`].
 ///
 /// [`UniverseGroup`]: crate::universe_group::UniverseGroup
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TickProcessedEvent {
     #[serde(rename = "processingTime")]
     pub(crate) processing_time: f64,

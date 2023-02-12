@@ -10,7 +10,7 @@ use std::sync::Weak;
 use std::time::Duration;
 
 /// States the kind of player.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum PlayerKind {
     /// The player is a player participating in the game and also blocking a player slot.
     Player,
@@ -28,7 +28,7 @@ pub enum PlayerKind {
 pub struct PlayerId(pub(crate) usize);
 
 /// Specifies a player that is currently connected to the [`crate::universe_group::UniverseGroup`].
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Player {
     #[serde(skip, default)]
     pub(crate) connection: Weak<ConnectionHandle>,

@@ -4,7 +4,7 @@ use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
 /// This event informs of the disconnect of a player from the [`UniverseGroup`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RemovedPlayerEvent {
     pub id: PlayerId,
 }

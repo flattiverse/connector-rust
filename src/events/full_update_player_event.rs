@@ -5,7 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::sync::Arc;
 
 /// This event contains all information about a [`Player`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FullUpdatePlayerEvent {
     #[serde(flatten)]
     pub player: Player,

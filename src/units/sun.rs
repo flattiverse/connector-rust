@@ -3,7 +3,7 @@ use crate::units::corona_section::CoronaSection;
 use crate::units::orbits::Orbit;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Sun {
     #[serde(default)]
     pub orbits: Vec<Orbit>,

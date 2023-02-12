@@ -7,7 +7,7 @@ use serde_derive::{Deserialize, Serialize};
 /// This event informs of the addition of a unit to the [`UniverseGroup`].
 ///
 /// [`UniverseGroup`]: crate::universe_group::UniverseGroup
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddedUnitEvent {
     pub universe: usize,
     pub unit: Unit,

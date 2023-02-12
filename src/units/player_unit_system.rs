@@ -4,7 +4,7 @@ use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PlayerUnitSystem<T: Default + Completable<PlayerUnitSystemUpgradePath>> {
     pub level: u32,
     #[serde(skip_serializing_if = "is_zero", default)]

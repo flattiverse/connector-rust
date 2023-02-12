@@ -4,7 +4,7 @@ use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
 /// This event contains only mutable information about a [`Player`].
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PartialUpdatePlayerEvent {
     pub id: PlayerId,
     #[serde(rename = "pvpScore")]

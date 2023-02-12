@@ -9,7 +9,7 @@ use crate::units::shot::Shot;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind")]
 pub enum UnitKind {
     /// A [`Sun`], which may have corona or corona sections.

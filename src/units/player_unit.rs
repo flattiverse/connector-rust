@@ -8,7 +8,7 @@ use crate::units::player_unit_system_kind::{
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlayerUnit {
     pub player: PlayerId,
     pub controllable: ControllableId,
@@ -29,7 +29,7 @@ pub struct PlayerUnit {
     pub systems: PlayerUnitSystems,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PlayerUnitSystems {
     #[serde(rename = "Hull")]
     pub hull: PlayerUnitSystem<RegularSystem>,

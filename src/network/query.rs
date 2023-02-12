@@ -11,14 +11,14 @@ pub struct QueryId(String);
 
 impl QueryId {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Query {
     pub id: QueryId,
     #[serde(flatten)]
     pub command: QueryCommand,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "command")]
 pub enum QueryCommand {
     #[serde(rename = "whoami")]
@@ -89,7 +89,7 @@ pub enum QueryCommand {
     ChatUniverseGroup { message: String },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum QueryResponse {
     Integer(i32),

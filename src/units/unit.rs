@@ -4,7 +4,7 @@ use crate::units::unit_kind::UnitKind;
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Unit {
     /// The name of the unit.
     pub name: String,
