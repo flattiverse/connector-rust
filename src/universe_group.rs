@@ -196,10 +196,18 @@ impl UniverseGroup {
         self.players[self.player].as_ref().unwrap()
     }
 
-    /// Get access to your [`Controllable`]
+    /// Get access to your [`Controllable`] by its unique [`ControllableId`]
     #[inline]
     pub fn get_controllable(&self, id: ControllableId) -> Option<&Controllable> {
         self.controllables.get(id.0).and_then(|c| c.as_ref())
+    }
+
+    /// Get access to your [`Controllable`] by name
+    #[inline]
+    pub fn get_controllable_by_name(&self, name: &str) -> Option<&Controllable> {
+        self.controllables
+            .iter()
+            .find_map(|c| c.as_ref().filter(|c| c.name == name))
     }
 
     pub fn poll_next_event(&mut self) -> Option<Result<FlattiverseEvent, EventError>> {
