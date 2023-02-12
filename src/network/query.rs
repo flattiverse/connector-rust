@@ -32,6 +32,11 @@ pub enum QueryCommand {
         controllable: ControllableId,
         name: String,
     },
+    #[serde(rename = "controllableNozzle")]
+    SetControllableNozzle {
+        controllable: ControllableId,
+        nozzle: f64,
+    },
     #[serde(rename = "unitSet")]
     SetUnit { universe: UniverseId, unit: String },
     #[serde(rename = "unitGet")]

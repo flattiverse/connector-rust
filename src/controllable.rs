@@ -49,12 +49,33 @@ impl Controllable {
 
     pub async fn kill(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
         if self.systems.hull.value <= 0.0 {
-            Err(GameError::ControllableMustLiveToBeKilled)
+            Err(GameError::ControllableMustBeAlive)
         } else {
             Ok(self
                 .connection
                 .send_query(QueryCommand::KillControllable {
                     controllable: self.id,
+                })
+                .await?)
+        }
+    }
+
+    pub async fn set_nozzle(
+        &self,
+        value: f64,
+    ) -> Result<impl Future<Output = QueryResult>, GameError> {
+        if self.systems.hull.value <= 0.0 {
+            Err(GameError::ControllableMustBeAlive)
+        } else if !value.is_finite() {
+            Err(GameError::FloatingPointNumberInvalid)
+        } else if value < -5.1 || value > 5.1 {
+            Err(GameError::FloatingPointNumberOutOfRange)
+        } else {
+            Ok(self
+                .connection
+                .send_query(QueryCommand::SetControllableNozzle {
+                    controllable: self.id,
+                    nozzle: value.clamp(-5.1, 5.1),
                 })
                 .await?)
         }

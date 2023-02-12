@@ -5,8 +5,12 @@ use crate::network::query::QueryError;
 pub enum GameError {
     #[error("You need to die before you can continue")]
     ControllableMustBeDeadToContinue,
-    #[error("You have to live (or call continue()) before you can be suicide")]
-    ControllableMustLiveToBeKilled,
+    #[error("You have to be alive (or call continue()) before you can do that")]
+    ControllableMustBeAlive,
+    #[error("The floating point number must not be NaN or infinite")]
+    FloatingPointNumberInvalid,
+    #[error("The floating point number is not within the valid value range")]
+    FloatingPointNumberOutOfRange,
 
     #[error("The length of the name is invalid (too short or too long)")]
     NameLengthInvalid,
