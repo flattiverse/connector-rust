@@ -1,5 +1,5 @@
 use crate::network::connection_handle::ConnectionHandle;
-use crate::network::query::{Query, QueryKeeper};
+use crate::network::query::{Query, QueryKeeper, QueryResponse};
 use crate::network::{ServerEvent, ServerMessage};
 use crate::utils::current_time_millis;
 use futures_util::stream::{SplitSink, SplitStream};
@@ -213,7 +213,10 @@ impl ConnectionReceiver {
                     debug!("{text}");
                     match serde_json::from_str(&text)? {
                         ServerMessage::Success { id, result } => {
-                            self.queries.lock().await.answer(&id, Ok(result));
+                            self.queries
+                                .lock()
+                                .await
+                                .answer(&id, Ok(result.unwrap_or(QueryResponse::Empty)));
                         }
                         ServerMessage::Failure { id, code } => {
                             self.queries.lock().await.answer(&id, Err(code.into()));

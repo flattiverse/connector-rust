@@ -8,6 +8,8 @@ pub mod network;
 pub mod players;
 pub mod units;
 
+pub mod controllable;
+pub mod error;
 pub mod team;
 pub mod universe_group;
 pub mod utils;

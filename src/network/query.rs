@@ -1,3 +1,4 @@
+use crate::controllable::ControllableId;
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::oneshot::Sender;
 
@@ -18,6 +19,15 @@ pub struct Query {
 pub enum QueryCommand {
     #[serde(rename = "whoami")]
     WhoAmI,
+    #[serde(rename = "controllableContinue")]
+    ContinueControllable { controllable: ControllableId },
+    #[serde(rename = "controllableKill")]
+    KillControllable { controllable: ControllableId },
+    #[serde(rename = "controllableNew")]
+    NewControllable {
+        controllable: ControllableId,
+        name: String,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,6 +36,7 @@ pub enum QueryResponse {
     Integer(i32),
     Double(f64),
     String(String),
+    Empty,
 }
 
 impl QueryResponse {
@@ -63,13 +74,18 @@ impl QueryResponse {
 
 #[derive(Debug, thiserror::Error)]
 pub enum QueryError {
+    #[error("[0x05] The command you tried to access can't be accessed with your player kind (you tried to access admin commands as a player or vice versa...).")]
+    InvalidPlayerKind,
     #[error("Unknown error code: {0}")]
     Other(i32),
+    #[error("Unable to receive a response because the connection to the server is no more")]
+    ConnectionGone,
 }
 
 impl From<i32> for QueryError {
     fn from(value: i32) -> Self {
         match value {
+            0x05 => Self::InvalidPlayerKind,
             _ => Self::Other(value),
         }
     }

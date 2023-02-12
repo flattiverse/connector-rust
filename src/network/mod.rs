@@ -18,7 +18,10 @@ pub mod query;
 #[serde(tag = "kind")]
 pub enum ServerMessage {
     #[serde(rename = "success")]
-    Success { id: QueryId, result: QueryResponse },
+    Success {
+        id: QueryId,
+        result: Option<QueryResponse>,
+    },
     #[serde(rename = "failure")]
     Failure { id: QueryId, code: i32 },
     #[serde(rename = "events")]

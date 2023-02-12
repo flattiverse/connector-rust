@@ -1,5 +1,5 @@
 use crate::network::connection::SenderData;
-use crate::network::query::{Query, QueryCommand, QueryKeeper, QueryResult};
+use crate::network::query::{Query, QueryCommand, QueryError, QueryKeeper, QueryResult};
 use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -16,8 +16,7 @@ impl ConnectionHandle {
     pub async fn send_query(
         &self,
         command: impl Into<QueryCommand>,
-    ) -> Result<impl Future<Output = Result<QueryResult, SendQueryError>> + 'static, SendQueryError>
-    {
+    ) -> Result<impl Future<Output = QueryResult> + 'static, SendQueryError> {
         let (sender, receiver) = oneshot::channel();
         let id = self
             .queries
@@ -29,7 +28,13 @@ impl ConnectionHandle {
             id,
             command: command.into(),
         })) {
-            Ok(_) => Ok(async move { receiver.await.map_err(|_| SendQueryError::ConnectionGone) }),
+            Ok(_) => Ok(async move {
+                match receiver.await {
+                    Err(_) => Err(QueryError::ConnectionGone),
+                    Ok(Err(e)) => Err(e),
+                    Ok(Ok(r)) => Ok(r),
+                }
+            }),
             Err(_) => Err(SendQueryError::ConnectionGone),
         }
     }
