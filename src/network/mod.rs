@@ -1,10 +1,14 @@
 use crate::events::added_unit_event::AddedUnitEvent;
+use crate::events::chat_multicast_event::ChatMulticastEvent;
+use crate::events::chat_teamcast_event::ChatTeamcastEvent;
+use crate::events::chat_unicast_event::ChatUnicastEvent;
 use crate::events::full_update_player_event::FullUpdatePlayerEvent;
 use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
 use crate::events::removed_player_event::RemovedPlayerEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::universe_group_info_event::UniverseGroupInfoEvent;
+use crate::events::updated_unit_event::UpdatedUnitEvent;
 use crate::events::FailureEvent;
 use crate::network::query::{QueryId, QueryResponse};
 use serde_derive::{Deserialize, Serialize};
@@ -40,6 +44,13 @@ pub enum ServerEvent {
     /// is not due to a lost connection.
     #[serde(rename = "failure")]
     Failure(FailureEvent),
+
+    #[serde(rename = "chatMulticast")]
+    ChatMulticast(ChatMulticastEvent),
+    #[serde(rename = "chatTeamcast")]
+    ChatTeamcastEvent(ChatTeamcastEvent),
+    #[serde(rename = "chatUnicast")]
+    ChatUnicastEvent(ChatUnicastEvent),
     #[serde(rename = "playerFullUpdate")]
     PlayerFullUpdate(FullUpdatePlayerEvent),
     #[serde(rename = "playerPartialUpdate")]
@@ -50,6 +61,8 @@ pub enum ServerEvent {
     UnitRemoved(RemovedUnitEvent),
     #[serde(rename = "unitAdded")]
     UnitAdded(AddedUnitEvent),
+    #[serde(rename = "unitUpdated")]
+    UnitUpdated(UpdatedUnitEvent),
     #[serde(rename = "tickProcessed")]
     TickProcessed(TickProcessedEvent),
     #[serde(rename = "universeGroupInfo")]

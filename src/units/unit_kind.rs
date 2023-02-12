@@ -4,6 +4,7 @@ use crate::units::explosion::Explosion;
 use crate::units::meteoroid::Meteoroid;
 use crate::units::moon::Moon;
 use crate::units::planet::Planet;
+use crate::units::player_unit::PlayerUnit;
 use crate::units::shot::Shot;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
@@ -32,7 +33,7 @@ pub enum UnitKind {
     // MissionTarget,
     /// A [`PlayerUnit`]. May be friendly. Or not.
     #[serde(rename = "playerUnit")]
-    PlayerUnit,
+    PlayerUnit(PlayerUnit),
     /// A shot. Better not touch.
     #[serde(rename = "shot")]
     Shot(Shot),

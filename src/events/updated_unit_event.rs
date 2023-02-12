@@ -4,16 +4,12 @@ use crate::units::unit_kind::UnitKind;
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
 
-/// This event informs of the addition of a unit to the [`UniverseGroup`].
-///
-/// [`UniverseGroup`]: crate::universe_group::UniverseGroup
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AddedUnitEvent {
-    pub universe: usize,
+pub struct UpdatedUnitEvent {
     pub unit: Unit,
 }
 
-impl Completable<UniverseGroup> for AddedUnitEvent {
+impl Completable<UniverseGroup> for UpdatedUnitEvent {
     fn complete(&mut self, source: &mut UniverseGroup) {
         if let UnitKind::PlayerUnit(player_unit) = &mut self.unit.kind {
             // TODO

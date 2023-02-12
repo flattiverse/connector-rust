@@ -1,9 +1,13 @@
 use crate::controllable::{Controllable, ControllableId};
 use crate::error::GameError;
 use crate::events::added_unit_event::AddedUnitEvent;
+use crate::events::chat_multicast_event::ChatMulticastEvent;
+use crate::events::chat_teamcast_event::ChatTeamcastEvent;
+use crate::events::chat_unicast_event::ChatUnicastEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
-use crate::events::{ApplicableEvent, FailureEvent};
+use crate::events::updated_unit_event::UpdatedUnitEvent;
+use crate::events::{ApplicableEvent, Completable, FailureEvent};
 use crate::game_mode::GameMode;
 use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
@@ -303,6 +307,13 @@ impl UniverseGroup {
         match event {
             ServerEvent::Raw(raw) => Some(Ok(FlattiverseEvent::Raw(raw))),
             ServerEvent::Failure(failure) => Some(Ok(FlattiverseEvent::Failure(failure))),
+            ServerEvent::ChatMulticast(event) => Some(Ok(FlattiverseEvent::ChatMulticast(event))),
+            ServerEvent::ChatTeamcastEvent(event) => {
+                Some(Ok(FlattiverseEvent::ChatTeamcastEvent(event)))
+            }
+            ServerEvent::ChatUnicastEvent(event) => {
+                Some(Ok(FlattiverseEvent::ChatUnicastEvent(event)))
+            }
             ServerEvent::PlayerFullUpdate(update) => {
                 let id = update.player.id;
                 update.apply(self);
@@ -319,7 +330,14 @@ impl UniverseGroup {
                 Some(Ok(FlattiverseEvent::PlayerRemoved(id)))
             }
             ServerEvent::UnitRemoved(event) => Some(Ok(FlattiverseEvent::UnitRemoved(event))),
-            ServerEvent::UnitAdded(event) => Some(Ok(FlattiverseEvent::UnitAdded(event))),
+            ServerEvent::UnitAdded(mut event) => {
+                event.complete(self);
+                Some(Ok(FlattiverseEvent::UnitAdded(event)))
+            }
+            ServerEvent::UnitUpdated(mut event) => {
+                event.complete(self);
+                Some(Ok(FlattiverseEvent::UnitUpdated(event)))
+            }
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {
                 info.apply(self);
@@ -403,6 +421,9 @@ pub enum FlattiverseEvent {
     /// You actually don't need to parse this event because it's also parsed by the connector and
     /// the results are presented in fields on the [`UniverseGroup`].
     UniverseGroupInfo,
+    ChatMulticast(ChatMulticastEvent),
+    ChatTeamcastEvent(ChatTeamcastEvent),
+    ChatUnicastEvent(ChatUnicastEvent),
     /// This event updates all information about a [`Player`].
     PlayerFullUpdate(PlayerId),
     /// This event contains only mutable information about a [`Player`].
@@ -413,6 +434,8 @@ pub enum FlattiverseEvent {
     UnitRemoved(RemovedUnitEvent),
     /// This event informs of the addition of a unit to the [`UniverseGroup`].
     UnitAdded(AddedUnitEvent),
+    /// This event informs of the update of a unit in the [`UniverseGroup`]
+    UnitUpdated(UpdatedUnitEvent),
     /// This event informs of the completion of a tick in the [`UniverseGroup`].
     TickProcessed(TickProcessedEvent),
 }
