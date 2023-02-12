@@ -6,7 +6,7 @@ pub enum GameError {
     #[error("You need to die before you can continue")]
     ControllableMustBeDeadToContinue,
     #[error("You have to live (or call continue()) before you can be suicide")]
-    ControlalbleMustLiveToBeKilled,
+    ControllableMustLiveToBeKilled,
 
     #[error("The length of the name is invalid (too short or too long)")]
     NameLengthInvalid,
@@ -16,11 +16,14 @@ pub enum GameError {
     NameContainsInvalidCharacters,
     #[error("You exceeded the amount of allowed ships per player for this UniverseGroup")]
     ExceededShipsPerPlayer,
-    #[error("You exceeded the amount of on built units for this UniverseGroup.")]
+    #[error("You exceeded the amount of on built units for this UniverseGroup")]
     ExceededNonBuiltUnits,
-    #[error("You exceeded the amount of allowed ships per team for this UnvierseGroup.")]
+    #[error("You exceeded the amount of allowed ships per team for this UniverseGroup")]
     ExceededShipsPerTeam,
-
+    #[error("The definition for the unit is empty")]
+    UnitDefinitionEmpty,
+    #[error("The definition for the unit is too long")]
+    UnitDefinitionTooLong,
     // -------- from impls
     #[error("Unable to send your request to the server")]
     SendQueryError(#[from] SendQueryError),

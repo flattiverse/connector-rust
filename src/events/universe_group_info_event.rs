@@ -1,8 +1,10 @@
 use crate::events::ApplicableEvent;
 use crate::game_mode::GameMode;
 use crate::team::Team;
+use crate::universe::Universe;
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// This event notifies about the meta information a [`UniverseGroup`] has, like name,
 /// description, teams, rules... You actually don't need to parse this event because it's also
@@ -18,8 +20,8 @@ pub struct UniverseGroupInfoEvent {
     pub metrics: Metrics,
     /// The [`Team`]s in the [`UniverseGroup`].
     pub teams: Vec<Team>,
-    // /// The [`Universe`]s in the [`UniverseGroup`].
-    // universes: Vec<Universe>,
+    /// The [`Universe`]s in the [`UniverseGroup`].
+    universes: Vec<Universe>,
     // /// The system upgrade paths in the [`UniverseGroup`].
     // systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradepath>,
 }
@@ -36,6 +38,16 @@ impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
         for team in self.teams {
             let id = team.id.0;
             group.teams[id] = Some(team);
+        }
+
+        group.universes = {
+            const EMPTY: Option<Universe> = None;
+            [EMPTY; 64]
+        };
+        for mut universe in self.universes {
+            let id = universe.id;
+            universe.connection = Arc::downgrade(&group.connection);
+            group.universes[id.0] = Some(dbg!(universe));
         }
     }
 }

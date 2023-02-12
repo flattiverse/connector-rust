@@ -10,7 +10,9 @@ pub mod units;
 
 pub mod controllable;
 pub mod error;
+pub mod region;
 pub mod team;
+pub mod universe;
 pub mod universe_group;
 pub mod utils;
 pub mod vector;

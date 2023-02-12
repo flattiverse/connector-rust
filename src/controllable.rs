@@ -49,7 +49,7 @@ impl Controllable {
 
     pub async fn kill(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
         if self.systems.hull.value.unwrap_or_default() <= 0.0 {
-            Err(GameError::ControlalbleMustLiveToBeKilled)
+            Err(GameError::ControllableMustLiveToBeKilled)
         } else {
             Ok(self
                 .connection

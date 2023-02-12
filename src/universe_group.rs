@@ -15,6 +15,7 @@ use crate::units::player_unit::PlayerUnitSystems;
 use crate::units::player_unit_system::PlayerUnitSystem;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
+use crate::universe::Universe;
 use crate::vector::Vector;
 use std::collections::HashMap;
 use std::future::Future;
@@ -41,7 +42,7 @@ pub struct UniverseGroup {
     pub(crate) spectators: bool,
     pub(crate) register_ship_limit: u32,
     pub(crate) teams: [Option<Team>; 16],
-    // universes: [Option<Universe>; 64],
+    pub(crate) universes: [Option<Universe>; 64],
     pub(crate) controllables: [Option<Controllable>; 32],
     // systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradepath>,
     receiver: mpsc::UnboundedReceiver<ConnectionEvent>,
@@ -83,6 +84,10 @@ impl UniverseGroup {
             spectators: false,
             register_ship_limit: 0,
             teams: Default::default(),
+            universes: {
+                const EMPTY: Option<Universe> = None;
+                [EMPTY; 64]
+            },
             controllables: Default::default(),
             receiver,
         })

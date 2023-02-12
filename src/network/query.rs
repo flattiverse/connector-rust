@@ -1,4 +1,6 @@
 use crate::controllable::ControllableId;
+use crate::region::GameRegionId;
+use crate::universe::UniverseId;
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::oneshot::Sender;
 
@@ -27,6 +29,55 @@ pub enum QueryCommand {
     NewControllable {
         controllable: ControllableId,
         name: String,
+    },
+    #[serde(rename = "unitSet")]
+    SetUnit { universe: UniverseId, unit: String },
+    #[serde(rename = "unitGet")]
+    GetUnit { universe: UniverseId, unit: String },
+    #[serde(rename = "unitRemove")]
+    RemoveUnit { universe: UniverseId, unit: String },
+    #[serde(rename = "regionList")]
+    ListRegion { universe: UniverseId },
+    #[serde(rename = "regionSetUnnamed")]
+    SetRegionUnnamed {
+        universe: UniverseId,
+        #[serde(rename = "regionId")]
+        region: GameRegionId,
+        teams: i32,
+        left: f64,
+        top: f64,
+        right: f64,
+        bottom: f64,
+        #[serde(rename = "startLocation")]
+        start_location: bool,
+        #[serde(rename = "safeZone")]
+        safe_zone: bool,
+        #[serde(rename = "slowRestore")]
+        slow_restore: bool,
+    },
+    #[serde(rename = "regionSet")]
+    SetRegion {
+        universe: UniverseId,
+        #[serde(rename = "regionId")]
+        region: GameRegionId,
+        teams: i32,
+        name: String,
+        left: f64,
+        top: f64,
+        right: f64,
+        bottom: f64,
+        #[serde(rename = "startLocation")]
+        start_location: bool,
+        #[serde(rename = "safeZone")]
+        safe_zone: bool,
+        #[serde(rename = "slowRestore")]
+        slow_restore: bool,
+    },
+    #[serde(rename = "regionRemove")]
+    RemoveRegion {
+        universe: UniverseId,
+        #[serde(rename = "regionId")]
+        region: GameRegionId,
     },
 }
 
@@ -80,6 +131,9 @@ pub enum QueryError {
     Other(i32),
     #[error("Unable to receive a response because the connection to the server is no more")]
     ConnectionGone,
+
+    #[error("Failed to parse the response")]
+    ResponseMalformed(#[from] serde_json::Error),
 }
 
 impl From<i32> for QueryError {
