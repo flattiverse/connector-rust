@@ -24,6 +24,13 @@ pub enum GameError {
     UnitDefinitionEmpty,
     #[error("The definition for the unit is too long")]
     UnitDefinitionTooLong,
+    #[error("The length of the message is invalid (too short or too long)")]
+    MessageLengthInvalid,
+    #[error("The messages starts or ends with invalid whitespace characters")]
+    MessageNotTrimmed,
+    #[error("The message contains invalid characters")]
+    MessageContainsInvalidCharacters,
+
     // -------- from impls
     #[error("Unable to send your request to the server")]
     SendQueryError(#[from] SendQueryError),
@@ -37,16 +44,33 @@ impl GameError {
             Err(GameError::NameLengthInvalid)
         } else if name.starts_with(' ') || name.ends_with(' ') {
             Err(GameError::NameNotTrimmed)
-        } else {
-            for char in name.chars() {
-                match char {
-                    'a'..='z' | 'A'..='Z' | '0'..='9' => continue,
-                    ' ' | '.' | '_' | '-' => continue,
-                    c if matches!(c as u32, 192..=214 | 216..=246 | 248..=687 ) => continue,
-                    _ => return Err(GameError::NameContainsInvalidCharacters),
-                }
-            }
+        } else if name.chars().all(|char| match char {
+            'a'..='z' | 'A'..='Z' | '0'..='9' => true,
+            ' ' | '.' | '_' | '-' => true,
+            c if matches!(c as u32, 192..=214 | 216..=246 | 248..=687 ) => true,
+            _ => false,
+        }) {
             Ok(name)
+        } else {
+            Err(GameError::NameContainsInvalidCharacters)
+        }
+    }
+
+    pub fn checked_message(message: String) -> Result<String, GameError> {
+        if message.is_empty() || message.len() > 256 {
+            Err(GameError::MessageLengthInvalid)
+        } else if message.starts_with(' ') || message.ends_with(' ') {
+            Err(GameError::MessageNotTrimmed)
+        } else if message.chars().all(|char| match char {
+            ' '..='~' => true,
+            c if matches!(c as u32, 192..=214 | 216..=246 | 248..=687 ) => true,
+            '€' | '‚' | '„' | '…' | '‰' | '‹' | '›' | '™' | '•' | '¢' | '£' | '¡' | '¤' | '¥'
+            | '©' | '®' | '±' | '²' | '³' | 'µ' | '¿' | '«' | '»' => true,
+            _ => false,
+        }) {
+            Ok(message)
+        } else {
+            Err(GameError::MessageContainsInvalidCharacters)
         }
     }
 }

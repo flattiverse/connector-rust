@@ -1,5 +1,7 @@
 use crate::controllable::ControllableId;
+use crate::players::PlayerId;
 use crate::region::GameRegionId;
+use crate::team::TeamId;
 use crate::universe::UniverseId;
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::oneshot::Sender;
@@ -79,6 +81,12 @@ pub enum QueryCommand {
         #[serde(rename = "regionId")]
         region: GameRegionId,
     },
+    #[serde(rename = "chatTeamcast")]
+    ChatTeam { team: TeamId, message: String },
+    #[serde(rename = "chatUnicast")]
+    ChatPlayer { player: PlayerId, message: String },
+    #[serde(rename = "chatMulticast")]
+    ChatUniverseGroup { message: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

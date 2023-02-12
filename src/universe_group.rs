@@ -7,15 +7,15 @@ use crate::events::{ApplicableEvent, FailureEvent};
 use crate::game_mode::GameMode;
 use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
-use crate::network::query::{QueryCommand, QueryError, QueryResponse};
+use crate::network::query::{QueryCommand, QueryError, QueryResponse, QueryResult};
 use crate::network::ServerEvent;
 use crate::players::{Player, PlayerId};
-use crate::team::Team;
+use crate::team::{Team, TeamId};
 use crate::units::player_unit::PlayerUnitSystems;
 use crate::units::player_unit_system::PlayerUnitSystem;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
-use crate::universe::Universe;
+use crate::universe::{Universe, UniverseId};
 use crate::vector::Vector;
 use std::collections::HashMap;
 use std::future::Future;
@@ -30,7 +30,7 @@ pub struct UniverseGroup {
     // players[0-63] are real players, players[64] is a substitute, if the server treats us as
     // non-player, like a spectator or admin.
     pub(crate) players: [Option<Player>; 65],
-    pub(crate) player: usize,
+    pub(crate) player: PlayerId,
     pub(crate) name: String,
     pub(crate) description: String,
     pub(crate) mode: GameMode,
@@ -72,7 +72,7 @@ impl UniverseGroup {
                 const EMPTY: Option<Player> = None;
                 [EMPTY; 65]
             },
-            player: player_index as usize,
+            player: PlayerId(player_index as usize),
             name: "Unknown".to_string(),
             description: "Unknown".to_string(),
             mode: GameMode::Mission,
@@ -159,7 +159,7 @@ impl UniverseGroup {
                         Ok(free_id)
                     }
                     Err(e) => {
-                        // TODO well well well...
+                        // TODO well well well... shit, actually need to clean up ...
                         Err(e)
                     }
                 }
@@ -195,19 +195,82 @@ impl UniverseGroup {
         }
     }
 
-    /// The connected player.
-    #[inline]
-    pub fn player(&self) -> &Player {
-        self.players[self.player].as_ref().unwrap()
+    pub async fn chat(
+        &self,
+        message: impl Into<String>,
+    ) -> Result<impl Future<Output = QueryResult>, GameError> {
+        let message = GameError::checked_message(message.into())?;
+        Ok(self
+            .connection
+            .send_query(QueryCommand::ChatUniverseGroup { message })
+            .await?)
     }
 
-    /// Get access to your [`Controllable`] by its unique [`ControllableId`]
+    /// You yourself as [`PlayerId'].
+    #[inline]
+    pub fn player_id(&self) -> PlayerId {
+        self.player
+    }
+
+    /// You yourself as [`Player'] instance.
+    #[inline]
+    pub fn player(&self) -> &Player {
+        self.players[self.player.0].as_ref().unwrap()
+    }
+
+    /// Iterate over all known [`Player`]s
+    #[inline]
+    pub fn iter_players(&self) -> impl Iterator<Item = &Player> + '_ {
+        self.players.iter().flatten()
+    }
+
+    /// Ge a [`Player`] by its unique [`PlayerId`].
+    #[inline]
+    pub fn get_player(&self, id: &PlayerId) -> Option<&Player> {
+        self.players.get(id.0).and_then(|p| p.as_ref())
+    }
+
+    /// Ge a [`Player`] by its unique name.
+    #[inline]
+    pub fn get_player_by_name(&self, name: &str) -> Option<&Player> {
+        self.players
+            .iter()
+            .find_map(|p| p.as_ref().filter(|p| p.name == name))
+    }
+
+    /// Iterate over all known [`Team`]s
+    #[inline]
+    pub fn iter_teams(&self) -> impl Iterator<Item = &Team> + '_ {
+        self.teams.iter().flatten()
+    }
+
+    /// Ge a [`Team`] by its unique [`TeamId`].
+    #[inline]
+    pub fn get_team(&self, id: &TeamId) -> Option<&Team> {
+        self.teams.get(id.0).and_then(|p| p.as_ref())
+    }
+
+    /// Ge a [`Team`] by its unique name.
+    #[inline]
+    pub fn get_team_by_name(&self, name: &str) -> Option<&Team> {
+        self.teams
+            .iter()
+            .find_map(|t| t.as_ref().filter(|t| t.name == name))
+    }
+
+    /// Iterate over all your [`Controllable`]s
+    #[inline]
+    pub fn iter_controllables(&self) -> impl Iterator<Item = &Controllable> + '_ {
+        self.controllables.iter().flatten()
+    }
+
+    /// Get access to your [`Controllable`] by its unique [`ControllableId`].
     #[inline]
     pub fn get_controllable(&self, id: ControllableId) -> Option<&Controllable> {
         self.controllables.get(id.0).and_then(|c| c.as_ref())
     }
 
-    /// Get access to your [`Controllable`] by name
+    /// Get access to your [`Controllable`] by its unique name.
     #[inline]
     pub fn get_controllable_by_name(&self, name: &str) -> Option<&Controllable> {
         self.controllables
@@ -266,12 +329,39 @@ impl UniverseGroup {
     }
 }
 
+impl Index<PlayerId> for UniverseGroup {
+    type Output = Player;
+
+    #[inline]
+    fn index(&self, index: PlayerId) -> &Self::Output {
+        self.players[index.0].as_ref().unwrap()
+    }
+}
+
+impl Index<TeamId> for UniverseGroup {
+    type Output = Team;
+
+    #[inline]
+    fn index(&self, index: TeamId) -> &Self::Output {
+        self.teams[index.0].as_ref().unwrap()
+    }
+}
+
 impl Index<ControllableId> for UniverseGroup {
     type Output = Controllable;
 
     #[inline]
     fn index(&self, index: ControllableId) -> &Self::Output {
         self.controllables[index.0].as_ref().unwrap()
+    }
+}
+
+impl Index<UniverseId> for UniverseGroup {
+    type Output = Universe;
+
+    #[inline]
+    fn index(&self, index: UniverseId) -> &Self::Output {
+        self.universes[index.0].as_ref().unwrap()
     }
 }
 

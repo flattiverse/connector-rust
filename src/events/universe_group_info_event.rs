@@ -35,8 +35,9 @@ impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
         self.metrics.apply(group);
 
         group.teams = Default::default();
-        for team in self.teams {
+        for mut team in self.teams {
             let id = team.id.0;
+            team.connection = Arc::downgrade(&group.connection);
             group.teams[id] = Some(team);
         }
 

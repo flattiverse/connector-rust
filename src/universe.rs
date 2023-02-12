@@ -88,7 +88,7 @@ impl Universe {
     }
 
     /// Queries the server for the [`Region`] definitions
-    pub async fn get_regions(
+    pub async fn query_regions(
         &self,
     ) -> Result<impl Future<Output = Result<Vec<GameRegion>, QueryError>>, GameError> {
         let query = self
@@ -183,7 +183,7 @@ impl Universe {
     /// # Access Restricted
     ///
     /// This is only accessible if you are an administrator.
-    pub async fn get_unit_map_edit_json(
+    pub async fn query_unit_map_edit_json(
         &self,
         name: String,
     ) -> Result<impl Future<Output = QueryResult>, GameError> {
