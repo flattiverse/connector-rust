@@ -9,6 +9,7 @@ pub mod explosion;
 pub mod gravity_well;
 pub mod gravity_well_section;
 pub mod meteoroid;
+pub mod mission_target;
 pub mod mobility;
 pub mod moon;
 pub mod orbits;

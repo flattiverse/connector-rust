@@ -3,6 +3,7 @@ use crate::units::buoy::Buoy;
 use crate::units::comet::Comet;
 use crate::units::explosion::Explosion;
 use crate::units::meteoroid::Meteoroid;
+use crate::units::mission_target::MissionTarget;
 use crate::units::moon::Moon;
 use crate::units::planet::Planet;
 use crate::units::player_unit::PlayerUnit;
@@ -30,9 +31,9 @@ pub enum UnitKind {
     /// A buoy, which may contain a message.
     #[serde(rename = "buoy")]
     Buoy(Buoy),
-    // /// A [`MissionTarget`], which you may have to shoot at.
-    // #[serde(rename = "missionTarget")]
-    // MissionTarget,
+    /// A [`MissionTarget`], which you may have to shoot at.
+    #[serde(rename = "missionTarget")]
+    MissionTarget(MissionTarget),
     /// A [`PlayerUnit`]. May be friendly. Or not.
     #[serde(rename = "playerUnit")]
     PlayerUnit(PlayerUnit),
