@@ -55,16 +55,25 @@ pub struct UniverseGroup {
 
 impl UniverseGroup {
     #[inline]
-    pub async fn join(name: &str, api_key: &str) -> Result<UniverseGroup, JoinError> {
+    pub async fn join(
+        name: &str,
+        api_key: &str,
+        team: impl Into<Option<&str>>,
+    ) -> Result<UniverseGroup, JoinError> {
         Self::join_url(
             &format!("www.flattiverse.com/api/universes/{name}.ws"),
             api_key,
+            team,
         )
         .await
     }
 
-    pub async fn join_url(url: &str, api_key: &str) -> Result<UniverseGroup, JoinError> {
-        let (handle, receiver) = Connection::connect_to(url, api_key)
+    pub async fn join_url(
+        url: &str,
+        api_key: &str,
+        team: impl Into<Option<&str>>,
+    ) -> Result<UniverseGroup, JoinError> {
+        let (handle, receiver) = Connection::connect_to(url, api_key, team.into())
             .await?
             .spawn(Handle::current());
 

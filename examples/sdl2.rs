@@ -42,6 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut universe_group = UniverseGroup::join_url(
         "wss://www.flattiverse.com/api/universes/beginnersGround.ws",
         env!("API_KEY"),
+        None,
     )
     .await?;
 

@@ -27,9 +27,18 @@ impl Connection {
     pub const DEFAULT_PORT_PROXY: u16 = 80;
     pub const ENV_PROXY: &'static str = "http_proxy";
 
-    pub async fn connect_to(url: &str, api_key: &str) -> Result<Self, OpenError> {
-        let url = Url::from_str(&format!("{url}?auth={api_key}&version=0"))
-            .map_err(OpenError::MalformedHostUrl)?;
+    pub async fn connect_to(
+        url: &str,
+        api_key: &str,
+        team: Option<&str>,
+    ) -> Result<Self, OpenError> {
+        let url = Url::from_str(&format!(
+            "{url}?auth={api_key}&version=0{}{}&impl=rust&impl-version={}",
+            team.map(|_| "&team=").unwrap_or_default(),
+            team.unwrap_or_default(),
+            env!("CARGO_PKG_VERSION"),
+        ))
+        .map_err(OpenError::MalformedHostUrl)?;
         let (mut stream, _response) = match std::env::var(Self::ENV_PROXY).ok() {
             Some(proxy) => {
                 eprintln!(
