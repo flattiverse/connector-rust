@@ -11,7 +11,7 @@ use crate::events::{ApplicableEvent, Completable, FailureEvent};
 use crate::game_mode::GameMode;
 use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
-use crate::network::query::{QueryCommand, QueryError, QueryResponse, QueryResult};
+use crate::network::query::{QueryCommand, QueryError, QueryResponse};
 use crate::network::ServerEvent;
 use crate::players::{Player, PlayerId};
 use crate::team::{Team, TeamId};
@@ -120,82 +120,87 @@ impl UniverseGroup {
     /// This will create a **dead** ship. To bring it to life, you need to call
     /// [`Controllable::r#continue`] on the ship. Typically, you would call
     /// [`UniverseGroup::new_ship`] followed by [`Controllable::r#continue`].
-    pub async fn new_ship(
+    pub fn new_ship(
         &mut self,
         name: impl Into<String>,
-    ) -> Result<impl Future<Output = Result<ControllableId, QueryError>>, GameError> {
+    ) -> impl Future<Output = Result<ControllableId, GameError>> {
         // need to hold it the whole time
-        let number_of_controllables = self.controllables.iter().flatten().count() as u32;
+        let free_id = (|| {
+            let number_of_controllables = self.controllables.iter().flatten().count() as u32;
 
-        if number_of_controllables >= self.register_ship_limit {
-            return Err(GameError::ExceededNonBuiltUnits);
-        } else if number_of_controllables >= self.max_ships_per_player {
-            return Err(GameError::ExceededShipsPerPlayer);
-        }
+            if number_of_controllables >= self.register_ship_limit {
+                return Err(GameError::ExceededNonBuiltUnits);
+            } else if number_of_controllables >= self.max_ships_per_player {
+                return Err(GameError::ExceededShipsPerPlayer);
+            }
 
-        let name = GameError::checked_name(name.into())?;
-        let free_id = self
-            .controllables
-            .iter()
-            .enumerate()
-            .find_map(|(index, controllable)| {
-                if controllable.is_none() {
-                    Some(ControllableId(index))
-                } else {
-                    None
-                }
-            })
-            .ok_or(GameError::ExceededShipsPerPlayer)?;
+            let name = GameError::checked_name(name.into())?;
+            let free_id = self
+                .controllables
+                .iter()
+                .enumerate()
+                .find_map(|(index, controllable)| {
+                    if controllable.is_none() {
+                        Some(ControllableId(index))
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(GameError::ExceededShipsPerPlayer)?;
 
-        let query = self
-            .connection
-            .send_query(QueryCommand::NewControllable {
-                controllable: free_id,
+            self.controllables[free_id.0] = Some(Arc::new(Controllable {
+                connection: Arc::clone(&self.connection),
                 name: name.clone(),
-            })
-            .await?;
+                id: free_id,
+                radius: 0.0,
+                position: Vector::default(),
+                movement: Vector::default(),
+                direction: 0.0,
+                team: None,
+                gravity: 0.0,
+                energy_output: 0.0,
+                alive: false,
+                turn_rate: 0.0,
+                systems: Default::default(),
+            }));
 
-        self.controllables[free_id.0] = Some(Arc::new(Controllable {
-            connection: Arc::clone(&self.connection),
-            name,
-            id: free_id,
-            radius: 0.0,
-            position: Vector::default(),
-            movement: Vector::default(),
-            direction: 0.0,
-            team: None,
-            gravity: 0.0,
-            energy_output: 0.0,
-            alive: false,
-            turn_rate: 0.0,
-            systems: Default::default(),
-        }));
+            Ok((name, free_id, Arc::clone(&self.connection)))
+        })();
 
-        Ok({
-            async move {
-                match query.await {
-                    Ok(response) => {
-                        debug!("NewShip response {response:?}");
-                        Ok(free_id)
-                    }
-                    Err(e) => {
-                        // TODO well well well... shit, actually need to clean up ...
-                        Err(e)
-                    }
+        async move {
+            let (name, free_id, connection) = free_id?;
+            let query = connection
+                .send_query(QueryCommand::NewControllable {
+                    controllable: free_id,
+                    name,
+                })
+                .await?;
+
+            match query.await {
+                Ok(response) => {
+                    debug!("NewShip response {response:?}");
+                    Ok(free_id)
+                }
+                Err(e) => {
+                    // TODO well well well... shit, actually need to clean up ...
+                    Err(e.into())
                 }
             }
-        })
+        }
     }
 
-    pub async fn chat(
+    pub fn chat(
         &self,
         message: impl Into<String>,
-    ) -> Result<impl Future<Output = QueryResult>, GameError> {
-        let message = GameError::checked_message(message.into())?;
-        Ok(self
-            .connection
-            .send_query(QueryCommand::ChatUniverseGroup { message })
-            .await?)
+    ) -> impl Future<Output = Result<QueryResponse, GameError>> + 'static {
+        let connection = Arc::clone(&self.connection);
+        let message = GameError::checked_message(message.into());
+        async move {
+            Ok(connection
+                .send_query(QueryCommand::ChatUniverseGroup { message: message? })
+                .await?
+                .await?)
+        }
     }
 
     pub(crate) fn get_player_unit_system_upgrade_path(

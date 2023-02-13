@@ -1,11 +1,10 @@
 use crate::error::GameError;
 use crate::network::connection_handle::ConnectionHandle;
-use crate::network::query::{QueryCommand, QueryResult};
+use crate::network::query::{QueryCommand, QueryResponse};
 use crate::team::TeamId;
 use crate::units::player_unit::{PlayerUnit, PlayerUnitSystems};
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
-use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -49,7 +48,7 @@ impl Controllable {
         *self.systems.lock().await = (*unit.systems).clone();
     }
 
-    pub async fn r#continue(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
+    pub async fn r#continue(&self) -> Result<QueryResponse, GameError> {
         if self.systems.lock().await.hull.value > 0.0 {
             Err(GameError::ControllableMustBeDeadToContinue)
         } else {
@@ -58,11 +57,12 @@ impl Controllable {
                 .send_query(QueryCommand::ContinueControllable {
                     controllable: self.id,
                 })
+                .await?
                 .await?)
         }
     }
 
-    pub async fn kill(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
+    pub async fn kill(&self) -> Result<QueryResponse, GameError> {
         if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else {
@@ -71,14 +71,12 @@ impl Controllable {
                 .send_query(QueryCommand::KillControllable {
                     controllable: self.id,
                 })
+                .await?
                 .await?)
         }
     }
 
-    pub async fn set_nozzle(
-        &self,
-        value: f64,
-    ) -> Result<impl Future<Output = QueryResult>, GameError> {
+    pub async fn set_nozzle(&self, value: f64) -> Result<QueryResponse, GameError> {
         if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
@@ -95,22 +93,28 @@ impl Controllable {
                         value.clamp(-max_value, max_value)
                     },
                 })
+                .await?
                 .await?)
         }
     }
 
-    pub async fn set_thruster(&self, value: f64) -> Result<impl Future<Output = QueryResult>, GameError> {
+    pub async fn set_thruster(&self, value: f64) -> Result<QueryResponse, GameError> {
         if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else if value < 0.0 || value > self.systems.lock().await.thruster.value * 1.05 {
+            dbg!(self.systems.lock().await.thruster.value);
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
-            Ok(self.connection.send_query(QueryCommand::SetControllableThruster {
-                controllable: self.id,
-                thrust: value,
-            }).await?)
+            Ok(self
+                .connection
+                .send_query(QueryCommand::SetControllableThruster {
+                    controllable: self.id,
+                    thrust: value,
+                })
+                .await?
+                .await?)
         }
     }
 
@@ -120,7 +124,7 @@ impl Controllable {
         length: f64,
         width: f64,
         enabled: bool,
-    ) -> Result<impl Future<Output = QueryResult>, GameError> {
+    ) -> Result<QueryResponse, GameError> {
         if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
@@ -153,6 +157,7 @@ impl Controllable {
                     width: width.clamp(20.0, max_angle),
                     enabled,
                 })
+                .await?
                 .await?)
         }
     }

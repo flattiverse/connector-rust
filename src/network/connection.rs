@@ -229,7 +229,7 @@ impl ConnectionReceiver {
                 Message::Text(text) => match {
                     let result = serde_json::from_str({
                         if cfg!(feature = "debug-messages") {
-                            debug!("{text}");
+                            warn!("{text}");
                         }
                         text.as_str()
                     });

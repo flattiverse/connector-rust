@@ -30,8 +30,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         universe_group
             .chat("[Group] Hellö wie geht`s denn Soße?`; --")
             .await
-            .unwrap()
-            .await
     );
 
     // send a happy team message!
@@ -39,8 +37,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "SEND MSG TEAM RESULT {:?}",
         universe_group[universe_group.player().team]
             .chat("[Team] Hellö wie geht`s denn Soße?`; --")
-            .await
-            .unwrap()
             .await
     );
 
@@ -50,15 +46,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         universe_group[universe_group.player_id()]
             .chat("[INNER-VOICE] Hellö wie geht`s denn Soße?`; --")
             .await
-            .unwrap()
-            .await
     );
 
     // create a new ship
     let controllable = universe_group
         .new_ship("MeinShipper")
-        .await
-        .expect("Failed to send new ship request")
         .await
         .expect("Failed to create new ship");
 
@@ -71,8 +63,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             controllable
                 .r#continue()
                 .await
-                .expect("Failed to send continue request")
-                .await
                 .expect("Failed to awake controllable to live");
 
             loop {
@@ -83,8 +73,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     eprintln!("Scan now {direction}°");
                     controllable
                         .set_scanner(direction, 300.0, 60.0, true)
-                        .await
-                        .expect("Failed to request scanner update")
                         .await
                         .expect("Failed to update scanner");
                 }

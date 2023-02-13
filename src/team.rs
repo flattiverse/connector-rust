@@ -1,11 +1,10 @@
 use crate::error::GameError;
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
-use crate::network::query::{QueryCommand, QueryResult};
+use crate::network::query::{QueryCommand, QueryResponse};
 use serde_derive::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
-use std::ops::Deref;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 #[repr(transparent)]
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -40,7 +39,7 @@ impl Debug for Team {
 }
 
 impl Team {
-    fn connection(&self) -> Result<impl Deref<Target = ConnectionHandle>, GameError> {
+    fn connection(&self) -> Result<Arc<ConnectionHandle>, GameError> {
         if let Some(connection) = self.connection.upgrade() {
             Ok(connection)
         } else {
@@ -53,17 +52,21 @@ impl Team {
         [self.r, self.g, self.b]
     }
 
-    pub async fn chat(
+    pub fn chat(
         &self,
         message: impl Into<String>,
-    ) -> Result<impl Future<Output = QueryResult>, GameError> {
-        let message = GameError::checked_message(message.into())?;
-        Ok(self
-            .connection()?
-            .send_query(QueryCommand::ChatTeam {
-                team: self.id,
-                message,
-            })
-            .await?)
+    ) -> impl Future<Output = Result<QueryResponse, GameError>> + 'static {
+        let connection = self.connection();
+        let message = GameError::checked_message(message.into());
+        let team = self.id;
+        async move {
+            Ok(connection?
+                .send_query(QueryCommand::ChatTeam {
+                    team,
+                    message: message?,
+                })
+                .await?
+                .await?)
+        }
     }
 }
