@@ -46,7 +46,7 @@ impl Controllable {
     }
 
     pub(crate) async fn update(&self, unit: &PlayerUnit) {
-        *self.systems.lock().await = unit.systems.clone();
+        *self.systems.lock().await = (*unit.systems).clone();
     }
 
     pub async fn r#continue(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
@@ -121,8 +121,7 @@ impl Controllable {
             };
 
             if direction < 0.0
-                || length > 360.1
-                || length < 59.9
+                || !(59.9..360.1).contains(&length)
                 || length > max_length * 1.05
                 || width < 19.9
                 || width > max_angle * 1.05

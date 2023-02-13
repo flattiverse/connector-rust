@@ -357,7 +357,7 @@ impl UniverseGroup {
                         self.controllables[player_unit.controllable.0]
                             .as_ref()
                             .unwrap()
-                            .update(&player_unit)
+                            .update(player_unit)
                             .await;
                     }
                 }

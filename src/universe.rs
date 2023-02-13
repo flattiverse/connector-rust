@@ -112,6 +112,7 @@ impl Universe {
     /// # Access Restricted
     ///
     /// This is only accessible if you are an administrator.
+    #[allow(clippy::too_many_arguments)]
     pub async fn set_region(
         &self,
         id: GameRegionId,

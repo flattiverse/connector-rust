@@ -26,7 +26,7 @@ pub struct PlayerUnit {
     pub scan_width: f64,
     #[serde(rename = "scanRange")]
     pub scan_range: f64,
-    pub systems: PlayerUnitSystems,
+    pub systems: Box<PlayerUnitSystems>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
