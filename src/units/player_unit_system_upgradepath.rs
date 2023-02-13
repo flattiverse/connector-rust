@@ -8,7 +8,7 @@ pub struct PlayerUnitSystemUpgradePath {
     pub required_component: Option<PlayerUnitSystemIdentifier>,
     #[serde(rename = "system")]
     pub kind: PlayerUnitSystemKind,
-    pub level: i32,
+    pub level: u32,
     pub energy: f64,
     pub particles: f64,
     pub iron: f64,

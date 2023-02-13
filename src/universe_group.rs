@@ -108,7 +108,7 @@ impl UniverseGroup {
                 [EMPTY; 64]
             },
             controllables: Default::default(),
-            systems: HashMap::default(),
+            systems: Default::default(),
             receiver,
         })
     }
@@ -161,7 +161,7 @@ impl UniverseGroup {
                 energy_output: 0.0,
                 alive: false,
                 turn_rate: 0.0,
-                systems: Default::default(),
+                systems: { Default::default() },
             }));
 
             Ok((name, free_id, Arc::clone(&self.connection)))
@@ -358,6 +358,21 @@ impl UniverseGroup {
             }
             ServerEvent::UnitAdded(mut event) => {
                 event.complete(self);
+                if let UnitKind::PlayerUnit(player_unit) = &event.unit.kind {
+                    if self.player == player_unit.player
+                        && self
+                            .controllables
+                            .iter()
+                            .flatten()
+                            .any(|c| c.id == player_unit.controllable)
+                    {
+                        self.controllables[player_unit.controllable.0]
+                            .as_ref()
+                            .unwrap()
+                            .update(player_unit)
+                            .await;
+                    }
+                }
                 Some(Ok(FlattiverseEvent::UnitAdded(event)))
             }
             ServerEvent::UnitUpdated(mut event) => {

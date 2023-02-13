@@ -81,7 +81,7 @@ impl Controllable {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else if value.abs() > (self.systems.lock().await.nozzle.value * 1.05) {
+        } else if value.abs() > self.systems.lock().await.nozzle.specialization.max_value * 1.05 {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
             Ok(self
@@ -103,8 +103,9 @@ impl Controllable {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else if value < 0.0 || value > self.systems.lock().await.thruster.value * 1.05 {
-            dbg!(self.systems.lock().await.thruster.value);
+        } else if value < 0.0
+            || value > self.systems.lock().await.thruster.specialization.max_value * 1.05
+        {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
             Ok(self

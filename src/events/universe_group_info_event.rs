@@ -1,6 +1,8 @@
 use crate::events::ApplicableEvent;
 use crate::game_mode::GameMode;
 use crate::team::Team;
+use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
+use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
 use crate::universe::Universe;
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
@@ -22,8 +24,8 @@ pub struct UniverseGroupInfoEvent {
     pub teams: Vec<Team>,
     /// The [`Universe`]s in the [`UniverseGroup`].
     universes: Vec<Universe>,
-    // /// The system upgrade paths in the [`UniverseGroup`].
-    // systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradepath>,
+    /// The system upgrade paths in the [`UniverseGroup`].
+    systems: Vec<PlayerUnitSystemUpgradePath>,
 }
 
 impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
@@ -31,6 +33,16 @@ impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
         group.name = self.name;
         group.description = self.description;
         group.mode = self.mode;
+
+        for system in self.systems {
+            group.systems.insert(
+                PlayerUnitSystemIdentifier {
+                    system: system.kind,
+                    level: Some(system.level),
+                },
+                system,
+            );
+        }
 
         self.metrics.apply(group);
 
