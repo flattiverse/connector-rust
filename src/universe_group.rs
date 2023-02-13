@@ -1,9 +1,10 @@
-use crate::controllable::{Controllable, ControllableId};
+use crate::controllable::{Controllable, ControllableId, ControllableState};
 use crate::error::GameError;
 use crate::events::added_unit_event::AddedUnitEvent;
 use crate::events::chat_multicast_event::ChatMulticastEvent;
 use crate::events::chat_teamcast_event::ChatTeamcastEvent;
 use crate::events::chat_unicast_event::ChatUnicastEvent;
+use crate::events::death_controllable_event::DeathControllableEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::updated_unit_event::UpdatedUnitEvent;
@@ -20,15 +21,14 @@ use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
 use crate::units::unit_kind::UnitKind;
 use crate::universe::{Universe, UniverseId};
-use crate::vector::Vector;
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Index;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::{mpsc, Mutex};
 
 pub struct UniverseGroup {
     pub(crate) connection: Arc<ConnectionHandle>,
@@ -152,16 +152,24 @@ impl UniverseGroup {
                 connection: Arc::clone(&self.connection),
                 name: name.clone(),
                 id: free_id,
-                radius: 0.0,
-                position: Vector::default(),
-                movement: Vector::default(),
                 direction: 0.0,
                 team: None,
-                gravity: 0.0,
-                energy_output: 0.0,
                 alive: false,
-                turn_rate: 0.0,
-                systems: { Default::default() },
+                state: Arc::new(Mutex::new(ControllableState {
+                    movement: Default::default(),
+                    position: Default::default(),
+                    radius: 0.0,
+                    gravity: 0.0,
+                    energy_output: 0.0,
+                    turn_rate: 0.0,
+                    requested_scan_direction: 0.0,
+                    requested_scan_width: 0.0,
+                    requested_scan_range: 0.0,
+                    scan_direction: 0.0,
+                    scan_width: 0.0,
+                    scan_range: 0.0,
+                    systems: Default::default(),
+                })),
             }));
 
             Ok((name, free_id, Arc::clone(&self.connection)))
@@ -369,7 +377,7 @@ impl UniverseGroup {
                         self.controllables[player_unit.controllable.0]
                             .as_ref()
                             .unwrap()
-                            .update(player_unit)
+                            .update_systems(player_unit)
                             .await;
                     }
                 }
@@ -388,7 +396,7 @@ impl UniverseGroup {
                         self.controllables[player_unit.controllable.0]
                             .as_ref()
                             .unwrap()
-                            .update(player_unit)
+                            .update_systems(player_unit)
                             .await;
                     }
                 }
@@ -416,6 +424,14 @@ impl UniverseGroup {
             ServerEvent::UniverseGroupInfo(info) => {
                 info.apply(self);
                 Some(Ok(FlattiverseEvent::UniverseGroupInfo))
+            }
+            ServerEvent::ControllableUpdated(event) => {
+                let id = event.controllable;
+                event.apply(self).await;
+                Some(Ok(FlattiverseEvent::ControllableUpdated(id)))
+            }
+            ServerEvent::ControllableDeath(event) => {
+                Some(Ok(FlattiverseEvent::ControllableDied(event)))
             }
         }
     }
@@ -515,4 +531,8 @@ pub enum FlattiverseEvent {
     UnitUpdated(UpdatedUnitEvent),
     /// This event informs of the completion of a tick in the [`UniverseGroup`].
     TickProcessed(TickProcessedEvent),
+    /// This event informs of the update of a controllable in the [`UniverseGroup`].
+    ControllableUpdated(ControllableId),
+    /// This event informs of the untimely demise of a controllable in the [`UniverseGroup`].
+    ControllableDied(DeathControllableEvent),
 }

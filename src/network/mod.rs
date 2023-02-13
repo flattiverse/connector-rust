@@ -2,12 +2,14 @@ use crate::events::added_unit_event::AddedUnitEvent;
 use crate::events::chat_multicast_event::ChatMulticastEvent;
 use crate::events::chat_teamcast_event::ChatTeamcastEvent;
 use crate::events::chat_unicast_event::ChatUnicastEvent;
+use crate::events::death_controllable_event::DeathControllableEvent;
 use crate::events::full_update_player_event::FullUpdatePlayerEvent;
 use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
 use crate::events::removed_player_event::RemovedPlayerEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::universe_group_info_event::UniverseGroupInfoEvent;
+use crate::events::updated_controllable_event::UpdatedControllableEvent;
 use crate::events::updated_unit_event::UpdatedUnitEvent;
 use crate::events::FailureEvent;
 use crate::network::query::{QueryId, QueryResponse};
@@ -67,4 +69,8 @@ pub enum ServerEvent {
     TickProcessed(TickProcessedEvent),
     #[serde(rename = "universeGroupInfo")]
     UniverseGroupInfo(UniverseGroupInfoEvent),
+    #[serde(rename = "controllableUpdated")]
+    ControllableUpdated(UpdatedControllableEvent),
+    #[serde(rename = "controllableDeath")]
+    ControllableDeath(DeathControllableEvent),
 }
