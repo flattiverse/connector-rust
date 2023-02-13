@@ -5,6 +5,7 @@ use crate::units::meteoroid::Meteoroid;
 use crate::units::moon::Moon;
 use crate::units::planet::Planet;
 use crate::units::player_unit::PlayerUnit;
+use crate::units::reduced::Reduced;
 use crate::units::shot::Shot;
 use crate::units::sun::Sun;
 use serde_derive::{Deserialize, Serialize};
@@ -43,4 +44,6 @@ pub enum UnitKind {
     /// A [`BlackHole`], which may have any gravitational well or gravitational well sections.
     #[serde(rename = "blackhole")]
     BlackHole(Blackhole),
+    #[serde(rename = "reduced")]
+    Reduced(Reduced),
 }

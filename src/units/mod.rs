@@ -17,6 +17,7 @@ pub mod player_unit_system;
 pub mod player_unit_system_identifier;
 pub mod player_unit_system_kind;
 pub mod player_unit_system_upgradepath;
+pub mod reduced;
 pub mod shot;
 pub mod sun;
 pub mod unit;
