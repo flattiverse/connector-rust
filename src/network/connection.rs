@@ -41,10 +41,12 @@ impl Connection {
         .map_err(OpenError::MalformedHostUrl)?;
         let (mut stream, _response) = match std::env::var(Self::ENV_PROXY).ok() {
             Some(proxy) => {
-                eprintln!(
-                    "detected proxy environment variable {}={proxy}",
-                    Self::ENV_PROXY
-                );
+                if cfg!(feature = "debug-proxy") {
+                    eprintln!(
+                        "detected proxy environment variable {}={proxy}",
+                        Self::ENV_PROXY
+                    );
+                }
                 let proxy = Url::from_str(&proxy).map_err(OpenError::MalformedProxyUrl)?;
                 let proxy = format!(
                     "{}:{}",
@@ -54,7 +56,9 @@ impl Connection {
                         .unwrap_or(Self::DEFAULT_PORT_PROXY)
                 );
 
-                eprintln!("establishing connection via proxy through {proxy}");
+                if cfg!(feature = "debug-proxy") {
+                    eprintln!("establishing connection via proxy through {proxy}");
+                }
                 let mut stream = TcpStream::connect(proxy)
                     .await
                     .map_err(OpenError::ProxyConnectionError)?;
@@ -222,10 +226,18 @@ impl ConnectionReceiver {
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
-                Message::Text(text) => match dbg!(serde_json::from_str({
-                    debug!("{text}");
-                    text.as_str()
-                }))? {
+                Message::Text(text) => match {
+                    let result = serde_json::from_str({
+                        if cfg!(feature = "debug-messages") {
+                            debug!("{text}");
+                        }
+                        text.as_str()
+                    });
+                    if cfg!(feature = "debug-messages") {
+                        dbg!(&result);
+                    }
+                    result?
+                } {
                     ServerMessage::Success { id, result } => {
                         self.queries
                             .lock()

@@ -48,7 +48,7 @@ impl ApplicableEvent<UniverseGroup> for UniverseGroupInfoEvent {
         for mut universe in self.universes {
             let id = universe.id;
             universe.connection = Arc::downgrade(&group.connection);
-            group.universes[id.0] = Some(dbg!(universe));
+            group.universes[id.0] = Some(universe);
         }
     }
 }
