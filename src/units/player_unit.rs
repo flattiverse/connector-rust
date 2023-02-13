@@ -31,78 +31,73 @@ pub struct PlayerUnit {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PlayerUnitSystems {
-    #[serde(rename = "Hull")]
     pub hull: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "Shield")]
-    pub shield: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "Armor")]
-    pub armor: PlayerUnitSystem<ArmorSystem>,
-    #[serde(rename = "Thruster")]
-    pub thruster: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "Nozzle")]
-    pub nozzle: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "Scanner")]
-    pub scanner: PlayerUnitSystem<ScannerSystem>,
-    #[serde(rename = "Analyzer")]
-    pub analyzer: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "CellsEnergy")]
+    #[serde(rename = "cellsEnergy")]
     pub cells_energy: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CellsParticles")]
-    pub cells_particles: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "BatteryParticles")]
+    #[serde(rename = "batteryParticles")]
     pub battery_energy: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "WeaponLauncher")]
-    pub weapon_launcher: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "WeaponPayloadDamage")]
-    pub weapon_payload_damage: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "WeaponPayloadRadius")]
-    pub weapon_payload_radius: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "WeaponFactory")]
-    pub weapon_factory: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "WeaponStorage")]
-    pub weapon_storage: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CargoIron")]
-    pub cargo_iron: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CargoCarbon")]
-    pub cargo_carbon: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CargoSilicon")]
-    pub cargo_silicon: PlayerUnitSystem<RegularSystem>,
+    pub thruster: PlayerUnitSystem<EnergyConsumingSystem>,
+    pub nozzle: PlayerUnitSystem<EnergyConsumingSystem>,
+    pub scanner: PlayerUnitSystem<ScannerSystem>,
+
+    pub armor: Option<PlayerUnitSystem<ArmorSystem>>,
+    pub shield: Option<PlayerUnitSystem<RegularSystem>>,
+    pub analyzer: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    #[serde(rename = "cellsParticles")]
+    pub cells_particles: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "weaponLauncher")]
+    pub weapon_launcher: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "weaponPayloadDamage")]
+    pub weapon_payload_damage: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "weaponPayloadRadius")]
+    pub weapon_payload_radius: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "weaponFactory")]
+    pub weapon_factory: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "weaponStorage")]
+    pub weapon_storage: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "cargoIron")]
+    pub cargo_iron: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "cargoCarbon")]
+    pub cargo_carbon: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "cargoSilicon")]
+    pub cargo_silicon: Option<PlayerUnitSystem<RegularSystem>>,
     #[serde(rename = "CargoPlatinum")]
-    pub cargo_platinum: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CargoGold")]
-    pub cargo_gold: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "CargoSpecial")]
-    pub cargo_special: PlayerUnitSystem<RegularSystem>,
-    #[serde(rename = "ExtractorIron")]
-    pub extractor_iron: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "ExtractorCarbon")]
-    pub extractor_carbon: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "ExtractorSilicon")]
-    pub extractor_silicon: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "ExtractorPlatinum")]
-    pub extractor_platinum: PlayerUnitSystem<EnergyConsumingSystem>,
-    #[serde(rename = "ExtractorGold")]
-    pub extractor_gold: PlayerUnitSystem<EnergyConsumingSystem>,
+    pub cargo_platinum: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "cargoGold")]
+    pub cargo_gold: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "cargoSpecial")]
+    pub cargo_special: Option<PlayerUnitSystem<RegularSystem>>,
+    #[serde(rename = "extractorIron")]
+    pub extractor_iron: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    #[serde(rename = "extractorCarbon")]
+    pub extractor_carbon: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    #[serde(rename = "extractorSilicon")]
+    pub extractor_silicon: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    #[serde(rename = "extractorPlatinum")]
+    pub extractor_platinum: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    #[serde(rename = "extractorGold")]
+    pub extractor_gold: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
 }
 
 impl Completable<UniverseGroup> for PlayerUnitSystems {
     fn complete(&mut self, group: &UniverseGroup) {
         self.hull.complete(&(PlayerUnitSystemKind::Hull, group));
-        self.shield.complete(&(PlayerUnitSystemKind::Shield, group));
-        self.armor.complete(&(PlayerUnitSystemKind::Armor, group));
+        self.cells_energy
+            .complete(&(PlayerUnitSystemKind::CellsEnergy, group));
+        self.battery_energy
+            .complete(&(PlayerUnitSystemKind::BatteryEnergy, group));
         self.thruster
             .complete(&(PlayerUnitSystemKind::Thruster, group));
         self.nozzle.complete(&(PlayerUnitSystemKind::Nozzle, group));
         self.scanner
             .complete(&(PlayerUnitSystemKind::Scanner, group));
+
+        self.armor.complete(&(PlayerUnitSystemKind::Armor, group));
+        self.shield.complete(&(PlayerUnitSystemKind::Shield, group));
         self.analyzer
             .complete(&(PlayerUnitSystemKind::Analyzer, group));
-        self.cells_energy
-            .complete(&(PlayerUnitSystemKind::CellsEnergy, group));
         self.cells_particles
             .complete(&(PlayerUnitSystemKind::CellsParticles, group));
-        self.battery_energy
-            .complete(&(PlayerUnitSystemKind::BatteryEnergy, group));
         self.weapon_launcher
             .complete(&(PlayerUnitSystemKind::WeaponLauncher, group));
         self.weapon_payload_damage

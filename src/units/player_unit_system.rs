@@ -13,6 +13,7 @@ pub struct PlayerUnitSystem<T: Default + Completable<PlayerUnitSystemUpgradePath
     pub area_increase: f64,
     #[serde(skip_serializing_if = "is_zero", default)]
     pub weight_increase: f64,
+    #[serde(skip, default)]
     pub kind: PlayerUnitSystemKind,
     #[serde(skip, default)]
     pub upgrade_path: Option<PlayerUnitSystemUpgradePath>,

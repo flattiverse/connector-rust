@@ -23,6 +23,14 @@ pub trait Completable<T> {
     fn complete(&mut self, source: &T);
 }
 
+impl<T, C: Completable<T>> Completable<T> for Option<C> {
+    fn complete(&mut self, source: &T) {
+        if let Some(this) = self {
+            this.complete(source);
+        }
+    }
+}
+
 /// This event indicates some critical out-of-game failure like a problem with the
 /// data-transport, etc.. Consider upgrading the connector if this happens and it
 /// is not due to a lost connection.

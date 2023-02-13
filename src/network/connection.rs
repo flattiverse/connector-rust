@@ -213,7 +213,10 @@ impl ConnectionReceiver {
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
-                Message::Text(text) => match dbg!(serde_json::from_str(&dbg!(text)))? {
+                Message::Text(text) => match dbg!(serde_json::from_str({
+                    debug!("{text}");
+                    text.as_str()
+                }))? {
                     ServerMessage::Success { id, result } => {
                         self.queries
                             .lock()
