@@ -54,6 +54,9 @@ pub struct UniverseGroup {
 }
 
 impl UniverseGroup {
+    pub const BASE_URL_JOIN_UNIVERSE_GROUP: &'static str =
+        "wss://www.flattiverse.com/api/universes/";
+
     #[inline]
     pub async fn join(
         name: &str,
@@ -61,7 +64,7 @@ impl UniverseGroup {
         team: impl Into<Option<&str>>,
     ) -> Result<UniverseGroup, JoinError> {
         Self::join_url(
-            &format!("www.flattiverse.com/api/universes/{name}.ws"),
+            &format!("{}/{name}.ws", Self::BASE_URL_JOIN_UNIVERSE_GROUP),
             api_key,
             team,
         )
