@@ -15,16 +15,27 @@ pub struct ControllableId(pub(crate) usize);
 
 pub struct Controllable {
     pub(crate) connection: Arc<ConnectionHandle>,
+    /// The name of your controllable.
     pub name: String,
+    /// The id of your controllable.
     pub id: ControllableId,
+    /// THe radius of your controllable.
     pub radius: f64,
+    /// The position of your controllable.
     pub position: Vector,
+    /// The movement of your controllable.
     pub movement: Vector,
+    /// The direction of your controllable.
     pub direction: f64,
+    /// If you have joined a team, the team of your controllable.
     pub team: Option<TeamId>,
+    /// The gravity that your controllable is exercising on the other units.
     pub gravity: f64,
+    /// The current energy output of your controllable.
     pub energy_output: f64,
+    /// Whether your controllable is still alive.
     pub alive: bool,
+    /// The rate at which your controllable is turning.
     pub turn_rate: f64,
     pub systems: Arc<Mutex<PlayerUnitSystems>>,
 }

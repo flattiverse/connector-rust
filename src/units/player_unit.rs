@@ -31,50 +31,97 @@ pub struct PlayerUnit {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PlayerUnitSystems {
+    /// The hull of the [`Unit`] or your [`crate::controllable::Controllable`], keeping you away
+    /// from the cold void of space.
     pub hull: PlayerUnitSystem<RegularSystem>,
     #[serde(rename = "cellsEnergy")]
+    /// The energy cell of the [`Unit`] or your [`crate::controllable::Controllable`], used for
+    /// recharging your energy levels.
     pub cells_energy: PlayerUnitSystem<RegularSystem>,
     #[serde(rename = "batteryParticles")]
+    /// The energy battery of the [`Unit`] or your [`crate::controllable::Controllable`], used for
+    /// use for storing energy.
     pub battery_energy: PlayerUnitSystem<RegularSystem>,
+    /// The thruster of the [`Unit`] or your [`crate::controllable::Controllable`], used to propel
+    /// it through the universe.
     pub thruster: PlayerUnitSystem<EnergyConsumingSystem>,
+    /// The nozzle of the [`Unit`] or your [`crate::controllable::Controllable`], used to make it
+    /// spin all around.
     pub nozzle: PlayerUnitSystem<EnergyConsumingSystem>,
+    /// The scanner of your the [`Unit`] or your [`crate::controllable::Controllable`], used to
+    /// detect objects in the vicinity.
     pub scanner: PlayerUnitSystem<ScannerSystem>,
 
+    /// The amor of the [`Unit`] or your [`crate::controllable::Controllable`], used to reduce
+    /// damage from malicious influences.
     pub armor: Option<PlayerUnitSystem<ArmorSystem>>,
+    /// The shield of the [`Unit`] or your [`crate::controllable::Controllable`], used to avoid
+    /// damage altogether.
     pub shield: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The analyzer of the [`Unit`] or your [`crate::controllable::Controllable`], used to identify
+    /// objects.
     pub analyzer: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    /// The particle cells of the [`Unit`] or your [`crate::controllable::Controllable`], used for
+    /// recharging your particle levels.
     #[serde(rename = "cellsParticles")]
     pub cells_particles: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The particle battery of the [`Unit`] or your [`crate::controllable::Controllable`], used for
+    /// storing particles.
     #[serde(rename = "weaponLauncher")]
+    /// The weapon launcher of the [`Unit`] or your [`crate::controllable::Controllable`], used to
+    /// do the pew pew.
     pub weapon_launcher: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The damage of the [`Unit`]'s or your [`crate::controllable::Controllable`]'s weapons.
     #[serde(rename = "weaponPayloadDamage")]
     pub weapon_payload_damage: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The radius of the [`Unit`]'s or your [`crate::controllable::Controllable`]'s weapons'
+    /// explosion.
     #[serde(rename = "weaponPayloadRadius")]
     pub weapon_payload_radius: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The weapon factory of the [`Unit`] or your [`crate::controllable::Controllable`].
     #[serde(rename = "weaponFactory")]
     pub weapon_factory: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of your controllable for weapons
     #[serde(rename = "weaponStorage")]
     pub weapon_storage: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of iron in the [`Unit`] or your [`crate::controllable::Controllable`].
     #[serde(rename = "cargoIron")]
     pub cargo_iron: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of carbon in the [`Unit`] or your [`crate::controllable::Controllable`].
     #[serde(rename = "cargoCarbon")]
     pub cargo_carbon: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of silicon in the [`Unit`] or your
+    /// [`crate::controllable::Controllable`].
     #[serde(rename = "cargoSilicon")]
     pub cargo_silicon: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of platinum in the [`Unit`] or your
+    /// [`crate::controllable::Controllable`].
     #[serde(rename = "CargoPlatinum")]
     pub cargo_platinum: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The storage capacity of gold in the [`Unit`] or your [`crate::controllable::Controllable`].
     #[serde(rename = "cargoGold")]
     pub cargo_gold: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The special storage capacity in the [`Unit`] or your [`crate::controllable::Controllable`].
     #[serde(rename = "cargoSpecial")]
     pub cargo_special: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The extraction capabilities of the [`Unit`] or your [`crate::controllable::Controllable`]
+    /// for iron.
     #[serde(rename = "extractorIron")]
     pub extractor_iron: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    /// The extraction capabilities of the [`Unit`] or your [`crate::controllable::Controllable`]
+    /// for carbon.
     #[serde(rename = "extractorCarbon")]
     pub extractor_carbon: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    /// The extraction capabilities of the [`Unit`] or your [`crate::controllable::Controllable`]
+    /// for silicon.
     #[serde(rename = "extractorSilicon")]
     pub extractor_silicon: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    /// The extraction capabilities of the [`Unit`] or your [`crate::controllable::Controllable`]
+    /// for platinum.
     #[serde(rename = "extractorPlatinum")]
     pub extractor_platinum: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
+    /// The extraction capabilities of the [`Unit`] or your [`crate::controllable::Controllable`]
+    /// for gold
     #[serde(rename = "extractorGold")]
     pub extractor_gold: Option<PlayerUnitSystem<EnergyConsumingSystem>>,
 }
