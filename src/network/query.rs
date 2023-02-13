@@ -37,6 +37,11 @@ pub enum QueryCommand {
         controllable: ControllableId,
         nozzle: f64,
     },
+    #[serde(rename = "controllableThruster")]
+    SetControllableThruster {
+        controllable: ControllableId,
+        thrust: f64,
+    },
     #[serde(rename = "controllableScanner")]
     SetControllableScanner {
         controllable: ControllableId,

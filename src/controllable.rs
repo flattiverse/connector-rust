@@ -99,6 +99,21 @@ impl Controllable {
         }
     }
 
+    pub async fn set_thruster(&self, value: f64) -> Result<impl Future<Output = QueryResult>, GameError> {
+        if self.systems.lock().await.hull.value <= 0.0 {
+            Err(GameError::ControllableMustBeAlive)
+        } else if !value.is_finite() {
+            Err(GameError::FloatingPointNumberInvalid)
+        } else if value < 0.0 || value > self.systems.lock().await.thruster.value * 1.05 {
+            Err(GameError::FloatingPointNumberOutOfRange)
+        } else {
+            Ok(self.connection.send_query(QueryCommand::SetControllableThruster {
+                controllable: self.id,
+                thrust: value,
+            }).await?)
+        }
+    }
+
     pub async fn set_scanner(
         &self,
         direction: f64,
