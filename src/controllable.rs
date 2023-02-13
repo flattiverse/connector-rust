@@ -7,6 +7,7 @@ use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
 use std::future::Future;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[repr(transparent)]
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -25,17 +26,20 @@ pub struct Controllable {
     pub energy_output: f64,
     pub alive: bool,
     pub turn_rate: f64,
-    pub systems: PlayerUnitSystems,
+    pub systems: Arc<Mutex<PlayerUnitSystems>>,
 }
 
 impl Controllable {
-    pub fn update(&mut self, unit: PlayerUnit) {
-        let _ = unit;
-        // self.systems = unit.systems.clone();
+    pub(crate) async fn die(&self) {
+        self.systems.lock().await.hull.value = 0.0;
+    }
+
+    pub(crate) async fn update(&self, unit: &PlayerUnit) {
+        *self.systems.lock().await = unit.systems.clone();
     }
 
     pub async fn r#continue(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value > 0.0 {
+        if self.systems.lock().await.hull.value > 0.0 {
             Err(GameError::ControllableMustBeDeadToContinue)
         } else {
             Ok(self
@@ -48,7 +52,7 @@ impl Controllable {
     }
 
     pub async fn kill(&self) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value <= 0.0 {
+        if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else {
             Ok(self
@@ -64,11 +68,11 @@ impl Controllable {
         &self,
         value: f64,
     ) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value <= 0.0 {
+        if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else if value.abs() > self.systems.nozzle.value {
+        } else if value.abs() > self.systems.lock().await.nozzle.value {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
             Ok(self
@@ -88,7 +92,7 @@ impl Controllable {
         width: f64,
         enabled: bool,
     ) -> Result<impl Future<Output = QueryResult>, GameError> {
-        if self.systems.hull.value <= 0.0 {
+        if self.systems.lock().await.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)

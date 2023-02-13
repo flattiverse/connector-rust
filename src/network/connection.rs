@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
+use tokio::runtime::Handle;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::{mpsc, Mutex};
 use tokio::time::interval;
@@ -88,7 +89,10 @@ impl Connection {
         };
     }
 
-    pub fn spawn(self) -> (Arc<ConnectionHandle>, UnboundedReceiver<ConnectionEvent>) {
+    pub fn spawn(
+        self,
+        runtime: Handle,
+    ) -> (Arc<ConnectionHandle>, UnboundedReceiver<ConnectionEvent>) {
         let (sink, stream) = self.stream.split();
         let (sender, receiver) = mpsc::unbounded_channel();
         let (event_sender, event_receiver) = mpsc::unbounded_channel();
@@ -96,13 +100,13 @@ impl Connection {
         let queries = Arc::new(Mutex::new(self.queries));
 
         let mut sender_handle =
-            tokio::spawn(ConnectionSender { sink }.run(receiver, Self::PING_INTERVAL));
+            runtime.spawn(ConnectionSender { sink }.run(receiver, Self::PING_INTERVAL));
 
         (
             Arc::new(ConnectionHandle {
                 sender: sender.clone(),
                 queries: Arc::clone(&queries),
-                handle: tokio::spawn(async move {
+                handle: runtime.spawn(async move {
                     let receiver = ConnectionReceiver { stream, queries }.run(sender, event_sender);
                     tokio::select! {
                         r = &mut sender_handle => {
@@ -118,6 +122,7 @@ impl Connection {
                         }
                     }
                 }),
+                runtime,
             }),
             event_receiver,
         )
@@ -208,7 +213,7 @@ impl ConnectionReceiver {
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
-                Message::Text(text) => match dbg!(serde_json::from_str(&dbg!(text))?) {
+                Message::Text(text) => match dbg!(serde_json::from_str(&dbg!(text)))? {
                     ServerMessage::Success { id, result } => {
                         self.queries
                             .lock()

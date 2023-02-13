@@ -18,6 +18,7 @@ use crate::team::{Team, TeamId};
 use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
+use crate::units::unit_kind::UnitKind;
 use crate::universe::{Universe, UniverseId};
 use crate::vector::Vector;
 use std::collections::HashMap;
@@ -25,6 +26,7 @@ use std::future::Future;
 use std::ops::Index;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::runtime::Handle;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 
@@ -46,7 +48,7 @@ pub struct UniverseGroup {
     pub(crate) register_ship_limit: u32,
     pub(crate) teams: [Option<Team>; 16],
     pub(crate) universes: [Option<Universe>; 64],
-    pub(crate) controllables: [Option<Controllable>; 32],
+    pub(crate) controllables: [Option<Arc<Controllable>>; 32],
     pub(crate) systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradePath>,
     receiver: mpsc::UnboundedReceiver<ConnectionEvent>,
 }
@@ -62,7 +64,9 @@ impl UniverseGroup {
     }
 
     pub async fn join_url(url: &str, api_key: &str) -> Result<UniverseGroup, JoinError> {
-        let (handle, receiver) = Connection::connect_to(url, api_key).await?.spawn();
+        let (handle, receiver) = Connection::connect_to(url, api_key)
+            .await?
+            .spawn(Handle::current());
 
         let response = handle.send_query(QueryCommand::WhoAmI).await?.await?;
         let player_index = response
@@ -139,7 +143,7 @@ impl UniverseGroup {
             })
             .await?;
 
-        self.controllables[free_id.0] = Some(Controllable {
+        self.controllables[free_id.0] = Some(Arc::new(Controllable {
             connection: Arc::clone(&self.connection),
             name,
             id: free_id,
@@ -153,7 +157,7 @@ impl UniverseGroup {
             alive: false,
             turn_rate: 0.0,
             systems: Default::default(),
-        });
+        }));
 
         Ok({
             async move {
@@ -216,7 +220,7 @@ impl UniverseGroup {
 
     /// Ge a [`Player`] by its unique [`PlayerId`].
     #[inline]
-    pub fn get_player(&self, id: &PlayerId) -> Option<&Player> {
+    pub fn get_player(&self, id: PlayerId) -> Option<&Player> {
         self.players.get(id.0).and_then(|p| p.as_ref())
     }
 
@@ -236,7 +240,7 @@ impl UniverseGroup {
 
     /// Ge a [`Team`] by its unique [`TeamId`].
     #[inline]
-    pub fn get_team(&self, id: &TeamId) -> Option<&Team> {
+    pub fn get_team(&self, id: TeamId) -> Option<&Team> {
         self.teams.get(id.0).and_then(|p| p.as_ref())
     }
 
@@ -250,19 +254,19 @@ impl UniverseGroup {
 
     /// Iterate over all your [`Controllable`]s
     #[inline]
-    pub fn iter_controllables(&self) -> impl Iterator<Item = &Controllable> + '_ {
+    pub fn iter_controllables(&self) -> impl Iterator<Item = &Arc<Controllable>> + '_ {
         self.controllables.iter().flatten()
     }
 
     /// Get access to your [`Controllable`] by its unique [`ControllableId`].
     #[inline]
-    pub fn get_controllable(&self, id: ControllableId) -> Option<&Controllable> {
+    pub fn get_controllable(&self, id: ControllableId) -> Option<&Arc<Controllable>> {
         self.controllables.get(id.0).and_then(|c| c.as_ref())
     }
 
     /// Get access to your [`Controllable`] by its unique name.
     #[inline]
-    pub fn get_controllable_by_name(&self, name: &str) -> Option<&Controllable> {
+    pub fn get_controllable_by_name(&self, name: &str) -> Option<&Arc<Controllable>> {
         self.controllables
             .iter()
             .find_map(|c| c.as_ref().filter(|c| c.name == name))
@@ -272,7 +276,7 @@ impl UniverseGroup {
     pub async fn next_event(&mut self) -> Result<FlattiverseEvent, EventError> {
         loop {
             let connection_event = self.receiver.recv().await.ok_or(EventError::Disconnected)?;
-            if let Some(result) = self.on_connection_event(connection_event) {
+            if let Some(result) = self.on_connection_event(connection_event).await {
                 return result;
             }
         }
@@ -280,12 +284,13 @@ impl UniverseGroup {
 
     /// Polls the next [`FlattiverseEvent`], potentially returning `None` - but immediately.
     pub fn poll_next_event(&mut self) -> Option<Result<FlattiverseEvent, EventError>> {
+        let handle = self.connection.runtime.clone();
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Empty) => return None,
                 Err(TryRecvError::Disconnected) => return Some(Err(EventError::Disconnected)),
                 Ok(event) => {
-                    if let Some(result) = self.on_connection_event(event) {
+                    if let Some(result) = handle.block_on(self.on_connection_event(event)) {
                         return Some(result);
                     }
                 }
@@ -293,7 +298,7 @@ impl UniverseGroup {
         }
     }
 
-    fn on_connection_event(
+    async fn on_connection_event(
         &mut self,
         event: ConnectionEvent,
     ) -> Option<Result<FlattiverseEvent, EventError>> {
@@ -301,11 +306,11 @@ impl UniverseGroup {
             ConnectionEvent::PingMeasured(duration) => {
                 Some(Ok(FlattiverseEvent::PingMeasured(duration)))
             }
-            ConnectionEvent::ServerEvent(event) => self.on_server_event(event),
+            ConnectionEvent::ServerEvent(event) => self.on_server_event(event).await,
         }
     }
 
-    fn on_server_event(
+    async fn on_server_event(
         &mut self,
         event: ServerEvent,
     ) -> Option<Result<FlattiverseEvent, EventError>> {
@@ -335,14 +340,46 @@ impl UniverseGroup {
                 update.apply(self);
                 Some(Ok(FlattiverseEvent::PlayerRemoved(id)))
             }
-            ServerEvent::UnitRemoved(event) => Some(Ok(FlattiverseEvent::UnitRemoved(event))),
             ServerEvent::UnitAdded(mut event) => {
                 event.complete(self);
                 Some(Ok(FlattiverseEvent::UnitAdded(event)))
             }
             ServerEvent::UnitUpdated(mut event) => {
                 event.complete(self);
+                if let UnitKind::PlayerUnit(player_unit) = &event.unit.kind {
+                    if self.player == player_unit.player
+                        && self
+                            .controllables
+                            .iter()
+                            .flatten()
+                            .any(|c| c.id == player_unit.controllable)
+                    {
+                        self.controllables[player_unit.controllable.0]
+                            .as_ref()
+                            .unwrap()
+                            .update(&player_unit)
+                            .await;
+                    }
+                }
                 Some(Ok(FlattiverseEvent::UnitUpdated(event)))
+            }
+            ServerEvent::UnitRemoved(event) => {
+                if let (Some(player), Some(controllable)) = (event.player, event.controllable) {
+                    if self.player == player
+                        && self
+                            .controllables
+                            .iter()
+                            .flatten()
+                            .any(|c| c.id == controllable)
+                    {
+                        self.controllables[controllable.0]
+                            .as_ref()
+                            .unwrap()
+                            .die()
+                            .await;
+                    }
+                }
+                Some(Ok(FlattiverseEvent::UnitRemoved(event)))
             }
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {

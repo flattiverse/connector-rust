@@ -2,6 +2,7 @@ use crate::network::connection::SenderData;
 use crate::network::query::{Query, QueryCommand, QueryError, QueryKeeper, QueryResult};
 use std::future::Future;
 use std::sync::Arc;
+use tokio::runtime::Handle;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tokio::task::JoinHandle;
 
@@ -10,6 +11,7 @@ pub struct ConnectionHandle {
     pub(crate) queries: Arc<Mutex<QueryKeeper>>,
     #[allow(unused)]
     pub(crate) handle: JoinHandle<()>,
+    pub(crate) runtime: Handle,
 }
 
 impl ConnectionHandle {
