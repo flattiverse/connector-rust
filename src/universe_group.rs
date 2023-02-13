@@ -464,8 +464,11 @@ pub enum FlattiverseEvent {
     /// You actually don't need to parse this event because it's also parsed by the connector and
     /// the results are presented in fields on the [`UniverseGroup`].
     UniverseGroupInfo,
+    /// This event informs about a chat-message to everyone.
     ChatMulticast(ChatMulticastEvent),
+    /// This event informs about a chat-message to a team.
     ChatTeamcastEvent(ChatTeamcastEvent),
+    /// This event informs about a chat-message to a player.
     ChatUnicastEvent(ChatUnicastEvent),
     /// This event updates all information about a [`Player`].
     PlayerFullUpdate(PlayerId),
