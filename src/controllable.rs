@@ -112,8 +112,21 @@ impl Controllable {
             Err(GameError::FloatingPointNumberInvalid)
         } else {
             let direction = (direction + 3600.0) % 360.0;
+            let (max_length, max_angle) = {
+                let lock = self.systems.lock().await;
+                (
+                    lock.scanner.specialization.max_range,
+                    lock.scanner.specialization.max_angle,
+                )
+            };
 
-            if direction < 0.0 || length > 300.1 || length < 59.9 || width < 19.9 || width > 60.1 {
+            if direction < 0.0
+                || length > 360.1
+                || length < 59.9
+                || length > max_length * 1.05
+                || width < 19.9
+                || width > max_angle * 1.05
+            {
                 return Err(GameError::FloatingPointNumberOutOfRange);
             }
 
@@ -122,8 +135,8 @@ impl Controllable {
                 .send_query(QueryCommand::SetControllableScanner {
                     controllable: self.id,
                     direction,
-                    length: length.clamp(60.0, 300.0),
-                    width: width.clamp(20.0, 60.0),
+                    length: length.clamp(60.0, max_length),
+                    width: width.clamp(20.0, max_angle),
                     enabled,
                 })
                 .await?)
