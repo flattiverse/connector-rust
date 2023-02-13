@@ -83,14 +83,17 @@ impl Controllable {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else if value.abs() > self.systems.lock().await.nozzle.value {
+        } else if value.abs() > (self.systems.lock().await.nozzle.value * 1.05) {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
             Ok(self
                 .connection
                 .send_query(QueryCommand::SetControllableNozzle {
                     controllable: self.id,
-                    nozzle: value.clamp(-5.0, 5.0),
+                    nozzle: {
+                        let max_value = self.systems.lock().await.nozzle.value;
+                        value.clamp(-max_value, max_value)
+                    },
                 })
                 .await?)
         }
