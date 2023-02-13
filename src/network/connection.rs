@@ -22,6 +22,7 @@ pub struct Connection {
 }
 
 impl Connection {
+    pub const PROTOCOL_VERSION: usize = 0;
     pub const PING_INTERVAL: Duration = Duration::from_secs(1);
     pub const DEFAULT_PORT_WEB: u16 = 443;
     pub const DEFAULT_PORT_PROXY: u16 = 80;
@@ -33,7 +34,8 @@ impl Connection {
         team: Option<&str>,
     ) -> Result<Self, OpenError> {
         let url = Url::from_str(&format!(
-            "{url}?auth={api_key}&version=0{}{}&impl=rust&impl-version={}",
+            "{url}?auth={api_key}&version={}{}{}&impl=rust&impl-version={}",
+            Self::PROTOCOL_VERSION,
             team.map(|_| "&team=").unwrap_or_default(),
             team.unwrap_or_default(),
             env!("CARGO_PKG_VERSION"),
