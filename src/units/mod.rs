@@ -1,6 +1,7 @@
 pub mod activation;
 pub mod activation_state;
 pub mod blackhole;
+pub mod buoy;
 pub mod comet;
 pub mod corona;
 pub mod corona_section;

@@ -1,4 +1,5 @@
 use crate::units::blackhole::Blackhole;
+use crate::units::buoy::Buoy;
 use crate::units::comet::Comet;
 use crate::units::explosion::Explosion;
 use crate::units::meteoroid::Meteoroid;
@@ -25,10 +26,10 @@ pub enum UnitKind {
     #[serde(rename = "comet")]
     Comet(Comet),
     // #[serde(rename = "asteroid")]
-    // Asteroid,
-    // /// A buoy, which may contain a message.
-    // #[serde(rename = "buoy")]
-    // Buoy,
+    // Asteroid(Astero),
+    /// A buoy, which may contain a message.
+    #[serde(rename = "buoy")]
+    Buoy(Buoy),
     // /// A [`MissionTarget`], which you may have to shoot at.
     // #[serde(rename = "missionTarget")]
     // MissionTarget,
