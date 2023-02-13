@@ -283,14 +283,13 @@ impl UniverseGroup {
     }
 
     /// Polls the next [`FlattiverseEvent`], potentially returning `None` - but immediately.
-    pub fn poll_next_event(&mut self) -> Option<Result<FlattiverseEvent, EventError>> {
-        let handle = self.connection.runtime.clone();
+    pub async fn poll_next_event(&mut self) -> Option<Result<FlattiverseEvent, EventError>> {
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Empty) => return None,
                 Err(TryRecvError::Disconnected) => return Some(Err(EventError::Disconnected)),
                 Ok(event) => {
-                    if let Some(result) = handle.block_on(self.on_connection_event(event)) {
+                    if let Some(result) = self.on_connection_event(event).await {
                         return Some(result);
                     }
                 }

@@ -11,6 +11,7 @@ pub struct ConnectionHandle {
     pub(crate) queries: Arc<Mutex<QueryKeeper>>,
     #[allow(unused)]
     pub(crate) handle: JoinHandle<()>,
+    #[allow(unused)]
     pub(crate) runtime: Handle,
 }
 
