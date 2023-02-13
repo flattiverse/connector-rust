@@ -409,7 +409,7 @@ impl Index<TeamId> for UniverseGroup {
 }
 
 impl Index<ControllableId> for UniverseGroup {
-    type Output = Controllable;
+    type Output = Arc<Controllable>;
 
     #[inline]
     fn index(&self, index: ControllableId) -> &Self::Output {
