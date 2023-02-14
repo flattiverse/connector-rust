@@ -63,6 +63,10 @@ impl Controllable {
         self.state.lock().await.systems.hull.value > 0.0
     }
 
+    pub fn blocking_is_alive(&self) -> bool {
+        self.state.blocking_lock().systems.hull.value > 0.0
+    }
+
     pub(crate) async fn die(&self) {
         self.active.store(false, Ordering::Relaxed);
         self.state.lock().await.systems.hull.value = 0.0;
