@@ -1,5 +1,5 @@
 use crate::network::connection_handle::ConnectionHandle;
-use crate::network::query::{Query, QueryKeeper, QueryResponse};
+use crate::network::query::{Query, QueryId, QueryKeeper, QueryResponse, QueryResult};
 use crate::network::{ServerEvent, ServerMessage};
 use crate::utils::current_time_millis;
 use futures_util::stream::{SplitSink, SplitStream};
@@ -115,13 +115,13 @@ impl Connection {
         let queries = Arc::new(Mutex::new(self.queries));
 
         let mut sender_handle =
-            runtime.spawn(ConnectionSender { sink }.run(receiver, Self::PING_INTERVAL));
+            tokio::spawn(ConnectionSender { sink }.run(receiver, Self::PING_INTERVAL));
 
         (
             Arc::new(ConnectionHandle {
                 sender: sender.clone(),
                 queries: Arc::clone(&queries),
-                handle: runtime.spawn(async move {
+                handle: tokio::spawn(async move {
                     let receiver = ConnectionReceiver { stream, queries }.run(sender, event_sender);
                     tokio::select! {
                         r = &mut sender_handle => {
@@ -269,13 +269,28 @@ impl ConnectionReceiver {
                     result?
                 } {
                     ServerMessage::Success { id, result } => {
-                        self.queries
+                        let result = self
+                            .queries
                             .lock()
                             .await
                             .answer(&id, Ok(result.unwrap_or(QueryResponse::Empty)));
+
+                        if event_sender
+                            .send(ConnectionEvent::QueryResult { id, result })
+                            .is_err()
+                        {
+                            break;
+                        }
                     }
                     ServerMessage::Failure { id, code } => {
-                        self.queries.lock().await.answer(&id, Err(code.into()));
+                        let result = self.queries.lock().await.answer(&id, Err(code.into()));
+
+                        if event_sender
+                            .send(ConnectionEvent::QueryResult { id, result })
+                            .is_err()
+                        {
+                            break;
+                        }
                     }
                     ServerMessage::Events { events } => {
                         for event in events {
@@ -333,5 +348,10 @@ pub enum ReceiveError {
 #[derive(Debug)]
 pub enum ConnectionEvent {
     PingMeasured(Duration),
+    QueryResult {
+        id: QueryId,
+        /// The result, if it was **not** processed yet
+        result: Option<QueryResult>,
+    },
     ServerEvent(ServerEvent),
 }

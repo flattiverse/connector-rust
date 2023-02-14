@@ -12,17 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    loop {
-        // Just to be sure that we received details about ourself
-        if let FlattiverseEvent::PlayerFullUpdate(player_id) = universe_group
-            .next_event()
-            .await
-            .expect("Failed to process initial events")
-        {
-            eprintln!("Your player id is {player_id:?}");
-            break;
-        }
-    }
+    eprintln!("I am {}", universe_group.player().name);
 
     // send a happy group message!
     eprintln!(

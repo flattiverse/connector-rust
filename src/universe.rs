@@ -99,7 +99,8 @@ impl Universe {
         Ok(async move {
             let response = query.await?;
             if let Some(str) = response.get_str() {
-                Ok(serde_json::from_str::<Vec<GameRegion>>(str)?)
+                Ok(serde_json::from_str::<Vec<GameRegion>>(str)
+                    .map_err(|e| QueryError::ResponseMalformed(format!("{e:?}")))?)
             } else {
                 Ok(Vec::default())
             }

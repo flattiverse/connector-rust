@@ -149,7 +149,7 @@ impl QueryResponse {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone)]
 pub enum QueryError {
     #[error("[0x02] The specified unit doesn't exist.")]
     UnitDoesNotExist,
@@ -235,8 +235,8 @@ pub enum QueryError {
     #[error("Unable to receive a response because the connection to the server is no more")]
     ConnectionGone,
 
-    #[error("Failed to parse the response")]
-    ResponseMalformed(#[from] serde_json::Error),
+    #[error("Failed to parse the response: {0}")]
+    ResponseMalformed(String),
 }
 
 impl From<i32> for QueryError {

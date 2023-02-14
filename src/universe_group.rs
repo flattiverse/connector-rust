@@ -12,7 +12,7 @@ use crate::events::{ApplicableEvent, Completable, FailureEvent};
 use crate::game_mode::GameMode;
 use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
-use crate::network::query::{QueryCommand, QueryError, QueryResponse};
+use crate::network::query::{QueryCommand, QueryError, QueryId, QueryResponse, QueryResult};
 use crate::network::ServerEvent;
 use crate::players::{Player, PlayerId};
 use crate::team::{Team, TeamId};
@@ -80,18 +80,13 @@ impl UniverseGroup {
             .await?
             .spawn(Handle::current());
 
-        let response = handle.send_query(QueryCommand::WhoAmI).await?.await?;
-        let player_index = response
-            .get_integer()
-            .ok_or_else(|| JoinError::FailedToRetrieveMyOwnPlayerId(response))?;
-
-        Ok(Self {
+        Self {
             connection: handle,
             players: {
                 const EMPTY: Option<Player> = None;
                 [EMPTY; 65]
             },
-            player: PlayerId(player_index as usize),
+            player: PlayerId(0),
             name: "Unknown".to_string(),
             description: "Unknown".to_string(),
             mode: GameMode::Mission,
@@ -110,7 +105,31 @@ impl UniverseGroup {
             controllables: Default::default(),
             systems: Default::default(),
             receiver,
-        })
+        }
+        .process_initialization()
+        .await
+    }
+
+    async fn process_initialization(mut self) -> Result<Self, JoinError> {
+        let query = self.connection.send_query(QueryCommand::WhoAmI).await?;
+        loop {
+            if let FlattiverseEvent::QueryResultReceived { .. } = self
+                .next_event()
+                .await
+                .map_err(JoinError::FailedToProcessInitialEvents)?
+            {
+                break;
+            }
+        }
+
+        self.player = PlayerId({
+            let response = query.await?;
+            response
+                .get_integer()
+                .ok_or_else(|| JoinError::FailedToRetrieveMyOwnPlayerId(response))? as _
+        });
+
+        Ok(self)
     }
 
     /// Creates a new ship instantly. Theres is no building process or resources gathering involved.
@@ -331,6 +350,9 @@ impl UniverseGroup {
             ConnectionEvent::PingMeasured(duration) => {
                 Some(Ok(FlattiverseEvent::PingMeasured(duration)))
             }
+            ConnectionEvent::QueryResult { id, result } => {
+                Some(Ok(FlattiverseEvent::QueryResultReceived { id, result }))
+            }
             ConnectionEvent::ServerEvent(event) => self.on_server_event(event).await,
         }
     }
@@ -451,6 +473,8 @@ pub enum JoinError {
     InvalidInitializationEvent(ConnectionEvent),
     #[error("Connection closed unexpectedly")]
     ConnectionClosed,
+    #[error("Failed to process the initial events to setup the UniverseGroup: {0:?}")]
+    FailedToProcessInitialEvents(EventError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -500,4 +524,9 @@ pub enum FlattiverseEvent {
     /// This event informs of the untimely demise of a controllable in the [`UniverseGroup`].
     ControllableDied(DeathControllableEvent),
     ControllableUnregistered(ControllableId),
+    QueryResultReceived {
+        id: QueryId,
+        /// if the result was not processed already
+        result: Option<QueryResult>,
+    },
 }
