@@ -150,7 +150,7 @@ impl UniverseGroup {
 
             let controllable = Arc::new(Controllable {
                 connection: Arc::clone(&self.connection),
-                name: name.clone(),
+                name,
                 id: free_id,
                 direction: 0.0,
                 team: None,

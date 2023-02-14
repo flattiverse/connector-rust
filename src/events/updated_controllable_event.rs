@@ -15,7 +15,7 @@ pub struct UpdatedControllableEvent {
 impl UpdatedControllableEvent {
     pub(crate) async fn apply(mut self, group: &mut UniverseGroup) {
         let id = self.controllable;
-        self.controllable_state.systems.complete(&group);
+        self.controllable_state.systems.complete(group);
         group[id].update_state(self.controllable_state).await;
     }
 }

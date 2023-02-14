@@ -71,7 +71,7 @@ pub enum ServerEvent {
     #[serde(rename = "universeGroupInfo")]
     UniverseGroupInfo(UniverseGroupInfoEvent),
     #[serde(rename = "controllableUpdated")]
-    ControllableUpdated(UpdatedControllableEvent),
+    ControllableUpdated(Box<UpdatedControllableEvent>),
     #[serde(rename = "controllableDeath")]
     ControllableDeath(DeathControllableEvent),
     #[serde(rename = "controllableUnregistered")]
