@@ -126,13 +126,13 @@ impl Connection {
                     tokio::select! {
                         r = &mut sender_handle => {
                             if let Err(e) = r {
-                                error!("ConnectionSender failed: {e:?}");
+                                eprintln!("ConnectionSender failed: {e:?}");
                             }
                         },
                         r = receiver => {
                             sender_handle.abort();
                             if let Err(e) = r {
-                                error!("ConnectionReceiver failed: {e:?}")
+                                eprintln!("ConnectionReceiver failed: {e:?}")
                             }
                         }
                     }
@@ -236,7 +236,7 @@ impl ConnectionReceiver {
                         text.as_str()
                     });
                     if cfg!(feature = "debug-messages") {
-                        dbg!(&result);
+                        debug!("{:?}", result);
                     }
                     result?
                 } {
