@@ -2,7 +2,7 @@ use crate::error::GameError;
 use crate::network::connection_handle::ConnectionHandle;
 use crate::network::query::{QueryCommand, QueryResponse};
 use crate::team::TeamId;
-use crate::units::player_unit::{PlayerUnit, PlayerUnitSystems};
+use crate::units::player_unit::PlayerUnitSystems;
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -66,10 +66,6 @@ impl Controllable {
     pub(crate) async fn die(&self) {
         self.active.store(false, Ordering::Relaxed);
         self.state.lock().await.systems.hull.value = 0.0;
-    }
-
-    pub(crate) async fn update_systems(&self, unit: &PlayerUnit) {
-        self.state.lock().await.systems = (*unit.systems).clone();
     }
 
     pub(crate) async fn update_state(&self, state: ControllableState) {
