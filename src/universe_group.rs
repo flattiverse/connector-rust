@@ -152,12 +152,12 @@ impl UniverseGroup {
                 connection: Arc::clone(&self.connection),
                 name,
                 id: free_id,
-                direction: 0.0,
                 team: None,
                 active: AtomicBool::new(true),
                 state: Mutex::new(ControllableState {
                     movement: Default::default(),
                     position: Default::default(),
+                    direction: 0.0,
                     radius: 0.0,
                     gravity: 0.0,
                     energy_output: 0.0,

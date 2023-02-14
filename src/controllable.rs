@@ -19,6 +19,8 @@ pub struct ControllableState {
     pub movement: Vector,
     /// The position of your controllable.
     pub position: Vector,
+    /// The direction of your controllable.
+    pub direction: f64,
     /// THe radius of your controllable.
     pub radius: f64,
     /// The gravity that your controllable is exercising on the other units.
@@ -50,8 +52,6 @@ pub struct Controllable {
     pub name: String,
     /// The id of your controllable.
     pub id: ControllableId,
-    /// The direction of your controllable.
-    pub direction: f64,
     /// If you have joined a team, the team of your controllable.
     pub team: Option<TeamId>,
     pub active: AtomicBool,
