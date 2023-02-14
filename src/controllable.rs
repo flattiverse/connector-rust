@@ -100,60 +100,53 @@ impl Controllable {
     }
 
     pub async fn set_nozzle(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value <= 0.0 {
+        if { self.state.lock().await.systems.hull.value } <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else if value.abs()
-            > self
+        } else {
+            let max_nozzle = self
                 .state
                 .lock()
                 .await
                 .systems
                 .nozzle
                 .specialization
-                .max_value
-                * 1.05
-        {
-            Err(GameError::FloatingPointNumberOutOfRange)
-        } else {
-            Ok(self
-                .connection
-                .send_query(QueryCommand::SetControllableNozzle {
-                    controllable: self.id,
-                    nozzle: {
-                        let max_value = self
-                            .state
-                            .lock()
-                            .await
-                            .systems
-                            .nozzle
-                            .specialization
-                            .max_value;
-                        value.clamp(-max_value, max_value)
-                    },
-                })
-                .await?
-                .await?)
+                .max_value;
+
+            if value.abs() > max_nozzle * 1.05 {
+                Err(GameError::FloatingPointNumberOutOfRange)
+            } else {
+                Ok(self
+                    .connection
+                    .send_query(QueryCommand::SetControllableNozzle {
+                        controllable: self.id,
+                        nozzle: {
+                            let max_value = max_nozzle;
+                            value.clamp(-max_value, max_value)
+                        },
+                    })
+                    .await?
+                    .await?)
+            }
         }
     }
 
     pub async fn set_thruster(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value <= 0.0 {
+        if { self.state.lock().await.systems.hull.value } <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else if value < 0.0
-            || value
-                > self
-                    .state
+            || value > {
+                self.state
                     .lock()
                     .await
                     .systems
                     .thruster
                     .specialization
                     .max_value
-                    * 1.05
+            } * 1.05
         {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
@@ -175,7 +168,7 @@ impl Controllable {
         width: f64,
         enabled: bool,
     ) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value <= 0.0 {
+        if { self.state.lock().await.systems.hull.value } <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)

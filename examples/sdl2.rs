@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // create a new ship
-    let controllable_id = universe_group
+    let controllable = universe_group
         .new_ship("MeinShipper")
         .await
         .expect("Failed to create new ship");
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let another task take care about rotating the scanner
     tokio::spawn({
         // we new to clone our Arc (Atomic Ref Counter) because we *move* it to another thread
-        let controllable = Arc::clone(&universe_group[controllable_id]);
+        let controllable = Arc::clone(&controllable);
         async move {
             // awake the engines... well, the ship at least
             controllable
@@ -187,25 +187,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // draw ourself into the center
-        if let Some(controllable) = universe_group.get_controllable(controllable_id) {
-            // reset previous changes
-            canvas.set_draw_color(Color::BLACK);
-            canvas.clear();
+        // reset previous changes
+        canvas.set_draw_color(Color::BLACK);
+        canvas.clear();
 
-            canvas
-                .circle(
-                    width as i16 / 2,
-                    height as i16 / 2,
-                    dbg!(controllable.radius * 10.0) as i16,
-                    Color::GREEN,
-                )
-                .unwrap();
+        canvas
+            .circle(
+                width as i16 / 2,
+                height as i16 / 2,
+                dbg!(controllable.state.lock().await.radius * 10.0) as i16,
+                Color::GREEN,
+            )
+            .unwrap();
 
-            // TODO now you draw all the other units
+        // TODO now you draw all the other units
 
-            // present our art on the display
-            canvas.present();
-        }
+        // present our art on the display
+        canvas.present();
 
         // process all events that we received while doing other stuff
         while let Some(event) = universe_group.poll_next_event().await {

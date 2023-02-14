@@ -123,9 +123,9 @@ impl UniverseGroup {
     pub fn new_ship(
         &mut self,
         name: impl Into<String>,
-    ) -> impl Future<Output = Result<ControllableId, GameError>> {
+    ) -> impl Future<Output = Result<Arc<Controllable>, GameError>> {
         // need to hold it the whole time
-        let free_id = (|| {
+        let result = (|| {
             let number_of_controllables = self.controllables.iter().flatten().count() as u32;
 
             if number_of_controllables >= self.register_ship_limit {
@@ -148,7 +148,7 @@ impl UniverseGroup {
                 })
                 .ok_or(GameError::ExceededShipsPerPlayer)?;
 
-            self.controllables[free_id.0] = Some(Arc::new(Controllable {
+            let controllable = Arc::new(Controllable {
                 connection: Arc::clone(&self.connection),
                 name: name.clone(),
                 id: free_id,
@@ -170,24 +170,25 @@ impl UniverseGroup {
                     scan_range: 0.0,
                     systems: Default::default(),
                 }),
-            }));
+            });
 
-            Ok((name, free_id, Arc::clone(&self.connection)))
+            self.controllables[free_id.0] = Some(Arc::clone(&controllable));
+            Ok((controllable, Arc::clone(&self.connection)))
         })();
 
         async move {
-            let (name, free_id, connection) = free_id?;
+            let (controllable, connection) = result?;
             let query = connection
                 .send_query(QueryCommand::NewControllable {
-                    controllable: free_id,
-                    name,
+                    controllable: controllable.id,
+                    name: controllable.name.clone(),
                 })
                 .await?;
 
             match query.await {
                 Ok(response) => {
                     debug!("NewShip response {response:?}");
-                    Ok(free_id)
+                    Ok(controllable)
                 }
                 Err(e) => {
                     // TODO well well well... shit, actually need to clean up ...

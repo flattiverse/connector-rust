@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let another task take care about rotating the scanner
     tokio::spawn({
         // we new to clone our Arc (Atomic Ref Counter) because we *move* it to another thread
-        let controllable = Arc::clone(&universe_group[controllable]);
+        let controllable = Arc::clone(&controllable);
         async move {
             // awake the engines... well, the ship at least
             controllable
