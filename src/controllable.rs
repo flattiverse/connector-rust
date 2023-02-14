@@ -55,7 +55,7 @@ pub struct Controllable {
     pub team: Option<TeamId>,
     /// Whether your controllable is still alive.
     pub alive: bool,
-    pub state: Arc<Mutex<ControllableState>>,
+    pub state: Mutex<ControllableState>,
 }
 
 impl Controllable {

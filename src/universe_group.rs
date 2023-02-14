@@ -155,7 +155,7 @@ impl UniverseGroup {
                 direction: 0.0,
                 team: None,
                 alive: false,
-                state: Arc::new(Mutex::new(ControllableState {
+                state: Mutex::new(ControllableState {
                     movement: Default::default(),
                     position: Default::default(),
                     radius: 0.0,
@@ -169,7 +169,7 @@ impl UniverseGroup {
                     scan_width: 0.0,
                     scan_range: 0.0,
                     systems: Default::default(),
-                })),
+                }),
             }));
 
             Ok((name, free_id, Arc::clone(&self.connection)))
