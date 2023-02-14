@@ -1,6 +1,7 @@
 use crate::team::TeamId;
 use crate::units::mobility::Mobility;
 use crate::units::unit_kind::UnitKind;
+use crate::units::unit_kind_simplified::SimpleUnitKind;
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
 
@@ -44,6 +45,11 @@ impl Unit {
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Reduced(_) => Mobility::Mobile,
         }
+    }
+
+    /// Returns a value simplified unit kind
+    pub fn simple_kind(&self) -> SimpleUnitKind {
+        self.kind.simplified()
     }
 
     /// The energy output of this unit.

@@ -24,3 +24,4 @@ pub mod shot;
 pub mod sun;
 pub mod unit;
 pub mod unit_kind;
+pub mod unit_kind_simplified;
