@@ -367,60 +367,13 @@ impl UniverseGroup {
             }
             ServerEvent::UnitAdded(mut event) => {
                 event.complete(self);
-                if let UnitKind::PlayerUnit(player_unit) = &event.unit.kind {
-                    if self.player == player_unit.player
-                        && self
-                            .controllables
-                            .iter()
-                            .flatten()
-                            .any(|c| c.id == player_unit.controllable)
-                    {
-                        self.controllables[player_unit.controllable.0]
-                            .as_ref()
-                            .unwrap()
-                            .update_systems(player_unit)
-                            .await;
-                    }
-                }
                 Some(Ok(FlattiverseEvent::UnitAdded(event)))
             }
             ServerEvent::UnitUpdated(mut event) => {
                 event.complete(self);
-                if let UnitKind::PlayerUnit(player_unit) = &event.unit.kind {
-                    if self.player == player_unit.player
-                        && self
-                            .controllables
-                            .iter()
-                            .flatten()
-                            .any(|c| c.id == player_unit.controllable)
-                    {
-                        self.controllables[player_unit.controllable.0]
-                            .as_ref()
-                            .unwrap()
-                            .update_systems(player_unit)
-                            .await;
-                    }
-                }
                 Some(Ok(FlattiverseEvent::UnitUpdated(event)))
             }
-            ServerEvent::UnitRemoved(event) => {
-                if let (Some(player), Some(controllable)) = (event.player, event.controllable) {
-                    if self.player == player
-                        && self
-                            .controllables
-                            .iter()
-                            .flatten()
-                            .any(|c| c.id == controllable)
-                    {
-                        self.controllables[controllable.0]
-                            .as_ref()
-                            .unwrap()
-                            .die()
-                            .await;
-                    }
-                }
-                Some(Ok(FlattiverseEvent::UnitRemoved(event)))
-            }
+            ServerEvent::UnitRemoved(event) => Some(Ok(FlattiverseEvent::UnitRemoved(event))),
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {
                 info.apply(self);
