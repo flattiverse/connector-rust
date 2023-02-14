@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use std::ops::Mul;
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
