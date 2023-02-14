@@ -77,16 +77,20 @@ impl Controllable {
     }
 
     pub async fn r#continue(&self) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value > 0.0 {
+        if self.is_alive().await {
             Err(GameError::ControllableMustBeDeadToContinue)
         } else {
-            Ok(self
-                .connection
-                .send_query(QueryCommand::ContinueControllable {
-                    controllable: self.id,
-                })
-                .await?
-                .await?)
+            Ok({
+                let result = self
+                    .connection
+                    .send_query(QueryCommand::ContinueControllable {
+                        controllable: self.id,
+                    })
+                    .await?
+                    .await?;
+                self.active.store(true, Ordering::Relaxed);
+                result
+            })
         }
     }
 
