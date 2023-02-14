@@ -230,7 +230,7 @@ pub enum QueryError {
     #[error("[0xFF] Some fatal error occurred and the server closed the connection. You may give this information to a flattiverse admin because this shouldn't happen")]
     AB,
 
-    #[error("[0x{0:X02}] Unknown GameException code 0x{0:X02} received.")]
+    #[error("[0x{0:02x}] Unknown GameException code 0x{0:02x} received.")]
     Other(i32),
     #[error("Unable to receive a response because the connection to the server is no more")]
     ConnectionGone,
