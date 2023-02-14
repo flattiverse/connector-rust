@@ -64,7 +64,7 @@ impl UniverseGroup {
         team: impl Into<Option<&str>>,
     ) -> Result<UniverseGroup, JoinError> {
         Self::join_url(
-            &format!("{}/{name}.ws", Self::BASE_URL_JOIN_UNIVERSE_GROUP),
+            &format!("{}{name}.ws", Self::BASE_URL_JOIN_UNIVERSE_GROUP),
             api_key,
             team,
         )
