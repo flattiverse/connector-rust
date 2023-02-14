@@ -1,14 +1,14 @@
 use crate::controllable::ControllableId;
-use crate::units::unit_kind::UnitKind;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeathControllableEvent {
-    pub universe: usize,
+    // TODO unwrap, this is just a workaround
+    pub universe: Option<usize>,
     #[serde(rename = "controllableID")]
     pub controllable: ControllableId,
     #[serde(rename = "causerKind")]
-    pub causer_kind: Option<UnitKind>,
+    pub causer_kind: Option<String>,
     #[serde(rename = "causerName")]
     pub causer_name: Option<String>,
     #[serde(rename = "reason")]

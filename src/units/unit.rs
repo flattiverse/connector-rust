@@ -15,7 +15,7 @@ pub struct Unit {
     /// The movement vector of the unit.
     pub movement: Vector,
     /// The direction this unit is facing towards.
-    // TODO unwrap, tis is just a workaround
+    // TODO unwrap, this is just a workaround
     pub direction: Option<f64>,
     /// The [`Team`] this unit belongs to, if any. Referenced through its id.
     ///

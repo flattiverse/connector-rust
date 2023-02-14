@@ -2,6 +2,7 @@ use crate::events::added_unit_event::AddedUnitEvent;
 use crate::events::chat_multicast_event::ChatMulticastEvent;
 use crate::events::chat_teamcast_event::ChatTeamcastEvent;
 use crate::events::chat_unicast_event::ChatUnicastEvent;
+use crate::events::controllable_unregistered::ControllableUnregistered;
 use crate::events::death_controllable_event::DeathControllableEvent;
 use crate::events::full_update_player_event::FullUpdatePlayerEvent;
 use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
@@ -73,4 +74,6 @@ pub enum ServerEvent {
     ControllableUpdated(UpdatedControllableEvent),
     #[serde(rename = "controllableDeath")]
     ControllableDeath(DeathControllableEvent),
+    #[serde(rename = "controllableUnregistered")]
+    ControllableUnregistered(ControllableUnregistered),
 }

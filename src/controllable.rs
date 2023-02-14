@@ -5,6 +5,7 @@ use crate::team::TeamId;
 use crate::units::player_unit::{PlayerUnit, PlayerUnitSystems};
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -53,13 +54,17 @@ pub struct Controllable {
     pub direction: f64,
     /// If you have joined a team, the team of your controllable.
     pub team: Option<TeamId>,
-    /// Whether your controllable is still alive.
-    pub alive: bool,
+    pub active: AtomicBool,
     pub state: Mutex<ControllableState>,
 }
 
 impl Controllable {
+    pub async fn is_alive(&self) -> bool {
+        self.state.lock().await.systems.hull.value > 0.0
+    }
+
     pub(crate) async fn die(&self) {
+        self.active.store(false, Ordering::Relaxed);
         self.state.lock().await.systems.hull.value = 0.0;
     }
 
@@ -86,7 +91,7 @@ impl Controllable {
     }
 
     pub async fn kill(&self) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value <= 0.0 {
+        if !self.is_alive().await {
             Err(GameError::ControllableMustBeAlive)
         } else {
             Ok(self
@@ -100,7 +105,7 @@ impl Controllable {
     }
 
     pub async fn set_nozzle(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if { self.state.lock().await.systems.hull.value } <= 0.0 {
+        if !self.is_alive().await {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
@@ -133,7 +138,7 @@ impl Controllable {
     }
 
     pub async fn set_thruster(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if { self.state.lock().await.systems.hull.value } <= 0.0 {
+        if !self.is_alive().await {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
@@ -168,7 +173,7 @@ impl Controllable {
         width: f64,
         enabled: bool,
     ) -> Result<QueryResponse, GameError> {
-        if { self.state.lock().await.systems.hull.value } <= 0.0 {
+        if !self.is_alive().await {
             Err(GameError::ControllableMustBeAlive)
         } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)

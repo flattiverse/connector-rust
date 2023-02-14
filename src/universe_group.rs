@@ -19,11 +19,11 @@ use crate::team::{Team, TeamId};
 use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
-use crate::units::unit_kind::UnitKind;
 use crate::universe::{Universe, UniverseId};
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Index;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
@@ -154,7 +154,7 @@ impl UniverseGroup {
                 id: free_id,
                 direction: 0.0,
                 team: None,
-                alive: false,
+                active: AtomicBool::new(true),
                 state: Mutex::new(ControllableState {
                     movement: Default::default(),
                     position: Default::default(),
@@ -385,7 +385,17 @@ impl UniverseGroup {
                 Some(Ok(FlattiverseEvent::ControllableUpdated(id)))
             }
             ServerEvent::ControllableDeath(event) => {
+                let id = event.controllable;
+                self.controllables[id.0].as_mut().unwrap().die().await;
                 Some(Ok(FlattiverseEvent::ControllableDied(event)))
+            }
+            ServerEvent::ControllableUnregistered(event) => {
+                if let Some(controllable) = self.controllables[event.controllable.0].take() {
+                    controllable.die().await;
+                }
+                Some(Ok(FlattiverseEvent::ControllableUnregistered(
+                    event.controllable,
+                )))
             }
         }
     }
@@ -489,4 +499,5 @@ pub enum FlattiverseEvent {
     ControllableUpdated(ControllableId),
     /// This event informs of the untimely demise of a controllable in the [`UniverseGroup`].
     ControllableDied(DeathControllableEvent),
+    ControllableUnregistered(ControllableId),
 }
