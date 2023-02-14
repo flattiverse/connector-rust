@@ -147,7 +147,7 @@ impl Connection {
 #[derive(thiserror::Error, Debug)]
 pub enum OpenError {
     #[error("Underlying connection error")]
-    IoError(#[from] tokio_tungstenite::tungstenite::Error),
+    IoError(tokio_tungstenite::tungstenite::Error),
     #[error("The provided url is malformed: {0}")]
     MalformedHostUrl(url::ParseError),
     #[error("The url to the proxy server is malformed: {0}")]
@@ -156,6 +156,34 @@ pub enum OpenError {
     ProxyConnectionError(std::io::Error),
     #[error("The proxy server sent and unexpected response: {0}")]
     ProxyResponseError(#[from] async_http_proxy::HttpError),
+    // --- parsed from status code
+    #[error("No auth parameter was given, or a malformed or non-existing auth key was given. A proper auth parameter consists of string of 64 characters representing hex values. A connection as a spectator was attempted, but the UniverseGroup does not allow spectators")]
+    MissingAuthOr(Option<String>),
+    #[error("A connection as a player or admin was attempted, but the associated account is still online with another connection. As disconnecting players will linger for a while, a connection may not be possible for a short time even if a previous connection has been closed or severed")]
+    StillOnline(Option<String>),
+    #[error("The UniverseGroup is currently at capacity and no further connections are possible.")]
+    UniverseFull(Option<String>),
+}
+
+impl From<tokio_tungstenite::tungstenite::Error> for OpenError {
+    fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
+        if let tokio_tungstenite::tungstenite::Error::Http(response) = value {
+            fn into_msg(
+                response: tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
+            ) -> Option<String> {
+                response.into_body().and_then(|b| String::from_utf8(b).ok())
+            }
+
+            match response.status().as_u16() {
+                401 => OpenError::MissingAuthOr(into_msg(response)),
+                412 => OpenError::StillOnline(into_msg(response)),
+                417 => OpenError::UniverseFull(into_msg(response)),
+                _ => OpenError::IoError(tokio_tungstenite::tungstenite::Error::Http(response)),
+            }
+        } else {
+            OpenError::IoError(value)
+        }
+    }
 }
 
 struct ConnectionSender {
