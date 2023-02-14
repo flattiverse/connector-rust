@@ -43,7 +43,7 @@ impl Unit {
             UnitKind::Shot(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Explosion(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
-            UnitKind::Reduced(_) => Mobility::Mobile,
+            UnitKind::Reduced(r) => r.mobility(),
         }
     }
 
