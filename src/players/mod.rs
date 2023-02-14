@@ -9,7 +9,7 @@ use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 /// States the kind of player.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub enum PlayerKind {
     /// The player is a player participating in the game and also blocking a player slot.
     Player,

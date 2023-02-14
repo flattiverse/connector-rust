@@ -15,7 +15,7 @@ pub struct DeathControllableEvent {
     pub death_reason: DeathReason,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub enum DeathReason {
     Collision,
     Shelling,

@@ -2,7 +2,7 @@ use crate::units::unit_kind::UnitKind;
 use serde_derive::{Deserialize, Serialize};
 
 /// Has the same members as [`UnitKind`] but does not contain any value
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub enum SimpleUnitKind {
     #[serde(rename = "sun")]
     Sun,

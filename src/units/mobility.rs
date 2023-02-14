@@ -1,7 +1,7 @@
 use crate::units::orbits::Orbit;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Eq, PartialEq)]
 pub enum Mobility {
     Still,
     Steady,
