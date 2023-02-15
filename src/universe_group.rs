@@ -23,7 +23,7 @@ use crate::universe::{Universe, UniverseId};
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Index;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
@@ -51,6 +51,7 @@ pub struct UniverseGroup {
     pub(crate) controllables: [Option<Arc<Controllable>>; 32],
     pub(crate) systems: HashMap<PlayerUnitSystemIdentifier, PlayerUnitSystemUpgradePath>,
     receiver: mpsc::UnboundedReceiver<ConnectionEvent>,
+    receiver_buffer_len: Arc<AtomicUsize>,
 }
 
 impl UniverseGroup {
@@ -76,9 +77,10 @@ impl UniverseGroup {
         api_key: &str,
         team: impl Into<Option<&str>>,
     ) -> Result<UniverseGroup, JoinError> {
-        let (handle, receiver) = Connection::connect_to(url, api_key, team.into())
-            .await?
-            .spawn(Handle::current());
+        let (handle, receiver, receiver_buffer_len) =
+            Connection::connect_to(url, api_key, team.into())
+                .await?
+                .spawn(Handle::current());
 
         Self {
             connection: handle,
@@ -105,6 +107,7 @@ impl UniverseGroup {
             controllables: Default::default(),
             systems: Default::default(),
             receiver,
+            receiver_buffer_len,
         }
         .process_initialization()
         .await
@@ -321,6 +324,7 @@ impl UniverseGroup {
     pub async fn next_event(&mut self) -> Result<FlattiverseEvent, EventError> {
         loop {
             let connection_event = self.receiver.recv().await.ok_or(EventError::Disconnected)?;
+            self.decrement_queued();
             if let Some(result) = self.on_connection_event(connection_event).await {
                 return result;
             }
@@ -334,6 +338,7 @@ impl UniverseGroup {
                 Err(TryRecvError::Empty) => return None,
                 Err(TryRecvError::Disconnected) => return Some(Err(EventError::Disconnected)),
                 Ok(event) => {
+                    self.decrement_queued();
                     if let Some(result) = self.on_connection_event(event).await {
                         return Some(result);
                     }
@@ -420,6 +425,17 @@ impl UniverseGroup {
                 )))
             }
         }
+    }
+
+    fn decrement_queued(&self) {
+        let counter = self.receiver_buffer_len.fetch_sub(1, Ordering::Relaxed);
+        if counter > 100 {
+            eprintln!("WARNING: There are {counter} unprocessed FlattiverseEvents in the queue!");
+        }
+    }
+
+    pub fn event_queue_len(&self) -> usize {
+        self.receiver_buffer_len.load(Ordering::Relaxed)
     }
 }
 

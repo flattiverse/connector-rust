@@ -5,6 +5,7 @@ use crate::utils::current_time_millis;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
@@ -107,10 +108,15 @@ impl Connection {
     pub fn spawn(
         self,
         runtime: Handle,
-    ) -> (Arc<ConnectionHandle>, UnboundedReceiver<ConnectionEvent>) {
+    ) -> (
+        Arc<ConnectionHandle>,
+        UnboundedReceiver<ConnectionEvent>,
+        Arc<AtomicUsize>,
+    ) {
         let (sink, stream) = self.stream.split();
         let (sender, receiver) = mpsc::unbounded_channel();
         let (event_sender, event_receiver) = mpsc::unbounded_channel();
+        let counter = Arc::new(AtomicUsize::new(0));
 
         let queries = Arc::new(Mutex::new(self.queries));
 
@@ -121,18 +127,25 @@ impl Connection {
             Arc::new(ConnectionHandle {
                 sender: sender.clone(),
                 queries: Arc::clone(&queries),
-                handle: tokio::spawn(async move {
-                    let receiver = ConnectionReceiver { stream, queries }.run(sender, event_sender);
-                    tokio::select! {
-                        r = &mut sender_handle => {
-                            if let Err(e) = r {
-                                eprintln!("ConnectionSender failed: {e:?}");
-                            }
-                        },
-                        r = receiver => {
-                            sender_handle.abort();
-                            if let Err(e) = r {
-                                eprintln!("ConnectionReceiver failed: {e:?}")
+                handle: tokio::spawn({
+                    let counter = Arc::clone(&counter);
+                    async move {
+                        let receiver = ConnectionReceiver { stream, queries }.run(
+                            sender,
+                            event_sender,
+                            counter,
+                        );
+                        tokio::select! {
+                            r = &mut sender_handle => {
+                                if let Err(e) = r {
+                                    eprintln!("ConnectionSender failed: {e:?}");
+                                }
+                            },
+                            r = receiver => {
+                                sender_handle.abort();
+                                if let Err(e) = r {
+                                    eprintln!("ConnectionReceiver failed: {e:?}")
+                                }
                             }
                         }
                     }
@@ -140,6 +153,7 @@ impl Connection {
                 runtime,
             }),
             event_receiver,
+            counter,
         )
     }
 }
@@ -253,6 +267,7 @@ impl ConnectionReceiver {
         mut self,
         sender: mpsc::UnboundedSender<SenderData>,
         event_sender: mpsc::UnboundedSender<ConnectionEvent>,
+        counter: Arc<AtomicUsize>,
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
@@ -280,6 +295,8 @@ impl ConnectionReceiver {
                             .is_err()
                         {
                             break;
+                        } else {
+                            counter.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                     ServerMessage::Failure { id, code } => {
@@ -290,6 +307,8 @@ impl ConnectionReceiver {
                             .is_err()
                         {
                             break;
+                        } else {
+                            counter.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                     ServerMessage::Events { events } => {
@@ -299,6 +318,8 @@ impl ConnectionReceiver {
                                 .is_err()
                             {
                                 break;
+                            } else {
+                                counter.fetch_add(1, Ordering::Relaxed);
                             }
                         }
                     }
@@ -323,6 +344,8 @@ impl ConnectionReceiver {
                             .is_err()
                         {
                             break;
+                        } else {
+                            counter.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                 }
