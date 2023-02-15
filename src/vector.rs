@@ -1,5 +1,5 @@
 use serde_derive::{Deserialize, Serialize};
-use std::ops::Mul;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub struct Vector {
@@ -80,5 +80,47 @@ impl Vector {
 
     pub fn is_damaged(&self) -> bool {
         self.x.is_infinite() || self.x.is_nan() || self.y.is_infinite() || self.y.is_nan()
+    }
+
+    #[inline]
+    pub fn normalized(&self) -> Self {
+        let length = self.length();
+        Self::from_xy(self.x / length, self.y / length)
+    }
+}
+
+impl Add for Vector {
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Vector::from_xy(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl Sub for Vector {
+    type Output = Vector;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vector::from_xy(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl Mul<f64> for Vector {
+    type Output = Vector;
+
+    #[inline]
+    fn mul(self, rhs: f64) -> Self::Output {
+        Vector::from_xy(self.x * rhs, self.y * rhs)
+    }
+}
+
+impl Div<f64> for Vector {
+    type Output = Vector;
+
+    #[inline]
+    fn div(self, rhs: f64) -> Self::Output {
+        Vector::from_xy(self.x / rhs, self.y / rhs)
     }
 }
