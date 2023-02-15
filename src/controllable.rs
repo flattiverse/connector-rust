@@ -5,6 +5,7 @@ use crate::team::TeamId;
 use crate::units::player_unit::PlayerUnitSystems;
 use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
+use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -212,5 +213,34 @@ impl Controllable {
                 .await?
                 .await?)
         }
+    }
+
+    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`]
+    pub async fn with_state<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&Self, &ControllableState) -> T,
+    {
+        let lock = self.state.lock().await;
+        f(self, &lock)
+    }
+
+    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`]
+    pub fn with_blocking_state<F, T>(&self, f: F) -> T
+    where
+        F: FnOnce(&Self, &ControllableState) -> T,
+    {
+        let lock = self.state.blocking_lock();
+        f(self, &lock)
+    }
+
+    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`].
+    /// Awaits the returned [`Future`].
+    pub async fn with_state_future<F, FF, T>(&self, f: F) -> T
+    where
+        FF: Future<Output = T>,
+        F: FnOnce(&Self, &ControllableState) -> FF,
+    {
+        let lock = self.state.lock().await;
+        f(self, &lock).await
     }
 }
