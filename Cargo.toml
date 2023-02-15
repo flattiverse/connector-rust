@@ -31,7 +31,6 @@ url = "2.3.1"
 
 [dev-dependencies]
 sdl2 = { version = "0.35.2", features = ["gfx"] }
-tokio = { features = ["rt-multi-thread"] }
 
 [features]
 debug-proxy = []
