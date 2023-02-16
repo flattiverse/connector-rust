@@ -34,6 +34,8 @@ pub enum GameError {
     MessageNotTrimmed,
     #[error("The message contains invalid characters")]
     MessageContainsInvalidCharacters,
+    #[error("At least one requires system of your controllable is missing")]
+    MissingSystems,
 
     // -------- from impls
     #[error("Unable to send your request to the server")]

@@ -3,6 +3,7 @@ use crate::players::PlayerId;
 use crate::region::GameRegionId;
 use crate::team::TeamId;
 use crate::universe::UniverseId;
+use crate::vector::Vector;
 use serde_derive::{Deserialize, Serialize};
 use tokio::sync::oneshot::Sender;
 
@@ -49,6 +50,13 @@ pub enum QueryCommand {
         length: f64,
         width: f64,
         enabled: bool,
+    },
+    #[serde(rename = "controllableShoot")]
+    ControllableShoot {
+        direction: Vector,
+        load: f64,
+        damage: f64,
+        time: u16,
     },
     #[serde(rename = "unitSet")]
     SetUnit { universe: UniverseId, unit: String },

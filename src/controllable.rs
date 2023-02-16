@@ -217,6 +217,103 @@ impl Controllable {
         }
     }
 
+    /// Shoots a shot. It can only handle one shot per tick per ship and has a buffer of one
+    /// additional shot. Units generally can shoot only one shot per tick, so specifying 3 shots in
+    /// one tick will result in an error at the 3rd shot requested. The shot will be generated with
+    /// the next tick. The server tries to anticipate, whether you are able to shoot. However, this
+    /// may not be possible. So the call to this method ma be successful, but the shot may not be
+    /// created, if you are out of energy or other required resources.
+    /// Please observe events like [`crate::events::depleted_resource_event::DepletedResourceEvent`]
+    /// to determine such situations.
+    ///
+    /// # The process
+    ///
+    /// The process is as described in the following steps.
+    ///  * You call `.shoot()` with time `1`.
+    ///  * The shot will be placed when the next tick is processed with time `1`.
+    ///  * The next tick will change time to `0`.
+    ///  * The next tick will delete the shot and create the explosion.
+    ///  * In the next tick the explosion is removed and deals the damage.
+    ///
+    /// # Arguments
+    ///
+    ///  * `direction` - The direction in which you want to shoot. Calculated energy costs due to
+    ///                  what the corresponding systems say are `true` for a exact forward shot.
+    ///                  Shooting backwards the shot will cost **`7` times the energy**. Shooting
+    ///                  `90` degrees sideways will cost **`4` times the energy** and so on. The
+    ///                  length of this vector should be longer than `0.1`.
+    ///  * `load` - The radius of the resulting explosion. The minimum value is `2.5`.
+    ///  * `damage` - The damage dealt by the explosion. The minimum value is `0.001`.
+    ///  * `time` - The amount of ticks the shot will live, before exploding.
+    ///
+    /// # Remarks
+    ///
+    /// Please query the status of your weapon systems for the corresponding maximums (`max_value`)
+    /// and energy costs:
+    ///   - [`Vector::length`] is `systems.weapon_launcher...specialization.max_value`
+    ///   - `load` is `systems.weapon_payload_radius...specialization.max_value`
+    ///   - `damage` is `systems.weapon_payload_damage...specialization.max_value`
+    ///   - `time` is `systems.weapon_ammunition...specialization.max_value`
+    pub async fn shoot(
+        &self,
+        direction: Vector,
+        load: f64,
+        damage: f64,
+        time: u16,
+    ) -> Result<QueryResponse, GameError> {
+        if self.state.lock().await.systems.hull.value <= 0.0 {
+            Err(GameError::ControllableMustBeAlive)
+        } else if !load.is_finite() || !damage.is_finite() {
+            Err(GameError::FloatingPointNumberInvalid)
+        } else {
+            let state = self.state.lock().await;
+            let s = &state.systems;
+
+            if let (
+                Some(weapon_ammunition),
+                Some(_weapon_factory),
+                Some(weapon_launcher),
+                Some(weapon_payload_damage),
+                Some(weapon_payload_radius),
+            ) = (
+                s.weapon_ammunition.as_ref(),
+                s.weapon_factory.as_ref(),
+                s.weapon_launcher.as_ref(),
+                s.weapon_payload_damage.as_ref(),
+                s.weapon_payload_radius.as_ref(),
+            ) {
+                let direction_length = direction.length();
+                if direction_length < 0.075
+                    || direction_length > weapon_launcher.specialization.max_value * 1.05
+                    || load < 2.25
+                    || load > weapon_payload_radius.specialization.max_value * 1.05
+                    || damage < 0.00075
+                    || damage > weapon_payload_damage.specialization.max_value
+                    || time > weapon_ammunition.specialization.max_value.ceil() as u16
+                {
+                    Err(GameError::FloatingPointNumberInvalid)
+                } else {
+                    let load = load.clamp(2.5, weapon_launcher.specialization.max_value);
+                    let damage =
+                        damage.clamp(0.001, weapon_payload_damage.specialization.max_value);
+
+                    Ok(self
+                        .connection
+                        .send_query(QueryCommand::ControllableShoot {
+                            direction,
+                            load,
+                            damage,
+                            time,
+                        })
+                        .await?
+                        .await?)
+                }
+            } else {
+                Err(GameError::MissingSystems)
+            }
+        }
+    }
+
     /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`]
     pub async fn with_state<F, T>(&self, f: F) -> T
     where
