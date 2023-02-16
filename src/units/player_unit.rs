@@ -67,7 +67,7 @@ pub struct PlayerUnitSystems {
     pub cells_particles: Option<PlayerUnitSystem<RegularSystem>>,
     /// The particle battery of the [`Unit`] or your [`crate::controllable::Controllable`], used for
     /// storing particles.
-    #[serde(rename = "cellsbattery")]
+    #[serde(rename = "batteryparticles")]
     pub battery_particles: Option<PlayerUnitSystem<RegularSystem>>,
     /// The weapon launcher of the [`Unit`] or your [`crate::controllable::Controllable`], used to
     /// do the pew pew.
