@@ -9,7 +9,7 @@ use crate::events::depleted_resource_event::DepletedResourceEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::updated_unit_event::UpdatedUnitEvent;
-use crate::events::{ApplicableEvent, Completable, FailureEvent};
+use crate::events::{ApplicableEvent, FailureEvent};
 use crate::game_mode::GameMode;
 use crate::network::connection::{Connection, ConnectionEvent, OpenError};
 use crate::network::connection_handle::{ConnectionHandle, SendQueryError};
@@ -191,6 +191,7 @@ impl UniverseGroup {
                     scan_direction: 0.0,
                     scan_width: 0.0,
                     scan_range: 0.0,
+                    scan_activated: false,
                     systems: Default::default(),
                 }),
             });
@@ -393,14 +394,8 @@ impl UniverseGroup {
                 update.apply(self);
                 Some(Ok(FlattiverseEvent::PlayerRemoved(id)))
             }
-            ServerEvent::UnitAdded(mut event) => {
-                event.complete(self);
-                Some(Ok(FlattiverseEvent::UnitAdded(event)))
-            }
-            ServerEvent::UnitUpdated(mut event) => {
-                event.complete(self);
-                Some(Ok(FlattiverseEvent::UnitUpdated(event)))
-            }
+            ServerEvent::UnitAdded(event) => Some(Ok(FlattiverseEvent::UnitAdded(event))),
+            ServerEvent::UnitUpdated(event) => Some(Ok(FlattiverseEvent::UnitUpdated(event))),
             ServerEvent::UnitRemoved(event) => Some(Ok(FlattiverseEvent::UnitRemoved(event))),
             ServerEvent::TickProcessed(event) => Some(Ok(FlattiverseEvent::TickProcessed(event))),
             ServerEvent::UniverseGroupInfo(info) => {

@@ -44,6 +44,8 @@ pub struct ControllableState {
     pub scan_width: f64,
     #[serde(rename = "scanRange")]
     pub scan_range: f64,
+    #[serde(rename = "scanActivated")]
+    pub scan_activated: bool,
     pub systems: PlayerUnitSystems,
 }
 

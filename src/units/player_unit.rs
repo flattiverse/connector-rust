@@ -7,6 +7,7 @@ use crate::units::player_unit_system_kind::{
 };
 use crate::universe_group::UniverseGroup;
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PlayerUnit {
@@ -14,19 +15,39 @@ pub struct PlayerUnit {
     pub controllable: ControllableId,
     #[serde(rename = "turnRate")]
     pub turn_rate: f64,
-    #[serde(rename = "requestedScanDirection")]
-    pub requested_scan_direction: f64,
-    #[serde(rename = "requestedScanWidth")]
-    pub requested_scan_width: f64,
-    #[serde(rename = "requestedScanRange")]
-    pub requested_scan_range: f64,
     #[serde(rename = "scanDirection")]
     pub scan_direction: f64,
     #[serde(rename = "scanWidth")]
     pub scan_width: f64,
     #[serde(rename = "scanRange")]
     pub scan_range: f64,
-    pub systems: Box<PlayerUnitSystems>,
+    #[serde(rename = "scanActivated")]
+    pub scan_activated: bool,
+    pub hull: f64,
+    #[serde(rename = "hullMax")]
+    pub hull_max: f64,
+    pub nozzle: f64,
+    #[serde(rename = "nozzleMax")]
+    pub nozzle_max: f64,
+    pub thruster: f64,
+    #[serde(rename = "thrusterMax")]
+    pub thruster_max: f64,
+    pub armor: f64,
+    #[serde(rename = "armorMax")]
+    pub armor_max: f64,
+    pub shield: f64,
+    #[serde(rename = "shieldMax")]
+    pub shield_max: f64,
+    pub energy: f64,
+    #[serde(rename = "energyMax")]
+    pub energy_max: f64,
+    pub particles: f64,
+    #[serde(rename = "particlesMax")]
+    pub particles_max: f64,
+    #[serde(rename = "cargoLoad")]
+    pub cargo_load: f64,
+    #[serde(rename = "systemLevels")]
+    pub system_levels: HashMap<PlayerUnitSystemKind, u32>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
