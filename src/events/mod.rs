@@ -6,6 +6,7 @@ pub mod chat_teamcast_event;
 pub mod chat_unicast_event;
 pub mod controllable_unregistered;
 pub mod death_controllable_event;
+pub mod depleted_resource_event;
 pub mod full_update_player_event;
 pub mod partial_update_player_event;
 pub mod removed_player_event;

@@ -5,6 +5,7 @@ use crate::events::chat_multicast_event::ChatMulticastEvent;
 use crate::events::chat_teamcast_event::ChatTeamcastEvent;
 use crate::events::chat_unicast_event::ChatUnicastEvent;
 use crate::events::death_controllable_event::DeathControllableEvent;
+use crate::events::depleted_resource_event::DepletedResourceEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::updated_unit_event::UpdatedUnitEvent;
@@ -424,6 +425,9 @@ impl UniverseGroup {
                     event.controllable,
                 )))
             }
+            ServerEvent::ResourceDeplete(event) => {
+                Some(Ok(FlattiverseEvent::ResourceDepleted(event)))
+            }
         }
     }
 
@@ -545,4 +549,6 @@ pub enum FlattiverseEvent {
         /// if the result was not processed already
         result: Option<QueryResult>,
     },
+    // Notifies about the depletion and possibly overuse of a resource of your [`Controllable`].
+    ResourceDepleted(DepletedResourceEvent),
 }
