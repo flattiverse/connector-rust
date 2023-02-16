@@ -173,8 +173,12 @@ pub enum OpenError {
     // --- parsed from status code
     #[error("No auth parameter was given, or a malformed or non-existing auth key was given. A proper auth parameter consists of string of 64 characters representing hex values. A connection as a spectator was attempted, but the UniverseGroup does not allow spectators")]
     MissingAuthOr(Option<String>),
+    #[error("A connection with a wrong connector version was attempted.")]
+    WrongConnectorVersion(Option<String>),
     #[error("A connection as a player or admin was attempted, but the associated account is still online with another connection. As disconnecting players will linger for a while, a connection may not be possible for a short time even if a previous connection has been closed or severed")]
     StillOnline(Option<String>),
+    #[error("A connection with a wrong team was attempted")]
+    WrongTeam(Option<String>),
     #[error("The UniverseGroup is currently at capacity and no further connections are possible.")]
     UniverseFull(Option<String>),
     #[error("The UniverseGroup is currently offline.")]
@@ -192,7 +196,9 @@ impl From<tokio_tungstenite::tungstenite::Error> for OpenError {
 
             match response.status().as_u16() {
                 401 => OpenError::MissingAuthOr(into_msg(response)),
+                409 => OpenError::WrongConnectorVersion(into_msg(response)),
                 412 => OpenError::StillOnline(into_msg(response)),
+                415 => OpenError::WrongTeam(into_msg(response)),
                 417 => OpenError::UniverseFull(into_msg(response)),
                 502 => OpenError::UniverseOffline(into_msg(response)),
                 _ => OpenError::IoError(tokio_tungstenite::tungstenite::Error::Http(response)),
