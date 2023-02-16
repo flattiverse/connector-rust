@@ -15,10 +15,10 @@ pub struct Buoy {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum MessageKind {
-    #[serde(rename = "normal")]
+    #[serde(rename = "normal", alias = "Normal")]
     Normal,
-    #[serde(rename = "warning")]
+    #[serde(rename = "warning", alias = "Warning")]
     Warning,
-    #[serde(rename = "danger")]
+    #[serde(rename = "danger", alias = "Danger")]
     Danger,
 }
