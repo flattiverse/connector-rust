@@ -44,7 +44,7 @@ pub struct ControllableState {
     pub scan_width: f64,
     #[serde(rename = "scanRange")]
     pub scan_range: f64,
-    #[serde(rename = "scanActivated")]
+    #[serde(rename = "scanActivated", default)]
     pub scan_activated: bool,
     pub systems: PlayerUnitSystems,
 }
@@ -261,14 +261,14 @@ impl Controllable {
         damage: f64,
         time: u16,
     ) -> Result<QueryResponse, GameError> {
-        if self.state.lock().await.systems.hull.value <= 0.0 {
+        let state = self.state.lock().await;
+        let systems = &state.systems;
+
+        if systems.hull.value <= 0.0 {
             Err(GameError::ControllableMustBeAlive)
         } else if !load.is_finite() || !damage.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else {
-            let state = self.state.lock().await;
-            let s = &state.systems;
-
             if let (
                 Some(weapon_ammunition),
                 Some(_weapon_factory),
@@ -276,11 +276,11 @@ impl Controllable {
                 Some(weapon_payload_damage),
                 Some(weapon_payload_radius),
             ) = (
-                s.weapon_ammunition.as_ref(),
-                s.weapon_factory.as_ref(),
-                s.weapon_launcher.as_ref(),
-                s.weapon_payload_damage.as_ref(),
-                s.weapon_payload_radius.as_ref(),
+                systems.weapon_ammunition.as_ref(),
+                systems.weapon_factory.as_ref(),
+                systems.weapon_launcher.as_ref(),
+                systems.weapon_payload_damage.as_ref(),
+                systems.weapon_payload_radius.as_ref(),
             ) {
                 let direction_length = direction.length();
                 if direction_length < 0.075
@@ -291,15 +291,18 @@ impl Controllable {
                     || damage > weapon_payload_damage.specialization.max_value
                     || time > weapon_ammunition.specialization.max_value.ceil() as u16
                 {
-                    Err(GameError::FloatingPointNumberInvalid)
+                    Err(GameError::FloatingPointNumberOutOfRange)
                 } else {
                     let load = load.clamp(2.5, weapon_launcher.specialization.max_value);
                     let damage =
                         damage.clamp(0.001, weapon_payload_damage.specialization.max_value);
 
+                    drop(state);
+
                     Ok(self
                         .connection
                         .send_query(QueryCommand::ControllableShoot {
+                            controllable: self.id,
                             direction,
                             load,
                             damage,

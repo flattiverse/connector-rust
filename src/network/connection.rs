@@ -309,7 +309,11 @@ impl ConnectionReceiver {
                         }
                     }
                     ServerMessage::Failure { id, code } => {
-                        let result = self.queries.lock().await.answer(&id, Err(code.into()));
+                        let result = self
+                            .queries
+                            .lock()
+                            .await
+                            .answer(&id, dbg!(Err(code.into())));
 
                         if event_sender
                             .send(ConnectionEvent::QueryResult { id, result })
@@ -367,8 +371,6 @@ impl ConnectionReceiver {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ReceiveError {
-    #[error("Connection is closed")]
-    ConnectionClosed,
     #[error("Connection has encountered an error: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
     #[error("Unexpected data received: {0}")]

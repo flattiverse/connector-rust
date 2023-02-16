@@ -53,6 +53,7 @@ pub enum QueryCommand {
     },
     #[serde(rename = "controllableShoot")]
     ControllableShoot {
+        controllable: ControllableId,
         direction: Vector,
         load: f64,
         damage: f64,

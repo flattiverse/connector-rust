@@ -14,38 +14,38 @@ pub struct PlayerUnit {
     pub player: PlayerId,
     pub controllable: ControllableId,
     #[serde(rename = "turnRate")]
-    pub turn_rate: f64,
+    pub turn_rate: Option<f64>,
     #[serde(rename = "scanDirection")]
-    pub scan_direction: f64,
+    pub scan_direction: Option<f64>,
     #[serde(rename = "scanWidth")]
-    pub scan_width: f64,
+    pub scan_width: Option<f64>,
     #[serde(rename = "scanRange")]
-    pub scan_range: f64,
+    pub scan_range: Option<f64>,
     #[serde(rename = "scanActivated")]
-    pub scan_activated: bool,
-    pub hull: f64,
+    pub scan_activated: Option<bool>,
+    pub hull: Option<f64>,
     #[serde(rename = "hullMax")]
-    pub hull_max: f64,
-    pub nozzle: f64,
+    pub hull_max: Option<f64>,
+    pub nozzle: Option<f64>,
     #[serde(rename = "nozzleMax")]
-    pub nozzle_max: f64,
-    pub thruster: f64,
+    pub nozzle_max: Option<f64>,
+    pub thruster: Option<f64>,
     #[serde(rename = "thrusterMax")]
     pub thruster_max: f64,
-    pub armor: f64,
+    pub armor: Option<f64>,
     #[serde(rename = "armorMax")]
-    pub armor_max: f64,
-    pub shield: f64,
+    pub armor_max: Option<f64>,
+    pub shield: Option<f64>,
     #[serde(rename = "shieldMax")]
-    pub shield_max: f64,
-    pub energy: f64,
+    pub shield_max: Option<f64>,
+    pub energy: Option<f64>,
     #[serde(rename = "energyMax")]
-    pub energy_max: f64,
-    pub particles: f64,
+    pub energy_max: Option<f64>,
+    pub particles: Option<f64>,
     #[serde(rename = "particlesMax")]
-    pub particles_max: f64,
+    pub particles_max: Option<f64>,
     #[serde(rename = "cargoLoad")]
-    pub cargo_load: f64,
+    pub cargo_load: Option<f64>,
     #[serde(rename = "systemLevels")]
     pub system_levels: HashMap<PlayerUnitSystemKind, u32>,
 }
