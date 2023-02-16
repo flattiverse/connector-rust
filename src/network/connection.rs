@@ -362,7 +362,17 @@ impl ConnectionReceiver {
                         }
                     }
                 }
-                Message::Close(_) => break,
+                Message::Close(msg) => {
+                    if event_sender
+                        .send(ConnectionEvent::Closed(
+                            msg.map(|msg| format!("{} - {}", msg.code, msg.reason)),
+                        ))
+                        .is_ok()
+                    {
+                        counter.fetch_add(1, Ordering::Relaxed);
+                    }
+                    break;
+                }
             }
         }
         Ok(())
@@ -388,4 +398,6 @@ pub enum ConnectionEvent {
         result: Option<QueryResult>,
     },
     ServerEvent(ServerEvent),
+    /// The connection was closed and this is a possible reason
+    Closed(Option<String>),
 }

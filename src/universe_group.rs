@@ -325,7 +325,11 @@ impl UniverseGroup {
     /// Waits for the next [`FlattiverseEvent`], potentially waiting forever.
     pub async fn next_event(&mut self) -> Result<FlattiverseEvent, EventError> {
         loop {
-            let connection_event = self.receiver.recv().await.ok_or(EventError::Disconnected)?;
+            let connection_event = self
+                .receiver
+                .recv()
+                .await
+                .ok_or(EventError::Disconnected(None))?;
             self.decrement_queued();
             if let Some(result) = self.on_connection_event(connection_event).await {
                 return result;
@@ -338,7 +342,9 @@ impl UniverseGroup {
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Empty) => return None,
-                Err(TryRecvError::Disconnected) => return Some(Err(EventError::Disconnected)),
+                Err(TryRecvError::Disconnected) => {
+                    return Some(Err(EventError::Disconnected(None)))
+                }
                 Ok(event) => {
                     self.decrement_queued();
                     if let Some(result) = self.on_connection_event(event).await {
@@ -361,6 +367,7 @@ impl UniverseGroup {
                 Some(Ok(FlattiverseEvent::QueryResultReceived { id, result }))
             }
             ConnectionEvent::ServerEvent(event) => self.on_server_event(event).await,
+            ConnectionEvent::Closed(reason) => Some(Err(EventError::Disconnected(reason))),
         }
     }
 
@@ -494,8 +501,8 @@ pub enum JoinError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum EventError {
-    #[error("The connection is no more")]
-    Disconnected,
+    #[error("The connection is no more: {0:?}")]
+    Disconnected(Option<String>),
 }
 
 #[derive(Debug, Clone)]
