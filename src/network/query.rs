@@ -223,6 +223,8 @@ pub enum QueryError {
     TeamNotFound,
     #[error("[0xC5] Your connector is outdated and incompatible: Please update the connector.")]
     ConnectorIncompatible,
+    #[error("[0xC6] The universe group is currently offline.")]
+    UniverseGroupIsCurrentlyOffline,
     #[error("[0xCF] Something went wrong while connecting but we don't know what and don't have any more infomration. You may try your luck with the inner exception.")]
     ConnectionError,
     #[error("[0xF0] The web socket got terminated while waiting for the completion of the command. This usually indicates that you have a network connectivity issue somewhere between you and the server or that the server has been rebooted to reload some level settings.")]

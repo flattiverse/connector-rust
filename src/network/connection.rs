@@ -177,6 +177,8 @@ pub enum OpenError {
     StillOnline(Option<String>),
     #[error("The UniverseGroup is currently at capacity and no further connections are possible.")]
     UniverseFull(Option<String>),
+    #[error("The UniverseGroup is currently offline.")]
+    UniverseOffline(Option<String>),
 }
 
 impl From<tokio_tungstenite::tungstenite::Error> for OpenError {
@@ -192,6 +194,7 @@ impl From<tokio_tungstenite::tungstenite::Error> for OpenError {
                 401 => OpenError::MissingAuthOr(into_msg(response)),
                 412 => OpenError::StillOnline(into_msg(response)),
                 417 => OpenError::UniverseFull(into_msg(response)),
+                502 => OpenError::UniverseOffline(into_msg(response)),
                 _ => OpenError::IoError(tokio_tungstenite::tungstenite::Error::Http(response)),
             }
         } else {
