@@ -84,4 +84,9 @@ impl Unit {
             UnitKind::Reduced(_) => false,
         }
     }
+
+    /// Whether the this unit is a [`UnitKind::Reduced`] view of the unit.
+    pub fn is_reduced(&self) -> bool {
+        matches!(self.kind, UnitKind::Reduced(..))
+    }
 }
