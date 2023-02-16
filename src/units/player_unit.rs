@@ -69,6 +69,9 @@ pub struct PlayerUnitSystems {
     /// storing particles.
     #[serde(rename = "batteryparticles")]
     pub battery_particles: Option<PlayerUnitSystem<RegularSystem>>,
+    /// The shot lifetime of your [`crate::controllable::Controllable`]'s weapons.
+    #[serde(rename = "weaponammunition")]
+    pub weapon_ammunition: Option<PlayerUnitSystem<RegularSystem>>,
     /// The weapon launcher of the [`Unit`] or your [`crate::controllable::Controllable`], used to
     /// do the pew pew.
     #[serde(rename = "weaponlauncher")]

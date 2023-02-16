@@ -17,6 +17,7 @@ pub enum PlayerUnitSystemKind {
     CellsParticles,
     BatteryEnergy,
     BatteryParticles,
+    WeaponAmmunition,
     WeaponLauncher,
     WeaponPayloadDamage,
     WeaponPayloadRadius,
