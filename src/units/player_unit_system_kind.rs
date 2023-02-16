@@ -6,33 +6,61 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Debug, Default, Serialize, Deserialize, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum PlayerUnitSystemKind {
     #[default]
+    #[serde(rename = "hull", alias = "Hull")]
     Hull,
+    #[serde(rename = "shield", alias = "Shield")]
     Shield,
+    #[serde(rename = "armor", alias = "Armor")]
     Armor,
+    #[serde(rename = "thruster", alias = "Thruster")]
     Thruster,
+    #[serde(rename = "nozzle", alias = "Nozzle")]
     Nozzle,
+    #[serde(rename = "scanner", alias = "Scanner")]
     Scanner,
+    #[serde(rename = "analyzer", alias = "Analyzer")]
     Analyzer,
+    #[serde(rename = "cellsenergy", alias = "CellsEnergy")]
     CellsEnergy,
+    #[serde(rename = "cellsparticles", alias = "CellsParticles")]
     CellsParticles,
+    #[serde(rename = "batteryenergy", alias = "BatteryEnergy")]
     BatteryEnergy,
+    #[serde(rename = "batteryparticles", alias = "BatteryParticles")]
     BatteryParticles,
+    #[serde(rename = "weaponammunition", alias = "WeaponAmmunition")]
     WeaponAmmunition,
+    #[serde(rename = "weaponlauncher", alias = "WeaponLauncher")]
     WeaponLauncher,
+    #[serde(rename = "weaponpayloaddamage", alias = "WeaponPayloadDamage")]
     WeaponPayloadDamage,
+    #[serde(rename = "weaponpayloadradius", alias = "WeaponPayloadRadius")]
     WeaponPayloadRadius,
+    #[serde(rename = "weaponfactory", alias = "WeaponFactory")]
     WeaponFactory,
+    #[serde(rename = "weaponstorage", alias = "WeaponStorage")]
     WeaponStorage,
+    #[serde(rename = "cargoiron", alias = "CargoIron")]
     CargoIron,
+    #[serde(rename = "cargocarbon", alias = "CargoCarbon")]
     CargoCarbon,
+    #[serde(rename = "cargosilicon", alias = "CargoSilicon")]
     CargoSilicon,
+    #[serde(rename = "cargoplatinum", alias = "CargoPlatinum")]
     CargoPlatinum,
+    #[serde(rename = "cargogold", alias = "CargoGold")]
     CargoGold,
+    #[serde(rename = "cargospecial", alias = "CargoSpecial")]
     CargoSpecial,
+    #[serde(rename = "extractoriron", alias = "ExtractorIron")]
     ExtractorIron,
+    #[serde(rename = "extractorcarbon", alias = "ExtractorCarbon")]
     ExtractorCarbon,
+    #[serde(rename = "extractorsilicon", alias = "ExtractorSilicon")]
     ExtractorSilicon,
+    #[serde(rename = "extractorplatinum", alias = "ExtractorPlatinum")]
     ExtractorPlatinum,
+    #[serde(rename = "extractorgold", alias = "ExtractorGold")]
     ExtractorGold,
 }
 
