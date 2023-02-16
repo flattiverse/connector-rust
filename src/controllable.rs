@@ -268,52 +268,49 @@ impl Controllable {
             Err(GameError::ControllableMustBeAlive)
         } else if !load.is_finite() || !damage.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
-        } else {
-            if let (
-                Some(weapon_ammunition),
-                Some(_weapon_factory),
-                Some(weapon_launcher),
-                Some(weapon_payload_damage),
-                Some(weapon_payload_radius),
-            ) = (
-                systems.weapon_ammunition.as_ref(),
-                systems.weapon_factory.as_ref(),
-                systems.weapon_launcher.as_ref(),
-                systems.weapon_payload_damage.as_ref(),
-                systems.weapon_payload_radius.as_ref(),
-            ) {
-                let direction_length = direction.length();
-                if direction_length < 0.075
-                    || direction_length > weapon_launcher.specialization.max_value * 1.05
-                    || load < 2.25
-                    || load > weapon_payload_radius.specialization.max_value * 1.05
-                    || damage < 0.00075
-                    || damage > weapon_payload_damage.specialization.max_value
-                    || time > weapon_ammunition.specialization.max_value.ceil() as u16
-                {
-                    Err(GameError::FloatingPointNumberOutOfRange)
-                } else {
-                    let load = load.clamp(2.5, weapon_launcher.specialization.max_value);
-                    let damage =
-                        damage.clamp(0.001, weapon_payload_damage.specialization.max_value);
-
-                    drop(state);
-
-                    Ok(self
-                        .connection
-                        .send_query(QueryCommand::ControllableShoot {
-                            controllable: self.id,
-                            direction,
-                            load,
-                            damage,
-                            time,
-                        })
-                        .await?
-                        .await?)
-                }
+        } else if let (
+            Some(weapon_ammunition),
+            Some(_weapon_factory),
+            Some(weapon_launcher),
+            Some(weapon_payload_damage),
+            Some(weapon_payload_radius),
+        ) = (
+            systems.weapon_ammunition.as_ref(),
+            systems.weapon_factory.as_ref(),
+            systems.weapon_launcher.as_ref(),
+            systems.weapon_payload_damage.as_ref(),
+            systems.weapon_payload_radius.as_ref(),
+        ) {
+            let direction_length = direction.length();
+            if direction_length < 0.075
+                || direction_length > weapon_launcher.specialization.max_value * 1.05
+                || load < 2.25
+                || load > weapon_payload_radius.specialization.max_value * 1.05
+                || damage < 0.00075
+                || damage > weapon_payload_damage.specialization.max_value
+                || time > weapon_ammunition.specialization.max_value.ceil() as u16
+            {
+                Err(GameError::FloatingPointNumberOutOfRange)
             } else {
-                Err(GameError::MissingSystems)
+                let load = load.clamp(2.5, weapon_launcher.specialization.max_value);
+                let damage = damage.clamp(0.001, weapon_payload_damage.specialization.max_value);
+
+                drop(state);
+
+                Ok(self
+                    .connection
+                    .send_query(QueryCommand::ControllableShoot {
+                        controllable: self.id,
+                        direction,
+                        load,
+                        damage,
+                        time,
+                    })
+                    .await?
+                    .await?)
             }
+        } else {
+            Err(GameError::MissingSystems)
         }
     }
 

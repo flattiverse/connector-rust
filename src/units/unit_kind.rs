@@ -36,7 +36,7 @@ pub enum UnitKind {
     MissionTarget(MissionTarget),
     /// A [`PlayerUnit`]. May be friendly. Or not.
     #[serde(rename = "playerUnit")]
-    PlayerUnit(PlayerUnit),
+    PlayerUnit(Box<PlayerUnit>),
     /// A shot. Better not touch.
     #[serde(rename = "shot")]
     Shot(Shot),
