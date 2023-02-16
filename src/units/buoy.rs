@@ -9,7 +9,7 @@ pub struct Buoy {
     pub message: String,
     #[serde(default)]
     pub hints: Vec<Vector>,
-    #[sere(rename = "messageKind")]
+    #[serde(rename = "messageKind")]
     pub kind: MessageKind,
 }
 
