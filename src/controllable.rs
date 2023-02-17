@@ -4,11 +4,12 @@ use crate::network::query::{QueryCommand, QueryResponse};
 use crate::team::TeamId;
 use crate::units::player_unit::PlayerUnitSystems;
 use crate::vector::Vector;
+use arc_swap::{ArcSwap, Guard};
 use serde_derive::{Deserialize, Serialize};
-use std::future::Future;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[repr(transparent)]
 #[derive(Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -58,29 +59,39 @@ pub struct Controllable {
     /// If you have joined a team, the team of your controllable.
     pub team: Option<TeamId>,
     pub active: AtomicBool,
-    pub state: Mutex<ControllableState>,
+    pub state: ArcSwap<ControllableState>,
 }
 
 impl Controllable {
-    pub async fn is_alive(&self) -> bool {
-        self.state.lock().await.systems.hull.value > 0.0
+    #[inline]
+    pub fn state(&self) -> Guard<Arc<ControllableState>> {
+        self.state.load()
     }
 
-    pub fn blocking_is_alive(&self) -> bool {
-        self.state.blocking_lock().systems.hull.value > 0.0
+    #[inline]
+    pub fn systems(&self) -> impl Deref<Target = PlayerUnitSystems> + '_ {
+        DerefMapper::new(self.state(), |g| &g.systems)
     }
 
-    pub(crate) async fn die(&self) {
+    #[inline]
+    pub fn is_alive(&self) -> bool {
+        self.state().systems.hull.value > 0.0
+    }
+
+    pub(crate) fn die(&self) {
         self.active.store(false, Ordering::Relaxed);
-        self.state.lock().await.systems.hull.value = 0.0;
+        let state = self.state.load();
+        let mut new_state = (**state).clone();
+        new_state.systems.hull.value = 0.0;
+        self.state.store(Arc::new(new_state));
     }
 
-    pub(crate) async fn update_state(&self, state: ControllableState) {
-        *self.state.lock().await = state;
+    pub(crate) fn update_state(&self, state: Arc<ControllableState>) {
+        self.state.store(state);
     }
 
     pub async fn r#continue(&self) -> Result<QueryResponse, GameError> {
-        if self.is_alive().await {
+        if self.is_alive() {
             Err(GameError::ControllableMustBeDeadToContinue)
         } else {
             Ok({
@@ -98,7 +109,7 @@ impl Controllable {
     }
 
     pub async fn kill(&self) -> Result<QueryResponse, GameError> {
-        if !self.is_alive().await {
+        if !self.is_alive() {
             Err(GameError::ControllableMustBeAlive)
         } else {
             Ok(self
@@ -112,19 +123,12 @@ impl Controllable {
     }
 
     pub async fn set_nozzle(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if !self.is_alive().await {
+        if !self.is_alive() {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else {
-            let max_nozzle = self
-                .state
-                .lock()
-                .await
-                .systems
-                .nozzle
-                .specialization
-                .max_value;
+            let max_nozzle = self.state().systems.nozzle.specialization.max_value;
 
             if value.abs() > max_nozzle * 1.05 {
                 Err(GameError::FloatingPointNumberOutOfRange)
@@ -145,20 +149,12 @@ impl Controllable {
     }
 
     pub async fn set_thruster(&self, value: f64) -> Result<QueryResponse, GameError> {
-        if !self.is_alive().await {
+        if !self.is_alive() {
             Err(GameError::ControllableMustBeAlive)
         } else if !value.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else if value < 0.0
-            || value > {
-                self.state
-                    .lock()
-                    .await
-                    .systems
-                    .thruster
-                    .specialization
-                    .max_value
-            } * 1.05
+            || value > { self.state().systems.thruster.specialization.max_value } * 1.05
         {
             Err(GameError::FloatingPointNumberOutOfRange)
         } else {
@@ -180,17 +176,17 @@ impl Controllable {
         width: f64,
         enabled: bool,
     ) -> Result<QueryResponse, GameError> {
-        if !self.is_alive().await {
+        if !self.is_alive() {
             Err(GameError::ControllableMustBeAlive)
         } else if !direction.is_finite() || !length.is_finite() || !width.is_finite() {
             Err(GameError::FloatingPointNumberInvalid)
         } else {
             let direction = (direction + 3600.0) % 360.0;
             let (max_length, max_angle) = {
-                let lock = self.state.lock().await;
+                let state = self.state();
                 (
-                    lock.systems.scanner.specialization.max_range,
-                    lock.systems.scanner.specialization.max_angle,
+                    state.systems.scanner.specialization.max_range,
+                    state.systems.scanner.specialization.max_angle,
                 )
             };
 
@@ -261,7 +257,7 @@ impl Controllable {
         damage: f64,
         time: u16,
     ) -> Result<QueryResponse, GameError> {
-        let state = self.state.lock().await;
+        let state = self.state();
         let systems = &state.systems;
 
         if systems.hull.value <= 0.0 {
@@ -313,33 +309,32 @@ impl Controllable {
             Err(GameError::MissingSystems)
         }
     }
+}
 
-    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`]
-    pub async fn with_state<F, T>(&self, f: F) -> T
-    where
-        F: FnOnce(&Self, &ControllableState) -> T,
-    {
-        let lock = self.state.lock().await;
-        f(self, &lock)
+struct DerefMapper<O, P, T: Deref<Target = O>, F: Fn(&O) -> &P> {
+    origin: T,
+    mapper: F,
+    _o: PhantomData<O>,
+    _p: PhantomData<P>,
+}
+
+impl<O, P, T: Deref<Target = O>, F: Fn(&O) -> &P> DerefMapper<O, P, T, F> {
+    #[inline]
+    pub fn new(origin: T, mapper: F) -> Self {
+        Self {
+            origin,
+            mapper,
+            _o: PhantomData::default(),
+            _p: PhantomData::default(),
+        }
     }
+}
 
-    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`]
-    pub fn with_blocking_state<F, T>(&self, f: F) -> T
-    where
-        F: FnOnce(&Self, &ControllableState) -> T,
-    {
-        let lock = self.state.blocking_lock();
-        f(self, &lock)
-    }
+impl<O, P, T: Deref<Target = O>, F: Fn(&O) -> &P> Deref for DerefMapper<O, P, T, F> {
+    type Target = P;
 
-    /// Helper, executes the given [`FnOnce`] with a reference to the [`ControllableState`].
-    /// Awaits the returned [`Future`].
-    pub async fn with_state_future<F, FF, T>(&self, f: F) -> T
-    where
-        FF: Future<Output = T>,
-        F: FnOnce(&Self, &ControllableState) -> FF,
-    {
-        let lock = self.state.lock().await;
-        f(self, &lock).await
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        (self.mapper)(&self.origin)
     }
 }

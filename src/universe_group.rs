@@ -22,6 +22,7 @@ use crate::units::player_unit_system_identifier::PlayerUnitSystemIdentifier;
 use crate::units::player_unit_system_kind::PlayerUnitSystemKind;
 use crate::units::player_unit_system_upgradepath::PlayerUnitSystemUpgradePath;
 use crate::universe::{Universe, UniverseId};
+use arc_swap::ArcSwap;
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Index;
@@ -29,8 +30,8 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
+use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
-use tokio::sync::{mpsc, Mutex};
 
 pub struct UniverseGroup {
     pub(crate) connection: Arc<ConnectionHandle>,
@@ -178,7 +179,7 @@ impl UniverseGroup {
                 id: free_id,
                 team: None,
                 active: AtomicBool::new(true),
-                state: Mutex::new(ControllableState {
+                state: ArcSwap::new(Arc::new(ControllableState {
                     movement: Default::default(),
                     position: Default::default(),
                     direction: 0.0,
@@ -194,7 +195,7 @@ impl UniverseGroup {
                     scan_range: 0.0,
                     scan_activated: false,
                     systems: Default::default(),
-                }),
+                })),
             });
 
             self.controllables[free_id.0] = Some(Arc::clone(&controllable));
@@ -420,12 +421,12 @@ impl UniverseGroup {
             }
             ServerEvent::ControllableDeath(event) => {
                 let id = event.controllable;
-                self.controllables[id.0].as_mut().unwrap().die().await;
+                self.controllables[id.0].as_mut().unwrap().die();
                 Some(Ok(FlattiverseEvent::ControllableDied(event)))
             }
             ServerEvent::ControllableUnregistered(event) => {
                 if let Some(controllable) = self.controllables[event.controllable.0].take() {
-                    controllable.die().await;
+                    controllable.die();
                 }
                 Some(Ok(FlattiverseEvent::ControllableUnregistered(
                     event.controllable,

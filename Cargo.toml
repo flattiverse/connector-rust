@@ -28,6 +28,7 @@ strum_macros = "0.24.3"
 crossbeam = "0.8.2"
 async-http-proxy = { version = "1.2.5", features = ["runtime-tokio"] }
 url = "2.3.1"
+arc-swap = "1.6.0"
 
 [dev-dependencies]
 sdl2 = { version = "0.35.2", features = ["gfx"] }
