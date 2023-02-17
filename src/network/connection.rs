@@ -23,7 +23,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub const PROTOCOL_VERSION: usize = 1;
+    pub const PROTOCOL_VERSION: usize = 2;
     pub const PING_INTERVAL: Duration = Duration::from_secs(1);
     pub const DEFAULT_PORT_WEB: u16 = 443;
     pub const DEFAULT_PORT_PROXY: u16 = 80;
