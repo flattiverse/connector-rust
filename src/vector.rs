@@ -62,6 +62,11 @@ impl Vector {
         }
     }
 
+    pub fn with_length(mut self, length: f64) -> Self {
+        self.set_length(length);
+        self
+    }
+
     pub fn rotated_by(&self, degree: f64) -> Self {
         let alpha = degree.to_radians();
         Self::from_xy(
