@@ -44,6 +44,8 @@ impl Unit {
             UnitKind::Explosion(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Reduced(r) => r.mobility(),
+            // TODO
+            UnitKind::Resource => Mobility::Steady,
         }
     }
 
@@ -82,6 +84,8 @@ impl Unit {
             UnitKind::Explosion(_) => true,
             UnitKind::BlackHole(_) => true,
             UnitKind::Reduced(_) => false,
+            // TODO
+            UnitKind::Resource => true,
         }
     }
 

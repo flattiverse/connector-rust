@@ -25,6 +25,7 @@ impl Reduced {
             SimpleUnitKind::Shot => Mobility::Steady,
             SimpleUnitKind::Explosion => Mobility::Steady,
             SimpleUnitKind::BlackHole => Mobility::Steady,
+            SimpleUnitKind::Resource => Mobility::Steady,
         }
     }
 }

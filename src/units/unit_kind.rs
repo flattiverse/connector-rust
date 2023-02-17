@@ -48,4 +48,6 @@ pub enum UnitKind {
     BlackHole(Blackhole),
     #[serde(rename = "reduced")]
     Reduced(Reduced),
+    #[serde(rename = "resource")]
+    Resource,
 }

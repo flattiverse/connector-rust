@@ -26,6 +26,8 @@ pub enum SimpleUnitKind {
     Explosion,
     #[serde(rename = "blackhole")]
     BlackHole,
+    #[serde(rename = "resource")]
+    Resource,
 }
 
 impl From<&UnitKind> for SimpleUnitKind {
@@ -43,6 +45,7 @@ impl From<&UnitKind> for SimpleUnitKind {
             UnitKind::Explosion(_) => SimpleUnitKind::Explosion,
             UnitKind::BlackHole(_) => SimpleUnitKind::BlackHole,
             UnitKind::Reduced(reduced) => reduced.probable_kind,
+            UnitKind::Resource => SimpleUnitKind::Resource,
         }
     }
 }
