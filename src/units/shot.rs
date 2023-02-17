@@ -10,5 +10,5 @@ pub struct Shot {
     #[serde(rename = "explosionRadius")]
     pub explosion_radius: f64,
     #[serde(rename = "lifetime")]
-    pub life_time: i32,
+    pub life_time: u32,
 }
