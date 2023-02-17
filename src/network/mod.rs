@@ -6,6 +6,7 @@ use crate::events::controllable_unregistered::ControllableUnregistered;
 use crate::events::death_controllable_event::DeathControllableEvent;
 use crate::events::depleted_resource_event::DepletedResourceEvent;
 use crate::events::full_update_player_event::FullUpdatePlayerEvent;
+use crate::events::message_system_event::MessageSystemEvent;
 use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
 use crate::events::removed_player_event::RemovedPlayerEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
@@ -55,6 +56,8 @@ pub enum ServerEvent {
     ChatTeamcastEvent(ChatTeamcastEvent),
     #[serde(rename = "chatUnicast")]
     ChatUnicastEvent(ChatUnicastEvent),
+    #[serde(rename = "messageSystem")]
+    MessageSystemEvent(MessageSystemEvent),
     #[serde(rename = "playerFullUpdate")]
     PlayerFullUpdate(FullUpdatePlayerEvent),
     #[serde(rename = "playerPartialUpdate")]

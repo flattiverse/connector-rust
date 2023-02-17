@@ -6,6 +6,7 @@ use crate::events::chat_teamcast_event::ChatTeamcastEvent;
 use crate::events::chat_unicast_event::ChatUnicastEvent;
 use crate::events::death_controllable_event::DeathControllableEvent;
 use crate::events::depleted_resource_event::DepletedResourceEvent;
+use crate::events::message_system_event::MessageSystemEvent;
 use crate::events::removed_unit_event::RemovedUnitEvent;
 use crate::events::tick_processed_event::TickProcessedEvent;
 use crate::events::updated_unit_event::UpdatedUnitEvent;
@@ -343,7 +344,7 @@ impl UniverseGroup {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Empty) => return None,
                 Err(TryRecvError::Disconnected) => {
-                    return Some(Err(EventError::Disconnected(None)))
+                    return Some(Err(EventError::Disconnected(None)));
                 }
                 Ok(event) => {
                     self.decrement_queued();
@@ -385,6 +386,9 @@ impl UniverseGroup {
             }
             ServerEvent::ChatUnicastEvent(event) => {
                 Some(Ok(FlattiverseEvent::ChatUnicastEvent(event)))
+            }
+            ServerEvent::MessageSystemEvent(event) => {
+                Some(Ok(FlattiverseEvent::MessageSystemEvent(event)))
             }
             ServerEvent::PlayerFullUpdate(update) => {
                 let id = update.player.id;
@@ -527,6 +531,8 @@ pub enum FlattiverseEvent {
     ChatTeamcastEvent(ChatTeamcastEvent),
     /// This event informs about a chat-message to a player.
     ChatUnicastEvent(ChatUnicastEvent),
+    /// This event informs of a system message by the server.
+    MessageSystemEvent(MessageSystemEvent),
     /// This event updates all information about a [`Player`].
     PlayerFullUpdate(PlayerId),
     /// This event contains only mutable information about a [`Player`].
