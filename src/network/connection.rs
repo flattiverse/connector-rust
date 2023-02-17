@@ -283,12 +283,12 @@ impl ConnectionReceiver {
                 Message::Text(text) => match {
                     let result = serde_json::from_str({
                         if cfg!(feature = "debug-messages") {
-                            warn!("{text}");
+                            eprintln!("{text}");
                         }
                         text.as_str()
                     });
                     if cfg!(feature = "debug-messages") {
-                        debug!("{:?}", result);
+                        eprintln!("{:?}", result);
                     }
                     result?
                 } {
