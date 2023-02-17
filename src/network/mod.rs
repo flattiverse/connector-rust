@@ -56,8 +56,6 @@ pub enum ServerEvent {
     ChatTeamcastEvent(ChatTeamcastEvent),
     #[serde(rename = "chatUnicast")]
     ChatUnicastEvent(ChatUnicastEvent),
-    #[serde(rename = "messageSystem")]
-    MessageSystemEvent(MessageSystemEvent),
     #[serde(rename = "playerFullUpdate")]
     PlayerFullUpdate(FullUpdatePlayerEvent),
     #[serde(rename = "playerPartialUpdate")]
@@ -81,5 +79,7 @@ pub enum ServerEvent {
     #[serde(rename = "controllableUnregistered")]
     ControllableUnregistered(ControllableUnregistered),
     #[serde(rename = "resourceDepleted")]
-    ResourceDeplete(DepletedResourceEvent),
+    ResourceDepleted(DepletedResourceEvent),
+    #[serde(rename = "messageSystem")]
+    MessageSystem(MessageSystemEvent),
 }

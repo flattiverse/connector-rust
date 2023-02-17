@@ -387,7 +387,7 @@ impl UniverseGroup {
             ServerEvent::ChatUnicastEvent(event) => {
                 Some(Ok(FlattiverseEvent::ChatUnicastEvent(event)))
             }
-            ServerEvent::MessageSystemEvent(event) => {
+            ServerEvent::MessageSystem(event) => {
                 Some(Ok(FlattiverseEvent::MessageSystemEvent(event)))
             }
             ServerEvent::PlayerFullUpdate(update) => {
@@ -431,7 +431,7 @@ impl UniverseGroup {
                     event.controllable,
                 )))
             }
-            ServerEvent::ResourceDeplete(event) => {
+            ServerEvent::ResourceDepleted(event) => {
                 Some(Ok(FlattiverseEvent::ResourceDepleted(event)))
             }
         }
