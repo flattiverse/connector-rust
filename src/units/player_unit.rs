@@ -171,6 +171,8 @@ impl Completable<UniverseGroup> for PlayerUnitSystems {
             .complete(&(PlayerUnitSystemKind::Analyzer, group));
         self.cells_particles
             .complete(&(PlayerUnitSystemKind::CellsParticles, group));
+        self.weapon_ammunition
+            .complete(&(PlayerUnitSystemKind::WeaponAmmunition, group));
         self.weapon_launcher
             .complete(&(PlayerUnitSystemKind::WeaponLauncher, group));
         self.weapon_payload_damage
