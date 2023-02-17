@@ -40,7 +40,7 @@ impl Unit {
             UnitKind::Buoy(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::MissionTarget(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::PlayerUnit(_) => Mobility::Mobile,
-            UnitKind::Shot(unit) => Mobility::from(&unit.orbits[..]),
+            UnitKind::Shot(_) => Mobility::Mobile,
             UnitKind::Explosion(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::BlackHole(unit) => Mobility::from(&unit.orbits[..]),
             UnitKind::Reduced(r) => r.mobility(),
