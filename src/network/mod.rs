@@ -1,85 +1,60 @@
-use crate::events::added_unit_event::AddedUnitEvent;
-use crate::events::chat_multicast_event::ChatMulticastEvent;
-use crate::events::chat_teamcast_event::ChatTeamcastEvent;
-use crate::events::chat_unicast_event::ChatUnicastEvent;
-use crate::events::controllable_unregistered::ControllableUnregistered;
-use crate::events::death_controllable_event::DeathControllableEvent;
-use crate::events::depleted_resource_event::DepletedResourceEvent;
-use crate::events::full_update_player_event::FullUpdatePlayerEvent;
-use crate::events::message_system_event::MessageSystemEvent;
-use crate::events::partial_update_player_event::PartialUpdatePlayerEvent;
-use crate::events::removed_player_event::RemovedPlayerEvent;
-use crate::events::removed_unit_event::RemovedUnitEvent;
-use crate::events::tick_processed_event::TickProcessedEvent;
-use crate::events::universe_group_info_event::UniverseGroupInfoEvent;
-use crate::events::updated_controllable_event::UpdatedControllableEvent;
-use crate::events::updated_unit_event::UpdatedUnitEvent;
-use crate::events::FailureEvent;
-use crate::network::query::{QueryId, QueryResponse};
-use serde_derive::{Deserialize, Serialize};
-use std::collections::HashMap;
+pub const PROTOCOL_VERSION: &'static str = "0";
 
-pub mod connection;
-pub mod connection_handle;
-pub mod query;
+#[cfg(all(
+    any(target_arch = "wasm32", target_arch = "wasm64"),
+    target_os = "unknown"
+))]
+mod driver_wasm;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "kind")]
-pub enum ServerMessage {
-    #[serde(rename = "success")]
-    Success {
-        id: QueryId,
-        result: Option<QueryResponse>,
-    },
-    #[serde(rename = "failure")]
-    Failure { id: QueryId, code: i32 },
-    #[serde(rename = "events")]
-    Events { events: Vec<ServerEvent> },
+#[cfg(not(all(
+    any(target_arch = "wasm32", target_arch = "wasm64"),
+    target_os = "unknown"
+)))]
+mod driver;
+
+mod connection_handle;
+pub use connection_handle::*;
+
+mod packet_header;
+pub use packet_header::PacketHeader;
+
+mod packet;
+pub use packet::Packet;
+
+mod packet_reader;
+pub use packet_reader::PacketReader;
+
+mod packet_writer;
+pub use packet_writer::PacketWriter;
+
+mod connection;
+pub use connection::*;
+
+pub fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, ConnectError> {
+    let team = Some(team).filter(|t| *t > 31);
+    let url = format!(
+        "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}",
+        PROTOCOL_VERSION,
+        team.map(|_| "&team=").unwrap_or_default(),
+        team.unwrap_or_default(),
+        env!("CARGO_PKG_VERSION"),
+    );
+
+    #[cfg(all(
+        any(target_arch = "wasm32", target_arch = "wasm64"),
+        target_os = "unknown"
+    ))]
+    return driver_wasm::connect(&url);
+
+    #[cfg(not(all(
+        any(target_arch = "wasm32", target_arch = "wasm64"),
+        target_os = "unknown"
+    )))]
+    return driver::connect(&url);
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(tag = "kind")]
-pub enum ServerEvent {
-    /// A Fallback event for debugging purposes, if the event sent from the server is unknown to the
-    /// connector.
-    #[serde(rename = "raw")]
-    Raw(HashMap<String, serde_json::Value>),
-    /// This event indicates some critical out-of-game failure like a problem with the
-    /// data-transport, etc.. Consider upgrading the connector if this happens and it
-    /// is not due to a lost connection.
-    #[serde(rename = "failure")]
-    Failure(FailureEvent),
-
-    #[serde(rename = "chatMulticast")]
-    ChatMulticast(ChatMulticastEvent),
-    #[serde(rename = "chatTeamcast")]
-    ChatTeamcastEvent(ChatTeamcastEvent),
-    #[serde(rename = "chatUnicast")]
-    ChatUnicastEvent(ChatUnicastEvent),
-    #[serde(rename = "playerFullUpdate")]
-    PlayerFullUpdate(FullUpdatePlayerEvent),
-    #[serde(rename = "playerPartialUpdate")]
-    PlayerPartialUpdate(PartialUpdatePlayerEvent),
-    #[serde(rename = "playerRemoved")]
-    PlayerRemoved(RemovedPlayerEvent),
-    #[serde(rename = "unitRemoved")]
-    UnitRemoved(RemovedUnitEvent),
-    #[serde(rename = "unitAdded")]
-    UnitAdded(AddedUnitEvent),
-    #[serde(rename = "unitUpdated")]
-    UnitUpdated(UpdatedUnitEvent),
-    #[serde(rename = "tickProcessed")]
-    TickProcessed(TickProcessedEvent),
-    #[serde(rename = "universeGroupInfo")]
-    UniverseGroupInfo(UniverseGroupInfoEvent),
-    #[serde(rename = "controllableUpdated")]
-    ControllableUpdated(Box<UpdatedControllableEvent>),
-    #[serde(rename = "controllableDeath")]
-    ControllableDeath(DeathControllableEvent),
-    #[serde(rename = "controllableUnregistered")]
-    ControllableUnregistered(ControllableUnregistered),
-    #[serde(rename = "resourceDepleted")]
-    ResourceDepleted(DepletedResourceEvent),
-    #[serde(rename = "messageSystem")]
-    MessageSystem(MessageSystemEvent),
+#[derive(Debug, thiserror::Error)]
+pub enum ConnectError {
+    #[error("Unknown error: {0}")]
+    Unknown(String),
 }
