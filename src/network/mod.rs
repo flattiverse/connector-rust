@@ -28,6 +28,7 @@ mod packet_writer;
 pub use packet_writer::PacketWriter;
 
 mod connection;
+use crate::error::GameError;
 pub use connection::*;
 
 pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, ConnectError> {
@@ -96,6 +97,24 @@ pub enum ConnectError {
     UniverseFull(Option<String>),
     #[error("The UniverseGroup is currently offline.")]
     UniverseOffline(Option<String>),
+
+    #[error("{0}")]
+    GameError(GameError),
+}
+
+impl ConnectError {
+    pub fn game_error_from_http_status_code(code: u16) -> GameError {
+        match code {
+            502 | 504 => 0xF2,
+            400 => 0xF3,
+            401 => 0xF4,
+            409 => 0xF5,
+            412 => 0xF6,
+            415 => 0xF7,
+            _ => 0xF1,
+        }
+        .into()
+    }
 }
 
 #[cfg(feature = "desktop")]
@@ -108,15 +127,9 @@ impl From<tokio_tungstenite::tungstenite::Error> for ConnectError {
                 response.into_body().and_then(|b| String::from_utf8(b).ok())
             }
 
-            match response.status().as_u16() {
-                401 => Self::MissingAuthOr(into_msg(response)),
-                409 => Self::WrongConnectorVersion(into_msg(response)),
-                412 => Self::StillOnline(into_msg(response)),
-                415 => Self::WrongTeam(into_msg(response)),
-                417 => Self::UniverseFull(into_msg(response)),
-                502 => Self::UniverseOffline(into_msg(response)),
-                _ => Self::IoError(tokio_tungstenite::tungstenite::Error::Http(response)),
-            }
+            Self::GameError(Self::game_error_from_http_status_code(
+                response.status().as_u16(),
+            ))
         } else {
             Self::IoError(value)
         }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
-use web_sys::{Blob, MessageEvent, WebSocket};
+use web_sys::{Blob, CloseEvent, Event, MessageEvent, WebSocket};
 
 #[cfg(feature = "wasm-debug")]
 mod debug {
@@ -32,12 +32,10 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
             let (back_sender, back_receiver) = async_channel::unbounded();
             let (sender, receiver) = async_channel::unbounded();
-            let counter = Arc::new(AtomicUsize::new(0));
 
             let on_message_callback = Closure::<dyn FnMut(_)>::new({
                 let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
-                let counter = Arc::clone(&counter);
                 move |msg: MessageEvent| {
                     console_log!("{msg:?}");
                     let data = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
@@ -60,30 +58,28 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                                 if let Err(e) = back_sender.try_send(event) {
                                     console_log!("Failed to send ConnectionEvent {e:?}");
                                     let _ = websocket.close();
-                                } else {
-                                    counter.fetch_add(1, Ordering::Relaxed);
                                 }
                             }
                         }
                     }
                 }
             });
-
             websocket.set_onmessage(Some(on_message_callback.as_ref().unchecked_ref()));
             on_message_callback.forget();
 
             let on_close_callback = Closure::<dyn FnMut(_)>::new({
                 let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
-                let counter = Arc::clone(&counter);
-                move |msg: MessageEvent| {
-                    console_log!("Received close request: {msg:?}");
-                    let _ = websocket.close();
+                move |msg: CloseEvent| {
+                    let error = ConnectError::game_error_from_http_status_code(msg.code());
+                    console_log!("Received close request: {msg:?} {error:?}");
+                    console_log!("{error}");
+
+                    let _ = back_sender.try_send(ConnectionEvent::GameError(error));
                     let _ = back_sender.try_send(ConnectionEvent::Closed(None));
-                    counter.fetch_add(1, Ordering::Relaxed);
+                    let _ = websocket.close();
                 }
             });
-
             websocket.set_onclose(Some(on_close_callback.as_ref().unchecked_ref()));
             on_close_callback.forget();
 

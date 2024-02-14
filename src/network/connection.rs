@@ -1,3 +1,4 @@
+use crate::error::GameError;
 use crate::network::{ConnectionHandle, PacketReader};
 use async_channel::Receiver;
 use std::time::Duration;
@@ -20,7 +21,10 @@ impl Connection {
 
     pub fn try_receive(&mut self) -> Option<Result<ConnectionEvent, ReceiveError>> {
         match self.receiver.try_recv() {
-            Ok(event) => Some(Ok(event)),
+            Ok(event) => match event {
+                ConnectionEvent::GameError(error) => Some(Err(ReceiveError::GameError(error))),
+                event => Some(Ok(event)),
+            },
             Err(e) if e.is_empty() => None,
             Err(_) => Some(Err(ReceiveError::ConnectionGone)),
         }
@@ -32,6 +36,10 @@ impl Connection {
             .recv()
             .await
             .map_err(|_| ReceiveError::ConnectionGone)
+            .and_then(|event| match event {
+                ConnectionEvent::GameError(error) => Err(ReceiveError::GameError(error)),
+                event => Ok(event),
+            })
     }
 
     #[inline]
@@ -44,6 +52,7 @@ impl Connection {
 pub enum ConnectionEvent {
     PingMeasured(Duration),
     ReceivedMessage { player: u8, message: String },
+    GameError(GameError),
     Closed(Option<String>),
 }
 
@@ -71,4 +80,6 @@ pub enum ParseError {
 pub enum ReceiveError {
     #[error("The underlying connection no longer exists")]
     ConnectionGone,
+    #[error("{0}")]
+    GameError(GameError),
 }
