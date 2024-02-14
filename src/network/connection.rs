@@ -1,5 +1,6 @@
 use crate::network::{ConnectionHandle, PacketReader};
 use async_channel::Receiver;
+use std::time::Duration;
 
 pub struct Connection {
     handle: ConnectionHandle,
@@ -21,7 +22,9 @@ impl Connection {
 
 #[derive(Debug)]
 pub enum ConnectionEvent {
+    PingMeasured(Duration),
     ReceivedMessage { player: u8, message: String },
+    Closed(Option<String>),
 }
 
 impl<'a> TryFrom<PacketReader<'a>> for ConnectionEvent {

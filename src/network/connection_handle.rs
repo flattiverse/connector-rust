@@ -1,10 +1,15 @@
 use async_channel::Sender;
 
 pub struct ConnectionHandle {
-    pub(crate) sender: Sender<()>,
+    pub(crate) sender: Sender<SenderData>,
 }
 
 impl ConnectionHandle {}
+
+pub enum SenderData {
+    #[cfg(not(feature = "wasm"))]
+    Raw(tokio_tungstenite::tungstenite::Message),
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendError {

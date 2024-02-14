@@ -27,10 +27,12 @@ web-sys = { version = "0.3.68", optional = true, features = [
     "Blob"
 ] }
 
-# tokio = { version = "1.25.0", features = ["net", "sync", "time", "rt-multi-thread", "macros"] }
-# tokio-tungstenite = { version = "0.18.0", features = ["rustls", "rustls-tls-native-roots"] }
+tokio-tungstenite = { version = "0.21.0", features = ["rustls", "rustls-tls-native-roots"], optional = true }
+async-http-proxy = { version = "1.2.5", features = ["runtime-tokio"], optional = true }
+url = { version = "2.5.0", optional = true }
+futures-util = { version = "0.3.30", optional = true }
+
 # futures = "0.3.25"
-# futures-util = "0.3.25"
 # serde = "1.0.152"
 # serde_derive = "1.0.152"
 # serde_json = "1.0.91"
@@ -38,16 +40,27 @@ web-sys = { version = "0.3.68", optional = true, features = [
 # derive_more = { version = "0.99.17", features = ["from"] }
 # strum_macros = "0.24.3"
 # crossbeam = "0.8.2"
-# async-http-proxy = { version = "1.2.5", features = ["runtime-tokio"] }
-# url = "2.3.1"
 # arc-swap = "1.6.0"
 
 [dev-dependencies]
 sdl2 = { version = "0.35.2", features = ["gfx"] }
 
 [features]
-default = []
+default = ["desktop"]
 debug-proxy = []
 debug-messages = []
+
+desktop = [
+    "tokio/net",
+    "tokio/sync",
+    "tokio/time",
+    "tokio/rt-multi-thread",
+    "tokio/macros",
+    "tokio-tungstenite",
+    "async-http-proxy",
+    "url",
+    "futures-util"
+]
+
 wasm = ["web-sys", "wasm-bindgen-futures"]
 wasm-debug = ["wasm", "wasm-bindgen"]
