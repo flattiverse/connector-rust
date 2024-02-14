@@ -5,8 +5,6 @@ use async_channel::{Receiver, Sender};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::interval;
@@ -58,16 +56,14 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
         let (sink, stream) = stream.split();
         let (sender, receiver) = async_channel::unbounded();
         let (event_sender, event_receiver) = async_channel::unbounded();
-        let counter = Arc::new(AtomicUsize::new(0));
 
         let mut sender_handle =
             tokio::spawn(ConnectionSender { sink }.run(receiver, PING_INTERVAL));
 
         tokio::spawn({
             let sender = sender.clone();
-            let counter = Arc::clone(&counter);
             async move {
-                let receiver = ConnectionReceiver { stream }.run(sender, event_sender, counter);
+                let receiver = ConnectionReceiver { stream }.run(sender, event_sender);
                 tokio::select! {
                     r = &mut sender_handle => {
                         if let Err(e) = r {
@@ -110,57 +106,6 @@ fn try_set_tcp_nodelay(stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) 
             warn!("Unable to set TCP_NODELAY, unexpected MayeTlsStream-Variant: {s:?}");
         }
     };
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum OpenError {
-    #[error("Underlying connection error")]
-    IoError(tokio_tungstenite::tungstenite::Error),
-    #[error("The provided url is malformed: {0}")]
-    MalformedHostUrl(url::ParseError),
-    #[error("The url to the proxy server is malformed: {0}")]
-    MalformedProxyUrl(url::ParseError),
-    #[error("Failed to connect to the proxy server: {0}")]
-    ProxyConnectionError(std::io::Error),
-    #[error("The proxy server sent and unexpected response: {0}")]
-    ProxyResponseError(#[from] async_http_proxy::HttpError),
-    // --- parsed from status code
-    #[error("No auth parameter was given, or a malformed or non-existing auth key was given. A proper auth parameter consists of string of 64 characters representing hex values. A connection as a spectator was attempted, but the UniverseGroup does not allow spectators")]
-    MissingAuthOr(Option<String>),
-    #[error("A connection with a wrong connector version was attempted.")]
-    WrongConnectorVersion(Option<String>),
-    #[error("A connection as a player or admin was attempted, but the associated account is still online with another connection. As disconnecting players will linger for a while, a connection may not be possible for a short time even if a previous connection has been closed or severed")]
-    StillOnline(Option<String>),
-    #[error("A connection with a wrong team was attempted")]
-    WrongTeam(Option<String>),
-    #[error("The UniverseGroup is currently at capacity and no further connections are possible.")]
-    UniverseFull(Option<String>),
-    #[error("The UniverseGroup is currently offline.")]
-    UniverseOffline(Option<String>),
-}
-
-impl From<tokio_tungstenite::tungstenite::Error> for OpenError {
-    fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
-        if let tokio_tungstenite::tungstenite::Error::Http(response) = value {
-            fn into_msg(
-                response: tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
-            ) -> Option<String> {
-                response.into_body().and_then(|b| String::from_utf8(b).ok())
-            }
-
-            match response.status().as_u16() {
-                401 => OpenError::MissingAuthOr(into_msg(response)),
-                409 => OpenError::WrongConnectorVersion(into_msg(response)),
-                412 => OpenError::StillOnline(into_msg(response)),
-                415 => OpenError::WrongTeam(into_msg(response)),
-                417 => OpenError::UniverseFull(into_msg(response)),
-                502 => OpenError::UniverseOffline(into_msg(response)),
-                _ => OpenError::IoError(tokio_tungstenite::tungstenite::Error::Http(response)),
-            }
-        } else {
-            OpenError::IoError(value)
-        }
-    }
 }
 
 struct ConnectionSender {
@@ -219,7 +164,6 @@ impl ConnectionReceiver {
         mut self,
         sender: Sender<SenderData>,
         event_sender: Sender<ConnectionEvent>,
-        counter: Arc<AtomicUsize>,
     ) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
@@ -260,20 +204,13 @@ impl ConnectionReceiver {
                             .is_err()
                         {
                             break;
-                        } else {
-                            counter.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                 }
                 Message::Close(msg) => {
-                    if event_sender
-                        .try_send(ConnectionEvent::Closed(
-                            msg.map(|msg| format!("{} - {}", msg.code, msg.reason)),
-                        ))
-                        .is_ok()
-                    {
-                        counter.fetch_add(1, Ordering::Relaxed);
-                    }
+                    let _ = event_sender.try_send(ConnectionEvent::Closed(
+                        msg.map(|msg| format!("{} - {}", msg.code, msg.reason)),
+                    ));
                     break;
                 }
             }

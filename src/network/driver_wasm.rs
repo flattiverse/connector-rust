@@ -1,4 +1,6 @@
 use crate::network::{ConnectError, Connection, ConnectionEvent, ConnectionHandle, Packet};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
@@ -30,10 +32,12 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
             let (back_sender, back_receiver) = async_channel::unbounded();
             let (sender, receiver) = async_channel::unbounded();
+            let counter = Arc::new(AtomicUsize::new(0));
 
             let on_message_callback = Closure::<dyn FnMut(_)>::new({
                 let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
+                let counter = Arc::clone(&counter);
                 move |msg: MessageEvent| {
                     console_log!("{msg:?}");
                     let data = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
@@ -56,6 +60,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                                 if let Err(e) = back_sender.try_send(event) {
                                     console_log!("Failed to send ConnectionEvent {e:?}");
                                     let _ = websocket.close();
+                                } else {
+                                    counter.fetch_add(1, Ordering::Relaxed);
                                 }
                             }
                         }
@@ -69,10 +75,12 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             let on_close_callback = Closure::<dyn FnMut(_)>::new({
                 let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
+                let counter = Arc::clone(&counter);
                 move |msg: MessageEvent| {
                     console_log!("Received close request: {msg:?}");
                     let _ = websocket.close();
                     let _ = back_sender.try_send(ConnectionEvent::Closed(None));
+                    counter.fetch_add(1, Ordering::Relaxed);
                 }
             });
 

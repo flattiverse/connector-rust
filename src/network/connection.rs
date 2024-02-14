@@ -13,10 +13,30 @@ impl Connection {
         Self { handle, receiver }
     }
 
-    pub async fn receive(&mut self) -> Option<ConnectionEvent> {
-        let x = self.receiver.recv().await;
-        // TODO
-        x.ok()
+    #[inline]
+    pub fn handle(&self) -> &ConnectionHandle {
+        &self.handle
+    }
+
+    pub fn try_receive(&mut self) -> Option<Result<ConnectionEvent, ReceiveError>> {
+        match self.receiver.try_recv() {
+            Ok(event) => Some(Ok(event)),
+            Err(e) if e.is_empty() => None,
+            Err(_) => Some(Err(ReceiveError::ConnectionGone)),
+        }
+    }
+
+    #[inline]
+    pub async fn receive(&mut self) -> Result<ConnectionEvent, ReceiveError> {
+        self.receiver
+            .recv()
+            .await
+            .map_err(|_| ReceiveError::ConnectionGone)
+    }
+
+    #[inline]
+    pub fn receiver_queue_len(&self) -> usize {
+        self.receiver.len()
     }
 }
 
@@ -45,4 +65,10 @@ impl<'a> TryFrom<PacketReader<'a>> for ConnectionEvent {
 pub enum ParseError {
     #[error("Received an unexpected command code: 0x{0:02x}")]
     UnexpectedCommand(u8),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ReceiveError {
+    #[error("The underlying connection no longer exists")]
+    ConnectionGone,
 }
