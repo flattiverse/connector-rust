@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate log;
 
+pub mod cluster;
 pub mod error;
 pub mod events;
 pub mod galaxy;
