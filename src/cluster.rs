@@ -2,9 +2,9 @@ use crate::network::PacketReader;
 
 #[derive(Debug)]
 pub struct Cluster {
-    id: u8,
-    galaxy: i32,
-    name: String,
+    pub id: u8,
+    pub galaxy: i32,
+    pub name: String,
 }
 
 impl Cluster {
@@ -14,20 +14,5 @@ impl Cluster {
             galaxy,
             name: reader.read_string(),
         }
-    }
-
-    #[inline]
-    pub fn id(&self) -> u8 {
-        self.id
-    }
-
-    #[inline]
-    pub fn galaxy(&self) -> i32 {
-        self.galaxy
-    }
-
-    #[inline]
-    pub fn name(&self) -> &str {
-        &self.name
     }
 }

@@ -3,10 +3,10 @@ use crate::player_kind::PlayerKind;
 
 #[derive(Debug)]
 pub struct Player {
-    id: u8,
-    name: String,
-    kind: PlayerKind,
-    team: u8,
+    pub id: u8,
+    pub name: String,
+    pub kind: PlayerKind,
+    pub team: u8,
 }
 
 impl Player {
@@ -17,25 +17,5 @@ impl Player {
             team,
             name: reader.read_string(),
         }
-    }
-
-    #[inline]
-    pub fn id(&self) -> u8 {
-        self.id
-    }
-
-    #[inline]
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    #[inline]
-    pub fn kind(&self) -> PlayerKind {
-        self.kind
-    }
-
-    #[inline]
-    pub fn team(&self) -> u8 {
-        self.team
     }
 }

@@ -2,11 +2,11 @@ use crate::network::PacketReader;
 
 #[derive(Debug)]
 pub struct Team {
-    id: u8,
-    name: String,
-    red: u8,
-    green: u8,
-    blue: u8,
+    pub id: u8,
+    pub name: String,
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
 }
 
 impl Team {
@@ -18,30 +18,5 @@ impl Team {
             green: reader.read_byte(),
             blue: reader.read_byte(),
         }
-    }
-
-    #[inline]
-    pub fn id(&self) -> u8 {
-        self.id
-    }
-
-    #[inline]
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    #[inline]
-    pub fn red(&self) -> u8 {
-        self.red
-    }
-
-    #[inline]
-    pub fn green(&self) -> u8 {
-        self.green
-    }
-
-    #[inline]
-    pub fn blue(&self) -> u8 {
-        self.blue
     }
 }
