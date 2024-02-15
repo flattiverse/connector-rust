@@ -8,6 +8,7 @@ pub mod galaxy;
 pub mod game_type;
 pub mod network;
 pub mod player;
+pub mod player_kind;
 pub mod unit;
 pub mod utils;
 pub mod vector;
