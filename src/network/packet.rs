@@ -16,13 +16,14 @@ impl MultiPacketBuffer {
     pub fn next_packet(&mut self) -> Option<Packet> {
         let header = self.next_header()?;
         let size = usize::from(header.size());
-        let packet = Packet::from(header);
         if self.offest + size < self.payload.len() {
-            let packet = packet.with_payload((&self.payload[self.offest..][..size]).to_vec());
             self.offest += size;
-            Some(packet)
+            Some(Packet::new(
+                header,
+                (&self.payload[self.offest..][..size]).to_vec(),
+            ))
         } else {
-            Some(packet)
+            Some(Packet::new(header, Vec::default()))
         }
     }
 
@@ -57,26 +58,23 @@ pub struct Packet {
 impl From<PacketHeader> for Packet {
     fn from(header: PacketHeader) -> Self {
         Self {
+            payload: Vec::with_capacity(SERVER_DEFAULT_PACKET_SIZE - 8),
             header,
-            payload: Vec::default(),
         }
     }
 }
 
 impl Default for Packet {
+    #[inline]
     fn default() -> Self {
-        Self {
-            header: PacketHeader([0u8; 8]),
-            payload: Vec::with_capacity(SERVER_DEFAULT_PACKET_SIZE - 8),
-        }
+        Self::from(PacketHeader([0u8; 8]))
     }
 }
 
 impl Packet {
     #[inline]
-    pub fn with_payload(mut self, payload: Vec<u8>) -> Self {
-        self.payload = payload;
-        self
+    pub fn new(header: PacketHeader, payload: Vec<u8>) -> Self {
+        Self { header, payload }
     }
 
     pub fn header(&self) -> &PacketHeader {
@@ -95,6 +93,7 @@ impl Packet {
 
     #[inline]
     pub fn write(&mut self, f: impl FnOnce(&mut dyn PacketWriter)) {
+        self.payload.clear();
         f(&mut self.payload);
     }
 
