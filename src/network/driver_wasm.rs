@@ -1,6 +1,5 @@
-use crate::network::{
-    ConnectError, Connection, ConnectionEvent, ConnectionHandle, Packet, SenderData,
-};
+use crate::network::packet::MultiPacketBuffer;
+use crate::network::{ConnectError, Connection, ConnectionEvent, ConnectionHandle, SenderData};
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
@@ -50,16 +49,11 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                         return;
                     };
 
-                    let mut packet = Packet::new(data);
-                    while let Some(reader) = packet.next_reader() {
-                        match ConnectionEvent::try_from(reader) {
-                            Err(e) => console_log!("Failed to decode ConnectionEvent {e:?}"),
-                            Ok(event) => {
-                                if let Err(e) = back_sender.try_send(event) {
-                                    console_log!("Failed to send ConnectionEvent {e:?}");
-                                    let _ = websocket.close();
-                                }
-                            }
+                    let mut packet = MultiPacketBuffer::new(data);
+                    while let Some(packet) = packet.next_packet() {
+                        if let Err(e) = back_sender.try_send(ConnectionEvent::Packet(packet)) {
+                            console_log!("Failed to send ConnectionEvent {e:?}");
+                            let _ = websocket.close();
                         }
                     }
                 }
@@ -89,7 +83,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 while let Ok(msg) = receiver.recv().await {
                     match msg {
                         SenderData::Packet(packet) => {
-                            if let Err(e) = websocket.send_with_u8_array(&packet.payload) {
+                            if let Err(e) = websocket.send_with_u8_array(&packet.into_vec()) {
                                 let _ = back_sender.try_send(ConnectionEvent::Closed(Some(
                                     format!("Failed to send message: {e:?}"),
                                 )));

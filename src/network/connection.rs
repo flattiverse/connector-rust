@@ -1,6 +1,7 @@
-use crate::error::GameError;
-use crate::network::{ConnectionHandle, PacketReader};
-use async_channel::Receiver;
+use crate::error::{GameError, GameErrorKind};
+use crate::events::FlattiverseEvent;
+use crate::network::{ConnectionHandle, Packet};
+use async_channel::{Receiver, Sender};
 use std::time::Duration;
 
 pub struct Connection {
@@ -14,64 +15,65 @@ impl Connection {
         Self { handle, receiver }
     }
 
-    #[inline]
-    pub fn handle(&self) -> &ConnectionHandle {
-        &self.handle
+    pub fn spawn(
+        self,
+    ) -> (
+        ConnectionHandle,
+        Receiver<Result<FlattiverseEvent, GameError>>,
+    ) {
+        let (sender, receiver) = async_channel::unbounded();
+        let handle = self.handle.clone();
+        crate::network::spawn(self.run(sender));
+        (handle, receiver)
     }
 
-    pub fn try_receive(&mut self) -> Option<Result<ConnectionEvent, ReceiveError>> {
-        match self.receiver.try_recv() {
-            Ok(event) => Some(self.on_connection_event(event)),
-            Err(e) if e.is_empty() => None,
-            Err(_) => Some(Err(ReceiveError::ConnectionGone)),
+    async fn run(self, sender: Sender<Result<FlattiverseEvent, GameError>>) {
+        loop {
+            match self.receiver.recv().await {
+                Err(_empty_and_closed) => break,
+                Ok(ConnectionEvent::Closed(msg)) => {
+                    let err = GameError::from(GameErrorKind::ConnectionClosed);
+                    let err = if let Some(msg) = msg {
+                        err.with_info(msg)
+                    } else {
+                        err
+                    };
+                    let _ = sender.send(Err(err)).await;
+                    break;
+                }
+                Ok(ConnectionEvent::PingMeasured(ping)) => {
+                    if sender
+                        .send(Ok(FlattiverseEvent::PingMeasured(ping)))
+                        .await
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+                Ok(ConnectionEvent::Packet(packet)) => {
+                    self.handle
+                        .sessions
+                        .lock()
+                        .await
+                        .resolve(packet.header().session(), packet);
+                }
+                Ok(ConnectionEvent::GameError(e)) => {
+                    if sender.send(Err(e)).await.is_err() {
+                        break;
+                    }
+                }
+            }
         }
-    }
-
-    #[inline]
-    pub async fn receive(&mut self) -> Result<ConnectionEvent, ReceiveError> {
-        self.receiver
-            .recv()
-            .await
-            .map_err(|_| ReceiveError::ConnectionGone)
-            .and_then(|event| self.on_connection_event(event))
-    }
-
-    fn on_connection_event(
-        &mut self,
-        event: ConnectionEvent,
-    ) -> Result<ConnectionEvent, ReceiveError> {
-        match event {
-            ConnectionEvent::GameError(error) => Err(ReceiveError::GameError(error)),
-            event => Ok(event),
-        }
-    }
-
-    #[inline]
-    pub fn receiver_queue_len(&self) -> usize {
-        self.receiver.len()
+        // TODO cleanup
     }
 }
 
 #[derive(Debug)]
 pub enum ConnectionEvent {
     PingMeasured(Duration),
-    ReceivedMessage { player: u8, message: String },
+    Packet(Packet),
     GameError(GameError),
     Closed(Option<String>),
-}
-
-impl<'a> TryFrom<PacketReader<'a>> for ConnectionEvent {
-    type Error = ParseError;
-
-    fn try_from(mut reader: PacketReader<'a>) -> Result<Self, Self::Error> {
-        match reader.header().command() {
-            0x30 => Ok(ConnectionEvent::ReceivedMessage {
-                player: reader.header().player(),
-                message: reader.read_string(usize::from(reader.header().size())),
-            }),
-            c => Err(ParseError::UnexpectedCommand(c)),
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

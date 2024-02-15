@@ -1,5 +1,6 @@
 use crate::network::connection_handle::ConnectionHandle;
-use crate::network::{ConnectError, Connection, ConnectionEvent, Packet, SenderData};
+use crate::network::packet::MultiPacketBuffer;
+use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
 use crate::utils::current_time_millis;
 use async_channel::{Receiver, Sender};
 use futures_util::stream::{SplitSink, SplitStream};
@@ -128,7 +129,7 @@ impl ConnectionSender {
                             self.send(message).await?;
                         }
                         Ok(SenderData::Packet(packet)) => {
-                            self.send(Message::Binary(packet.payload)).await?;
+                            self.send(Message::Binary(packet.into_vec())).await?;
                         }
                         Err(_) => return Ok(()),
                     }
@@ -174,16 +175,11 @@ impl ConnectionReceiver {
                     return Err(ReceiveError::UnexpectedData(format!("{b:?}")));
                 }
                 Message::Binary(bin) => {
-                    let mut packet = Packet::new(bin);
-                    while let Some(reader) = packet.next_reader() {
-                        match crate::network::ConnectionEvent::try_from(reader) {
-                            Err(e) => error!("Failed to decode ConnectionEvent {e:?}"),
-                            Ok(event) => {
-                                if let Err(e) = event_sender.send(event).await {
-                                    error!("Failed to send ConnectionEvent {e:?}");
-                                    return Err(ReceiveError::ConnectionHandleGone);
-                                }
-                            }
+                    let mut packet = MultiPacketBuffer::new(bin);
+                    while let Some(packet) = packet.next_packet() {
+                        if let Err(e) = event_sender.send(ConnectionEvent::Packet(packet)).await {
+                            error!("Failed to send ConnectionEvent {e:?}");
+                            return Err(ReceiveError::ConnectionHandleGone);
                         }
                     }
                 }

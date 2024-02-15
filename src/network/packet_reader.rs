@@ -17,6 +17,17 @@ impl<'a> PacketReader<'a> {
     }
 
     #[inline]
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    #[inline]
+    pub fn with_positoin(mut self, position: usize) -> Self {
+        self.position = position;
+        self
+    }
+
+    #[inline]
     pub fn header(&self) -> &PacketHeader {
         &self.header
     }

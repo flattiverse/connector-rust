@@ -1,23 +1,30 @@
 use crate::network::{PacketHeader, PacketReader};
 
-pub struct Packet {
+pub struct MultiPacketBuffer {
     pub payload: Vec<u8>,
     pub offest: usize,
 }
 
-impl Packet {
+impl MultiPacketBuffer {
     #[inline]
     pub fn new(payload: Vec<u8>) -> Self {
         Self { payload, offest: 0 }
     }
 
-    pub fn update_header(&mut self, f: impl FnOnce(&mut PacketHeader)) {
-        if let Some(mut header) = self.next_header_without_advancing() {
-            f(&mut header);
-            self.write_header_without_advancing(header);
+    pub fn next_packet(&mut self) -> Option<Packet> {
+        let header = self.next_header()?;
+        let size = usize::from(header.size());
+        let packet = Packet::from(header);
+        if self.offest + size < self.payload.len() {
+            let packet = packet.with_payload((&self.payload[self.offest..][..size]).to_vec());
+            self.offest += size;
+            Some(packet)
+        } else {
+            Some(packet)
         }
     }
 
+    #[inline]
     pub fn next_header(&mut self) -> Option<PacketHeader> {
         self.next_header_without_advancing().map(|header| {
             self.offest += header.0.len();
@@ -37,35 +44,49 @@ impl Packet {
             None
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Packet {
+    header: PacketHeader,
+    payload: Vec<u8>,
+}
+
+impl From<PacketHeader> for Packet {
+    fn from(header: PacketHeader) -> Self {
+        Self {
+            header,
+            payload: Vec::default(),
+        }
+    }
+}
+
+impl Packet {
+    #[inline]
+    pub fn with_payload(mut self, payload: Vec<u8>) -> Self {
+        self.payload = payload;
+        self
+    }
+
+    pub fn header(&self) -> &PacketHeader {
+        &self.header
+    }
 
     #[inline]
-    pub fn next_reader(&mut self) -> Option<PacketReader> {
-        let header = self.next_header()?;
-        self.next_reader_from(header)
+    pub fn header_mut(&mut self) -> &mut PacketHeader {
+        &mut self.header
     }
 
-    pub fn next_reader_from(&self, header: PacketHeader) -> Option<PacketReader> {
-        let size = usize::from(header.size());
-        if self.offest + size < self.payload.len() {
-            Some(PacketReader::new(
-                header,
-                &self.payload[self.offest..][..size],
-            ))
-        } else {
-            None
-        }
+    #[inline]
+    pub fn read<'a, T>(&'a self, f: impl FnOnce(PacketReader<'a>) -> T) -> T {
+        f(PacketReader::new(self.header, &self.payload[..]))
     }
 
-    pub fn write_header(&mut self, header: PacketHeader) {
-        let header_len = header.0.len();
-        self.write_header_without_advancing(header);
-        self.offest += header_len;
-    }
-
-    pub fn write_header_without_advancing(&mut self, header: PacketHeader) {
-        while self.offest + header.0.len() > self.payload.len() {
-            self.payload.push(0x00);
-        }
-        self.payload[self.offest..][..header.0.len()].copy_from_slice(&header.0[..]);
+    pub fn into_vec(self) -> Vec<u8> {
+        // TOOD performance?
+        let mut vec = Vec::with_capacity(self.header.0.len() + self.payload.len());
+        vec.extend(self.header.0);
+        vec.extend(self.payload);
+        vec
     }
 }

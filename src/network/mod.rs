@@ -13,7 +13,9 @@ mod driver_wasm;
 mod driver;
 
 mod connection_handle;
+
 pub use connection_handle::*;
+use std::future::Future;
 
 mod packet_header;
 pub use packet_header::PacketHeader;
@@ -58,6 +60,22 @@ pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, Conn
     return driver::connect(&url).await;
 }
 
+#[cfg(all(
+    any(target_arch = "wasm32", target_arch = "wasm64"),
+    target_os = "unknown"
+))]
+pub fn spawn(f: impl Future<Output = ()> + 'static) {
+    wasm_bindgen_futures::spawn_local(f);
+}
+
+#[cfg(not(all(
+    any(target_arch = "wasm32", target_arch = "wasm64"),
+    target_os = "unknown"
+)))]
+pub fn spawn(f: impl Future<Output = ()> + Send + 'static) {
+    tokio::runtime::Handle::current().spawn(f);
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ConnectError {
     #[error("Unknown error: {0}")]
@@ -87,20 +105,6 @@ pub enum ConnectError {
     )]
     #[cfg(feature = "desktop")]
     ProxyResponseError(#[from] async_http_proxy::HttpError),
-
-    // --- parsed from status code
-    #[error("No auth parameter was given, or a malformed or non-existing auth key was given. A proper auth parameter consists of string of 64 characters representing hex values. A connection as a spectator was attempted, but the UniverseGroup does not allow spectators")]
-    MissingAuthOr(Option<String>),
-    #[error("A connection with a wrong connector version was attempted.")]
-    WrongConnectorVersion(Option<String>),
-    #[error("A connection as a player or admin was attempted, but the associated account is still online with another connection. As disconnecting players will linger for a while, a connection may not be possible for a short time even if a previous connection has been closed or severed")]
-    StillOnline(Option<String>),
-    #[error("A connection with a wrong team was attempted")]
-    WrongTeam(Option<String>),
-    #[error("The UniverseGroup is currently at capacity and no further connections are possible.")]
-    UniverseFull(Option<String>),
-    #[error("The UniverseGroup is currently offline.")]
-    UniverseOffline(Option<String>),
 
     #[error("{0}")]
     GameError(GameError),

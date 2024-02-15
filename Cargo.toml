@@ -54,7 +54,6 @@ debug-messages = []
 
 desktop = [
     "tokio/net",
-    "tokio/sync",
     "tokio/time",
     "tokio/rt-multi-thread",
     "tokio/macros",

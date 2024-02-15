@@ -32,6 +32,14 @@ impl SessionHandler {
             })
     }
 
+    pub fn resolve(&mut self, id: SessionId, packet: Packet) {
+        if let Some(session) = core::mem::take(&mut self.sessions[usize::from(id)]) {
+            let _ = session.try_send(packet);
+        } else {
+            error!("Did not find Session for id={id}")
+        }
+    }
+
     pub fn terminate_connection(&mut self) {
         self.sessions.iter_mut().for_each(|s| *s = None);
     }

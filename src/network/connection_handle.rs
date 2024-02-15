@@ -3,6 +3,7 @@ use async_channel::Sender;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[derive(Clone)]
 pub struct ConnectionHandle {
     pub(crate) sender: Sender<SenderData>,
     pub(crate) sessions: Arc<Mutex<SessionHandler>>,
@@ -30,9 +31,7 @@ impl ConnectionHandle {
                 .ok_or(SendError::SessionIdsExhausted)?
         };
 
-        packet.update_header(|h| {
-            h.set_session(session.id());
-        });
+        packet.header_mut().set_session(session.id());
 
         self.sender
             .send(SenderData::Packet(packet))
