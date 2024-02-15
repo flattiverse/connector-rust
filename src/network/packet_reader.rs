@@ -37,7 +37,7 @@ impl<'a> PacketReader<'a> {
             self.position + 4 <= self.data.len(),
             "Can't read out of bounds."
         );
-        let value = i32::from_be_bytes([
+        let value = i32::from_le_bytes([
             self.data[self.position],
             self.data[self.position + 1],
             self.data[self.position + 2],

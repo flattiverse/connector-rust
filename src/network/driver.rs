@@ -140,7 +140,7 @@ impl ConnectionSender {
 
     #[inline]
     async fn send_ping(&mut self) -> Result<(), SenderError> {
-        self.send(Message::Ping(current_time_millis().to_be_bytes().to_vec()))
+        self.send(Message::Ping(current_time_millis().to_le_bytes().to_vec()))
             .await
     }
 
@@ -192,13 +192,13 @@ impl ConnectionReceiver {
                     }
                 }
                 Message::Pong(data) => {
-                    let mut millis = 0_u64.to_be_bytes();
+                    let mut millis = 0_u64.to_le_bytes();
                     let millis_len = millis.len();
                     if millis_len <= data.len() {
                         millis.copy_from_slice(&data[..millis_len]);
                         if event_sender
                             .try_send(ConnectionEvent::PingMeasured(Duration::from_millis(
-                                current_time_millis().saturating_sub(u64::from_be_bytes(millis)),
+                                current_time_millis().saturating_sub(u64::from_le_bytes(millis)),
                             )))
                             .is_err()
                         {

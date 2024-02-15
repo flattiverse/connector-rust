@@ -43,12 +43,12 @@ impl PacketHeader {
 
     #[inline]
     pub fn param(&self) -> u16 {
-        u16::from_be_bytes([self.0[4], self.0[5]])
+        u16::from_le_bytes([self.0[4], self.0[5]])
     }
 
     #[inline]
     pub fn set_param(&mut self, param: u16) {
-        let [p0, p1] = param.to_be_bytes();
+        let [p0, p1] = param.to_le_bytes();
         self.set_param0(p0);
         self.set_param1(p1);
     }
@@ -75,7 +75,7 @@ impl PacketHeader {
 
     #[inline]
     pub fn size(&self) -> u16 {
-        u16::from_be_bytes([self.0[6], self.0[7]])
+        u16::from_le_bytes([self.0[6], self.0[7]])
     }
 }
 
