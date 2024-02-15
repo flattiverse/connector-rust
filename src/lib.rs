@@ -5,6 +5,7 @@ pub mod cluster;
 pub mod error;
 pub mod events;
 pub mod galaxy;
+pub mod game_type;
 pub mod network;
 pub mod player;
 pub mod unit;
