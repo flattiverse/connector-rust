@@ -1,4 +1,6 @@
-use crate::network::{PacketHeader, PacketReader};
+use crate::network::{PacketHeader, PacketReader, PacketWriter};
+
+pub const SERVER_DEFAULT_PACKET_SIZE: usize = 1048; // yes 10_48_
 
 pub struct MultiPacketBuffer {
     pub payload: Vec<u8>,
@@ -61,6 +63,15 @@ impl From<PacketHeader> for Packet {
     }
 }
 
+impl Default for Packet {
+    fn default() -> Self {
+        Self {
+            header: PacketHeader([0u8; 8]),
+            payload: Vec::with_capacity(SERVER_DEFAULT_PACKET_SIZE - 8),
+        }
+    }
+}
+
 impl Packet {
     #[inline]
     pub fn with_payload(mut self, payload: Vec<u8>) -> Self {
@@ -80,6 +91,11 @@ impl Packet {
     #[inline]
     pub fn read<'a, T>(&'a self, f: impl FnOnce(PacketReader<'a>) -> T) -> T {
         f(PacketReader::new(self.header, &self.payload[..]))
+    }
+
+    #[inline]
+    pub fn write(&mut self, f: impl FnOnce(&mut dyn PacketWriter)) {
+        f(&mut self.payload);
     }
 
     pub fn into_vec(self) -> Vec<u8> {
