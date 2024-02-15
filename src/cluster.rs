@@ -8,12 +8,22 @@ pub struct Cluster {
 }
 
 impl Cluster {
-    pub fn new(id: u8, galaxy: i32, reader: &mut dyn PacketReader) {
+    pub fn new(id: u8, galaxy: i32, reader: &mut dyn PacketReader) -> Self {
         Self {
             id,
             galaxy,
             name: reader.read_string(),
         }
+    }
+
+    #[inline]
+    pub fn id(&self) -> u8 {
+        self.id
+    }
+
+    #[inline]
+    pub fn galaxy(&self) -> i32 {
+        self.galaxy
     }
 
     #[inline]
