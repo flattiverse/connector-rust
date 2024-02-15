@@ -21,10 +21,7 @@ impl Connection {
 
     pub fn try_receive(&mut self) -> Option<Result<ConnectionEvent, ReceiveError>> {
         match self.receiver.try_recv() {
-            Ok(event) => match event {
-                ConnectionEvent::GameError(error) => Some(Err(ReceiveError::GameError(error))),
-                event => Some(Ok(event)),
-            },
+            Ok(event) => Some(self.on_connection_event(event)),
             Err(e) if e.is_empty() => None,
             Err(_) => Some(Err(ReceiveError::ConnectionGone)),
         }
@@ -36,10 +33,17 @@ impl Connection {
             .recv()
             .await
             .map_err(|_| ReceiveError::ConnectionGone)
-            .and_then(|event| match event {
-                ConnectionEvent::GameError(error) => Err(ReceiveError::GameError(error)),
-                event => Ok(event),
-            })
+            .and_then(|event| self.on_connection_event(event))
+    }
+
+    fn on_connection_event(
+        &mut self,
+        event: ConnectionEvent,
+    ) -> Result<ConnectionEvent, ReceiveError> {
+        match event {
+            ConnectionEvent::GameError(error) => Err(ReceiveError::GameError(error)),
+            event => Ok(event),
+        }
     }
 
     #[inline]

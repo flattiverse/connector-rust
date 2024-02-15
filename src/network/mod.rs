@@ -28,8 +28,12 @@ mod packet_writer;
 pub use packet_writer::PacketWriter;
 
 mod connection;
-use crate::error::GameError;
 pub use connection::*;
+
+mod session;
+pub use session::*;
+
+use crate::error::GameError;
 
 pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, ConnectError> {
     let team = Some(team).filter(|t| *t > 31);
@@ -121,12 +125,6 @@ impl ConnectError {
 impl From<tokio_tungstenite::tungstenite::Error> for ConnectError {
     fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
         if let tokio_tungstenite::tungstenite::Error::Http(response) = value {
-            fn into_msg(
-                response: tokio_tungstenite::tungstenite::http::Response<Option<Vec<u8>>>,
-            ) -> Option<String> {
-                response.into_body().and_then(|b| String::from_utf8(b).ok())
-            }
-
             Self::GameError(Self::game_error_from_http_status_code(
                 response.status().as_u16(),
             ))

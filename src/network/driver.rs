@@ -84,7 +84,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
     };
 
     Ok(Connection::from_existing(
-        ConnectionHandle { sender },
+        ConnectionHandle::from(sender),
         receiver,
     ))
 }
@@ -126,6 +126,9 @@ impl ConnectionSender {
                     match cmd {
                         Ok(SenderData::Raw(message)) => {
                             self.send(message).await?;
+                        }
+                        Ok(SenderData::Packet(packet)) => {
+                            self.send(Message::Binary(packet.payload)).await?;
                         }
                         Err(_) => return Ok(()),
                     }

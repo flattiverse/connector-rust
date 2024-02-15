@@ -1,10 +1,10 @@
-use crate::network::{ConnectError, Connection, ConnectionEvent, ConnectionHandle, Packet};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use crate::network::{
+    ConnectError, Connection, ConnectionEvent, ConnectionHandle, Packet, SenderData,
+};
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
-use web_sys::{Blob, CloseEvent, Event, MessageEvent, WebSocket};
+use web_sys::{Blob, CloseEvent, MessageEvent, WebSocket};
 
 #[cfg(feature = "wasm-debug")]
 mod debug {
@@ -85,19 +85,25 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
 
             wasm_bindgen_futures::spawn_local(async move {
                 console_log!("FUTURE SPAWNED");
-                // let mutex = Mutex::new(());
-                // let lock = mutex.lock().await;
 
-                // let _ = back_sender;
-                let _ = receiver;
-
-                while let Ok(msg) = receiver.recv().await {}
+                while let Ok(msg) = receiver.recv().await {
+                    match msg {
+                        SenderData::Packet(packet) => {
+                            if let Err(e) = websocket.send_with_u8_array(&packet.payload) {
+                                let _ = back_sender.try_send(ConnectionEvent::Closed(Some(
+                                    format!("Failed to send message: {e:?}"),
+                                )));
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 let _ = websocket.close();
             });
 
             Ok(Connection::from_existing(
-                ConnectionHandle { sender },
+                ConnectionHandle::from(sender),
                 back_receiver,
             ))
         }

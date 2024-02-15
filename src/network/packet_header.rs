@@ -6,10 +6,19 @@ impl PacketHeader {
     pub fn command(&self) -> u8 {
         self.0[0]
     }
+    #[inline]
+    pub fn set_command(&mut self, command: u8) {
+        self.0[0] = command;
+    }
 
     #[inline]
     pub fn session(&self) -> u8 {
         self.0[1]
+    }
+
+    #[inline]
+    pub fn set_session(&mut self, session: u8) {
+        self.0[1] = session;
     }
 
     #[inline]
@@ -18,8 +27,18 @@ impl PacketHeader {
     }
 
     #[inline]
+    pub fn set_player(&mut self, player: u8) {
+        self.0[2] = player;
+    }
+
+    #[inline]
     pub fn controllable(&self) -> u8 {
         self.0[3]
+    }
+
+    #[inline]
+    pub fn seet_controllable(&mut self, controllable: u8) {
+        self.0[3] = controllable;
     }
 
     #[inline]
@@ -28,8 +47,20 @@ impl PacketHeader {
     }
 
     #[inline]
+    pub fn set_param(&mut self, param: u16) {
+        let [p0, p1] = param.to_be_bytes();
+        self.set_param0(p0);
+        self.set_param1(p1);
+    }
+
+    #[inline]
     pub fn param0(&self) -> u8 {
         self.0[4]
+    }
+
+    #[inline]
+    pub fn set_param0(&mut self, param0: u8) {
+        self.0[4] = param0;
     }
 
     #[inline]
@@ -38,13 +69,13 @@ impl PacketHeader {
     }
 
     #[inline]
-    pub fn size(&self) -> u16 {
-        u16::from_be_bytes([self.0[6], self.0[7]])
+    pub fn set_param1(&mut self, param1: u8) {
+        self.0[5] = param1;
     }
 
     #[inline]
-    pub fn direct_assign(&self) -> u64 {
-        u64::from_be_bytes(self.0)
+    pub fn size(&self) -> u16 {
+        u16::from_be_bytes([self.0[6], self.0[7]])
     }
 }
 
