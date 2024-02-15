@@ -1,48 +1,28 @@
 use crate::network::{PacketHeader, PacketReader, PacketWriter};
+use bytes::BytesMut;
 
 pub const SERVER_DEFAULT_PACKET_SIZE: usize = 1048; // yes 10_48_
 
-pub struct MultiPacketBuffer {
-    pub payload: Vec<u8>,
-    pub offest: usize,
+pub struct MultiPacketBuffer(BytesMut);
+
+impl From<BytesMut> for MultiPacketBuffer {
+    #[inline]
+    fn from(value: BytesMut) -> Self {
+        Self(value)
+    }
 }
 
 impl MultiPacketBuffer {
-    #[inline]
-    pub fn new(payload: Vec<u8>) -> Self {
-        Self { payload, offest: 0 }
-    }
-
     pub fn next_packet(&mut self) -> Option<Packet> {
         let header = self.next_header()?;
         let size = usize::from(header.size());
-        if self.offest + size < self.payload.len() {
-            self.offest += size;
-            Some(Packet::new(
-                header,
-                (&self.payload[self.offest..][..size]).to_vec(),
-            ))
-        } else {
-            Some(Packet::new(header, Vec::default()))
-        }
+        Some(Packet::new(header, self.0.split_to(size)))
     }
 
     #[inline]
     pub fn next_header(&mut self) -> Option<PacketHeader> {
-        self.next_header_without_advancing().map(|header| {
-            self.offest += header.0.len();
-            header
-        })
-    }
-
-    fn next_header_without_advancing(&mut self) -> Option<PacketHeader> {
-        let mut packet_header = [0u8; 8];
-        if self.offest + packet_header.len() < self.payload.len() {
-            packet_header
-                .iter_mut()
-                .enumerate()
-                .for_each(|(i, v)| *v = self.payload[self.offest + i]);
-            Some(PacketHeader(packet_header))
+        if self.0.len() >= PacketHeader::SIZE {
+            Some(PacketHeader::from(self.0.split_to(PacketHeader::SIZE)))
         } else {
             None
         }
@@ -52,28 +32,23 @@ impl MultiPacketBuffer {
 #[derive(Debug)]
 pub struct Packet {
     header: PacketHeader,
-    payload: Vec<u8>,
-}
-
-impl From<PacketHeader> for Packet {
-    fn from(header: PacketHeader) -> Self {
-        Self {
-            payload: Vec::with_capacity(SERVER_DEFAULT_PACKET_SIZE - 8),
-            header,
-        }
-    }
+    payload: BytesMut,
 }
 
 impl Default for Packet {
     #[inline]
     fn default() -> Self {
-        Self::from(PacketHeader([0u8; 8]))
+        let mut bytes = BytesMut::with_capacity(SERVER_DEFAULT_PACKET_SIZE);
+        let header_btytes = bytes.split_to(PacketHeader::SIZE);
+        Self::new(PacketHeader::from(header_btytes), bytes)
     }
 }
 
 impl Packet {
+    /// For performance reason, the [`ByteMut`] of the [`PacketHeader`] and the [`BytesMut`] of the
+    /// `payload` should originate from an contiguous [`ByesMut`]. See [`BytesMut::unsplit`].
     #[inline]
-    pub fn new(header: PacketHeader, payload: Vec<u8>) -> Self {
+    pub fn new(header: PacketHeader, payload: BytesMut) -> Self {
         Self { header, payload }
     }
 
@@ -87,21 +62,19 @@ impl Packet {
     }
 
     #[inline]
-    pub fn read<'a, T>(&'a self, f: impl FnOnce(PacketReader<'a>) -> T) -> T {
-        f(PacketReader::new(self.header, &self.payload[..]))
+    pub fn read<'a, T>(&'a mut self, f: impl FnOnce(&'a mut dyn PacketReader) -> T) -> T {
+        f(&mut self.payload)
     }
 
     #[inline]
     pub fn write(&mut self, f: impl FnOnce(&mut dyn PacketWriter)) {
-        self.payload.clear();
         f(&mut self.payload);
     }
 
-    pub fn into_vec(self) -> Vec<u8> {
-        // TOOD performance?
-        let mut vec = Vec::with_capacity(self.header.0.len() + self.payload.len());
-        vec.extend(self.header.0);
-        vec.extend(self.payload);
-        vec
+    #[inline]
+    pub fn into_buf(mut self) -> BytesMut {
+        let mut buf = BytesMut::from(self.header);
+        buf.unsplit(self.payload.split());
+        buf
     }
 }

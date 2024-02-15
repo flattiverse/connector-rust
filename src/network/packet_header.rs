@@ -1,7 +1,25 @@
-#[derive(Debug, Copy, Clone)]
-pub struct PacketHeader(pub(crate) [u8; 8]);
+use bytes::BytesMut;
+
+#[derive(Debug)]
+pub struct PacketHeader(BytesMut);
+
+impl From<BytesMut> for PacketHeader {
+    #[inline]
+    fn from(value: BytesMut) -> Self {
+        debug_assert_eq!(
+            value.len(),
+            Self::SIZE,
+            "Unexpected size={}, expecting size of {}",
+            value.len(),
+            Self::SIZE
+        );
+        Self(value)
+    }
+}
 
 impl PacketHeader {
+    pub const SIZE: usize = 8;
+
     #[inline]
     pub fn command(&self) -> u8 {
         self.0[0]
@@ -79,9 +97,9 @@ impl PacketHeader {
     }
 }
 
-impl From<[u8; 8]> for PacketHeader {
+impl From<PacketHeader> for BytesMut {
     #[inline]
-    fn from(value: [u8; 8]) -> Self {
-        Self(value)
+    fn from(header: PacketHeader) -> Self {
+        header.0
     }
 }

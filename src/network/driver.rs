@@ -3,6 +3,7 @@ use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
 use crate::utils::current_time_millis;
 use async_channel::{Receiver, Sender};
+use bytes::{Bytes, BytesMut};
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
@@ -129,7 +130,7 @@ impl ConnectionSender {
                             self.send(message).await?;
                         }
                         Ok(SenderData::Packet(packet)) => {
-                            self.send(Message::Binary(packet.into_vec())).await?;
+                            self.send(Message::Binary(packet.into_buf().to_vec())).await?;
                         }
                         Err(_) => return Ok(()),
                     }
@@ -175,7 +176,8 @@ impl ConnectionReceiver {
                     return Err(ReceiveError::UnexpectedData(format!("{b:?}")));
                 }
                 Message::Binary(bin) => {
-                    let mut packet = MultiPacketBuffer::new(bin);
+                    // TODo sad copy
+                    let mut packet = MultiPacketBuffer::from(BytesMut::from(&bin[..]));
                     while let Some(packet) = packet.next_packet() {
                         if let Err(e) = event_sender.send(ConnectionEvent::Packet(packet)).await {
                             error!("Failed to send ConnectionEvent {e:?}");

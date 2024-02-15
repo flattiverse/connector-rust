@@ -1,5 +1,6 @@
 use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionEvent, ConnectionHandle, SenderData};
+use bytes::BytesMut;
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
@@ -37,10 +38,10 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 let websocket = websocket.clone();
                 move |msg: MessageEvent| {
                     console_log!("{msg:?}");
-                    let data = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
-                        Uint8Array::new(&buffer).to_vec()
+                    let array = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
+                        Uint8Array::new(&buffer)
                     } else if let Ok(blob) = msg.data().dyn_into::<Blob>() {
-                        Uint8Array::new(&blob).to_vec()
+                        Uint8Array::new(&blob)
                     } else if let Ok(text) = msg.data().dyn_into::<JsString>() {
                         console_log!("Received msg that was not expectd {text}");
                         return;
@@ -49,7 +50,14 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                         return;
                     };
 
-                    let mut packet = MultiPacketBuffer::new(data);
+                    let data = {
+                        // copying the data from into rust / wasm
+                        let mut bytes = BytesMut::zeroed(array.byte_length() as usize);
+                        array.copy_to(&mut bytes[..]);
+                        bytes
+                    };
+
+                    let mut packet = MultiPacketBuffer::from(data);
                     while let Some(packet) = packet.next_packet() {
                         if let Err(e) = back_sender.try_send(ConnectionEvent::Packet(packet)) {
                             console_log!("Failed to send ConnectionEvent {e:?}");
@@ -83,7 +91,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 while let Ok(msg) = receiver.recv().await {
                     match msg {
                         SenderData::Packet(packet) => {
-                            if let Err(e) = websocket.send_with_u8_array(&packet.into_vec()) {
+                            if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
                                 let _ = back_sender.try_send(ConnectionEvent::Closed(Some(
                                     format!("Failed to send message: {e:?}"),
                                 )));
