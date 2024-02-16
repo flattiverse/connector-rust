@@ -1,6 +1,6 @@
 use crate::network::PacketReader;
 use crate::unit::{Upgrade, UpgradeId};
-use crate::{GlaxyId, Indexer, NamedUnit};
+use crate::{GlaxyId, Indexer, NamedUnit, UniversalHolder};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct ShipId(u8);
@@ -12,11 +12,10 @@ impl Indexer for ShipId {
     }
 }
 
-#[derive(Debug)]
 pub struct Ship {
     galaxy: GlaxyId,
     id: ShipId,
-    upgrades: [Option<Upgrade>; 256],
+    upgrades: UniversalHolder<UpgradeId, Upgrade>,
     upgrade_max: usize,
     name: String,
     cost_energy: f64,
@@ -56,7 +55,7 @@ impl Ship {
         Self {
             id: id.into(),
             galaxy,
-            upgrades: core::array::from_fn(|_| None),
+            upgrades: UniversalHolder::with_capacity(256),
             upgrade_max: 0,
             name: reader.read_string(),
             cost_energy: reader.read_2u(1.0),
@@ -93,10 +92,10 @@ impl Ship {
     }
 
     pub(crate) fn read_upgrade(&mut self, id: UpgradeId, reader: &mut dyn PacketReader) {
-        let index = usize::from(id.0);
-        self.upgrades[index] = Some(Upgrade::new(id, self.galaxy, self.id, reader));
-        if self.upgrade_max < index + 1 {
-            self.upgrade_max = index + 1;
+        self.upgrades
+            .set(id, Upgrade::new(id, self.galaxy, self.id, reader));
+        if self.upgrade_max < id.index() + 1 {
+            self.upgrade_max = id.index() + 1;
         }
     }
 
@@ -266,8 +265,8 @@ impl Ship {
     }
 
     #[inline]
-    pub fn get_upgrade(&self, id: u8) -> Option<&Upgrade> {
-        self.upgrades[usize::from(id)].as_ref()
+    pub fn get_upgrade(&self, id: UpgradeId) -> Option<&Upgrade> {
+        self.upgrades.get(id)
     }
 }
 
