@@ -9,7 +9,6 @@ use crate::unit::{Ship, ShipId, UpgradeId};
 use crate::{ClusterId, PlayerId, PlayerKind, TeamId, UniversalHolder};
 use async_channel::Receiver;
 use num_enum::FromPrimitive;
-use std::io::Write;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct GlaxyId(pub(crate) u16);
