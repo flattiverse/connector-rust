@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate log;
 
+pub use async_channel;
+pub use tokio;
+
 mod network;
 mod unit;
 
