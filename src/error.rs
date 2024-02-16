@@ -12,6 +12,12 @@ impl GameError {
         self.info = Some(info.into());
         self
     }
+
+    #[inline]
+    pub fn with_info_opt(mut self, info: Option<String>) -> Self {
+        self.info = info;
+        self
+    }
 }
 
 impl From<GameErrorKind> for GameError {

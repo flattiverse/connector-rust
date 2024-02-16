@@ -1,5 +1,4 @@
-use crate::error::{GameError, GameErrorKind};
-use crate::events::FlattiverseEvent;
+use crate::error::GameError;
 use crate::network::{ConnectionHandle, Packet};
 use async_channel::{Receiver, Sender};
 use std::time::Duration;
@@ -15,50 +14,32 @@ impl Connection {
         Self { handle, receiver }
     }
 
-    pub fn spawn(
-        self,
-    ) -> (
-        ConnectionHandle,
-        Receiver<Result<FlattiverseEvent, GameError>>,
-    ) {
+    pub fn spawn(self) -> (ConnectionHandle, Receiver<ConnectionEvent>) {
         let (sender, receiver) = async_channel::unbounded();
         let handle = self.handle.clone();
         crate::network::spawn(self.run(sender));
         (handle, receiver)
     }
 
-    async fn run(self, sender: Sender<Result<FlattiverseEvent, GameError>>) {
+    async fn run(self, sender: Sender<ConnectionEvent>) {
         loop {
             match self.receiver.recv().await {
                 Err(_empty_and_closed) => break,
-                Ok(ConnectionEvent::Closed(msg)) => {
-                    let err = GameError::from(GameErrorKind::ConnectionClosed);
-                    let err = if let Some(msg) = msg {
-                        err.with_info(msg)
+                Ok(ConnectionEvent::Packet(packet)) => {
+                    if packet.header().session() != 0 {
+                        self.handle
+                            .sessions
+                            .lock()
+                            .await
+                            .resolve(packet.header().session(), packet);
                     } else {
-                        err
-                    };
-                    let _ = sender.send(Err(err)).await;
-                    break;
-                }
-                Ok(ConnectionEvent::PingMeasured(ping)) => {
-                    if sender
-                        .send(Ok(FlattiverseEvent::PingMeasured(ping)))
-                        .await
-                        .is_err()
-                    {
-                        break;
+                        if sender.send(ConnectionEvent::Packet(packet)).await.is_err() {
+                            break;
+                        }
                     }
                 }
-                Ok(ConnectionEvent::Packet(packet)) => {
-                    self.handle
-                        .sessions
-                        .lock()
-                        .await
-                        .resolve(packet.header().session(), packet);
-                }
-                Ok(ConnectionEvent::GameError(e)) => {
-                    if sender.send(Err(e)).await.is_err() {
+                Ok(event) => {
+                    if sender.send(event).await.is_err() {
                         break;
                     }
                 }

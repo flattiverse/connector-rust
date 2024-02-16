@@ -1,15 +1,26 @@
 #[macro_use]
 extern crate log;
 
-pub mod cluster;
-pub mod error;
-pub mod events;
-pub mod galaxy;
-pub mod game_type;
-pub mod network;
-pub mod player;
-pub mod player_kind;
-pub mod team;
-pub mod unit;
-pub mod utils;
-pub mod vector;
+mod network;
+mod unit;
+
+mod cluster;
+pub use cluster::*;
+mod error;
+pub use error::*;
+mod events;
+pub use events::*;
+mod galaxy;
+pub use galaxy::*;
+mod game_type;
+pub use game_type::*;
+mod player;
+pub use player::*;
+mod player_kind;
+pub use player_kind::*;
+mod team;
+pub use team::*;
+mod utils;
+pub use utils::*;
+mod vector;
+pub use vector::*;

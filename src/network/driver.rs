@@ -3,7 +3,7 @@ use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
 use crate::utils::current_time_millis;
 use async_channel::{Receiver, Sender};
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
