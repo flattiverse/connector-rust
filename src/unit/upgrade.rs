@@ -2,7 +2,7 @@ use crate::network::PacketReader;
 use crate::unit::ShipId;
 use crate::GlaxyId;
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct UpgradeId(pub(crate) u8);
 
 #[derive(Debug)]

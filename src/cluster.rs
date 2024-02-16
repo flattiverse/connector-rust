@@ -1,8 +1,15 @@
 use crate::network::PacketReader;
-use crate::GlaxyId;
+use crate::{GlaxyId, Indexer, NamedUnit};
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
-pub struct ClusterId(pub(crate) u8);
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
+pub struct ClusterId(u8);
+
+impl Indexer for ClusterId {
+    #[inline]
+    fn index(&self) -> usize {
+        usize::from(self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct Cluster {
@@ -34,5 +41,12 @@ impl Cluster {
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+impl NamedUnit for Cluster {
+    #[inline]
+    fn name(&self) -> &str {
+        Cluster::name(self)
     }
 }

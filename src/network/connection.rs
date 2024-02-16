@@ -56,17 +56,3 @@ pub enum ConnectionEvent {
     GameError(GameError),
     Closed(Option<String>),
 }
-
-#[derive(Debug, thiserror::Error)]
-pub enum ParseError {
-    #[error("Received an unexpected command code: 0x{0:02x}")]
-    UnexpectedCommand(u8),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ReceiveError {
-    #[error("The underlying connection no longer exists")]
-    ConnectionGone,
-    #[error("{0}")]
-    GameError(GameError),
-}

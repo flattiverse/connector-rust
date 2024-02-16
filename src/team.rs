@@ -1,7 +1,15 @@
 use crate::network::PacketReader;
+use crate::{Indexer, NamedUnit};
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
-pub struct TeamId(pub(crate) u8);
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
+pub struct TeamId(u8);
+
+impl Indexer for TeamId {
+    #[inline]
+    fn index(&self) -> usize {
+        usize::from(self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct Team {
@@ -47,5 +55,12 @@ impl Team {
     #[inline]
     pub fn blue(&self) -> u8 {
         self.blue
+    }
+}
+
+impl NamedUnit for Team {
+    #[inline]
+    fn name(&self) -> &str {
+        Team::name(self)
     }
 }

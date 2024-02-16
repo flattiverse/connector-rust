@@ -1,9 +1,16 @@
 use crate::network::PacketReader;
 use crate::unit::{Upgrade, UpgradeId};
-use crate::GlaxyId;
+use crate::{GlaxyId, Indexer, NamedUnit};
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
-pub struct ShipId(pub(crate) u8);
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
+pub struct ShipId(u8);
+
+impl Indexer for ShipId {
+    #[inline]
+    fn index(&self) -> usize {
+        usize::from(self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct Ship {
@@ -261,5 +268,12 @@ impl Ship {
     #[inline]
     pub fn get_upgrade(&self, id: u8) -> Option<&Upgrade> {
         self.upgrades[usize::from(id)].as_ref()
+    }
+}
+
+impl NamedUnit for Ship {
+    #[inline]
+    fn name(&self) -> &str {
+        Ship::name(self)
     }
 }

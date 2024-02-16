@@ -6,14 +6,12 @@ use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::{Ship, ShipId, UpgradeId};
-use crate::{ClusterId, PlayerId, PlayerKind, TeamId};
+use crate::{ClusterId, PlayerId, PlayerKind, TeamId, UniversalHolder};
 use async_channel::Receiver;
-use nohash_hasher::BuildNoHashHasher;
 use num_enum::FromPrimitive;
-use std::collections::HashMap;
 use std::io::Write;
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct GlaxyId(pub(crate) u16);
 
 pub struct Galaxy {
@@ -41,10 +39,10 @@ pub struct Galaxy {
     max_ships_player: u8,
     max_bases_player: u8,
 
-    clusters: Vec<Option<Cluster>>,
-    ships: Vec<Option<Ship>>,
-    teams: Vec<Option<Team>>,
-    players: HashMap<PlayerId, Player, BuildNoHashHasher<u8>>,
+    clusters: UniversalHolder<ClusterId, Cluster>,
+    ships: UniversalHolder<ShipId, Ship>,
+    teams: UniversalHolder<TeamId, Team>,
+    players: UniversalHolder<PlayerId, Player>,
 
     //
     connection: ConnectionHandle,
@@ -94,16 +92,11 @@ impl Galaxy {
             max_ships_player: 0,
             max_bases_player: 0,
 
-            clusters: Self::filled_vec::<_, 256>(),
-            ships: Self::filled_vec::<_, 256>(),
-            teams: Self::filled_vec::<_, 256>(),
-
-            players: HashMap::default(),
+            clusters: UniversalHolder::with_capacity(256),
+            ships: UniversalHolder::with_capacity(256),
+            teams: UniversalHolder::with_capacity(256),
+            players: UniversalHolder::with_capacity(256),
         })
-    }
-
-    fn filled_vec<T, const SIZE: usize>() -> Vec<Option<T>> {
-        (0..SIZE).into_iter().map(|_| None).collect()
     }
 
     pub async fn receive(&mut self) -> Result<FlattiverseEvent, GameError> {
@@ -161,11 +154,10 @@ impl Galaxy {
                 // cluster info
                 0x11 => {
                     let cluster_id = ClusterId::from(packet.header().param0());
-                    let cluster = packet.read(|reader| Cluster::new(cluster_id, self.id, reader));
-                    {
-                        let cluster_id = usize::from(cluster_id.0);
-                        self.clusters[cluster_id] = Some(cluster);
-                    }
+                    self.clusters.set(
+                        cluster_id,
+                        packet.read(|reader| Cluster::new(cluster_id, self.id, reader)),
+                    );
                     Ok(Some(FlattiverseEvent::ClusterUpdated {
                         galaxy: self.id,
                         cluster: cluster_id,
@@ -175,11 +167,8 @@ impl Galaxy {
                 // team info
                 0x12 => {
                     let team_id = TeamId::from(packet.header().param0());
-                    let team = packet.read(|reader| Team::new(team_id, reader));
-                    {
-                        let team_id = usize::from(team_id.0);
-                        self.teams[team_id] = Some(team);
-                    }
+                    self.teams
+                        .set(team_id, packet.read(|reader| Team::new(team_id, reader)));
                     Ok(Some(FlattiverseEvent::TeamUpdated {
                         galaxy: self.id,
                         team: team_id,
@@ -189,11 +178,10 @@ impl Galaxy {
                 // ship info
                 0x13 => {
                     let ship_id = ShipId::from(packet.header().param0());
-                    let ship = packet.read(|reader| Ship::new(ship_id, self.id, reader));
-                    {
-                        let ship_id = usize::from(ship_id.0);
-                        self.ships[ship_id] = Some(ship);
-                    }
+                    self.ships.set(
+                        ship_id,
+                        packet.read(|reader| Ship::new(ship_id, self.id, reader)),
+                    );
                     Ok(Some(FlattiverseEvent::ShipUpdated {
                         galaxy: self.id,
                         ship: ship_id,
@@ -204,20 +192,14 @@ impl Galaxy {
                 0x14 => {
                     let upgrade_id = UpgradeId::from(packet.header().param0());
                     let ship_id = ShipId::from(packet.header().param1());
-                    if let Some(ship) = &mut self.ships[usize::from(ship_id.0)] {
-                        packet.read(|reader| ship.read_upgrade(upgrade_id, reader));
-                        Ok(Some(FlattiverseEvent::UpgradeUpdated {
-                            galaxy: self.id,
-                            ship: ship_id,
-                            upgrade: upgrade_id,
-                        }))
-                    } else {
-                        Err(
-                            GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
-                                "Tried to update Upgrade of {ship_id:?} that does not exist"
-                            )),
-                        )
-                    }
+                    packet.read(|reader| {
+                        self.ships[ship_id].read_upgrade(upgrade_id, reader);
+                    });
+                    Ok(Some(FlattiverseEvent::UpgradeUpdated {
+                        galaxy: self.id,
+                        ship: ship_id,
+                        upgrade: upgrade_id,
+                    }))
                 }
 
                 // new player joined info
@@ -225,9 +207,12 @@ impl Galaxy {
                     let player_id = PlayerId::from(packet.header().player());
                     let team_id = TeamId::from(packet.header().param1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
-                    let player =
-                        packet.read(|reader| Player::new(player_id, player_kind, team_id, reader));
-                    self.players.insert(player_id, player);
+                    packet.read(|reader| {
+                        self.players.set(
+                            player_id,
+                            Player::new(player_id, player_kind, team_id, reader),
+                        );
+                    });
                     Ok(Some(FlattiverseEvent::PlayerUpdated {
                         galaxy: self.id,
                         player: player_id,
