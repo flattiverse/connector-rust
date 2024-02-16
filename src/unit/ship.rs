@@ -1,13 +1,12 @@
 use crate::network::PacketReader;
+use crate::unit::Upgrade;
 
 #[derive(Debug)]
-pub struct Upgrade {
+pub struct Ship {
     pub galaxy: i32,
-    pub ship: u8,
     pub id: u8,
-    /// The id of the previous [`Upgrade`]. Can be found on the orresponding [`crate::unit::Ship`]
-    /// of this [`Upgrade`].
-    pub previous_upgrade: Option<u8>,
+    upgrades: [Option<Upgrade>; 256],
+    upgrade_max: usize,
     pub name: String,
     pub cost_energy: f64,
     pub cost_ion: f64,
@@ -41,13 +40,13 @@ pub struct Upgrade {
     pub weapon_load: f64,
 }
 
-impl Upgrade {
-    pub fn new(id: u8, galaxy: i32, ship: u8, reader: &mut dyn PacketReader) -> Self {
+impl Ship {
+    pub fn new(id: u8, galaxy: i32, reader: &mut dyn PacketReader) -> Self {
         Self {
             id,
             galaxy,
-            ship,
-            previous_upgrade: reader.read_nullable_byte(),
+            upgrades: core::array::from_fn(|_| None),
+            upgrade_max: 0,
             name: reader.read_string(),
             cost_energy: reader.read_4s(2.0),
             cost_ion: reader.read_4s(2.0),
@@ -80,5 +79,18 @@ impl Upgrade {
             weapon_time: reader.read_4s(2.0),
             weapon_load: reader.read_4s(2.0),
         }
+    }
+
+    pub(crate) fn read_upgrade(&mut self, id: u8, reader: &mut dyn PacketReader) {
+        let index = usize::from(id);
+        self.upgrades[index] = Some(Upgrade::new(id, self.galaxy, self.id, reader));
+        if self.upgrade_max < index + 1 {
+            self.upgrade_max = index + 1;
+        }
+    }
+
+    #[inline]
+    pub fn get_upgrade(&self, id: u8) -> Option<&Upgrade> {
+        self.upgrades[usize::from(id)].as_ref()
     }
 }
