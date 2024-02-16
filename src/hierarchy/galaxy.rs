@@ -152,7 +152,9 @@ impl Galaxy {
                     let cluster_id = ClusterId::from(packet.header().param0());
                     self.clusters.set(
                         cluster_id,
-                        packet.read(|reader| Cluster::new(cluster_id, self.id, reader)),
+                        packet.read(|reader| {
+                            Cluster::new(cluster_id, self.id, self.connection.clone(), reader)
+                        }),
                     );
                     Ok(Some(FlattiverseEvent::ClusterUpdated {
                         galaxy: self.id,

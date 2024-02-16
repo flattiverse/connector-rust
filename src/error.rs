@@ -1,3 +1,5 @@
+use crate::network::Packet;
+use num_enum::FromPrimitive;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, thiserror::Error)]
@@ -22,6 +24,26 @@ impl GameError {
     #[inline]
     pub fn kind(&self) -> GameErrorKind {
         self.code
+    }
+
+    pub(crate) fn check<T>(
+        mut packet: Packet,
+        f: impl FnOnce(Packet) -> Result<T, GameError>,
+    ) -> Result<T, GameError> {
+        if packet.header().command() == 0xFF {
+            Err(
+                GameError::from(GameErrorKind::from_primitive(packet.header().command()))
+                    .with_info_opt({
+                        if packet.header().size() > 0 {
+                            Some(packet.read(|reader| reader.read_string()))
+                        } else {
+                            None
+                        }
+                    }),
+            )
+        } else {
+            f(packet)
+        }
     }
 }
 

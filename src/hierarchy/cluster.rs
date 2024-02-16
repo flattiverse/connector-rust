@@ -1,9 +1,10 @@
-use crate::hierarchy::{GlaxyId, Region, RegionId};
-use crate::network::PacketReader;
-use crate::{Indexer, NamedUnit, UniversalHolder};
+use crate::hierarchy::{ClusterConfig, GlaxyId, Region, RegionConfig, RegionId};
+use crate::network::{ConnectionHandle, PacketReader};
+use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
-pub struct ClusterId(u8);
+pub struct ClusterId(pub(crate) u8);
 
 impl Indexer for ClusterId {
     #[inline]
@@ -17,17 +18,50 @@ pub struct Cluster {
     galaxy: GlaxyId,
     name: String,
     regions: UniversalHolder<RegionId, Region>,
+    connection: ConnectionHandle,
 }
 
 impl Cluster {
     #[inline]
-    pub fn new(id: impl Into<ClusterId>, galaxy: GlaxyId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(
+        id: impl Into<ClusterId>,
+        galaxy: GlaxyId,
+        connection: ConnectionHandle,
+        reader: &mut dyn PacketReader,
+    ) -> Self {
         Self {
             id: id.into(),
             galaxy,
+            connection,
             name: reader.read_string(),
             regions: UniversalHolder::with_capacity(256),
         }
+    }
+
+    /// Sets the given values for this [`Cluster`].
+    /// See also [`ConnectionHandle::configure_cluster`].
+    pub async fn configure(
+        &self,
+        config: &ClusterConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .configure_cluster_split(self.id, config)
+            .await
+    }
+
+    /// Removes this [`Cluster`].
+    /// See also [`ConnectionHandle::remove_cluster`].
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.remove_cluster_split(self.id).await
+    }
+
+    /// Creates a [`Region`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_region`].
+    pub async fn create_region(
+        &self,
+        config: &RegionConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_region_split(self.id, config).await
     }
 
     #[inline]

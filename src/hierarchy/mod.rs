@@ -6,3 +6,9 @@ pub use cluster::*;
 
 mod region;
 pub use region::*;
+
+mod cluster_config;
+pub use cluster_config::*;
+
+mod region_config;
+pub use region_config::*;

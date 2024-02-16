@@ -1,5 +1,6 @@
 use crate::hierarchy::ClusterId;
 use crate::hierarchy::GlaxyId;
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::{Indexer, NamedUnit};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
@@ -12,15 +13,37 @@ impl Indexer for RegionId {
     }
 }
 
-#[derive(Debug)]
 pub struct Region {
-    pub(crate) galaxy: GlaxyId,
-    pub(crate) cluster: ClusterId,
-    pub(crate) id: RegionId,
-    pub(crate) name: String,
+    galaxy: GlaxyId,
+    cluster: ClusterId,
+    id: RegionId,
+    name: String,
+    start_probability: f64,
+    respawn_probability: f64,
+    protected: bool,
+    connection: ConnectionHandle,
 }
 
 impl Region {
+    pub fn new(
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        id: RegionId,
+        connection: ConnectionHandle,
+        reader: &mut dyn PacketReader,
+    ) -> Self {
+        Self {
+            galaxy,
+            cluster,
+            id,
+            name: reader.read_string(),
+            start_probability: reader.read_2u(100.0),
+            respawn_probability: reader.read_2u(100.0),
+            protected: reader.read_boolean(),
+            connection,
+        }
+    }
+
     #[inline]
     pub fn galaxy(&self) -> GlaxyId {
         self.galaxy
@@ -39,6 +62,21 @@ impl Region {
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    #[inline]
+    pub fn start_probability(&self) -> f64 {
+        self.start_probability
+    }
+
+    #[inline]
+    pub fn respawn_probability(&self) -> f64 {
+        self.respawn_probability
+    }
+
+    #[inline]
+    pub fn protected(&self) -> bool {
+        self.protected
     }
 }
 
