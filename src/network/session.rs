@@ -40,10 +40,6 @@ impl SessionHandler {
             error!("Did not find Session for id={id}")
         }
     }
-
-    pub fn terminate_connection(&mut self) {
-        self.sessions.iter_mut().for_each(|s| *s = None);
-    }
 }
 
 pub struct Session {
