@@ -215,8 +215,13 @@ impl Galaxy {
                     }))
                 }
 
-                cmd => Err(GameError::from(GameErrorKind::Unspecified(0))
-                    .with_info(format!("Unexpected command={cmd} for {:?}", self.id))),
+                cmd => Err(
+                    GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
+                        "Unexpected command={cmd} for {:?}, header={:?}",
+                        self.id,
+                        packet.header()
+                    )),
+                ),
             }
         }
     }
@@ -359,6 +364,11 @@ impl Galaxy {
     #[inline]
     pub fn players(&self) -> &UniversalHolder<PlayerId, Player> {
         &self.players
+    }
+
+    #[inline]
+    pub fn connection(&self) -> &ConnectionHandle {
+        &self.connection
     }
 
     #[inline]

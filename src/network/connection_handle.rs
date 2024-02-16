@@ -1,5 +1,7 @@
 use crate::network::{Packet, Session, SessionHandler};
+use crate::{GameError, GameErrorKind};
 use async_channel::Sender;
+use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -19,6 +21,36 @@ impl From<Sender<SenderData>> for ConnectionHandle {
 }
 
 impl ConnectionHandle {
+    #[inline]
+    pub async fn is_even(&mut self, number: i32) -> Result<bool, GameError> {
+        self.is_even_split(number).await?.await
+    }
+
+    pub async fn is_even_split(
+        &mut self,
+        number: i32,
+    ) -> Result<impl Future<Output = Result<bool, GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x55);
+        packet.write(|writer| {
+            writer.write_int32(number);
+        });
+
+        let session = self
+            .send_packet_on_new_session(packet)
+            .await
+            .map_err(|_| GameError::from(GameErrorKind::ConnectionClosed))?;
+
+        Ok(async move {
+            let response = session
+                .receiver
+                .recv()
+                .await
+                .map_err(|_| GameError::from(GameErrorKind::ConnectionClosed))?;
+            Ok(response.header().param0() != 0)
+        })
+    }
+
     pub async fn send_packet_on_new_session(
         &mut self,
         mut packet: Packet,

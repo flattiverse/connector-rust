@@ -18,6 +18,11 @@ impl GameError {
         self.info = info;
         self
     }
+
+    #[inline]
+    pub fn kind(&self) -> GameErrorKind {
+        self.code
+    }
 }
 
 impl From<GameErrorKind> for GameError {

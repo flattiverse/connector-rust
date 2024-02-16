@@ -20,6 +20,7 @@ impl SessionHandler {
         self.sessions
             .iter_mut()
             .enumerate()
+            .skip(1) // TODo session id of 0 is not allowed
             .filter(|(_, s)| s.is_none())
             .find_map(|(id, slot)| {
                 let (sender, receiver) = unbounded();
@@ -46,8 +47,8 @@ impl SessionHandler {
 }
 
 pub struct Session {
-    id: SessionId,
-    receiver: Receiver<Packet>,
+    pub(crate) id: SessionId,
+    pub(crate) receiver: Receiver<Packet>,
 }
 
 impl Session {

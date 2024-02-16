@@ -1,5 +1,5 @@
 use crate::network::{PacketHeader, PacketReader, PacketWriter};
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 
 pub const SERVER_DEFAULT_PACKET_SIZE: usize = 1048; // yes 10_48_
 
@@ -39,6 +39,7 @@ impl Default for Packet {
     #[inline]
     fn default() -> Self {
         let mut bytes = BytesMut::with_capacity(SERVER_DEFAULT_PACKET_SIZE);
+        bytes.put_bytes(0, PacketHeader::SIZE);
         let header_btytes = bytes.split_to(PacketHeader::SIZE);
         Self::new(PacketHeader::from(header_btytes), bytes)
     }

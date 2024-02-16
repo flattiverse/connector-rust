@@ -1,6 +1,6 @@
 use bytes::BytesMut;
+use std::fmt::{Debug, Formatter};
 
-#[derive(Debug)]
 pub struct PacketHeader(BytesMut);
 
 impl From<BytesMut> for PacketHeader {
@@ -14,6 +14,21 @@ impl From<BytesMut> for PacketHeader {
             Self::SIZE
         );
         Self(value)
+    }
+}
+
+impl Debug for PacketHeader {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PacketHeader")
+            .field("command", &self.command())
+            .field("session", &self.session())
+            .field("player", &self.player())
+            .field("controllable", &self.controllable())
+            .field("param", &self.param())
+            .field("param0", &self.param0())
+            .field("param1", &self.param1())
+            .field("size", &self.size())
+            .finish()
     }
 }
 
@@ -55,7 +70,7 @@ impl PacketHeader {
     }
 
     #[inline]
-    pub fn seet_controllable(&mut self, controllable: u8) {
+    pub fn set_controllable(&mut self, controllable: u8) {
         self.0[3] = controllable;
     }
 
