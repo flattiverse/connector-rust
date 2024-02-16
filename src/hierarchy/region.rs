@@ -1,10 +1,11 @@
-use crate::hierarchy::ClusterId;
 use crate::hierarchy::GlaxyId;
+use crate::hierarchy::{ClusterId, RegionConfig};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::{Indexer, NamedUnit};
+use crate::{GameError, Indexer, NamedUnit};
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
-pub struct RegionId(u8);
+pub struct RegionId(pub(crate) u8);
 
 impl Indexer for RegionId {
     #[inline]
@@ -42,6 +43,25 @@ impl Region {
             protected: reader.read_boolean(),
             connection,
         }
+    }
+
+    /// Sets the given values for this [`Region`].
+    /// See also [`ConnectionHandle::configure_region`].
+    #[inline]
+    pub async fn configure(
+        &self,
+        config: &RegionConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .configure_region_split(self.id, config)
+            .await
+    }
+
+    /// Removes this [`Region`].
+    /// See also [`ConnectionHandle::remove_region`].
+    #[inline]
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.remove_region_split(self.id).await
     }
 
     #[inline]

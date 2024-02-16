@@ -1,4 +1,4 @@
-use crate::hierarchy::{ClusterConfig, ClusterId, RegionConfig};
+use crate::hierarchy::{ClusterConfig, ClusterId, RegionConfig, RegionId};
 use crate::network::{Packet, Session, SessionHandler};
 use crate::{GameError, GameErrorKind};
 use async_channel::{RecvError, SendError, Sender};
@@ -43,7 +43,7 @@ impl ConnectionHandle {
         })
     }
 
-    /// Sets the given values for the given [`Cluster`].
+    /// Sets the given values for the given [`crate::hierarchy::Cluster`].
     #[inline]
     pub async fn configure_cluster(
         &self,
@@ -53,7 +53,7 @@ impl ConnectionHandle {
         self.configure_cluster_split(cluster, config).await?.await
     }
 
-    /// Sets the given values for the given [`Cluster`].
+    /// Sets the given values for the given [`crate::hierarchy::Cluster`].
     pub async fn configure_cluster_split(
         &self,
         cluster: ClusterId,
@@ -72,7 +72,31 @@ impl ConnectionHandle {
         })
     }
 
-    /// Creates a [`Region`] with the given values for the given [`Cluster`].
+    /// Removes the given [`crate::hierarchy::Cluster`]
+    #[inline]
+    pub async fn remove_cluster(&self, cluster: ClusterId) -> Result<(), GameError> {
+        self.remove_cluster_split(cluster).await?.await
+    }
+
+    /// Removes the given [`crate::hierarchy::Cluster`]
+    pub async fn remove_cluster_split(
+        &self,
+        cluster: ClusterId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x43);
+        packet.header_mut().set_param0(cluster.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Creates a [`crate::hierarchy::Region`] with the given values for the given
+    /// [`crate::hierarchy::Cluster`].
     #[inline]
     pub async fn create_region(
         &self,
@@ -82,7 +106,8 @@ impl ConnectionHandle {
         self.create_region_split(cluster, config).await?.await
     }
 
-    /// Creates a [`Region`] with the given values for the given [`Cluster`].
+    /// Creates a [`crate::hierarchy::Region`] with the given values for the given
+    /// [`crate::hierarchy::Cluster`].
     pub async fn create_region_split(
         &self,
         cluster: ClusterId,
@@ -101,24 +126,54 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the given values for the given [`crate::hierarchy::Region`].
     #[inline]
-    pub async fn remove_cluster(&self, cluster: ClusterId) -> Result<(), GameError> {
-        self.remove_cluster_split(cluster).await?.await
+    pub async fn configure_region(
+        &self,
+        region: RegionId,
+        config: &RegionConfig,
+    ) -> Result<(), GameError> {
+        self.configure_region_split(region, config).await?.await
     }
 
-    pub async fn remove_cluster_split(
+    /// Sets the given values for the given [`crate::hierarchy::Region`].
+    pub async fn configure_region_split(
         &self,
-        cluster: ClusterId,
+        region: RegionId,
+        config: &RegionConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
-        packet.header_mut().set_command(0x43);
-        packet.header_mut().set_param0(cluster.0);
+        packet.header_mut().set_command(0x45);
+        packet.header_mut().set_param0(region.0);
+        packet.write(|writer| config.write_to(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
             let response = session.receiver.recv().await?;
             GameError::check(response, |_| Ok(()))
+        })
+    }
+    /// Removes the given [`crate::hierarchy::Region`]
+    #[inline]
+    pub async fn remove_region(&self, region: RegionId) -> Result<(), GameError> {
+        self.remove_region_split(region).await?.await
+    }
+
+    /// Removes the given [`crate::hierarchy::Region`]
+    pub async fn remove_region_split(
+        &self,
+        region: RegionId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x46);
+        packet.header_mut().set_param0(region.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let respones = session.receiver.recv().await?;
+            GameError::check(respones, |_| Ok(()))
         })
     }
 
