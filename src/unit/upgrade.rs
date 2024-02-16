@@ -1,6 +1,7 @@
+use crate::hierarchy::GlaxyId;
 use crate::network::PacketReader;
 use crate::unit::ShipId;
-use crate::{GlaxyId, Indexer, NamedUnit};
+use crate::{Indexer, NamedUnit};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct UpgradeId(u8);
@@ -62,8 +63,8 @@ impl Upgrade {
             id: id.into(),
             galaxy,
             ship,
-            previous_upgrade: reader.read_nullable_byte().map(UpgradeId),
             name: reader.read_string(),
+            previous_upgrade: reader.read_nullable_byte().map(UpgradeId),
             cost_energy: reader.read_2u(1.0),
             cost_ion: reader.read_2u(100.0),
             cost_iron: reader.read_2u(1.0),

@@ -1,5 +1,6 @@
+use crate::hierarchy::{GlaxyId, Region, RegionId};
 use crate::network::PacketReader;
-use crate::{GlaxyId, Indexer, NamedUnit};
+use crate::{Indexer, NamedUnit, UniversalHolder};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct ClusterId(u8);
@@ -11,11 +12,11 @@ impl Indexer for ClusterId {
     }
 }
 
-#[derive(Debug)]
 pub struct Cluster {
     id: ClusterId,
     galaxy: GlaxyId,
     name: String,
+    regions: UniversalHolder<RegionId, Region>,
 }
 
 impl Cluster {
@@ -25,6 +26,7 @@ impl Cluster {
             id: id.into(),
             galaxy,
             name: reader.read_string(),
+            regions: UniversalHolder::with_capacity(256),
         }
     }
 
@@ -41,6 +43,11 @@ impl Cluster {
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    #[inline]
+    pub fn regions(&self) -> &UniversalHolder<RegionId, Region> {
+        &self.regions
     }
 }
 

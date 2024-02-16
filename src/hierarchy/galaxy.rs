@@ -1,12 +1,13 @@
-use crate::cluster::Cluster;
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::game_type::GameType;
+use crate::hierarchy::Cluster;
+use crate::hierarchy::ClusterId;
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::{Ship, ShipId, UpgradeId};
-use crate::{ClusterId, PlayerId, PlayerKind, TeamId, UniversalHolder};
+use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder};
 use async_channel::Receiver;
 use num_enum::FromPrimitive;
 

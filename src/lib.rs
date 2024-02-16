@@ -4,17 +4,14 @@ extern crate log;
 pub use async_channel;
 pub use tokio;
 
-mod network;
-mod unit;
+pub mod hierarchy;
+pub mod network;
+pub mod unit;
 
-mod cluster;
-pub use cluster::*;
 mod error;
 pub use error::*;
 mod events;
 pub use events::*;
-mod galaxy;
-pub use galaxy::*;
 mod game_type;
 pub use game_type::*;
 mod player;

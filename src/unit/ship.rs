@@ -1,6 +1,7 @@
+use crate::hierarchy::GlaxyId;
 use crate::network::PacketReader;
 use crate::unit::{Upgrade, UpgradeId};
-use crate::{GlaxyId, Indexer, NamedUnit, UniversalHolder};
+use crate::{Indexer, NamedUnit, UniversalHolder};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct ShipId(u8);
@@ -16,7 +17,6 @@ pub struct Ship {
     galaxy: GlaxyId,
     id: ShipId,
     upgrades: UniversalHolder<UpgradeId, Upgrade>,
-    upgrade_max: usize,
     name: String,
     cost_energy: f64,
     cost_ion: f64,
@@ -56,7 +56,6 @@ impl Ship {
             id: id.into(),
             galaxy,
             upgrades: UniversalHolder::with_capacity(256),
-            upgrade_max: 0,
             name: reader.read_string(),
             cost_energy: reader.read_2u(1.0),
             cost_ion: reader.read_2u(100.0),
@@ -94,9 +93,6 @@ impl Ship {
     pub(crate) fn read_upgrade(&mut self, id: UpgradeId, reader: &mut dyn PacketReader) {
         self.upgrades
             .set(id, Upgrade::new(id, self.galaxy, self.id, reader));
-        if self.upgrade_max < id.index() + 1 {
-            self.upgrade_max = id.index() + 1;
-        }
     }
 
     #[inline]

@@ -1,5 +1,7 @@
+use crate::hierarchy::ClusterId;
+use crate::hierarchy::GlaxyId;
 use crate::unit::{ShipId, UpgradeId};
-use crate::{ClusterId, GlaxyId, PlayerId, TeamId};
+use crate::{PlayerId, TeamId};
 use std::time::Duration;
 
 #[derive(Debug)]
