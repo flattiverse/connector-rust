@@ -109,7 +109,7 @@ impl PacketReader for BytesMut {
     }
 
     fn read_string(&mut self) -> String {
-        let length = self.read_int16();
+        let length = self.read_byte();
         let length = length as usize;
         let string = String::from_utf8((&self[..length]).to_vec());
         self.advance(length);

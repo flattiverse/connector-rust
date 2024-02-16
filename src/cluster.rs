@@ -1,18 +1,38 @@
 use crate::network::PacketReader;
+use crate::GlaxyId;
+
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
+pub struct ClusterId(pub(crate) u8);
 
 #[derive(Debug)]
 pub struct Cluster {
-    pub id: u8,
-    pub galaxy: i32,
-    pub name: String,
+    id: ClusterId,
+    galaxy: GlaxyId,
+    name: String,
 }
 
 impl Cluster {
-    pub fn new(id: u8, galaxy: i32, reader: &mut dyn PacketReader) -> Self {
+    #[inline]
+    pub fn new(id: impl Into<ClusterId>, galaxy: GlaxyId, reader: &mut dyn PacketReader) -> Self {
         Self {
-            id,
+            id: id.into(),
             galaxy,
             name: reader.read_string(),
         }
+    }
+
+    #[inline]
+    pub fn id(&self) -> ClusterId {
+        self.id
+    }
+
+    #[inline]
+    pub fn galaxy(&self) -> GlaxyId {
+        self.galaxy
+    }
+
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }

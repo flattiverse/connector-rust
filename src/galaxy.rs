@@ -5,43 +5,46 @@ use crate::game_type::GameType;
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
-use crate::unit::Ship;
-use crate::PlayerKind;
+use crate::unit::{Ship, ShipId, UpgradeId};
+use crate::{ClusterId, PlayerId, PlayerKind, TeamId};
 use async_channel::Receiver;
 use nohash_hasher::BuildNoHashHasher;
 use num_enum::FromPrimitive;
 use std::collections::HashMap;
 use std::io::Write;
 
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
+pub struct GlaxyId(pub(crate) u16);
+
 pub struct Galaxy {
-    id: i32,
+    id: GlaxyId,
     name: String,
     description: String,
     game_type: GameType,
-    max_players: i32,
+    max_players: u8,
 
-    max_platforms_universe: i32,
-    max_probes_universe: i32,
-    max_drones_universe: i32,
-    max_ships_universe: i32,
-    max_bases_universe: i32,
+    max_platforms_universe: u16,
+    max_probes_universe: u16,
+    max_drones_universe: u16,
+    max_ships_universe: u16,
+    max_bases_universe: u16,
 
-    max_platforms_team: i32,
-    max_probes_team: i32,
-    max_drones_team: i32,
-    max_ships_team: i32,
-    max_bases_team: i32,
+    max_platforms_team: u16,
+    max_probes_team: u16,
+    max_drones_team: u16,
+    max_ships_team: u16,
+    max_bases_team: u16,
 
-    max_platforms_player: i32,
-    max_probes_player: i32,
-    max_drones_player: i32,
-    max_ships_player: i32,
-    max_bases_player: i32,
+    max_platforms_player: u8,
+    max_probes_player: u8,
+    max_drones_player: u8,
+    max_ships_player: u8,
+    max_bases_player: u8,
 
     clusters: Vec<Option<Cluster>>,
     ships: Vec<Option<Ship>>,
     teams: Vec<Option<Team>>,
-    players: HashMap<u8, Player, BuildNoHashHasher<u8>>,
+    players: HashMap<PlayerId, Player, BuildNoHashHasher<u8>>,
 
     //
     connection: ConnectionHandle,
@@ -67,7 +70,7 @@ impl Galaxy {
             connection: handle,
             receiver,
 
-            id: 0,
+            id: GlaxyId(0),
             name: String::default(),
             description: String::default(),
             game_type: GameType::Mission,
@@ -152,36 +155,15 @@ impl Galaxy {
             match packet.header().command() {
                 // galaxy info
                 0x10 => {
-                    self.id = packet.header().param().into();
-                    packet.read(|reader| {
-                        self.name = reader.read_string();
-                        self.description = reader.read_string();
-                        self.game_type = GameType::from_primitive(reader.read_byte());
-                        self.max_players = reader.read_int32();
-                        self.max_platforms_universe = reader.read_int32();
-                        self.max_probes_universe = reader.read_int32();
-                        self.max_drones_universe = reader.read_int32();
-                        self.max_ships_universe = reader.read_int32();
-                        self.max_bases_universe = reader.read_int32();
-                        self.max_platforms_team = reader.read_int32();
-                        self.max_probes_team = reader.read_int32();
-                        self.max_drones_team = reader.read_int32();
-                        self.max_ships_team = reader.read_int32();
-                        self.max_bases_team = reader.read_int32();
-                        self.max_platforms_player = reader.read_int32();
-                        self.max_probes_player = reader.read_int32();
-                        self.max_drones_player = reader.read_int32();
-                        self.max_ships_player = reader.read_int32();
-                        self.max_bases_player = reader.read_int32();
-                    });
+                    self.update(packet);
                     Ok(Some(FlattiverseEvent::GalaxyUpdated(self.id)))
                 }
                 // cluster info
                 0x11 => {
-                    let cluster_id = packet.header().param0();
+                    let cluster_id = ClusterId::from(packet.header().param0());
                     let cluster = packet.read(|reader| Cluster::new(cluster_id, self.id, reader));
                     {
-                        let cluster_id = usize::from(cluster_id);
+                        let cluster_id = usize::from(cluster_id.0);
                         self.clusters[cluster_id] = Some(cluster);
                     }
                     Ok(Some(FlattiverseEvent::ClusterUpdated {
@@ -192,10 +174,10 @@ impl Galaxy {
 
                 // team info
                 0x12 => {
-                    let team_id = packet.header().param0();
+                    let team_id = TeamId::from(packet.header().param0());
                     let team = packet.read(|reader| Team::new(team_id, reader));
                     {
-                        let team_id = usize::from(team_id);
+                        let team_id = usize::from(team_id.0);
                         self.teams[team_id] = Some(team);
                     }
                     Ok(Some(FlattiverseEvent::TeamUpdated {
@@ -206,10 +188,10 @@ impl Galaxy {
 
                 // ship info
                 0x13 => {
-                    let ship_id = packet.header().param0();
+                    let ship_id = ShipId::from(packet.header().param0());
                     let ship = packet.read(|reader| Ship::new(ship_id, self.id, reader));
                     {
-                        let ship_id = usize::from(ship_id);
+                        let ship_id = usize::from(ship_id.0);
                         self.ships[ship_id] = Some(ship);
                     }
                     Ok(Some(FlattiverseEvent::ShipUpdated {
@@ -220,9 +202,9 @@ impl Galaxy {
 
                 // upgrade info
                 0x14 => {
-                    let upgrade_id = packet.header().param0();
-                    let ship_id = packet.header().param1();
-                    if let Some(ship) = &mut self.ships[usize::from(ship_id)] {
+                    let upgrade_id = UpgradeId::from(packet.header().param0());
+                    let ship_id = ShipId::from(packet.header().param1());
+                    if let Some(ship) = &mut self.ships[usize::from(ship_id.0)] {
                         packet.read(|reader| ship.read_upgrade(upgrade_id, reader));
                         Ok(Some(FlattiverseEvent::UpgradeUpdated {
                             galaxy: self.id,
@@ -232,7 +214,7 @@ impl Galaxy {
                     } else {
                         Err(
                             GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
-                                "Tried to update Upgrade of ship={ship_id} that does not exist"
+                                "Tried to update Upgrade of {ship_id:?} that does not exist"
                             )),
                         )
                     }
@@ -240,8 +222,8 @@ impl Galaxy {
 
                 // new player joined info
                 0x15 => {
-                    let player_id = packet.header().player();
-                    let team_id = packet.header().param1();
+                    let player_id = PlayerId::from(packet.header().player());
+                    let team_id = TeamId::from(packet.header().param1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
                     let player =
                         packet.read(|reader| Player::new(player_id, player_kind, team_id, reader));
@@ -253,9 +235,129 @@ impl Galaxy {
                 }
 
                 cmd => Err(GameError::from(GameErrorKind::Unspecified(0))
-                    .with_info(format!("Unexpected command={cmd} for Galaxy={}", self.id))),
+                    .with_info(format!("Unexpected command={cmd} for {:?}", self.id))),
             }
         }
+    }
+
+    fn update(&mut self, mut packet: Packet) {
+        self.id = packet.header().param().into();
+        packet.read(|reader| {
+            self.name = reader.read_string();
+            self.description = reader.read_string();
+            self.game_type = GameType::from_primitive(reader.read_byte());
+            self.max_players = reader.read_byte();
+            self.max_platforms_universe = reader.read_uint16();
+            self.max_probes_universe = reader.read_uint16();
+            self.max_drones_universe = reader.read_uint16();
+            self.max_ships_universe = reader.read_uint16();
+            self.max_bases_universe = reader.read_uint16();
+            self.max_platforms_team = reader.read_uint16();
+            self.max_probes_team = reader.read_uint16();
+            self.max_drones_team = reader.read_uint16();
+            self.max_ships_team = reader.read_uint16();
+            self.max_bases_team = reader.read_uint16();
+            self.max_platforms_player = reader.read_byte();
+            self.max_probes_player = reader.read_byte();
+            self.max_drones_player = reader.read_byte();
+            self.max_ships_player = reader.read_byte();
+            self.max_bases_player = reader.read_byte();
+        });
+    }
+
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[inline]
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    #[inline]
+    pub fn game_type(&self) -> GameType {
+        self.game_type
+    }
+
+    #[inline]
+    pub fn max_players(&self) -> u8 {
+        self.max_players
+    }
+
+    #[inline]
+    pub fn max_platforms_universe(&self) -> u16 {
+        self.max_platforms_universe
+    }
+
+    #[inline]
+    pub fn max_probes_universe(&self) -> u16 {
+        self.max_probes_universe
+    }
+
+    #[inline]
+    pub fn max_drones_universe(&self) -> u16 {
+        self.max_drones_universe
+    }
+
+    #[inline]
+    pub fn max_ships_universe(&self) -> u16 {
+        self.max_ships_universe
+    }
+
+    #[inline]
+    pub fn max_bases_universe(&self) -> u16 {
+        self.max_bases_universe
+    }
+
+    #[inline]
+    pub fn max_platforms_team(&self) -> u16 {
+        self.max_platforms_team
+    }
+
+    #[inline]
+    pub fn max_probes_team(&self) -> u16 {
+        self.max_probes_team
+    }
+
+    #[inline]
+    pub fn max_drones_team(&self) -> u16 {
+        self.max_drones_team
+    }
+
+    #[inline]
+    pub fn max_ships_team(&self) -> u16 {
+        self.max_ships_team
+    }
+
+    #[inline]
+    pub fn max_bases_team(&self) -> u16 {
+        self.max_bases_team
+    }
+
+    #[inline]
+    pub fn max_platforms_player(&self) -> u8 {
+        self.max_platforms_player
+    }
+
+    #[inline]
+    pub fn max_probes_player(&self) -> u8 {
+        self.max_probes_player
+    }
+
+    #[inline]
+    pub fn max_drones_player(&self) -> u8 {
+        self.max_drones_player
+    }
+
+    #[inline]
+    pub fn max_ships_player(&self) -> u8 {
+        self.max_ships_player
+    }
+
+    #[inline]
+    pub fn max_bases_player(&self) -> u8 {
+        self.max_bases_player
     }
 
     #[inline]

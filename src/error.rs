@@ -55,7 +55,11 @@ impl Display for GameError {
     num_enum::IntoPrimitive,
 )]
 pub enum GameErrorKind {
-    #[error("An unknown error occurred while connecting to the flattiverse server")]
+    #[error("The reqquested element doesn't exist or can't be accessed.")]
+    ElementDoesntExist = 0x30,
+    #[error("Unauthorized request. You prorbaly aren't the right kind of client: Player, Spectator or Admin.")]
+    CommandDoesntExist = 0xE0,
+    #[error("An unknown error occurred while connecting to the flattiverse server.")]
     UnspecifiedConnectionIssue = 0xF0,
     #[error(
         "Couldn't connect to the universe server. Are you online? Is flattiverse still online?"

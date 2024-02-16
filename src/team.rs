@@ -1,22 +1,51 @@
 use crate::network::PacketReader;
 
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, derive_more::From)]
+pub struct TeamId(pub(crate) u8);
+
 #[derive(Debug)]
 pub struct Team {
-    pub id: u8,
-    pub name: String,
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
+    id: TeamId,
+    name: String,
+    red: u8,
+    green: u8,
+    blue: u8,
 }
 
 impl Team {
-    pub fn new(id: u8, reader: &mut dyn PacketReader) -> Self {
+    #[inline]
+    pub fn new(id: impl Into<TeamId>, reader: &mut dyn PacketReader) -> Self {
         Self {
-            id,
+            id: id.into(),
             name: reader.read_string(),
             red: reader.read_byte(),
             green: reader.read_byte(),
             blue: reader.read_byte(),
         }
+    }
+
+    #[inline]
+    pub fn id(&self) -> TeamId {
+        self.id
+    }
+
+    #[inline]
+    pub fn name(&self) -> &str {
+        &&self.name
+    }
+
+    #[inline]
+    pub fn red(&self) -> u8 {
+        self.red
+    }
+
+    #[inline]
+    pub fn green(&self) -> u8 {
+        self.green
+    }
+
+    #[inline]
+    pub fn blue(&self) -> u8 {
+        self.blue
     }
 }

@@ -110,7 +110,7 @@ impl PacketWriter for BytesMut {
 
     fn write_string(&mut self, text: &str) {
         let bytes = text.as_bytes();
-        self.write_int16(bytes.len() as _);
+        self.write_byte(bytes.len() as _);
         self.put_slice(bytes);
     }
 
