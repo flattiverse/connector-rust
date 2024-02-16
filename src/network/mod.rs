@@ -38,7 +38,7 @@ pub use session::*;
 use crate::error::GameError;
 
 pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, ConnectError> {
-    let team = Some(team).filter(|t| *t > 31);
+    let team = Some(team).filter(|t| *t < 32);
     let url = format!(
         "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}",
         PROTOCOL_VERSION,

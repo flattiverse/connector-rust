@@ -37,7 +37,6 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
                 move |msg: MessageEvent| {
-                    console_log!("{msg:?}");
                     let array = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
                         Uint8Array::new(&buffer)
                     } else if let Ok(blob) = msg.data().dyn_into::<Blob>() {

@@ -51,8 +51,6 @@ pub struct Galaxy {
 
 impl Galaxy {
     pub async fn join(uri: &str, auth: &str, team: u8) -> Result<Self, GameError> {
-        eprintln!("lol");
-        std::io::stderr().flush().unwrap();
         let connection = crate::network::connect(uri, auth, team)
             .await
             .map_err(|e| match e {
@@ -61,8 +59,6 @@ impl Galaxy {
                     .with_info(format!("Failed to connect due to local issues: {e}")),
             })?;
         let (handle, receiver) = connection.spawn();
-        eprintln!("lol");
-        std::io::stderr().flush().unwrap();
 
         Ok(Self {
             connection: handle,
@@ -343,6 +339,26 @@ impl Galaxy {
     #[inline]
     pub fn max_bases_player(&self) -> u8 {
         self.max_bases_player
+    }
+
+    #[inline]
+    pub fn clusters(&self) -> &UniversalHolder<ClusterId, Cluster> {
+        &self.clusters
+    }
+
+    #[inline]
+    pub fn ships(&self) -> &UniversalHolder<ShipId, Ship> {
+        &self.ships
+    }
+
+    #[inline]
+    pub fn teams(&self) -> &UniversalHolder<TeamId, Team> {
+        &self.teams
+    }
+
+    #[inline]
+    pub fn players(&self) -> &UniversalHolder<PlayerId, Player> {
+        &self.players
     }
 
     #[inline]
