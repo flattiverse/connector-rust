@@ -1,7 +1,7 @@
 use crate::network::PacketWriter;
 use crate::{Upgrade, UpgradeId};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct UpgradeConfig {
     pub name: String,
     pub previous_upgrade: Option<UpgradeId>,
@@ -77,7 +77,7 @@ impl From<&Upgrade> for UpgradeConfig {
 }
 
 impl UpgradeConfig {
-    pub fn write_to(&self, writer: &mut dyn PacketWriter) {
+    pub(crate) fn write_to(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
         writer.write_nullable_byte(self.previous_upgrade.map(|id| id.0));
         writer.write_2u(self.cost_energy, 1.0);

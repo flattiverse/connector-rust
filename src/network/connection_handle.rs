@@ -1,7 +1,8 @@
 use crate::hierarchy::{
-    ClusterConfig, ClusterId, RegionConfig, RegionId, TeamConfig, UpgradeConfig,
+    ClusterConfig, ClusterId, RegionConfig, RegionId, ShipConfig, TeamConfig, UpgradeConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
+use crate::unit::ShipId;
 use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use async_channel::{RecvError, SendError, Sender};
 use std::fmt::{Debug, Formatter};
@@ -235,6 +236,35 @@ impl ConnectionHandle {
         })
     }
 
+    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::Ship`].
+    #[inline]
+    pub async fn create_upgrade(
+        &self,
+        ship: ShipId,
+        config: &UpgradeConfig,
+    ) -> Result<(), GameError> {
+        self.create_upgrade_split(ship, config).await?.await
+    }
+
+    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::Ship`].
+    pub async fn create_upgrade_split(
+        &self,
+        ship: ShipId,
+        config: &UpgradeConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4D);
+        packet.header_mut().set_param0(ship.0);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
     /// Sets the given values for the given [`crate::Upgrade`].
     #[inline]
     pub async fn configure_upgrade(
@@ -278,6 +308,54 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4F);
         packet.header_mut().set_param0(upgrade.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sets the given values for the given [`crate::unit::Ship`].
+    #[inline]
+    pub async fn configure_ship(&self, ship: ShipId, config: &ShipConfig) -> Result<(), GameError> {
+        self.configure_ship_split(ship, config).await?.await
+    }
+
+    /// Sets the given values for the given [`crate::unit::Ship`].
+    pub async fn configure_ship_split(
+        &self,
+        ship: ShipId,
+        config: &ShipConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4B);
+        packet.header_mut().set_param0(ship.0);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Removes the given [`crate::unit::Ship`].
+    #[inline]
+    pub async fn remove_ship(&self, ship: ShipId) -> Result<(), GameError> {
+        self.remove_ship_split(ship).await?.await
+    }
+
+    /// Removes the given [`crate::unit::Ship`].
+    pub async fn remove_ship_split(
+        &self,
+        ship: ShipId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4C);
+        packet.header_mut().set_param0(ship.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 

@@ -1,7 +1,7 @@
 use crate::network::PacketWriter;
 use crate::Team;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct TeamConfig {
     pub name: String,
     pub red: u8,

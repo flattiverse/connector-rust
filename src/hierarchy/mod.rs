@@ -18,3 +18,6 @@ pub use team_config::*;
 
 mod upgrade_config;
 pub use upgrade_config::*;
+
+mod ship_config;
+pub use ship_config::*;

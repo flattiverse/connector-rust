@@ -1,7 +1,7 @@
 use crate::hierarchy::Cluster;
 use crate::network::PacketWriter;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ClusterConfig {
     pub name: String,
 }

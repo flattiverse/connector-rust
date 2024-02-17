@@ -1,9 +1,10 @@
-use crate::hierarchy::GlaxyId;
+use crate::hierarchy::{GlaxyId, ShipConfig, UpgradeConfig};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::{Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
+use crate::{GameError, Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
-pub struct ShipId(u8);
+pub struct ShipId(pub(crate) u8);
 
 impl Indexer for ShipId {
     #[inline]
@@ -47,6 +48,7 @@ pub struct Ship {
     weapon_speed: f64,
     weapon_time: f64,
     weapon_load: f64,
+    free_spawn: bool,
     connection: ConnectionHandle,
 }
 
@@ -92,6 +94,7 @@ impl Ship {
             weapon_speed: reader.read_2u(10.0),
             weapon_time: reader.read_uint16() as _,
             weapon_load: reader.read_2u(10.0),
+            free_spawn: reader.read_boolean(),
             connection,
         }
     }
@@ -101,6 +104,33 @@ impl Ship {
             id,
             Upgrade::new(id, self.galaxy, self.id, self.connection.clone(), reader),
         );
+    }
+
+    /// Sets the given values for this [`Ship`].
+    /// See also [`ConnectionHandle::configure_ship`].
+    #[inline]
+    pub async fn configure(
+        &self,
+        config: &ShipConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.configure_ship_split(self.id, config).await
+    }
+
+    /// Removes this [`Ship`].
+    /// See also [`ConnectionHandle::remove_ship`].
+    #[inline]
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.remove_ship_split(self.id).await
+    }
+
+    /// Creates an [`Upgrade`] with the given values for this [`Ship`].
+    /// See also [`ConnectionHandle::create_upgrade`]
+    #[inline]
+    pub async fn create_upgrade(
+        &self,
+        config: &UpgradeConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_upgrade_split(self.id, config).await
     }
 
     #[inline]
@@ -266,6 +296,11 @@ impl Ship {
     #[inline]
     pub fn weapon_load(&self) -> f64 {
         self.weapon_load
+    }
+
+    #[inline]
+    pub fn free_spawn(&self) -> bool {
+        self.free_spawn
     }
 
     #[inline]
