@@ -179,7 +179,6 @@ impl Galaxy {
                 // ship info
                 0x14 => {
                     let ship_id = ShipId(packet.header().id0());
-                    console_log!("Setting {ship_id:?}");
                     self.ships.set(
                         ship_id,
                         packet.read(|reader| {
@@ -196,21 +195,14 @@ impl Galaxy {
                 0x15 => {
                     let upgrade_id = UpgradeId(packet.header().id0());
                     let ship_id = ShipId(packet.header().id1());
-                    console_log!("Accessing {ship_id:?}");
-                    if self.ships.get(ship_id).is_some() {
-                        packet.read(|reader| {
-                            self.ships[ship_id].read_upgrade(upgrade_id, reader);
-                        });
-                        Ok(Some(FlattiverseEvent::UpgradeUpdated {
-                            galaxy: self.id,
-                            ship: ship_id,
-                            upgrade: upgrade_id,
-                        }))
-                    } else {
-                        // TODO this seems to be a race condition on the server side?
-                        console_log!("Ignoring Upgrade for {ship_id:?} because it is not here yet");
-                        Ok(None)
-                    }
+                    packet.read(|reader| {
+                        self.ships[ship_id].read_upgrade(upgrade_id, reader);
+                    });
+                    Ok(Some(FlattiverseEvent::UpgradeUpdated {
+                        galaxy: self.id,
+                        ship: ship_id,
+                        upgrade: upgrade_id,
+                    }))
                 }
 
                 // new player joined info
