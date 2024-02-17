@@ -21,3 +21,6 @@ pub use upgrade_config::*;
 
 mod ship_config;
 pub use ship_config::*;
+
+mod galaxy_config;
+pub use galaxy_config::*;

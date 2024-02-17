@@ -1,5 +1,6 @@
 use crate::hierarchy::{
-    ClusterConfig, ClusterId, RegionConfig, RegionId, ShipConfig, TeamConfig, UpgradeConfig,
+    ClusterConfig, ClusterId, GalaxyConfig, GlaxyId, RegionConfig, RegionId, ShipConfig,
+    TeamConfig, UpgradeConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
 use crate::unit::ShipId;
@@ -51,6 +52,57 @@ impl ConnectionHandle {
         Ok(async move {
             let response = session.receiver.recv().await?;
             Ok(response.header().param0() != 0)
+        })
+    }
+    /// Sets the given values for the given [`crate::hierarchy::Galaxy`].
+    #[inline]
+    pub async fn configure_galaxy(
+        &self,
+        galaxy: GlaxyId,
+        config: &GalaxyConfig,
+    ) -> Result<(), GameError> {
+        self.configure_galaxy_split(galaxy, config).await?.await
+    }
+
+    /// Sets the given values for the given [`crate::hierarchy::Galaxy`].
+    pub async fn configure_galaxy_split(
+        &self,
+        galaxy: GlaxyId,
+        config: &GalaxyConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x40);
+        packet.header_mut().set_param(galaxy.0);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Creates a new [`crate::hierarchy::Cluster`] for the given values.
+    #[inline]
+    pub async fn create_cluster(&self, config: &ClusterConfig) -> Result<(), GameError> {
+        self.create_cluster_split(config).await?.await
+    }
+
+    /// Creates a new [`crate::hierarchy::Cluster`] for the given values.
+    pub async fn create_cluster_split(
+        &self,
+        config: &ClusterConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x41);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
         })
     }
 
@@ -188,6 +240,29 @@ impl ConnectionHandle {
         })
     }
 
+    /// Creates a new [`crate::Team`] for the given values.
+    #[inline]
+    pub async fn create_team(&self, config: &TeamConfig) -> Result<(), GameError> {
+        self.create_team_split(config).await?.await
+    }
+
+    /// Creates a new [`crate::Team`] for the given values.
+    pub async fn create_team_split(
+        &self,
+        config: &TeamConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x47);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
     /// Sets the given values for the given [`crate::Team`].
     #[inline]
     pub async fn configure_team(&self, team: TeamId, config: &TeamConfig) -> Result<(), GameError> {
@@ -308,6 +383,29 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4F);
         packet.header_mut().set_param0(upgrade.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Creates a new [`crate::unit::Ship`] for the given values.
+    #[inline]
+    pub async fn create_ship(&self, config: &ShipConfig) -> Result<(), GameError> {
+        self.create_ship_split(config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Ship`] for the given values.
+    pub async fn create_ship_split(
+        &self,
+        config: &ShipConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4A);
+        packet.write(|writer| config.write_to(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 

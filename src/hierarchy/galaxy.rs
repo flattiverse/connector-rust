@@ -1,8 +1,8 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::game_type::GameType;
-use crate::hierarchy::Cluster;
-use crate::hierarchy::ClusterId;
+use crate::hierarchy::{Cluster, GalaxyConfig, ShipConfig, TeamConfig};
+use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
@@ -10,6 +10,7 @@ use crate::unit::{Ship, ShipId};
 use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use async_channel::Receiver;
 use num_enum::FromPrimitive;
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct GlaxyId(pub(crate) u16);
@@ -256,6 +257,48 @@ impl Galaxy {
             self.max_ships_player = reader.read_byte();
             self.max_bases_player = reader.read_byte();
         });
+    }
+
+    /// Sets the given values for this [`Galaxy`].
+    /// See also [`ConnectionHandle::configure_galaxy`].
+    #[inline]
+    pub async fn configure(
+        &self,
+        config: &GalaxyConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .configure_galaxy_split(self.id, config)
+            .await
+    }
+
+    /// Creates a [`Cluster`] within this [`Galaxy`].
+    /// See also [`ConnectionHandle::create_cluster`].
+    #[inline]
+    pub async fn create_cluster(
+        &self,
+        config: &ClusterConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_cluster_split(config).await
+    }
+
+    /// Creates a [`Team`] within this [`Galaxy`].
+    /// See also [`ConnectionHandle::create_team`].
+    #[inline]
+    pub async fn create_team(
+        &self,
+        config: &TeamConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_team_split(config).await
+    }
+
+    /// Creates a [`Ship`] within this [`Galaxy`].
+    /// See also [`ConnectionHandle::create_ship`].
+    #[inline]
+    pub async fn create_ship(
+        &self,
+        config: &ShipConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_ship_split(config).await
     }
 
     #[inline]
