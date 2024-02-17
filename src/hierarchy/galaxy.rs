@@ -52,7 +52,7 @@ pub struct Galaxy {
 }
 
 impl Galaxy {
-    pub async fn join(uri: &str, auth: &str, team: u8) -> Result<Self, GameError> {
+    pub(crate) async fn join(uri: &str, auth: &str, team: u8) -> Result<Self, GameError> {
         let connection = crate::network::connect(uri, auth, team)
             .await
             .map_err(|e| match e {
@@ -274,6 +274,16 @@ impl Galaxy {
             self.max_ships_player = reader.read_byte();
             self.max_bases_player = reader.read_byte();
         });
+    }
+
+    /// Waits for the next [`FlattiverseEvent::TickCompleted`] fo this [`Galaxy`].
+    pub async fn wait_next_turn(&mut self) -> Result<(), GameError> {
+        loop {
+            if let FlattiverseEvent::TickCompleted = self.receive().await? {
+                break;
+            }
+        }
+        Ok(())
     }
 
     /// Sets the given values for this [`Galaxy`].
