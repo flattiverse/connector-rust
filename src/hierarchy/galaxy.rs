@@ -6,8 +6,8 @@ use crate::hierarchy::ClusterId;
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
-use crate::unit::{Ship, ShipId, UpgradeId};
-use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder};
+use crate::unit::{Ship, ShipId};
+use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use async_channel::Receiver;
 use num_enum::FromPrimitive;
 
@@ -181,7 +181,9 @@ impl Galaxy {
                     let ship_id = ShipId::from(packet.header().param0());
                     self.ships.set(
                         ship_id,
-                        packet.read(|reader| Ship::new(ship_id, self.id, reader)),
+                        packet.read(|reader| {
+                            Ship::new(ship_id, self.id, self.connection.clone(), reader)
+                        }),
                     );
                     Ok(Some(FlattiverseEvent::ShipUpdated {
                         galaxy: self.id,

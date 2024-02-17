@@ -15,3 +15,6 @@ pub use region_config::*;
 
 mod team_config;
 pub use team_config::*;
+
+mod upgrade_config;
+pub use upgrade_config::*;

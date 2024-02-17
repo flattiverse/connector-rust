@@ -1,10 +1,11 @@
-use crate::hierarchy::GlaxyId;
-use crate::network::PacketReader;
+use crate::hierarchy::{GlaxyId, UpgradeConfig};
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::ShipId;
-use crate::{Indexer, NamedUnit};
+use crate::{GameError, Indexer, NamedUnit};
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
-pub struct UpgradeId(u8);
+pub struct UpgradeId(pub(crate) u8);
 
 impl Indexer for UpgradeId {
     #[inline]
@@ -18,8 +19,8 @@ pub struct Upgrade {
     galaxy: GlaxyId,
     ship: ShipId,
     id: UpgradeId,
-    previous_upgrade: Option<UpgradeId>,
     name: String,
+    previous_upgrade: Option<UpgradeId>,
     cost_energy: f64,
     cost_ion: f64,
     cost_iron: f64,
@@ -50,6 +51,7 @@ pub struct Upgrade {
     weapon_speed: f64,
     weapon_time: f64,
     weapon_load: f64,
+    connection: ConnectionHandle,
 }
 
 impl Upgrade {
@@ -57,6 +59,7 @@ impl Upgrade {
         id: impl Into<UpgradeId>,
         galaxy: GlaxyId,
         ship: ShipId,
+        connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
@@ -95,7 +98,27 @@ impl Upgrade {
             weapon_speed: reader.read_2u(10.0),
             weapon_time: reader.read_uint16() as _,
             weapon_load: reader.read_2u(10.0),
+            connection,
         }
+    }
+
+    /// Sets the given values for this [`Upgrade`].
+    /// See also [`ConnectionHandle::configure_upgrade`].
+    #[inline]
+    pub async fn configure(
+        &self,
+        config: &UpgradeConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .configure_upgrade_split(self.id, config)
+            .await
+    }
+
+    /// Removes this [`Upgrade`].
+    /// See also [`ConnectionHandle::remove_upgrade`].
+    #[inline]
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.remove_upgrade_split(self.id).await
     }
 
     #[inline]

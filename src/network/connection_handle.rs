@@ -1,6 +1,8 @@
-use crate::hierarchy::{ClusterConfig, ClusterId, RegionConfig, RegionId, TeamConfig};
+use crate::hierarchy::{
+    ClusterConfig, ClusterId, RegionConfig, RegionId, TeamConfig, UpgradeConfig,
+};
 use crate::network::{Packet, Session, SessionHandler};
-use crate::{GameError, GameErrorKind, TeamId};
+use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use async_channel::{RecvError, SendError, Sender};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -224,6 +226,58 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x49);
         packet.header_mut().set_param0(team.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sets the given values for the given [`crate::Upgrade`].
+    #[inline]
+    pub async fn configure_upgrade(
+        &self,
+        upgrade: UpgradeId,
+        config: &UpgradeConfig,
+    ) -> Result<(), GameError> {
+        self.configure_upgrade_split(upgrade, config).await?.await
+    }
+
+    /// Sets the given values for the given [`crate::Upgrade`].
+    pub async fn configure_upgrade_split(
+        &self,
+        upgrade: UpgradeId,
+        config: &UpgradeConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4E);
+        packet.header_mut().set_param0(upgrade.0);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Removes the given [`crate::Upgrade`].
+    #[inline]
+    pub async fn remove_upgrade(&self, upgrade: UpgradeId) -> Result<(), GameError> {
+        self.remove_upgrade_split(upgrade).await?.await
+    }
+
+    /// Removes the given [`crate::Upgrade`].
+    pub async fn remove_upgrade_split(
+        &self,
+        upgrade: UpgradeId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x4F);
+        packet.header_mut().set_param0(upgrade.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 

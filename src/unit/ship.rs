@@ -1,7 +1,6 @@
 use crate::hierarchy::GlaxyId;
-use crate::network::PacketReader;
-use crate::unit::{Upgrade, UpgradeId};
-use crate::{Indexer, NamedUnit, UniversalHolder};
+use crate::network::{ConnectionHandle, PacketReader};
+use crate::{Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct ShipId(u8);
@@ -48,10 +47,16 @@ pub struct Ship {
     weapon_speed: f64,
     weapon_time: f64,
     weapon_load: f64,
+    connection: ConnectionHandle,
 }
 
 impl Ship {
-    pub fn new(id: impl Into<ShipId>, galaxy: GlaxyId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(
+        id: impl Into<ShipId>,
+        galaxy: GlaxyId,
+        connection: ConnectionHandle,
+        reader: &mut dyn PacketReader,
+    ) -> Self {
         Self {
             id: id.into(),
             galaxy,
@@ -87,12 +92,15 @@ impl Ship {
             weapon_speed: reader.read_2u(10.0),
             weapon_time: reader.read_uint16() as _,
             weapon_load: reader.read_2u(10.0),
+            connection,
         }
     }
 
     pub(crate) fn read_upgrade(&mut self, id: UpgradeId, reader: &mut dyn PacketReader) {
-        self.upgrades
-            .set(id, Upgrade::new(id, self.galaxy, self.id, reader));
+        self.upgrades.set(
+            id,
+            Upgrade::new(id, self.galaxy, self.id, self.connection.clone(), reader),
+        );
     }
 
     #[inline]
