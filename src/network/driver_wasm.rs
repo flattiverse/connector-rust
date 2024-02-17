@@ -22,13 +22,16 @@ macro_rules! console_log {
 
 #[cfg(not(feature = "wasm-debug"))]
 macro_rules! console_log {
-    ($($t:tt)*) => {};
+    ($($t:tt)*) => {
+        let _ = format_args!($($t)*);
+    };
 }
 
 pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
     console_log!("Connecting to {url:?}");
     match WebSocket::new(&url) {
         Ok(websocket) => {
+            console_log!("Target URL seems fine");
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
             let (back_sender, back_receiver) = async_channel::unbounded();
             let (sender, receiver) = async_channel::unbounded();
@@ -49,6 +52,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                         return;
                     };
 
+                    console_log!("received msg, len={}", array.byte_length());
                     let data = {
                         // copying the data from into rust / wasm
                         let mut bytes = BytesMut::zeroed(array.byte_length() as usize);
@@ -73,8 +77,10 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 let websocket = websocket.clone();
                 move |msg: CloseEvent| {
                     let error = ConnectError::game_error_from_http_status_code(msg.code());
-                    console_log!("Received close request: {msg:?} {error:?}");
-                    console_log!("{error}");
+                    console_log!(
+                        "Received close request: {msg:?}/code={} {error:?}",
+                        msg.code()
+                    );
 
                     let _ = back_sender.try_send(ConnectionEvent::GameError(error));
                     let _ = back_sender.try_send(ConnectionEvent::Closed(None));
@@ -87,19 +93,25 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             wasm_bindgen_futures::spawn_local(async move {
                 console_log!("FUTURE SPAWNED");
 
-                while let Ok(msg) = receiver.recv().await {
-                    match msg {
-                        SenderData::Packet(packet) => {
+                loop {
+                    match receiver.recv().await {
+                        Ok(SenderData::Packet(packet)) => {
                             if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
+                                console_log!("Faild to send Packet: {e:?}");
                                 let _ = back_sender.try_send(ConnectionEvent::Closed(Some(
                                     format!("Failed to send message: {e:?}"),
                                 )));
                                 break;
                             }
                         }
+                        Err(e) => {
+                            console_log!("Receiver Error: {e:?}");
+                            break;
+                        }
                     }
                 }
 
+                console_log!("SENDER IS SHUTTING DOWN");
                 let _ = websocket.close();
             });
 
