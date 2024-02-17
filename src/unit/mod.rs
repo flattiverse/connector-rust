@@ -27,3 +27,6 @@ pub use moon::*;
 
 mod buoy;
 pub use buoy::*;
+
+mod meteorid;
+pub use meteorid::*;
