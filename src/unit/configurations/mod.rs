@@ -9,3 +9,6 @@ pub use sun::*;
 
 mod harvestable;
 pub use harvestable::*;
+
+mod black_hole;
+pub use black_hole::*;

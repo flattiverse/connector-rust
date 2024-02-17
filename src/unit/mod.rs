@@ -33,3 +33,6 @@ pub use buoy::*;
 
 mod meteorid;
 pub use meteorid::*;
+
+mod black_hole;
+pub use black_hole::*;

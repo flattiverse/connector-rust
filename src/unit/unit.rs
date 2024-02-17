@@ -1,6 +1,6 @@
 use crate::hierarchy::ClusterId;
 use crate::network::Packet;
-use crate::unit::{Buoy, Meteoroid};
+use crate::unit::{BlackHole, Buoy, Meteoroid};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
 use num_enum::TryFromPrimitive;
@@ -105,7 +105,7 @@ pub(crate) fn from_packet(
     let unit_kind = UnitKind::try_from_primitive(packet.header().param0()).unwrap();
     Ok(packet.read(|reader| match unit_kind {
         UnitKind::Sun => Box::new(Sun::new(cluster, reader)) as Box<dyn Unit>,
-        UnitKind::BlackHole => todo!(),
+        UnitKind::BlackHole => Box::new(BlackHole::new(cluster, reader)),
         UnitKind::Planet => Box::new(Planet::new(cluster, reader)),
         UnitKind::Moon => Box::new(Moon::new(cluster, reader)),
         UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader)),
