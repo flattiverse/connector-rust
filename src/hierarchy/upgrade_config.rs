@@ -35,6 +35,7 @@ pub struct UpgradeConfig {
     pub weapon_speed: f64,
     pub weapon_time: f64,
     pub weapon_load: f64,
+    pub free_spawn: bool,
 }
 
 impl From<&Upgrade> for UpgradeConfig {
@@ -72,6 +73,7 @@ impl From<&Upgrade> for UpgradeConfig {
             weapon_speed: upgrade.weapon_speed(),
             weapon_time: upgrade.weapon_time(),
             weapon_load: upgrade.weapon_load(),
+            free_spawn: upgrade.free_spawn(),
         }
     }
 }
@@ -110,5 +112,6 @@ impl UpgradeConfig {
         writer.write_2u(self.weapon_speed, 10.0);
         writer.write_uint16(self.weapon_time as _);
         writer.write_2u(self.weapon_load, 10.0);
+        writer.write_boolean(self.free_spawn);
     }
 }

@@ -51,6 +51,7 @@ pub struct Upgrade {
     weapon_speed: f64,
     weapon_time: f64,
     weapon_load: f64,
+    free_spawn: bool,
     connection: ConnectionHandle,
 }
 
@@ -96,8 +97,9 @@ impl Upgrade {
             cargo: reader.read_4u(1000.0),
             extractor: reader.read_2u(100.0),
             weapon_speed: reader.read_2u(10.0),
-            weapon_time: reader.read_uint16() as _,
+            weapon_time: reader.read_uint16() as f64 / 20.0,
             weapon_load: reader.read_2u(10.0),
+            free_spawn: reader.read_boolean(),
             connection,
         }
     }
@@ -296,6 +298,11 @@ impl Upgrade {
     #[inline]
     pub fn weapon_load(&self) -> f64 {
         self.weapon_load
+    }
+
+    #[inline]
+    pub fn free_spawn(&self) -> bool {
+        self.free_spawn
     }
 }
 
