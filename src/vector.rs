@@ -17,6 +17,11 @@ impl Vector {
         }
     }
 
+    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
+        self.read(reader);
+        self
+    }
+
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.x = reader.read_4s(100000.0);
         self.y = reader.read_4s(100000.0);

@@ -23,6 +23,12 @@ impl From<Option<SunConfiguration>> for SunSection {
 }
 
 impl SunSection {
+    #[inline]
+    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
+        self.read(reader);
+        self
+    }
+
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.inner_radius = reader.read_2u(100.0);
         self.outer_radius = reader.read_2u(100.0);

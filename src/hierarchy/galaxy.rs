@@ -6,7 +6,7 @@ use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::{Ship, ShipId, UnitKind};
-use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
+use crate::{unit, PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;
@@ -233,6 +233,8 @@ impl Galaxy {
                     let kind = UnitKind::try_from_primitive(packet.header().param0());
                     let id = ClusterId(packet.header().id0());
                     console_log!("Received {kind:?} for {id:?}.");
+                    let unit = unit::from_packet(id, packet);
+                    console_log!("Received {unit:?}.");
                     // TODO
                     Ok(None)
                 }

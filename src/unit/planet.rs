@@ -1,42 +1,29 @@
 use crate::hierarchy::ClusterId;
 use crate::network::PacketReader;
-use crate::unit::sub_components::SunSection;
 use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{NamedUnit, Vector};
 
 #[derive(Debug)]
-pub struct Sun {
+pub struct Planet {
     body: CelestialBody,
-    sections: Vec<SunSection>,
 }
 
-impl Sun {
+impl Planet {
     pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
         Self {
             body: CelestialBody::new(cluster, reader),
-            sections: (0..reader.read_byte())
-                .map(|_| SunSection::default().with_read(reader))
-                .collect(),
         }
-    }
-
-    // TODO pub async fn configure
-    // TODO pub async fn remove
-
-    #[inline]
-    pub fn sections(&self) -> &[SunSection] {
-        &self.sections
     }
 }
 
-impl NamedUnit for Sun {
+impl NamedUnit for Planet {
     #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
 }
 
-impl Unit for Sun {
+impl Unit for Planet {
     #[inline]
     fn cluster(&self) -> ClusterId {
         self.body.cluster
@@ -59,6 +46,6 @@ impl Unit for Sun {
 
     #[inline]
     fn kind(&self) -> UnitKind {
-        UnitKind::Sun
+        UnitKind::Planet
     }
 }

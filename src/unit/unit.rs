@@ -1,6 +1,8 @@
 use crate::hierarchy::ClusterId;
-use crate::unit::{Mobility, UnitKind};
-use crate::{NamedUnit, TeamId, Vector};
+use crate::network::Packet;
+use crate::unit::{Mobility, Planet, Sun, UnitKind};
+use crate::{GameError, NamedUnit, TeamId, Vector};
+use num_enum::TryFromPrimitive;
 use std::fmt::Debug;
 
 /// Represents an unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
@@ -8,7 +10,10 @@ use std::fmt::Debug;
 /// those methods and might add futher propeties.
 pub trait Unit: Debug + NamedUnit {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
-    fn name(&self) -> &str;
+    #[inline]
+    fn name(&self) -> &str {
+        NamedUnit::name(self)
+    }
 
     /// The [`crate::hierarchy::Cluster`] this [`Unit`] is in.
     fn cluster(&self) -> ClusterId;
@@ -58,22 +63,13 @@ pub trait Unit: Debug + NamedUnit {
     }
 
     /// The position of this [`Unit`].
-    #[inline]
-    fn position(&self) -> Vector {
-        Vector::default()
-    }
+    fn position(&self) -> Vector;
 
     /// The gravity this [`Unit`] has on others.
-    #[inline]
-    fn gravity(&self) -> f64 {
-        0.0
-    }
+    fn gravity(&self) -> f64;
 
     /// The radius of this [`Unit`].
-    #[inline]
-    fn radius(&self) -> f64 {
-        1.0
-    }
+    fn radius(&self) -> f64;
 
     /// This factor will be multiplied with the distance of the [`Unit`] to match, to determine
     /// whether you can see it. The vlaue `0.9` means you can see the unit 10% worse than with 100%.
@@ -85,7 +81,7 @@ pub trait Unit: Debug + NamedUnit {
     /// Specifies this movement kind this [`Unit`] is of.
     #[inline]
     fn mobility(&self) -> Mobility {
-        Mobility::default()
+        Mobility::Still
     }
 
     /// Specifies the current [`crate::Team`] this [`Unit`] belongs to.
@@ -98,8 +94,21 @@ pub trait Unit: Debug + NamedUnit {
     /// target.
     ///
     /// [downcasting]: std::any::Any
-    #[inline]
-    fn kind(&self) -> UnitKind {
-        UnitKind::default()
-    }
+    fn kind(&self) -> UnitKind;
+}
+
+pub(crate) fn from_packet(
+    cluster: ClusterId,
+    mut packet: Packet,
+) -> Result<Box<dyn Unit>, GameError> {
+    let unit_kind = UnitKind::try_from_primitive(packet.header().param0()).unwrap();
+    Ok(packet.read(|reader| match unit_kind {
+        UnitKind::Sun => Box::new(Sun::new(cluster, reader)) as Box<dyn Unit>,
+        UnitKind::BlackHole => todo!(),
+        UnitKind::Planet => Box::new(Planet::new(cluster, reader)) as Box<dyn Unit>,
+        UnitKind::Moon => todo!(),
+        UnitKind::Meteroid => todo!(),
+        UnitKind::Buoy => todo!(),
+        UnitKind::PlayerUnit => todo!(),
+    }))
 }

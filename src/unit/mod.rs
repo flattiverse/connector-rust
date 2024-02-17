@@ -18,3 +18,6 @@ pub use celestial_body::*;
 
 mod sun;
 pub use sun::*;
+
+mod planet;
+pub use planet::*;
