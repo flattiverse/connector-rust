@@ -1,3 +1,4 @@
+use crate::network::{PacketReader, PacketWriter};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -13,6 +14,34 @@ impl Vector {
             x,
             y,
             last_angle: 0.0,
+        }
+    }
+
+    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+        self.x = reader.read_4s(100000.0);
+        self.y = reader.read_4s(100000.0);
+        self.last_angle = 0.0;
+    }
+
+    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
+        if self.is_damaged() {
+            writer.write_uint64(0);
+        } else {
+            if self.x < -21470.0 {
+                writer.write_int32(-2147000000)
+            } else if self.x > 21470.0 {
+                writer.write_int32(2147000000)
+            } else {
+                writer.write_4s(self.x, 100000.0)
+            }
+
+            if self.y < -21470.0 {
+                writer.write_int32(-2147000000)
+            } else if self.y > 21470.0 {
+                writer.write_int32(2147000000)
+            } else {
+                writer.write_4s(self.y, 100000.0)
+            }
         }
     }
 
