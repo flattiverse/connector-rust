@@ -22,8 +22,9 @@ impl Debug for PacketHeader {
         f.debug_struct("PacketHeader")
             .field("command", &self.command())
             .field("session", &self.session())
-            .field("player", &self.player())
-            .field("controllable", &self.controllable())
+            .field("id", &self.id())
+            .field("id0", &self.id0())
+            .field("id1", &self.id1())
             .field("param", &self.param())
             .field("param0", &self.param0())
             .field("param1", &self.param1())
@@ -55,23 +56,35 @@ impl PacketHeader {
     }
 
     #[inline]
-    pub fn player(&self) -> u8 {
+    pub fn id(&self) -> u16 {
+        u16::from_le_bytes([self.id0(), self.id1()])
+    }
+
+    #[inline]
+    pub fn set_id(&mut self, id: u16) {
+        let [id0, id1] = id.to_le_bytes();
+        self.set_id0(id0);
+        self.set_id1(id1);
+    }
+
+    #[inline]
+    pub fn id0(&self) -> u8 {
         self.0[2]
     }
 
     #[inline]
-    pub fn set_player(&mut self, player: u8) {
-        self.0[2] = player;
+    pub fn set_id0(&mut self, id0: u8) {
+        self.0[2] = id0;
     }
 
     #[inline]
-    pub fn controllable(&self) -> u8 {
+    pub fn id1(&self) -> u8 {
         self.0[3]
     }
 
     #[inline]
-    pub fn set_controllable(&mut self, controllable: u8) {
-        self.0[3] = controllable;
+    pub fn set_id1(&mut self, id1: u8) {
+        self.0[3] = id1;
     }
 
     #[inline]

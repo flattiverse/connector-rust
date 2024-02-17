@@ -182,7 +182,7 @@ impl Galaxy {
 
                 // new player joined info
                 0x16 => {
-                    let player_id = PlayerId(packet.header().player());
+                    let player_id = PlayerId(packet.header().id0());
                     let team_id = TeamId(packet.header().param1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
                     packet.read(|reader| {
