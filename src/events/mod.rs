@@ -42,4 +42,5 @@ pub enum FlattiverseEvent {
         galaxy: GlaxyId,
         player: PlayerId,
     },
+    TickCompleted,
 }

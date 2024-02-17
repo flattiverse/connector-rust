@@ -237,6 +237,9 @@ impl Galaxy {
                     }))
                 }
 
+                // tick completed
+                0x20 => Ok(Some(FlattiverseEvent::TickCompleted)),
+
                 cmd => Err(
                     GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
                         "Unexpected command={cmd} for {:?}, header={:?}",
