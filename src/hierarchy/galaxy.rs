@@ -311,7 +311,7 @@ impl Galaxy {
     pub async fn create_ship(
         &self,
         config: &ShipConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ShipId, GameError>>, GameError> {
         self.connection.create_ship_split(config).await
     }
 

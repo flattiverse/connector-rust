@@ -394,7 +394,7 @@ impl ConnectionHandle {
 
     /// Creates a new [`crate::unit::Ship`] for the given values.
     #[inline]
-    pub async fn create_ship(&self, config: &ShipConfig) -> Result<(), GameError> {
+    pub async fn create_ship(&self, config: &ShipConfig) -> Result<ShipId, GameError> {
         self.create_ship_split(config).await?.await
     }
 
@@ -402,7 +402,7 @@ impl ConnectionHandle {
     pub async fn create_ship_split(
         &self,
         config: &ShipConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ShipId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4A);
         packet.write(|writer| config.write_to(writer));
@@ -411,7 +411,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.receiver.recv().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check(response, |p| Ok(ShipId(p.header().param0())))
         })
     }
 
