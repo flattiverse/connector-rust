@@ -135,7 +135,7 @@ impl Galaxy {
                 }
                 // cluster info
                 0x11 => {
-                    let cluster_id = ClusterId(packet.header().param0());
+                    let cluster_id = ClusterId(packet.header().id0());
                     self.clusters.set(
                         cluster_id,
                         packet.read(|reader| {
@@ -150,8 +150,8 @@ impl Galaxy {
 
                 // region info
                 0x12 => {
-                    let cluster_id = ClusterId(packet.header().param0());
-                    let region_id = RegionId(packet.header().param1());
+                    let cluster_id = ClusterId(packet.header().id1());
+                    let region_id = RegionId(packet.header().id0());
                     packet.read(|reader| {
                         self.clusters[cluster_id].read_region(region_id, reader);
                     });
@@ -164,7 +164,7 @@ impl Galaxy {
 
                 // team info
                 0x13 => {
-                    let team_id = TeamId(packet.header().param0());
+                    let team_id = TeamId(packet.header().id0());
                     self.teams.set(
                         team_id,
                         packet.read(|reader| Team::new(team_id, self.connection.clone(), reader)),
@@ -177,7 +177,7 @@ impl Galaxy {
 
                 // ship info
                 0x14 => {
-                    let ship_id = ShipId(packet.header().param0());
+                    let ship_id = ShipId(packet.header().id0());
                     console_log!("Setting {ship_id:?}");
                     self.ships.set(
                         ship_id,
@@ -193,8 +193,8 @@ impl Galaxy {
 
                 // upgrade info
                 0x15 => {
-                    let upgrade_id = UpgradeId(packet.header().param0());
-                    let ship_id = ShipId(packet.header().param1());
+                    let upgrade_id = UpgradeId(packet.header().id0());
+                    let ship_id = ShipId(packet.header().id1());
                     console_log!("Accessing {ship_id:?}");
                     if self.ships.get(ship_id).is_some() {
                         packet.read(|reader| {
@@ -215,7 +215,7 @@ impl Galaxy {
                 // new player joined info
                 0x16 => {
                     let player_id = PlayerId(packet.header().id0());
-                    let team_id = TeamId(packet.header().param1());
+                    let team_id = TeamId(packet.header().id1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
                     packet.read(|reader| {
                         self.players.set(
