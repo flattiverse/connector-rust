@@ -1,6 +1,6 @@
-use crate::hierarchy::Galaxy;
-use crate::network::PacketWriter;
+use crate::network::{PacketReader, PacketWriter};
 use crate::GameType;
+use num_enum::FromPrimitive;
 
 #[derive(Debug, Clone, Default)]
 pub struct GalaxyConfig {
@@ -28,34 +28,38 @@ pub struct GalaxyConfig {
     pub max_bases_player: u8,
 }
 
-impl From<&Galaxy> for GalaxyConfig {
-    fn from(galaxy: &Galaxy) -> Self {
-        Self {
-            name: galaxy.name().to_string(),
-            description: galaxy.description().to_string(),
-            game_type: galaxy.game_type(),
-            max_players: galaxy.max_players(),
-            max_platforms_universe: galaxy.max_platforms_universe(),
-            max_probes_universe: galaxy.max_probes_universe(),
-            max_drones_universe: galaxy.max_drones_universe(),
-            max_ships_universe: galaxy.max_ships_universe(),
-            max_bases_universe: galaxy.max_bases_universe(),
-            max_platforms_team: galaxy.max_platforms_team(),
-            max_probes_team: galaxy.max_probes_team(),
-            max_drones_team: galaxy.max_drones_team(),
-            max_ships_team: galaxy.max_ships_team(),
-            max_bases_team: galaxy.max_bases_team(),
-            max_platforms_player: galaxy.max_platforms_player(),
-            max_probes_player: galaxy.max_probes_player(),
-            max_drones_player: galaxy.max_drones_player(),
-            max_ships_player: galaxy.max_ships_player(),
-            max_bases_player: galaxy.max_bases_player(),
-        }
+impl From<&mut dyn PacketReader> for GalaxyConfig {
+    fn from(reader: &mut dyn PacketReader) -> Self {
+        let mut this = Self::default();
+        this.read(reader);
+        this
     }
 }
 
 impl GalaxyConfig {
-    pub(crate) fn write_to(&self, writer: &mut dyn PacketWriter) {
+    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+        self.name = reader.read_string();
+        self.description = reader.read_string();
+        self.game_type = GameType::from_primitive(reader.read_byte());
+        self.max_players = reader.read_byte();
+        self.max_platforms_universe = reader.read_uint16();
+        self.max_probes_universe = reader.read_uint16();
+        self.max_drones_universe = reader.read_uint16();
+        self.max_ships_universe = reader.read_uint16();
+        self.max_bases_universe = reader.read_uint16();
+        self.max_platforms_team = reader.read_uint16();
+        self.max_probes_team = reader.read_uint16();
+        self.max_drones_team = reader.read_uint16();
+        self.max_ships_team = reader.read_uint16();
+        self.max_bases_team = reader.read_uint16();
+        self.max_platforms_player = reader.read_byte();
+        self.max_probes_player = reader.read_byte();
+        self.max_drones_player = reader.read_byte();
+        self.max_ships_player = reader.read_byte();
+        self.max_bases_player = reader.read_byte();
+    }
+
+    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
         writer.write_string(&self.description);
         writer.write_byte(self.game_type as u8);

@@ -73,7 +73,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x40);
         packet.header_mut().set_param(galaxy.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -96,7 +96,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<ClusterId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x41);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -125,7 +125,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x42);
         packet.header_mut().set_param0(cluster.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -179,7 +179,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x44);
         packet.header_mut().set_param0(cluster.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -208,7 +208,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x45);
         packet.header_mut().set_param0(region.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -253,7 +253,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<TeamId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x47);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -278,7 +278,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x48);
         packet.header_mut().set_param0(team.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -330,7 +330,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4D);
         packet.header_mut().set_param0(ship.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -359,7 +359,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4E);
         packet.header_mut().set_param0(upgrade.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -405,7 +405,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<ShipId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4A);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -430,7 +430,7 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4B);
         packet.header_mut().set_param0(ship.0);
-        packet.write(|writer| config.write_to(writer));
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 

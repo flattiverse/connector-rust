@@ -17,7 +17,7 @@ impl Indexer for ClusterId {
 pub struct Cluster {
     id: ClusterId,
     galaxy: GlaxyId,
-    name: String,
+    config: ClusterConfig,
     regions: UniversalHolder<RegionId, Region>,
     connection: ConnectionHandle,
 }
@@ -34,7 +34,7 @@ impl Cluster {
             id: id.into(),
             galaxy,
             connection,
-            name: reader.read_string(),
+            config: ClusterConfig::from(reader),
             regions: UniversalHolder::with_capacity(256),
         }
     }
@@ -85,7 +85,12 @@ impl Cluster {
 
     #[inline]
     pub fn name(&self) -> &str {
-        &self.name
+        &self.config.name
+    }
+
+    #[inline]
+    pub fn config(&self) -> &ClusterConfig {
+        &self.config
     }
 
     #[inline]

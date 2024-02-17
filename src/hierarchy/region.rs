@@ -19,10 +19,7 @@ pub struct Region {
     galaxy: GlaxyId,
     cluster: ClusterId,
     id: RegionId,
-    name: String,
-    start_probability: f64,
-    respawn_probability: f64,
-    protected: bool,
+    config: RegionConfig,
     connection: ConnectionHandle,
 }
 
@@ -38,10 +35,7 @@ impl Region {
             galaxy,
             cluster,
             id,
-            name: reader.read_string(),
-            start_probability: reader.read_2u(100.0),
-            respawn_probability: reader.read_2u(100.0),
-            protected: reader.read_boolean(),
+            config: RegionConfig::from(reader),
             connection,
         }
     }
@@ -82,22 +76,12 @@ impl Region {
 
     #[inline]
     pub fn name(&self) -> &str {
-        &self.name
+        &self.config.name
     }
 
     #[inline]
-    pub fn start_probability(&self) -> f64 {
-        self.start_probability
-    }
-
-    #[inline]
-    pub fn respawn_probability(&self) -> f64 {
-        self.respawn_probability
-    }
-
-    #[inline]
-    pub fn protected(&self) -> bool {
-        self.protected
+    pub fn config(&self) -> &RegionConfig {
+        &self.config
     }
 }
 

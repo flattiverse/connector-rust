@@ -16,10 +16,7 @@ impl Indexer for TeamId {
 #[derive(Debug)]
 pub struct Team {
     id: TeamId,
-    name: String,
-    red: u8,
-    green: u8,
-    blue: u8,
+    config: TeamConfig,
     connection: ConnectionHandle,
 }
 
@@ -32,10 +29,7 @@ impl Team {
     ) -> Self {
         Self {
             id: id.into(),
-            name: reader.read_string(),
-            red: reader.read_byte(),
-            green: reader.read_byte(),
-            blue: reader.read_byte(),
+            config: TeamConfig::from(reader),
             connection,
         }
     }
@@ -64,22 +58,12 @@ impl Team {
 
     #[inline]
     pub fn name(&self) -> &str {
-        &&self.name
+        &&self.config.name
     }
 
     #[inline]
-    pub fn red(&self) -> u8 {
-        self.red
-    }
-
-    #[inline]
-    pub fn green(&self) -> u8 {
-        self.green
-    }
-
-    #[inline]
-    pub fn blue(&self) -> u8 {
-        self.blue
+    pub fn config(&self) -> &TeamConfig {
+        &self.config
     }
 }
 

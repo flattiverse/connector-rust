@@ -1,9 +1,11 @@
-use crate::network::PacketWriter;
-use crate::{Upgrade, UpgradeId};
+use crate::network::{PacketReader, PacketWriter};
+use crate::UpgradeId;
 
 #[derive(Debug, Clone, Default)]
 pub struct UpgradeConfig {
     pub name: String,
+    /// The id of the previous [`crate::Upgrade`], which can be found on the orresponding
+    /// [`crate::unit::Ship`] of this [`crate::Upgrade`].
     pub previous_upgrade: Option<UpgradeId>,
     pub cost_energy: f64,
     pub cost_ion: f64,
@@ -38,48 +40,52 @@ pub struct UpgradeConfig {
     pub free_spawn: bool,
 }
 
-impl From<&Upgrade> for UpgradeConfig {
-    fn from(upgrade: &Upgrade) -> Self {
-        Self {
-            name: upgrade.name().to_string(),
-            previous_upgrade: upgrade.previous_upgrade(),
-            cost_energy: upgrade.cost_energy(),
-            cost_ion: upgrade.cost_ion(),
-            cost_iron: upgrade.cost_iron(),
-            cost_tungsten: upgrade.cost_tungsten(),
-            cost_silicon: upgrade.cost_silicon(),
-            cost_tritium: upgrade.cost_tritium(),
-            cost_time: upgrade.cost_time(),
-            hull: upgrade.hull(),
-            hull_repair: upgrade.hull_repair(),
-            shields: upgrade.shields(),
-            shields_repair: upgrade.shields_repair(),
-            size: upgrade.size(),
-            weight: upgrade.weight(),
-            energy_max: upgrade.energy_max(),
-            energy_cells: upgrade.energy_cells(),
-            energy_reactor: upgrade.energy_reactor(),
-            energy_transfer: upgrade.energy_transfer(),
-            ion_max: upgrade.ion_max(),
-            ion_cells: upgrade.ion_cells(),
-            ion_reactor: upgrade.ion_reactor(),
-            ion_transfer: upgrade.ion_transfer(),
-            thruster: upgrade.thruster(),
-            nozzle: upgrade.nozzle(),
-            speed: upgrade.speed(),
-            turnrate: upgrade.turnrate(),
-            cargo: upgrade.cargo(),
-            extractor: upgrade.extractor(),
-            weapon_speed: upgrade.weapon_speed(),
-            weapon_time: upgrade.weapon_time(),
-            weapon_load: upgrade.weapon_load(),
-            free_spawn: upgrade.free_spawn(),
-        }
+impl From<&mut dyn PacketReader> for UpgradeConfig {
+    fn from(reader: &mut dyn PacketReader) -> Self {
+        let mut this = Self::default();
+        this.read(reader);
+        this
     }
 }
 
 impl UpgradeConfig {
-    pub(crate) fn write_to(&self, writer: &mut dyn PacketWriter) {
+    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+        self.name = reader.read_string();
+        self.previous_upgrade = reader.read_nullable_byte().map(UpgradeId);
+        self.cost_energy = reader.read_2u(1.0);
+        self.cost_ion = reader.read_2u(100.0);
+        self.cost_iron = reader.read_2u(1.0);
+        self.cost_tungsten = reader.read_2u(100.0);
+        self.cost_silicon = reader.read_2u(1.0);
+        self.cost_tritium = reader.read_2u(10.0);
+        self.cost_time = reader.read_2u(10.0);
+        self.hull = reader.read_2u(10.0);
+        self.hull_repair = reader.read_2u(100.0);
+        self.shields = reader.read_2u(10.0);
+        self.shields_repair = reader.read_2u(100.0);
+        self.size = reader.read_2u(10.0);
+        self.weight = reader.read_2s(10000.0);
+        self.energy_max = reader.read_2u(10.0);
+        self.energy_cells = reader.read_4u(100.0);
+        self.energy_reactor = reader.read_2u(100.0);
+        self.energy_transfer = reader.read_2u(100.0);
+        self.ion_max = reader.read_2u(100.0);
+        self.ion_cells = reader.read_2u(100.0);
+        self.ion_reactor = reader.read_2u(1000.0);
+        self.ion_transfer = reader.read_2u(1000.0);
+        self.thruster = reader.read_2u(10000.0);
+        self.nozzle = reader.read_2u(100.0);
+        self.speed = reader.read_2u(100.0);
+        self.turnrate = reader.read_2u(100.0);
+        self.cargo = reader.read_4u(1000.0);
+        self.extractor = reader.read_2u(100.0);
+        self.weapon_speed = reader.read_2u(10.0);
+        self.weapon_time = reader.read_uint16() as f64 / 20.0;
+        self.weapon_load = reader.read_2u(10.0);
+        self.free_spawn = reader.read_boolean();
+    }
+
+    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
         writer.write_nullable_byte(self.previous_upgrade.map(|id| id.0));
         writer.write_2u(self.cost_energy, 1.0);

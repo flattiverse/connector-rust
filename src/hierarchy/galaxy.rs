@@ -1,6 +1,5 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
-use crate::game_type::GameType;
 use crate::hierarchy::{Cluster, GalaxyConfig, RegionId, ShipConfig, TeamConfig};
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
@@ -18,28 +17,7 @@ pub struct GlaxyId(pub(crate) u16);
 #[derive(Debug)]
 pub struct Galaxy {
     id: GlaxyId,
-    name: String,
-    description: String,
-    game_type: GameType,
-    max_players: u8,
-
-    max_platforms_universe: u16,
-    max_probes_universe: u16,
-    max_drones_universe: u16,
-    max_ships_universe: u16,
-    max_bases_universe: u16,
-
-    max_platforms_team: u16,
-    max_probes_team: u16,
-    max_drones_team: u16,
-    max_ships_team: u16,
-    max_bases_team: u16,
-
-    max_platforms_player: u8,
-    max_probes_player: u8,
-    max_drones_player: u8,
-    max_ships_player: u8,
-    max_bases_player: u8,
+    config: GalaxyConfig,
 
     clusters: UniversalHolder<ClusterId, Cluster>,
     ships: UniversalHolder<ShipId, Ship>,
@@ -64,38 +42,17 @@ impl Galaxy {
         let (handle, receiver) = connection.spawn();
 
         Ok(Self {
-            login_completed: false,
-            connection: handle,
-            receiver,
-
             id: GlaxyId(0),
-            name: String::default(),
-            description: String::default(),
-            game_type: GameType::Mission,
-            max_players: 0,
-
-            max_platforms_universe: 0,
-            max_probes_universe: 0,
-            max_drones_universe: 0,
-            max_ships_universe: 0,
-            max_bases_universe: 0,
-
-            max_platforms_team: 0,
-            max_probes_team: 0,
-            max_drones_team: 0,
-            max_ships_team: 0,
-            max_bases_team: 0,
-
-            max_platforms_player: 0,
-            max_probes_player: 0,
-            max_drones_player: 0,
-            max_ships_player: 0,
-            max_bases_player: 0,
+            config: GalaxyConfig::default(),
 
             clusters: UniversalHolder::with_capacity(256),
             ships: UniversalHolder::with_capacity(256),
             teams: UniversalHolder::with_capacity(256),
             players: UniversalHolder::with_capacity(256),
+
+            connection: handle,
+            receiver,
+            login_completed: false,
         })
     }
 
@@ -148,7 +105,8 @@ impl Galaxy {
             match packet.header().command() {
                 // galaxy info
                 0x10 => {
-                    self.update(packet);
+                    self.id = GlaxyId(packet.header().param());
+                    packet.read(|reader| self.config.read(reader));
                     Ok(Some(FlattiverseEvent::GalaxyUpdated(self.id)))
                 }
                 // cluster info
@@ -256,31 +214,6 @@ impl Galaxy {
         }
     }
 
-    fn update(&mut self, mut packet: Packet) {
-        self.id = GlaxyId(packet.header().param());
-        packet.read(|reader| {
-            self.name = reader.read_string();
-            self.description = reader.read_string();
-            self.game_type = GameType::from_primitive(reader.read_byte());
-            self.max_players = reader.read_byte();
-            self.max_platforms_universe = reader.read_uint16();
-            self.max_probes_universe = reader.read_uint16();
-            self.max_drones_universe = reader.read_uint16();
-            self.max_ships_universe = reader.read_uint16();
-            self.max_bases_universe = reader.read_uint16();
-            self.max_platforms_team = reader.read_uint16();
-            self.max_probes_team = reader.read_uint16();
-            self.max_drones_team = reader.read_uint16();
-            self.max_ships_team = reader.read_uint16();
-            self.max_bases_team = reader.read_uint16();
-            self.max_platforms_player = reader.read_byte();
-            self.max_probes_player = reader.read_byte();
-            self.max_drones_player = reader.read_byte();
-            self.max_ships_player = reader.read_byte();
-            self.max_bases_player = reader.read_byte();
-        });
-    }
-
     /// Waits until the login proceedure has been completed for  this [`Galaxy`].
     pub async fn wait_login_completed(&mut self) -> Result<(), GameError> {
         while !self.login_completed {
@@ -345,97 +278,12 @@ impl Galaxy {
 
     #[inline]
     pub fn name(&self) -> &str {
-        &self.name
+        &self.config.name
     }
 
     #[inline]
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    #[inline]
-    pub fn game_type(&self) -> GameType {
-        self.game_type
-    }
-
-    #[inline]
-    pub fn max_players(&self) -> u8 {
-        self.max_players
-    }
-
-    #[inline]
-    pub fn max_platforms_universe(&self) -> u16 {
-        self.max_platforms_universe
-    }
-
-    #[inline]
-    pub fn max_probes_universe(&self) -> u16 {
-        self.max_probes_universe
-    }
-
-    #[inline]
-    pub fn max_drones_universe(&self) -> u16 {
-        self.max_drones_universe
-    }
-
-    #[inline]
-    pub fn max_ships_universe(&self) -> u16 {
-        self.max_ships_universe
-    }
-
-    #[inline]
-    pub fn max_bases_universe(&self) -> u16 {
-        self.max_bases_universe
-    }
-
-    #[inline]
-    pub fn max_platforms_team(&self) -> u16 {
-        self.max_platforms_team
-    }
-
-    #[inline]
-    pub fn max_probes_team(&self) -> u16 {
-        self.max_probes_team
-    }
-
-    #[inline]
-    pub fn max_drones_team(&self) -> u16 {
-        self.max_drones_team
-    }
-
-    #[inline]
-    pub fn max_ships_team(&self) -> u16 {
-        self.max_ships_team
-    }
-
-    #[inline]
-    pub fn max_bases_team(&self) -> u16 {
-        self.max_bases_team
-    }
-
-    #[inline]
-    pub fn max_platforms_player(&self) -> u8 {
-        self.max_platforms_player
-    }
-
-    #[inline]
-    pub fn max_probes_player(&self) -> u8 {
-        self.max_probes_player
-    }
-
-    #[inline]
-    pub fn max_drones_player(&self) -> u8 {
-        self.max_drones_player
-    }
-
-    #[inline]
-    pub fn max_ships_player(&self) -> u8 {
-        self.max_ships_player
-    }
-
-    #[inline]
-    pub fn max_bases_player(&self) -> u8 {
-        self.max_bases_player
+    pub fn config(&self) -> &GalaxyConfig {
+        &self.config
     }
 
     #[inline]

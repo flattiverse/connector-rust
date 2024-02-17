@@ -1,5 +1,4 @@
-use crate::network::PacketWriter;
-use crate::unit::Ship;
+use crate::network::{PacketReader, PacketWriter};
 
 #[derive(Debug, Clone, Default)]
 pub struct ShipConfig {
@@ -37,47 +36,51 @@ pub struct ShipConfig {
     pub free_spawn: bool,
 }
 
-impl From<&Ship> for ShipConfig {
-    fn from(ship: &Ship) -> Self {
-        Self {
-            name: ship.name().to_string(),
-            cost_energy: ship.cost_energy(),
-            cost_ion: ship.cost_ion(),
-            cost_iron: ship.cost_iron(),
-            cost_tungsten: ship.cost_tungsten(),
-            cost_silicon: ship.cost_silicon(),
-            cost_tritium: ship.cost_tritium(),
-            cost_time: ship.cost_time(),
-            hull: ship.hull(),
-            hull_repair: ship.hull_repair(),
-            shields: ship.shields(),
-            shields_repair: ship.shields_repair(),
-            size: ship.size(),
-            weight: ship.weight(),
-            energy_max: ship.energy_max(),
-            energy_cells: ship.energy_cells(),
-            energy_reactor: ship.energy_reactor(),
-            energy_transfer: ship.energy_transfer(),
-            ion_max: ship.ion_max(),
-            ion_cells: ship.ion_cells(),
-            ion_reactor: ship.ion_reactor(),
-            ion_transfer: ship.ion_transfer(),
-            thruster: ship.thruster(),
-            nozzle: ship.nozzle(),
-            speed: ship.speed(),
-            turnrate: ship.turnrate(),
-            cargo: ship.cargo(),
-            extractor: ship.extractor(),
-            weapon_speed: ship.weapon_speed(),
-            weapon_time: ship.weapon_time(),
-            weapon_load: ship.weapon_load(),
-            free_spawn: ship.free_spawn(),
-        }
+impl From<&mut dyn PacketReader> for ShipConfig {
+    fn from(reader: &mut dyn PacketReader) -> Self {
+        let mut this = Self::default();
+        this.read(reader);
+        this
     }
 }
 
 impl ShipConfig {
-    pub(crate) fn write_to(&self, writer: &mut dyn PacketWriter) {
+    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+        self.name = reader.read_string();
+        self.cost_energy = reader.read_2u(1.0);
+        self.cost_ion = reader.read_2u(100.0);
+        self.cost_iron = reader.read_2u(1.0);
+        self.cost_tungsten = reader.read_2u(100.0);
+        self.cost_silicon = reader.read_2u(1.0);
+        self.cost_tritium = reader.read_2u(10.0);
+        self.cost_time = reader.read_2u(10.0);
+        self.hull = reader.read_2u(10.0);
+        self.hull_repair = reader.read_2u(100.0);
+        self.shields = reader.read_2u(10.0);
+        self.shields_repair = reader.read_2u(100.0);
+        self.size = reader.read_2u(10.0);
+        self.weight = reader.read_2s(10000.0);
+        self.energy_max = reader.read_2u(10.0);
+        self.energy_cells = reader.read_4u(100.0);
+        self.energy_reactor = reader.read_2u(100.0);
+        self.energy_transfer = reader.read_2u(100.0);
+        self.ion_max = reader.read_2u(100.0);
+        self.ion_cells = reader.read_2u(100.0);
+        self.ion_reactor = reader.read_2u(1000.0);
+        self.ion_transfer = reader.read_2u(1000.0);
+        self.thruster = reader.read_2u(10000.0);
+        self.nozzle = reader.read_2u(100.0);
+        self.speed = reader.read_2u(100.0);
+        self.turnrate = reader.read_2u(100.0);
+        self.cargo = reader.read_4u(1000.0);
+        self.extractor = reader.read_2u(100.0);
+        self.weapon_speed = reader.read_2u(10.0);
+        self.weapon_time = reader.read_uint16() as _;
+        self.weapon_load = reader.read_2u(10.0);
+        self.free_spawn = reader.read_boolean();
+    }
+
+    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
         writer.write_2u(self.cost_energy, 1.0);
         writer.write_2u(self.cost_ion, 100.0);
