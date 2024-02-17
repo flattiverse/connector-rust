@@ -86,10 +86,16 @@ pub enum GameErrorKind {
     ElementDoesntExist = 0x30,
     #[error("The parameter doesn't match the specification.")]
     ParameterNotWithinSpecification = 0x31,
+    #[error("The object can't have more of these. Object full?")]
+    CannotAddAlreayFull = 0x32,
+    #[error("There is no compatible or available kind.")]
+    ThereIsNoSuchKind = 0x33,
+    #[error("You don't have permission to alter this element.")]
+    NotConfigurable = 0x34,
     #[error("Unauthorized request. You prorbaly aren't the right kind of client: Player, Spectator or Admin.")]
     CommandDoesntExist = 0xE0,
-    #[error("An unknown error occurred while connecting to the flattiverse server.")]
-    UnspecifiedConnectionIssue = 0xF0,
+    #[error("An unknown error occurred.")]
+    UnknownError = 0xF0,
     #[error(
         "Couldn't connect to the universe server. Are you online? Is flattiverse still online?"
     )]
@@ -100,12 +106,22 @@ pub enum GameErrorKind {
     CallCouldNotBeProcessed = 0xF3,
     #[error("Authorization failed, possibly because one of these reasons: auth parameter, ambiguous or unknown, or no spectators allowed.")]
     AuthorizatoinFailed = 0xF4,
+    #[error("Forbidden. You are not allowed to perform this action.")]
+    Forbidden = 0xF5,
     #[error("The connector you are using is outdated.")]
-    ConnectorOutdated = 0xF5,
+    ConnectorOutdated = 0xF6,
     #[error("Login failed because you are already online.")]
-    AlreadyOnline = 0xF6,
-    #[error("Specified team doesn't exist or can't be selected.")]
-    TeamNotFound = 0xF7,
+    AlreadyOnline = 0xF7,
+    #[error("Specified element doesn't exist.")]
+    ElementNotFound = 0xF8,
+    #[error("Command didn't affect any database rows.")]
+    CommandHadNoEffect = 0xF9,
+    #[error("Given name is invalid.")]
+    NameIsInvalid = 0xFA,
+    #[error("Given name already exists.")]
+    NameAlreadyExists = 0xFB,
+    #[error("Can't create element because maximum for this kind is reached.")]
+    MaximumReached = 0xFC,
     #[error("The network connection has been closed.")]
     ConnectionClosed = 0xFE,
     #[error("Generic exception thrown.")]
