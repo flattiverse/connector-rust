@@ -7,6 +7,7 @@ pub use tokio;
 pub mod hierarchy;
 pub mod network;
 pub mod unit;
+pub mod utils;
 
 mod error;
 pub use error::*;
@@ -20,8 +21,6 @@ mod player_kind;
 pub use player_kind::*;
 mod team;
 pub use team::*;
-mod utils;
-pub use utils::*;
 mod vector;
 pub use vector::*;
 mod universal_holder;

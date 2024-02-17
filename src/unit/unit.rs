@@ -1,3 +1,4 @@
+use crate::hierarchy::ClusterId;
 use crate::unit::{Mobility, UnitKind};
 use crate::{NamedUnit, TeamId, Vector};
 use std::fmt::Debug;
@@ -8,6 +9,9 @@ use std::fmt::Debug;
 pub trait Unit: Debug + NamedUnit {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
     fn name(&self) -> &str;
+
+    /// The [`crate::hierarchy::Cluster`] this [`Unit`] is in.
+    fn cluster(&self) -> ClusterId;
 
     /// Specifies whether this [`Unit`] can hide othe [`Unit`]s behind it. True means you can't see
     /// [`Unit`] behind this [`Unit`] when scanning.
@@ -59,10 +63,16 @@ pub trait Unit: Debug + NamedUnit {
         Vector::default()
     }
 
-    /// The gravity this [`Unit`] ha son others.
+    /// The gravity this [`Unit`] has on others.
     #[inline]
     fn gravity(&self) -> f64 {
         0.0
+    }
+
+    /// The radius of this [`Unit`].
+    #[inline]
+    fn radius(&self) -> f64 {
+        1.0
     }
 
     /// This factor will be multiplied with the distance of the [`Unit`] to match, to determine
