@@ -1,5 +1,5 @@
 use crate::network::Packet;
-use async_channel::{unbounded, Receiver, Sender};
+use tokio::sync::oneshot::{Receiver, Sender};
 
 pub type SessionId = u8;
 
@@ -23,7 +23,7 @@ impl SessionHandler {
             .skip(1) // TODo session id of 0 is not allowed
             .filter(|(_, s)| s.is_none())
             .find_map(|(id, slot)| {
-                let (sender, receiver) = unbounded();
+                let (sender, receiver) = tokio::sync::oneshot::channel();
                 let session = Session {
                     id: id as SessionId,
                     receiver,
@@ -35,7 +35,7 @@ impl SessionHandler {
 
     pub fn resolve(&mut self, id: SessionId, packet: Packet) {
         if let Some(session) = core::mem::take(&mut self.sessions[usize::from(id)]) {
-            let _ = session.try_send(packet);
+            let _ = session.send(packet);
         } else {
             error!("Did not find Session for id={id}")
         }

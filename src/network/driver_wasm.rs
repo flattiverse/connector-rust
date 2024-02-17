@@ -33,8 +33,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
         Ok(websocket) => {
             console_log!("Target URL seems fine");
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
-            let (back_sender, back_receiver) = async_channel::unbounded();
-            let (sender, receiver) = async_channel::unbounded();
+            let (back_sender, back_receiver) = tokio::sync::mpsc::channel(124);
+            let (sender, mut receiver) = tokio::sync::mpsc::channel(124);
 
             let on_message_callback = Closure::<dyn FnMut(_)>::new({
                 let back_sender = back_sender.clone();
@@ -82,8 +82,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                         msg.code()
                     );
 
-                    let _ = back_sender.try_send(ConnectionEvent::GameError(error));
-                    let _ = back_sender.try_send(ConnectionEvent::Closed(None));
+                    let _ = back_sender.send(ConnectionEvent::GameError(error));
+                    let _ = back_sender.send(ConnectionEvent::Closed(None));
                     let _ = websocket.close();
                 }
             });
@@ -95,17 +95,17 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
 
                 loop {
                     match receiver.recv().await {
-                        Ok(SenderData::Packet(packet)) => {
+                        Some(SenderData::Packet(packet)) => {
                             if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
                                 console_log!("Faild to send Packet: {e:?}");
-                                let _ = back_sender.try_send(ConnectionEvent::Closed(Some(
-                                    format!("Failed to send message: {e:?}"),
-                                )));
+                                let _ = back_sender.send(ConnectionEvent::Closed(Some(format!(
+                                    "Failed to send message: {e:?}"
+                                ))));
                                 break;
                             }
                         }
-                        Err(e) => {
-                            console_log!("Receiver Error: {e:?}");
+                        None => {
+                            console_log!("Receiver connection lost");
                             break;
                         }
                     }

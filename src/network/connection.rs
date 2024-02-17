@@ -1,7 +1,7 @@
 use crate::error::GameError;
 use crate::network::{ConnectionHandle, Packet};
-use async_channel::{Receiver, Sender};
 use std::time::Duration;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 pub struct Connection {
     handle: ConnectionHandle,
@@ -15,17 +15,17 @@ impl Connection {
     }
 
     pub fn spawn(self) -> (ConnectionHandle, Receiver<ConnectionEvent>) {
-        let (sender, receiver) = async_channel::unbounded();
+        let (sender, receiver) = tokio::sync::mpsc::channel(124);
         let handle = self.handle.clone();
         crate::network::spawn(self.run(sender));
         (handle, receiver)
     }
 
-    async fn run(self, sender: Sender<ConnectionEvent>) {
+    async fn run(mut self, sender: Sender<ConnectionEvent>) {
         loop {
             match self.receiver.recv().await {
-                Err(_empty_and_closed) => break,
-                Ok(ConnectionEvent::Packet(packet)) => {
+                None => break,
+                Some(ConnectionEvent::Packet(packet)) => {
                     if packet.header().session() != 0 {
                         self.handle
                             .sessions
@@ -38,7 +38,7 @@ impl Connection {
                         }
                     }
                 }
-                Ok(event) => {
+                Some(event) => {
                     if sender.send(event).await.is_err() {
                         break;
                     }

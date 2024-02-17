@@ -89,7 +89,7 @@ impl PacketHeader {
 
     #[inline]
     pub fn param(&self) -> u16 {
-        u16::from_le_bytes([self.0[4], self.0[5]])
+        u16::from_le_bytes([self.param0(), self.param1()])
     }
 
     #[inline]

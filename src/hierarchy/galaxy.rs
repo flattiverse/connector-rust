@@ -7,9 +7,31 @@ use crate::player::Player;
 use crate::team::Team;
 use crate::unit::{Ship, ShipId};
 use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
-use async_channel::Receiver;
 use num_enum::FromPrimitive;
 use std::future::Future;
+use tokio::sync::mpsc::error::TryRecvError;
+use tokio::sync::mpsc::Receiver;
+
+#[cfg(feature = "wasm-debug")]
+mod debug {
+    #[wasm_bindgen::prelude::wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen::prelude::wasm_bindgen(js_namespace = console)]
+        pub fn log(s: &str);
+    }
+}
+
+#[cfg(feature = "wasm-debug")]
+macro_rules! console_log {
+    ($($t:tt)*) => (debug::log(&format_args!($($t)*).to_string()))
+}
+
+#[cfg(not(feature = "wasm-debug"))]
+macro_rules! console_log {
+    ($($t:tt)*) => {
+        eprintln!($($t)*);
+    };
+}
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct GlaxyId(pub(crate) u16);
@@ -59,8 +81,8 @@ impl Galaxy {
     pub async fn receive(&mut self) -> Result<FlattiverseEvent, GameError> {
         loop {
             match self.receiver.recv().await {
-                Err(_) => return Err(GameErrorKind::ConnectionClosed.into()),
-                Ok(event) => {
+                None => return Err(GameErrorKind::ConnectionClosed.into()),
+                Some(event) => {
                     if let Some(event) = self.on_connection_event(event)? {
                         return Ok(event);
                     }
@@ -72,13 +94,15 @@ impl Galaxy {
     pub fn poll_receive(&mut self) -> Result<Option<FlattiverseEvent>, GameError> {
         loop {
             match self.receiver.try_recv() {
-                Err(e) if e.is_closed() => return Err(GameErrorKind::ConnectionClosed.into()),
+                Err(TryRecvError::Disconnected) => {
+                    return Err(GameErrorKind::ConnectionClosed.into())
+                }
                 Ok(event) => {
                     if let Some(event) = self.on_connection_event(event)? {
                         return Ok(Some(event));
                     }
                 }
-                _ => return Ok(None),
+                Err(TryRecvError::Empty) => return Ok(None),
             }
         }
     }
@@ -154,6 +178,7 @@ impl Galaxy {
                 // ship info
                 0x14 => {
                     let ship_id = ShipId(packet.header().param0());
+                    console_log!("Setting {ship_id:?}");
                     self.ships.set(
                         ship_id,
                         packet.read(|reader| {
@@ -170,14 +195,21 @@ impl Galaxy {
                 0x15 => {
                     let upgrade_id = UpgradeId(packet.header().param0());
                     let ship_id = ShipId(packet.header().param1());
-                    packet.read(|reader| {
-                        self.ships[ship_id].read_upgrade(upgrade_id, reader);
-                    });
-                    Ok(Some(FlattiverseEvent::UpgradeUpdated {
-                        galaxy: self.id,
-                        ship: ship_id,
-                        upgrade: upgrade_id,
-                    }))
+                    console_log!("Accessing {ship_id:?}");
+                    if self.ships.get(ship_id).is_some() {
+                        packet.read(|reader| {
+                            self.ships[ship_id].read_upgrade(upgrade_id, reader);
+                        });
+                        Ok(Some(FlattiverseEvent::UpgradeUpdated {
+                            galaxy: self.id,
+                            ship: ship_id,
+                            upgrade: upgrade_id,
+                        }))
+                    } else {
+                        // TODO this seems to be a race condition on the server side?
+                        console_log!("Ignoring Upgrade for {ship_id:?} because it is not here yet");
+                        Ok(None)
+                    }
                 }
 
                 // new player joined info
@@ -309,10 +341,5 @@ impl Galaxy {
     #[inline]
     pub fn connection(&self) -> &ConnectionHandle {
         &self.connection
-    }
-
-    #[inline]
-    pub fn receiver_queue_len(&self) -> usize {
-        self.receiver.len()
     }
 }

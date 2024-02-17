@@ -1,13 +1,13 @@
 use crate::network::connection_handle::ConnectionHandle;
 use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
-use async_channel::{Receiver, Sender};
 use bytes::BytesMut;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::net::TcpStream;
+use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::time::interval;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -55,8 +55,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
 
     let (sender, receiver) = {
         let (sink, stream) = stream.split();
-        let (sender, receiver) = async_channel::unbounded();
-        let (event_sender, event_receiver) = async_channel::unbounded();
+        let (sender, receiver) = tokio::sync::mpsc::channel(1024);
+        let (event_sender, event_receiver) = tokio::sync::mpsc::channel(1024);
 
         let mut sender_handle =
             tokio::spawn(ConnectionSender { sink }.run(receiver, PING_INTERVAL));
@@ -116,7 +116,7 @@ struct ConnectionSender {
 impl ConnectionSender {
     async fn run(
         mut self,
-        receiver: Receiver<SenderData>,
+        mut receiver: Receiver<SenderData>,
         ping_interval: Duration,
     ) -> Result<(), SenderError> {
         let mut ping_interval = interval(ping_interval);
@@ -125,13 +125,13 @@ impl ConnectionSender {
                 _ = ping_interval.tick() => self.send_ping().await?,
                 cmd = receiver.recv() => {
                     match cmd {
-                        Ok(SenderData::Raw(message)) => {
+                        Some(SenderData::Raw(message)) => {
                             self.send(message).await?;
                         }
-                        Ok(SenderData::Packet(packet)) => {
+                        Some(SenderData::Packet(packet)) => {
                             self.send(Message::Binary(packet.into_buf().to_vec())).await?;
                         }
-                        Err(_) => return Ok(()),
+                        None => return Ok(()),
                     }
                 }
             }
