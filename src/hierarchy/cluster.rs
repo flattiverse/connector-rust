@@ -39,6 +39,14 @@ impl Cluster {
         }
     }
 
+    #[inline]
+    pub(crate) fn read_region(&mut self, id: RegionId, reader: &mut dyn PacketReader) {
+        self.regions.set(
+            id,
+            Region::new(self.galaxy, self.id, id, self.connection.clone(), reader),
+        );
+    }
+
     /// Sets the given values for this [`Cluster`].
     /// See also [`ConnectionHandle::configure_cluster`].
     pub async fn configure(

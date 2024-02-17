@@ -1,7 +1,7 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::game_type::GameType;
-use crate::hierarchy::{Cluster, GalaxyConfig, ShipConfig, TeamConfig};
+use crate::hierarchy::{Cluster, GalaxyConfig, RegionId, ShipConfig, TeamConfig};
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
@@ -164,8 +164,22 @@ impl Galaxy {
                     }))
                 }
 
-                // team info
+                // region info
                 0x12 => {
+                    let cluster_id = ClusterId::from(packet.header().param0());
+                    let region_id = RegionId::from(packet.header().param1());
+                    packet.read(|reader| {
+                        self.clusters[cluster_id].read_region(region_id, reader);
+                    });
+                    Ok(Some(FlattiverseEvent::RegionUpdated {
+                        galaxy: self.id,
+                        cluster: cluster_id,
+                        region: region_id,
+                    }))
+                }
+
+                // team info
+                0x13 => {
                     let team_id = TeamId::from(packet.header().param0());
                     self.teams.set(
                         team_id,
@@ -178,7 +192,7 @@ impl Galaxy {
                 }
 
                 // ship info
-                0x13 => {
+                0x14 => {
                     let ship_id = ShipId::from(packet.header().param0());
                     self.ships.set(
                         ship_id,
@@ -193,7 +207,7 @@ impl Galaxy {
                 }
 
                 // upgrade info
-                0x14 => {
+                0x15 => {
                     let upgrade_id = UpgradeId::from(packet.header().param0());
                     let ship_id = ShipId::from(packet.header().param1());
                     packet.read(|reader| {
@@ -207,7 +221,7 @@ impl Galaxy {
                 }
 
                 // new player joined info
-                0x15 => {
+                0x16 => {
                     let player_id = PlayerId::from(packet.header().player());
                     let team_id = TeamId::from(packet.header().param1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
