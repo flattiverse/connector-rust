@@ -3,7 +3,7 @@ use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit};
 use std::future::Future;
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub(crate) u8);
 
 impl Indexer for TeamId {

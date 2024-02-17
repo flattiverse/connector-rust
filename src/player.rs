@@ -2,8 +2,8 @@ use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
 use crate::{Indexer, NamedUnit, TeamId};
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
-pub struct PlayerId(u8);
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
+pub struct PlayerId(pub(crate) u8);
 
 impl Indexer for PlayerId {
     #[inline]

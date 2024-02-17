@@ -18,7 +18,6 @@ thiserror = "1.0.38"
 async-channel = "2.2.0"
 tokio = { version = "1.36.0", default-features = false, features = ["sync"] }
 bytes = "1.5.0"
-derive_more = { version = "0.99.17", features = ["from"] }
 
 wasm-bindgen = { version = "0.2.91", optional = true }
 wasm-bindgen-futures = { version = "0.4.41", optional = true }

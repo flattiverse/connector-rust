@@ -12,7 +12,7 @@ use async_channel::Receiver;
 use num_enum::FromPrimitive;
 use std::future::Future;
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct GlaxyId(pub(crate) u16);
 
 #[derive(Debug)]
@@ -151,7 +151,7 @@ impl Galaxy {
                 }
                 // cluster info
                 0x11 => {
-                    let cluster_id = ClusterId::from(packet.header().param0());
+                    let cluster_id = ClusterId(packet.header().param0());
                     self.clusters.set(
                         cluster_id,
                         packet.read(|reader| {
@@ -166,8 +166,8 @@ impl Galaxy {
 
                 // region info
                 0x12 => {
-                    let cluster_id = ClusterId::from(packet.header().param0());
-                    let region_id = RegionId::from(packet.header().param1());
+                    let cluster_id = ClusterId(packet.header().param0());
+                    let region_id = RegionId(packet.header().param1());
                     packet.read(|reader| {
                         self.clusters[cluster_id].read_region(region_id, reader);
                     });
@@ -180,7 +180,7 @@ impl Galaxy {
 
                 // team info
                 0x13 => {
-                    let team_id = TeamId::from(packet.header().param0());
+                    let team_id = TeamId(packet.header().param0());
                     self.teams.set(
                         team_id,
                         packet.read(|reader| Team::new(team_id, self.connection.clone(), reader)),
@@ -193,7 +193,7 @@ impl Galaxy {
 
                 // ship info
                 0x14 => {
-                    let ship_id = ShipId::from(packet.header().param0());
+                    let ship_id = ShipId(packet.header().param0());
                     self.ships.set(
                         ship_id,
                         packet.read(|reader| {
@@ -208,8 +208,8 @@ impl Galaxy {
 
                 // upgrade info
                 0x15 => {
-                    let upgrade_id = UpgradeId::from(packet.header().param0());
-                    let ship_id = ShipId::from(packet.header().param1());
+                    let upgrade_id = UpgradeId(packet.header().param0());
+                    let ship_id = ShipId(packet.header().param1());
                     packet.read(|reader| {
                         self.ships[ship_id].read_upgrade(upgrade_id, reader);
                     });
@@ -222,8 +222,8 @@ impl Galaxy {
 
                 // new player joined info
                 0x16 => {
-                    let player_id = PlayerId::from(packet.header().player());
-                    let team_id = TeamId::from(packet.header().param1());
+                    let player_id = PlayerId(packet.header().player());
+                    let team_id = TeamId(packet.header().param1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
                     packet.read(|reader| {
                         self.players.set(
@@ -249,7 +249,7 @@ impl Galaxy {
     }
 
     fn update(&mut self, mut packet: Packet) {
-        self.id = packet.header().param().into();
+        self.id = GlaxyId(packet.header().param());
         packet.read(|reader| {
             self.name = reader.read_string();
             self.description = reader.read_string();
