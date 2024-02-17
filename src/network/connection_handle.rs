@@ -165,7 +165,7 @@ impl ConnectionHandle {
         &self,
         cluster: ClusterId,
         config: &RegionConfig,
-    ) -> Result<(), GameError> {
+    ) -> Result<RegionId, GameError> {
         self.create_region_split(cluster, config).await?.await
     }
 
@@ -175,7 +175,7 @@ impl ConnectionHandle {
         &self,
         cluster: ClusterId,
         config: &RegionConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<RegionId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x44);
         packet.header_mut().set_param0(cluster.0);
@@ -185,7 +185,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.receiver.recv().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check(response, |p| Ok(RegionId(p.header().param0())))
         })
     }
 

@@ -69,7 +69,7 @@ impl Cluster {
     pub async fn create_region(
         &self,
         config: &RegionConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<RegionId, GameError>>, GameError> {
         self.connection.create_region_split(self.id, config).await
     }
 
