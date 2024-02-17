@@ -13,6 +13,7 @@ impl Indexer for ShipId {
     }
 }
 
+#[derive(Debug)]
 pub struct Ship {
     galaxy: GlaxyId,
     id: ShipId,
