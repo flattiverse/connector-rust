@@ -13,6 +13,7 @@ impl Indexer for ClusterId {
     }
 }
 
+#[derive(Debug)]
 pub struct Cluster {
     id: ClusterId,
     galaxy: GlaxyId,

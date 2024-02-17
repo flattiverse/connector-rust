@@ -1,9 +1,23 @@
+use std::any::type_name;
+use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 
 pub struct UniversalHolder<I, T> {
     data: Vec<Option<T>>,
     _i: PhantomData<I>,
+}
+
+impl<I, T> Debug for UniversalHolder<I, T> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(&format!(
+            "UniversalHolder<{}, {}>",
+            type_name::<I>(),
+            type_name::<T>()
+        ))
+        .finish_non_exhaustive()
+    }
 }
 
 impl<I, T> UniversalHolder<I, T> {

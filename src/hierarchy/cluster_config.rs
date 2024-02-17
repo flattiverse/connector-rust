@@ -3,7 +3,7 @@ use crate::network::PacketWriter;
 
 #[derive(Default)]
 pub struct ClusterConfig {
-    name: String,
+    pub name: String,
 }
 
 impl From<&Cluster> for ClusterConfig {

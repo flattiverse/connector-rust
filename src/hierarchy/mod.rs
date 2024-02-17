@@ -12,3 +12,6 @@ pub use cluster_config::*;
 
 mod region_config;
 pub use region_config::*;
+
+mod team_config;
+pub use team_config::*;

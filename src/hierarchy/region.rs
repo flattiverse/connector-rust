@@ -14,6 +14,7 @@ impl Indexer for RegionId {
     }
 }
 
+#[derive(Debug)]
 pub struct Region {
     galaxy: GlaxyId,
     cluster: ClusterId,

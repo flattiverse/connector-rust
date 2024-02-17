@@ -3,10 +3,10 @@ use crate::network::PacketWriter;
 
 #[derive(Default)]
 pub struct RegionConfig {
-    name: String,
-    start_propability: f64,
-    respawn_prpability: f64,
-    protected: bool,
+    pub name: String,
+    pub start_propability: f64,
+    pub respawn_prpability: f64,
+    pub protected: bool,
 }
 
 impl From<&Region> for RegionConfig {

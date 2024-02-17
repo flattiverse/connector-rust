@@ -14,6 +14,7 @@ use num_enum::FromPrimitive;
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, derive_more::From)]
 pub struct GlaxyId(pub(crate) u16);
 
+#[derive(Debug)]
 pub struct Galaxy {
     id: GlaxyId,
     name: String,
@@ -165,8 +166,10 @@ impl Galaxy {
                 // team info
                 0x12 => {
                     let team_id = TeamId::from(packet.header().param0());
-                    self.teams
-                        .set(team_id, packet.read(|reader| Team::new(team_id, reader)));
+                    self.teams.set(
+                        team_id,
+                        packet.read(|reader| Team::new(team_id, self.connection.clone(), reader)),
+                    );
                     Ok(Some(FlattiverseEvent::TeamUpdated {
                         galaxy: self.id,
                         team: team_id,

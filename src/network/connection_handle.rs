@@ -1,7 +1,8 @@
-use crate::hierarchy::{ClusterConfig, ClusterId, RegionConfig, RegionId};
+use crate::hierarchy::{ClusterConfig, ClusterId, RegionConfig, RegionId, TeamConfig};
 use crate::network::{Packet, Session, SessionHandler};
-use crate::{GameError, GameErrorKind};
+use crate::{GameError, GameErrorKind, TeamId};
 use async_channel::{RecvError, SendError, Sender};
+use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -10,6 +11,13 @@ use tokio::sync::Mutex;
 pub struct ConnectionHandle {
     pub(crate) sender: Sender<SenderData>,
     pub(crate) sessions: Arc<Mutex<SessionHandler>>,
+}
+
+impl Debug for ConnectionHandle {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConnectionHandle").finish_non_exhaustive()
+    }
 }
 
 impl From<Sender<SenderData>> for ConnectionHandle {
@@ -174,6 +182,54 @@ impl ConnectionHandle {
         Ok(async move {
             let respones = session.receiver.recv().await?;
             GameError::check(respones, |_| Ok(()))
+        })
+    }
+
+    /// Sets the given values for the given [`crate::Team`].
+    #[inline]
+    pub async fn configure_team(&self, team: TeamId, config: &TeamConfig) -> Result<(), GameError> {
+        self.configure_team_split(team, config).await?.await
+    }
+
+    /// Sets the given values for the given [`crate::Team`].
+    pub async fn configure_team_split(
+        &self,
+        team: TeamId,
+        config: &TeamConfig,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x48);
+        packet.header_mut().set_param0(team.0);
+        packet.write(|writer| config.write_to(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Removes the given [`crate::Team`].
+    #[inline]
+    pub async fn remove_team(&self, team: TeamId) -> Result<(), GameError> {
+        self.remove_team_split(team).await?.await
+    }
+
+    /// Removes the given [`crate::Team`].
+    pub async fn remove_team_split(
+        &self,
+        team: TeamId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x49);
+        packet.header_mut().set_param0(team.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.recv().await?;
+            GameError::check(response, |_| Ok(()))
         })
     }
 
