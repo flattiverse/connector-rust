@@ -6,3 +6,6 @@ pub use mobility::*;
 
 mod unit_kind;
 pub use unit_kind::*;
+
+mod unit;
+pub use unit::*;

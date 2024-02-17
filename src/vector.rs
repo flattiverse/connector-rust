@@ -8,7 +8,7 @@ pub struct Vector {
 }
 
 impl Vector {
-    pub fn from_xy(x: f64, y: f64) -> Self {
+    pub const fn from_xy(x: f64, y: f64) -> Self {
         Self {
             x,
             y,
