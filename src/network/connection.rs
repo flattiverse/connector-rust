@@ -45,7 +45,6 @@ impl Connection {
                 }
             }
         }
-        // TODO cleanup
     }
 }
 
