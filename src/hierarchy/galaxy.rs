@@ -49,6 +49,7 @@ pub struct Galaxy {
     //
     connection: ConnectionHandle,
     receiver: Receiver<ConnectionEvent>,
+    login_completed: bool,
 }
 
 impl Galaxy {
@@ -63,6 +64,7 @@ impl Galaxy {
         let (handle, receiver) = connection.spawn();
 
         Ok(Self {
+            login_completed: false,
             connection: handle,
             receiver,
 
@@ -238,7 +240,10 @@ impl Galaxy {
                 }
 
                 // tick completed
-                0x20 => Ok(Some(FlattiverseEvent::TickCompleted)),
+                0x20 => {
+                    self.login_completed = true;
+                    Ok(Some(FlattiverseEvent::TickCompleted))
+                }
 
                 cmd => Err(
                     GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
@@ -276,7 +281,17 @@ impl Galaxy {
         });
     }
 
-    /// Waits for the next [`FlattiverseEvent::TickCompleted`] fo this [`Galaxy`].
+    /// Waits until the login proceedure has been completed for  this [`Galaxy`].
+    pub async fn wait_login_completed(&mut self) -> Result<(), GameError> {
+        while !self.login_completed {
+            if let FlattiverseEvent::TickCompleted = self.receive().await? {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    /// Waits for the next [`FlattiverseEvent::TickCompleted`] for this [`Galaxy`].
     pub async fn wait_next_turn(&mut self) -> Result<(), GameError> {
         loop {
             if let FlattiverseEvent::TickCompleted = self.receive().await? {
