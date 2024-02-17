@@ -291,7 +291,7 @@ impl Galaxy {
     pub async fn create_cluster(
         &self,
         config: &ClusterConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ClusterId, GameError>>, GameError> {
         self.connection.create_cluster_split(config).await
     }
 

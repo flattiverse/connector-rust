@@ -85,7 +85,7 @@ impl ConnectionHandle {
 
     /// Creates a new [`crate::hierarchy::Cluster`] for the given values.
     #[inline]
-    pub async fn create_cluster(&self, config: &ClusterConfig) -> Result<(), GameError> {
+    pub async fn create_cluster(&self, config: &ClusterConfig) -> Result<ClusterId, GameError> {
         self.create_cluster_split(config).await?.await
     }
 
@@ -93,7 +93,7 @@ impl ConnectionHandle {
     pub async fn create_cluster_split(
         &self,
         config: &ClusterConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ClusterId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x41);
         packet.write(|writer| config.write_to(writer));
@@ -102,7 +102,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.receiver.recv().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check(response, |p| Ok(ClusterId(p.header().param0())))
         })
     }
 
