@@ -4,11 +4,11 @@ use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{NamedUnit, Vector};
 
 #[derive(Debug)]
-pub struct Planet {
+pub struct Moon {
     body: CelestialBody,
 }
 
-impl Planet {
+impl Moon {
     pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
         Self {
             body: CelestialBody::new(cluster, reader),
@@ -19,14 +19,14 @@ impl Planet {
     // TODO pub async fn remove
 }
 
-impl NamedUnit for Planet {
+impl NamedUnit for Moon {
     #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
 }
 
-impl Unit for Planet {
+impl Unit for Moon {
     #[inline]
     fn cluster(&self) -> ClusterId {
         self.body.cluster
@@ -49,6 +49,6 @@ impl Unit for Planet {
 
     #[inline]
     fn kind(&self) -> UnitKind {
-        UnitKind::Planet
+        UnitKind::Moon
     }
 }

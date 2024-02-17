@@ -21,3 +21,6 @@ pub use sun::*;
 
 mod planet;
 pub use planet::*;
+
+mod moon;
+pub use moon::*;
