@@ -80,16 +80,22 @@ impl<I: Indexer, T> Index<I> for UniversalHolder<I, T> {
 
     #[inline]
     fn index(&self, index: I) -> &Self::Output {
-        self.get(index)
-            .expect("There is no entry for the given Index")
+        let usize_index = index.index();
+        match self.get(index) {
+            Some(value) => value,
+            None => panic!("There is no entry for the given Index={}", usize_index),
+        }
     }
 }
 
 impl<I: Indexer, T> IndexMut<I> for UniversalHolder<I, T> {
     #[inline]
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        self.get_mut(index)
-            .expect("There is no entry for the given Index")
+        let usize_index = index.index();
+        match self.get_mut(index) {
+            Some(value) => value,
+            None => panic!("There is no entry for the given Index={}", usize_index),
+        }
     }
 }
 
@@ -98,8 +104,10 @@ impl<'a, I, T: NamedUnit> Index<&'a str> for UniversalHolder<I, T> {
 
     #[inline]
     fn index(&self, index: &'a str) -> &Self::Output {
-        self.get_by_name(index)
-            .expect("There is no entry for the given name")
+        match self.get_by_name(index) {
+            Some(value) => value,
+            None => panic!("There is no entry for the given Index={index:?}"),
+        }
     }
 }
 
