@@ -8,7 +8,7 @@ pub enum UnitKind {
     BlackHole = 0x01,
     Planet = 0x04,
     Moon = 0x05,
-    Meteroid = 0x06,
+    Meteoroid = 0x06,
     Buoy = 0x10,
     PlayerUnit = 0xF0,
 }

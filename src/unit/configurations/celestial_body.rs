@@ -1,5 +1,5 @@
 use crate::network::{PacketReader, PacketWriter};
-use crate::unit::configurations::unit_configuration::UnitConfiguration;
+use crate::unit::configurations::UnitConfiguration;
 use crate::{GameError, GameErrorKind, Vector};
 use std::ops::{Deref, DerefMut};
 

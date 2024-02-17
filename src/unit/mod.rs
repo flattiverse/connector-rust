@@ -16,6 +16,9 @@ pub use unit::*;
 mod celestial_body;
 pub use celestial_body::*;
 
+mod harvestable;
+pub use harvestable::*;
+
 mod sun;
 pub use sun::*;
 

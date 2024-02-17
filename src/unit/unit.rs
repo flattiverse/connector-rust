@@ -108,7 +108,7 @@ pub(crate) fn from_packet(
         UnitKind::BlackHole => todo!(),
         UnitKind::Planet => Box::new(Planet::new(cluster, reader)),
         UnitKind::Moon => Box::new(Moon::new(cluster, reader)),
-        UnitKind::Meteroid => Box::new(Meteoroid::new(cluster, reader)),
+        UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader)),
         UnitKind::Buoy => Box::new(Buoy::new(cluster, reader)),
         UnitKind::PlayerUnit => todo!(),
     }))
