@@ -301,7 +301,7 @@ impl Galaxy {
     pub async fn create_team(
         &self,
         config: &TeamConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<TeamId, GameError>>, GameError> {
         self.connection.create_team_split(config).await
     }
 

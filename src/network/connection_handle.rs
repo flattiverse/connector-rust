@@ -242,7 +242,7 @@ impl ConnectionHandle {
 
     /// Creates a new [`crate::Team`] for the given values.
     #[inline]
-    pub async fn create_team(&self, config: &TeamConfig) -> Result<(), GameError> {
+    pub async fn create_team(&self, config: &TeamConfig) -> Result<TeamId, GameError> {
         self.create_team_split(config).await?.await
     }
 
@@ -250,7 +250,7 @@ impl ConnectionHandle {
     pub async fn create_team_split(
         &self,
         config: &TeamConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<TeamId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x47);
         packet.write(|writer| config.write_to(writer));
@@ -259,7 +259,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.receiver.recv().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check(response, |p| Ok(TeamId(p.header().param0())))
         })
     }
 
