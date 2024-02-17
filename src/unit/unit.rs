@@ -5,7 +5,7 @@ use std::fmt::Debug;
 /// Represents an unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
 /// those methods and might add futher propeties.
-pub trait Unit: Debug + Clone + NamedUnit {
+pub trait Unit: Debug + NamedUnit {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
     fn name(&self) -> &str;
 
