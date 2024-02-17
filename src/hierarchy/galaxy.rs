@@ -5,9 +5,10 @@ use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
-use crate::unit::{Ship, ShipId};
+use crate::unit::{Ship, ShipId, UnitKind};
 use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use num_enum::FromPrimitive;
+use num_enum::TryFromPrimitive;
 use std::future::Future;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
@@ -233,6 +234,15 @@ impl Galaxy {
                 0x20 => {
                     self.login_completed = true;
                     Ok(Some(FlattiverseEvent::TickCompleted))
+                }
+
+                // unit
+                0x50 => {
+                    let kind = UnitKind::try_from_primitive(packet.header().param0());
+                    let id = ClusterId(packet.header().id0());
+                    console_log!("Received {kind:?} for {id:?}.");
+                    // TODO
+                    Ok(None)
                 }
 
                 cmd => Err(

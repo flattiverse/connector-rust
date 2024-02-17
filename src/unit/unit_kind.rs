@@ -1,6 +1,6 @@
 #[repr(u8)]
 #[derive(
-    Debug, Copy, Clone, Default, PartialEq, Eq, num_enum::FromPrimitive, num_enum::IntoPrimitive,
+    Debug, Copy, Clone, Default, PartialEq, Eq, num_enum::TryFromPrimitive, num_enum::IntoPrimitive,
 )]
 pub enum UnitKind {
     #[default]
@@ -9,5 +9,6 @@ pub enum UnitKind {
     Planet = 0x04,
     Moon = 0x05,
     Meteroid = 0x06,
+    Buoy = 0x10,
     PlayerUnit = 0xF0,
 }
