@@ -1,13 +1,12 @@
 use crate::network::connection_handle::ConnectionHandle;
 use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
-use crate::utils::current_time_millis;
 use async_channel::{Receiver, Sender};
 use bytes::BytesMut;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
-use std::time::Duration;
+use std::time::{Duration, UNIX_EPOCH};
 use tokio::net::TcpStream;
 use tokio::time::interval;
 use tokio_tungstenite::tungstenite::Message;
@@ -152,6 +151,10 @@ impl ConnectionSender {
         self.sink.flush().await?;
         Ok(())
     }
+}
+
+fn current_time_millis() -> u64 {
+    UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() as _
 }
 
 #[derive(thiserror::Error, Debug)]
