@@ -1,7 +1,7 @@
 use crate::network::PacketWriter;
 use crate::{Upgrade, UpgradeId};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct UpgradeConfig {
     pub name: String,
     pub previous_upgrade: Option<UpgradeId>,

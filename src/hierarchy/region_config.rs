@@ -1,7 +1,7 @@
 use crate::hierarchy::Region;
 use crate::network::PacketWriter;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct RegionConfig {
     pub name: String,
     pub start_propability: f64,

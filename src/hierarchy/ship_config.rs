@@ -1,7 +1,7 @@
 use crate::network::PacketWriter;
 use crate::unit::Ship;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ShipConfig {
     name: String,
     cost_energy: f64,
