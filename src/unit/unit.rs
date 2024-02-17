@@ -1,5 +1,6 @@
 use crate::hierarchy::ClusterId;
 use crate::network::Packet;
+use crate::unit::Buoy;
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
 use num_enum::TryFromPrimitive;
@@ -108,7 +109,7 @@ pub(crate) fn from_packet(
         UnitKind::Planet => Box::new(Planet::new(cluster, reader)),
         UnitKind::Moon => Box::new(Moon::new(cluster, reader)),
         UnitKind::Meteroid => todo!(),
-        UnitKind::Buoy => todo!(),
+        UnitKind::Buoy => Box::new(Buoy::new(cluster, reader)),
         UnitKind::PlayerUnit => todo!(),
     }))
 }

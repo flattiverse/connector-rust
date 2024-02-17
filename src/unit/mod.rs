@@ -24,3 +24,6 @@ pub use planet::*;
 
 mod moon;
 pub use moon::*;
+
+mod buoy;
+pub use buoy::*;
