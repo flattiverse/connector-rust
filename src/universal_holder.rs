@@ -46,8 +46,20 @@ impl<I: Indexer, T> UniversalHolder<I, T> {
     }
 }
 
+impl<T: NamedUnit> UniversalHolder<(), T> {
+    pub fn push(&mut self, value: impl Into<T>) {
+        *self.data.iter_mut().find(|slot| slot.is_none()).unwrap() = Some(value.into());
+    }
+}
+
 impl<I, T: NamedUnit> UniversalHolder<I, T> {
-    #[inline]
+    pub fn remove(&mut self, name: &str) -> Option<T> {
+        self.data.iter_mut().find_map(|slot| match slot {
+            Some(value) if value.name() == name => slot.take(),
+            _ => None,
+        })
+    }
+
     pub fn get_by_name(&self, name: &str) -> Option<&T> {
         self.data
             .iter()
@@ -55,7 +67,6 @@ impl<I, T: NamedUnit> UniversalHolder<I, T> {
             .find(|d| d.name() == name)
     }
 
-    #[inline]
     pub fn get_by_name_mut(&mut self, name: &str) -> Option<&mut T> {
         self.data
             .iter_mut()
