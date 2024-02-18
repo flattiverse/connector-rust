@@ -2,9 +2,17 @@ use crate::network::{PacketReader, PacketWriter};
 use crate::utils::check_name_or_err;
 use crate::GameError;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct UnitConfiguration {
     pub(crate) name: String,
+}
+
+impl Default for UnitConfiguration {
+    fn default() -> Self {
+        Self {
+            name: "UnitName".to_string(),
+        }
+    }
 }
 
 impl UnitConfiguration {

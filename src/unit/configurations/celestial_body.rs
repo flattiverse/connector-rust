@@ -3,12 +3,23 @@ use crate::unit::configurations::UnitConfiguration;
 use crate::{GameError, GameErrorKind, Vector};
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CelestialBodyConfiguration {
     pub(crate) base: UnitConfiguration,
     pub(crate) position: Vector,
     pub(crate) radius: f64,
     pub(crate) graity: f64,
+}
+
+impl Default for CelestialBodyConfiguration {
+    fn default() -> Self {
+        Self {
+            base: UnitConfiguration::default(),
+            position: Vector::from_xy(0.0, 0.0),
+            radius: 10.0,
+            graity: 30.0,
+        }
+    }
 }
 
 impl CelestialBodyConfiguration {

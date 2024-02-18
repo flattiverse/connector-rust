@@ -27,6 +27,10 @@ impl<I, T> UniversalHolder<I, T> {
             _i: PhantomData::default(),
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.data.iter().flatten()
+    }
 }
 
 impl<I: Indexer, T> UniversalHolder<I, T> {

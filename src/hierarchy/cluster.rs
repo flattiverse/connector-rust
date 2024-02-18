@@ -1,5 +1,6 @@
 use crate::hierarchy::{ClusterConfig, GlaxyId, Region, RegionConfig, RegionId};
 use crate::network::{ConnectionHandle, PacketReader};
+use crate::unit::configurations::SunConfiguration;
 use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
 use std::future::Future;
 
@@ -71,6 +72,15 @@ impl Cluster {
         config: &RegionConfig,
     ) -> Result<impl Future<Output = Result<RegionId, GameError>>, GameError> {
         self.connection.create_region_split(self.id, config).await
+    }
+
+    /// Creates a [`Sun`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_sun`].
+    pub async fn create_sun(
+        &self,
+        config: &SunConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_sun_split(self.id, config).await
     }
 
     // TODO pub async fn create_sun

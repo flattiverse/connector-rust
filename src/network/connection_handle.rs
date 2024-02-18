@@ -3,7 +3,8 @@ use crate::hierarchy::{
     TeamConfig, UpgradeConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
-use crate::unit::ShipId;
+use crate::unit::configurations::SunConfiguration;
+use crate::unit::{ShipId, UnitKind};
 use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -456,6 +457,37 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4C);
         packet.header_mut().set_param0(ship.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Creates a new [`crate::unit::Sun`].
+    #[inline]
+    pub async fn create_sun(
+        &self,
+        cluster: ClusterId,
+        config: &SunConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_sun_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Sun`].
+    pub async fn create_sun_split(
+        &self,
+        cluster: ClusterId,
+        config: &SunConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x51);
+        packet.header_mut().set_id0(cluster.0);
+        packet.header_mut().set_param0(UnitKind::Sun.into());
+
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
