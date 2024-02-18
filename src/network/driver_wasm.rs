@@ -6,32 +6,11 @@ use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::{Blob, CloseEvent, MessageEvent, WebSocket};
 
-#[cfg(feature = "wasm-debug")]
-mod debug {
-    #[wasm_bindgen::prelude::wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen::prelude::wasm_bindgen(js_namespace = console)]
-        pub fn log(s: &str);
-    }
-}
-
-#[cfg(feature = "wasm-debug")]
-macro_rules! console_log {
-    ($($t:tt)*) => (debug::log(&format_args!($($t)*).to_string()))
-}
-
-#[cfg(not(feature = "wasm-debug"))]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        let _ = format_args!($($t)*);
-    };
-}
-
 pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
-    console_log!("Connecting to {url:?}");
+    debug!("Connecting to {url:?}");
     match WebSocket::new(&url) {
         Ok(websocket) => {
-            console_log!("Target URL seems fine");
+            debug!("Target URL seems fine");
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
             let (back_sender, back_receiver) = tokio::sync::mpsc::channel(124);
             let (sender, mut receiver) = tokio::sync::mpsc::channel(124);
@@ -45,14 +24,14 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                     } else if let Ok(blob) = msg.data().dyn_into::<Blob>() {
                         Uint8Array::new(&blob)
                     } else if let Ok(text) = msg.data().dyn_into::<JsString>() {
-                        console_log!("Received msg that was not expectd {text}");
+                        warn!("Received msg that was not expectd {text}");
                         return;
                     } else {
-                        console_log!("Unexpected message received");
+                        warn!("Unexpected message received");
                         return;
                     };
 
-                    console_log!("received msg, len={}", array.byte_length());
+                    debug!("received msg, len={}", array.byte_length());
                     let data = {
                         // copying the data from into rust / wasm
                         let mut bytes = BytesMut::zeroed(array.byte_length() as usize);
@@ -63,7 +42,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                     let mut packet = MultiPacketBuffer::from(data);
                     while let Some(packet) = packet.next_packet() {
                         if let Err(e) = back_sender.try_send(ConnectionEvent::Packet(packet)) {
-                            console_log!("Failed to send ConnectionEvent {e:?}");
+                            error!("Failed to send ConnectionEvent {e:?}");
                             let _ = websocket.close();
                         }
                     }
@@ -77,7 +56,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 let websocket = websocket.clone();
                 move |msg: CloseEvent| {
                     let error = ConnectError::game_error_from_http_status_code(msg.code());
-                    console_log!(
+                    warn!(
                         "Received close request: {msg:?}/code={} {error:?}",
                         msg.code()
                     );
@@ -91,13 +70,13 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             on_close_callback.forget();
 
             wasm_bindgen_futures::spawn_local(async move {
-                console_log!("FUTURE SPAWNED");
+                debug!("FUTURE SPAWNED");
 
                 loop {
                     match receiver.recv().await {
                         Some(SenderData::Packet(packet)) => {
                             if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
-                                console_log!("Faild to send Packet: {e:?}");
+                                debug!("Faild to send Packet: {e:?}");
                                 let _ = back_sender.send(ConnectionEvent::Closed(Some(format!(
                                     "Failed to send message: {e:?}"
                                 ))));
@@ -105,13 +84,13 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                             }
                         }
                         None => {
-                            console_log!("Receiver connection lost");
+                            warn!("Receiver connection lost");
                             break;
                         }
                     }
                 }
 
-                console_log!("SENDER IS SHUTTING DOWN");
+                warn!("SENDER IS SHUTTING DOWN");
                 let _ = websocket.close();
             });
 

@@ -13,27 +13,6 @@ use std::future::Future;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
 
-#[cfg(feature = "wasm-debug")]
-mod debug {
-    #[wasm_bindgen::prelude::wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen::prelude::wasm_bindgen(js_namespace = console)]
-        pub fn log(s: &str);
-    }
-}
-
-#[cfg(feature = "wasm-debug")]
-macro_rules! console_log {
-    ($($t:tt)*) => (debug::log(&format_args!($($t)*).to_string()))
-}
-
-#[cfg(not(feature = "wasm-debug"))]
-macro_rules! console_log {
-    ($($t:tt)*) => {
-        eprintln!($($t)*);
-    };
-}
-
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct GlaxyId(pub(crate) u16);
 
@@ -232,9 +211,9 @@ impl Galaxy {
                 0x50 => {
                     let kind = UnitKind::try_from_primitive(packet.header().param0());
                     let id = ClusterId(packet.header().id0());
-                    console_log!("Received {kind:?} for {id:?}.");
+                    info!("Received {kind:?} for {id:?}.");
                     let unit = unit::from_packet(id, packet);
-                    console_log!("Received {unit:?}.");
+                    info!("Received {unit:?}.");
                     // TODO
                     Ok(None)
                 }
