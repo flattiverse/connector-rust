@@ -73,6 +73,13 @@ impl Cluster {
         self.connection.create_region_split(self.id, config).await
     }
 
+    // TODO pub async fn create_sun
+    // TODO pub async fn create_blackhole
+    // TODO pub async fn create_planet
+    // TODO pub async fn create_moon
+    // TODO pub async fn create_meteoroid
+    // TODO pub async fn create_buoy
+
     #[inline]
     pub fn id(&self) -> ClusterId {
         self.id
