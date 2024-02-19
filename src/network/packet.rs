@@ -63,13 +63,19 @@ impl Packet {
     }
 
     #[inline]
-    pub fn read<'a, T>(&'a mut self, f: impl FnOnce(&'a mut dyn PacketReader) -> T) -> T {
+    pub fn read<T>(&mut self, f: impl FnOnce(&mut dyn PacketReader) -> T) -> T {
         f(&mut self.payload)
     }
 
     #[inline]
-    pub fn write(&mut self, f: impl FnOnce(&mut dyn PacketWriter)) {
-        f(&mut self.payload);
+    pub fn with_write<T>(mut self, f: impl FnOnce(&mut dyn PacketWriter) -> T) -> Self {
+        let _ = f(&mut self.payload);
+        self
+    }
+
+    #[inline]
+    pub fn write<T>(&mut self, f: impl FnOnce(&mut dyn PacketWriter) -> T) -> T {
+        f(&mut self.payload)
     }
 
     #[inline]

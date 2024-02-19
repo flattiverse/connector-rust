@@ -1,6 +1,7 @@
 use crate::network::{PacketReader, PacketWriter};
-use crate::unit::configurations::CelestialBodyConfiguration;
+use crate::unit::configurations::{CelestialBodyConfiguration, Configuration};
 use crate::unit::sub_components::SunSection;
+use crate::unit::UnitKind;
 use crate::{GameError, GameErrorKind};
 use std::ops::{Deref, DerefMut};
 
@@ -11,26 +12,6 @@ pub struct SunConfiguration {
 }
 
 impl SunConfiguration {
-    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-        self.base.read(reader);
-
-        let sections = usize::from(reader.read_byte());
-        self.sections = (0..sections)
-            .map(|_| {
-                let mut this = SunSection::default();
-                this.read(reader);
-                this
-            })
-            .collect();
-    }
-
-    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
-        self.base.write(writer);
-
-        writer.write_byte(self.sections.len() as _);
-        self.sections.iter().for_each(|s| s.write(writer));
-    }
-
     #[inline]
     pub fn sections(&self) -> &[SunSection] {
         &self.sections
@@ -61,6 +42,35 @@ impl SunConfiguration {
         } else {
             Some(self.sections.remove(index))
         }
+    }
+}
+
+impl Configuration for SunConfiguration {
+    #[inline]
+    fn read(&mut self, reader: &mut dyn PacketReader) {
+        self.base.read(reader);
+
+        let sections = usize::from(reader.read_byte());
+        self.sections = (0..sections)
+            .map(|_| {
+                let mut this = SunSection::default();
+                this.read(reader);
+                this
+            })
+            .collect();
+    }
+
+    #[inline]
+    fn write(&self, writer: &mut dyn PacketWriter) {
+        self.base.write(writer);
+
+        writer.write_byte(self.sections.len() as _);
+        self.sections.iter().for_each(|s| s.write(writer));
+    }
+
+    #[inline]
+    fn kind(&self) -> UnitKind {
+        UnitKind::Sun
     }
 }
 

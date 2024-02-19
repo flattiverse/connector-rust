@@ -3,8 +3,11 @@ use crate::hierarchy::{
     TeamConfig, UpgradeConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
-use crate::unit::configurations::SunConfiguration;
-use crate::unit::{ShipId, UnitKind};
+use crate::unit::configurations::{
+    BlackHoleConfiguration, BuoyConfiguration, Configuration, MeteoroidConfiguration,
+    MoonConfiguration, PlanetConfiguration, SunConfiguration,
+};
+use crate::unit::ShipId;
 use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -482,11 +485,129 @@ impl ConnectionHandle {
         cluster: ClusterId,
         config: &SunConfiguration,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::BlackHole`].
+    #[inline]
+    pub async fn create_black_hole(
+        &self,
+        cluster: ClusterId,
+        config: &BlackHoleConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_black_hole_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::BlackHole`].
+    #[inline]
+    pub async fn create_black_hole_split(
+        &self,
+        cluster: ClusterId,
+        config: &BlackHoleConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::Planet`].
+    #[inline]
+    pub async fn create_planet(
+        &self,
+        cluster: ClusterId,
+        config: &PlanetConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_planet_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Planet`].
+    #[inline]
+    pub async fn create_planet_split(
+        &self,
+        cluster: ClusterId,
+        config: &PlanetConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::Moon`].
+    #[inline]
+    pub async fn create_moon(
+        &self,
+        cluster: ClusterId,
+        config: &MoonConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_moon_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Moon`].
+    #[inline]
+    pub async fn create_moon_split(
+        &self,
+        cluster: ClusterId,
+        config: &MoonConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::Meteoroid`].
+    #[inline]
+    pub async fn create_meteoroid(
+        &self,
+        cluster: ClusterId,
+        config: &MeteoroidConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_meteoroid_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Meteoroid`].
+    #[inline]
+    pub async fn create_meteoroid_split(
+        &self,
+        cluster: ClusterId,
+        config: &MeteoroidConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::Buoy`].
+    #[inline]
+    pub async fn create_buoy(
+        &self,
+        cluster: ClusterId,
+        config: &BuoyConfiguration,
+    ) -> Result<(), GameError> {
+        self.create_buoy_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Buoy`].
+    #[inline]
+    pub async fn create_buoy_split(
+        &self,
+        cluster: ClusterId,
+        config: &BuoyConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.create_unit_split(cluster, config).await
+    }
+
+    /// Creates a new [`crate::unit::Unit`].
+    #[inline]
+    pub async fn create_unit(
+        &self,
+        cluster: ClusterId,
+        config: &dyn Configuration,
+    ) -> Result<(), GameError> {
+        self.create_unit_split(cluster, config).await?.await
+    }
+
+    /// Creates a new [`crate::unit::Unit`].
+    pub async fn create_unit_split(
+        &self,
+        cluster: ClusterId,
+        config: &dyn Configuration,
+    ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x51);
         packet.header_mut().set_id0(cluster.0);
-        packet.header_mut().set_param0(UnitKind::Sun.into());
-
+        packet.header_mut().set_param0(config.kind().into());
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;

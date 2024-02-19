@@ -1,6 +1,15 @@
 #[repr(u8)]
 #[derive(
-    Debug, Copy, Clone, Default, PartialEq, Eq, num_enum::TryFromPrimitive, num_enum::IntoPrimitive,
+    Debug,
+    Copy,
+    Clone,
+    Default,
+    PartialEq,
+    Eq,
+    num_enum::TryFromPrimitive,
+    num_enum::IntoPrimitive,
+    strum::EnumIter,
+    strum::AsRefStr,
 )]
 pub enum UnitKind {
     #[default]
@@ -11,4 +20,11 @@ pub enum UnitKind {
     Meteoroid = 0x06,
     Buoy = 0x10,
     PlayerUnit = 0xF0,
+}
+
+impl UnitKind {
+    #[inline]
+    pub fn iter() -> impl Iterator<Item = UnitKind> {
+        <Self as strum::IntoEnumIterator>::iter()
+    }
 }

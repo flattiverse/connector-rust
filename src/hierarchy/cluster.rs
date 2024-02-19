@@ -1,6 +1,9 @@
 use crate::hierarchy::{ClusterConfig, GlaxyId, Region, RegionConfig, RegionId};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::unit::configurations::SunConfiguration;
+use crate::unit::configurations::{
+    BlackHoleConfiguration, BuoyConfiguration, MeteoroidConfiguration, MoonConfiguration,
+    PlanetConfiguration, SunConfiguration,
+};
 use crate::unit::{Unit, UnitKind};
 use crate::{FlattiverseEvent, GameError, Indexer, NamedUnit, UniversalHolder};
 use rustc_hash::FxHashMap;
@@ -54,6 +57,7 @@ impl Cluster {
 
     /// Sets the given values for this [`Cluster`].
     /// See also [`ConnectionHandle::configure_cluster`].
+    #[inline]
     pub async fn configure(
         &self,
         config: &ClusterConfig,
@@ -65,12 +69,14 @@ impl Cluster {
 
     /// Removes this [`Cluster`].
     /// See also [`ConnectionHandle::remove_cluster`].
+    #[inline]
     pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection.remove_cluster_split(self.id).await
     }
 
     /// Creates a [`Region`] with the given values in this [`Cluster`].
     /// See also [`ConnectionHandle::create_region`].
+    #[inline]
     pub async fn create_region(
         &self,
         config: &RegionConfig,
@@ -78,8 +84,9 @@ impl Cluster {
         self.connection.create_region_split(self.id, config).await
     }
 
-    /// Creates a [`Sun`] with the given values in this [`Cluster`].
+    /// Creates a [`crate::unit::Sun`] with the given values in this [`Cluster`].
     /// See also [`ConnectionHandle::create_sun`].
+    #[inline]
     pub async fn create_sun(
         &self,
         config: &SunConfiguration,
@@ -87,12 +94,59 @@ impl Cluster {
         self.connection.create_sun_split(self.id, config).await
     }
 
-    // TODO pub async fn create_sun
-    // TODO pub async fn create_blackhole
-    // TODO pub async fn create_planet
-    // TODO pub async fn create_moon
-    // TODO pub async fn create_meteoroid
-    // TODO pub async fn create_buoy
+    /// Creates a [`crate::unit::BlackHole`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_black_hole`].
+    #[inline]
+    pub async fn create_black_hole(
+        &self,
+        config: &BlackHoleConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .create_black_hole_split(self.id, config)
+            .await
+    }
+
+    /// Creates a [`crate::unit::Planet`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_planet`].
+    #[inline]
+    pub async fn create_planet(
+        &self,
+        config: &PlanetConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_planet_split(self.id, config).await
+    }
+
+    /// Creates a [`crate::unit::Moon`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_moon`].
+    #[inline]
+    pub async fn create_moon(
+        &self,
+        config: &MoonConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_moon_split(self.id, config).await
+    }
+
+    /// Creates a [`crate::unit::Meteoroid`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_meteoroid`].
+    #[inline]
+    pub async fn create_meteoroid(
+        &self,
+        config: &MeteoroidConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .create_meteoroid_split(self.id, config)
+            .await
+    }
+
+    /// Creates a [`crate::unit::Buoy`] with the given values in this [`Cluster`].
+    /// See also [`ConnectionHandle::create_buoy`].
+    #[inline]
+    pub async fn create_buoy(
+        &self,
+        config: &BuoyConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.create_buoy_split(self.id, config).await
+    }
 
     pub(crate) fn see_new_unit(
         &mut self,
