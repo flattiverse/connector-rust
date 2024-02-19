@@ -92,6 +92,8 @@ pub enum GameErrorKind {
     ThereIsNoSuchKind = 0x33,
     #[error("You don't have permission to alter this element.")]
     NotConfigurable = 0x34,
+    #[error("Unit has been created but wasn't there when the session returned.")]
+    CreatedButMissing = 0x35,
     #[error("Unauthorized request. You prorbaly aren't the right kind of client: Player, Spectator or Admin.")]
     CommandDoesntExist = 0xE0,
     #[error("An unknown error occurred.")]
