@@ -31,8 +31,9 @@ impl GameError {
         f: impl FnOnce(Packet) -> Result<T, GameError>,
     ) -> Result<T, GameError> {
         if packet.header().command() == 0xFF {
+            debug!("GameError, Packet={packet:?}");
             Err(
-                GameError::from(GameErrorKind::from_primitive(packet.header().command()))
+                GameError::from(GameErrorKind::from_primitive(packet.header().param0()))
                     .with_info_opt({
                         if packet.header().size() > 0 {
                             Some(packet.read(|reader| reader.read_string()))
