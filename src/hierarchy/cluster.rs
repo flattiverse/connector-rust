@@ -1,7 +1,9 @@
 use crate::hierarchy::{ClusterConfig, GlaxyId, Region, RegionConfig, RegionId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::configurations::SunConfiguration;
-use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
+use crate::unit::{Unit, UnitKind};
+use crate::{FlattiverseEvent, GameError, Indexer, NamedUnit, UniversalHolder};
+use rustc_hash::FxHashMap;
 use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -19,6 +21,7 @@ pub struct Cluster {
     id: ClusterId,
     galaxy: GlaxyId,
     config: ClusterConfig,
+    units: FxHashMap<String, Box<dyn Unit>>,
     regions: UniversalHolder<RegionId, Region>,
     connection: ConnectionHandle,
 }
@@ -36,6 +39,7 @@ impl Cluster {
             galaxy,
             connection,
             config: ClusterConfig::from(reader),
+            units: FxHashMap::default(),
             regions: UniversalHolder::with_capacity(256),
         }
     }
@@ -90,6 +94,60 @@ impl Cluster {
     // TODO pub async fn create_meteoroid
     // TODO pub async fn create_buoy
 
+    pub(crate) fn see_new_unit(
+        &mut self,
+        kind: UnitKind,
+        reader: &mut dyn PacketReader,
+    ) -> Result<FlattiverseEvent, GameError> {
+        // let unit_kind = UnitKind::try_from_primitive(packet.header().param0()).unwrap();
+        let unit = crate::unit::from_packet(self.id, kind, reader)?;
+        let name = unit.name().to_string();
+        self.units.insert(name.clone(), unit);
+        Ok(FlattiverseEvent::SeeingNewUnit {
+            galaxy: self.galaxy,
+            cluster: self.id,
+            name,
+        })
+    }
+
+    pub(crate) fn see_update_unit(
+        &mut self,
+        reader: &mut dyn PacketReader,
+    ) -> Result<Option<FlattiverseEvent>, GameError> {
+        let name = reader.peek_string();
+        match self.units.get_mut(&name) {
+            Some(unit) => {
+                unit.update(reader);
+                Ok(Some(FlattiverseEvent::SeeingUnitUpdated {
+                    galaxy: self.galaxy,
+                    cluster: self.id,
+                    name,
+                }))
+            }
+            None => {
+                warn!("Requested unit '{name}' should be known but isn't in the units dictionary.");
+                Ok(None)
+            }
+        }
+    }
+
+    pub(crate) fn see_unit_no_more(
+        &mut self,
+        name: String,
+    ) -> Result<Option<FlattiverseEvent>, GameError> {
+        if let Some(_) = self.units.remove(&name) {
+            // unit.deactivate();
+            Ok(Some(FlattiverseEvent::SeeingUnitNoMore {
+                galaxy: self.galaxy,
+                cluster: self.id,
+                name,
+            }))
+        } else {
+            warn!("Requested unit '{name}' should be known but isn't in the units dictionary.");
+            Ok(None)
+        }
+    }
+
     #[inline]
     pub fn id(&self) -> ClusterId {
         self.id
@@ -113,6 +171,18 @@ impl Cluster {
     #[inline]
     pub fn regions(&self) -> &UniversalHolder<RegionId, Region> {
         &self.regions
+    }
+
+    #[inline]
+    pub fn get_unit(&self, name: &str) -> Option<&dyn Unit> {
+        self.units.get(name).map(|unit| &**unit)
+    }
+
+    #[inline]
+    pub fn iter_units(&self) -> impl Iterator<Item = (&str, &dyn Unit)> {
+        self.units
+            .iter()
+            .map(|(name, unit)| (name.as_str(), &**unit))
     }
 }
 

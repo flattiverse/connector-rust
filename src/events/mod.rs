@@ -42,5 +42,27 @@ pub enum FlattiverseEvent {
         galaxy: GlaxyId,
         player: PlayerId,
     },
+
+    /// A new [`crate::unit::Unit`] became visible.
+    SeeingNewUnit {
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        name: String,
+    },
+
+    /// A watched [`crate::unit::Unit`] updated.
+    SeeingUnitUpdated {
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        name: String,
+    },
+
+    /// A watched [`crate::unit::Unit`] vanished.
+    SeeingUnitNoMore {
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        name: String,
+    },
+
     TickCompleted,
 }

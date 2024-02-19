@@ -21,4 +21,10 @@ impl CelestialBody {
             gravity: reader.read_4u(10_000.0),
         }
     }
+
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.position = Vector::default().with_read(reader);
+        self.radius = reader.read_4u(100.0);
+        self.gravity = reader.read_4u(10_000.0);
+    }
 }

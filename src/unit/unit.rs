@@ -1,20 +1,24 @@
 use crate::hierarchy::ClusterId;
-use crate::network::Packet;
+use crate::network::PacketReader;
 use crate::unit::{BlackHole, Buoy, Meteoroid};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
-use num_enum::TryFromPrimitive;
 use std::fmt::Debug;
 
 /// Represents an unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
 /// those methods and might add futher propeties.
-pub trait Unit: Debug + NamedUnit {
+pub trait Unit: Debug {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
-    #[inline]
-    fn name(&self) -> &str {
-        NamedUnit::name(self)
-    }
+    fn name(&self) -> &str;
+
+    //    /// Indicates whether this [`Unit`] is still active. A [`Unit`] is active as long as it is
+    //    /// visible to the current player. If this [`Unit`] moves out of all scan areas, it is
+    //    /// deactivated and [`Unit::active`] will return `false`.
+    //    fn active(&self) -> bool;
+    //
+    //    /// For internal use only.
+    //    fn deactivate(&mut self);
 
     /// The [`crate::hierarchy::Cluster`] this [`Unit`] is in.
     fn cluster(&self) -> ClusterId;
@@ -91,6 +95,8 @@ pub trait Unit: Debug + NamedUnit {
         None
     }
 
+    fn update(&mut self, reader: &mut dyn PacketReader);
+
     /// Specifies the [`UnitKind`] of this [`Unit`], which can be used to determin the [downcasting]
     /// target.
     ///
@@ -98,12 +104,26 @@ pub trait Unit: Debug + NamedUnit {
     fn kind(&self) -> UnitKind;
 }
 
+impl<T: Unit> NamedUnit for T {
+    #[inline]
+    fn name(&self) -> &str {
+        Unit::name(self)
+    }
+}
+
+impl NamedUnit for dyn Unit {
+    #[inline]
+    fn name(&self) -> &str {
+        Unit::name(self)
+    }
+}
+
 pub(crate) fn from_packet(
     cluster: ClusterId,
-    mut packet: Packet,
+    kind: UnitKind,
+    reader: &mut dyn PacketReader,
 ) -> Result<Box<dyn Unit>, GameError> {
-    let unit_kind = UnitKind::try_from_primitive(packet.header().param0()).unwrap();
-    Ok(packet.read(|reader| match unit_kind {
+    Ok(match kind {
         UnitKind::Sun => Box::new(Sun::new(cluster, reader)) as Box<dyn Unit>,
         UnitKind::BlackHole => Box::new(BlackHole::new(cluster, reader)),
         UnitKind::Planet => Box::new(Planet::new(cluster, reader)),
@@ -111,5 +131,5 @@ pub(crate) fn from_packet(
         UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader)),
         UnitKind::Buoy => Box::new(Buoy::new(cluster, reader)),
         UnitKind::PlayerUnit => todo!(),
-    }))
+    })
 }

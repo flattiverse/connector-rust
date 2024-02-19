@@ -2,7 +2,7 @@ use crate::hierarchy::ClusterId;
 use crate::network::PacketReader;
 use crate::unit::sub_components::SunSection;
 use crate::unit::{CelestialBody, Unit, UnitKind};
-use crate::{NamedUnit, Vector};
+use crate::Vector;
 
 #[derive(Debug)]
 pub struct Sun {
@@ -29,14 +29,12 @@ impl Sun {
     }
 }
 
-impl NamedUnit for Sun {
+impl Unit for Sun {
     #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
-}
 
-impl Unit for Sun {
     #[inline]
     fn cluster(&self) -> ClusterId {
         self.body.cluster
@@ -55,6 +53,13 @@ impl Unit for Sun {
     #[inline]
     fn radius(&self) -> f64 {
         self.body.radius
+    }
+
+    fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.body.update(reader);
+        self.sections = (0..reader.read_byte())
+            .map(|_| SunSection::default().with_read(reader))
+            .collect();
     }
 
     #[inline]

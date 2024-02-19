@@ -38,6 +38,7 @@ impl BlackHoleSection {
         self.angel_from = reader.read_2u(100.0);
         self.angel_to = reader.read_2u(100.0);
 
+        // 0° - 360°   2U (0-65535)   0-36000   *100 -> /100.
         self.additional_gravity = reader.read_2u(100.0);
     }
 

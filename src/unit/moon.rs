@@ -2,7 +2,7 @@ use crate::hierarchy::ClusterId;
 use crate::network::PacketReader;
 use crate::unit::sub_components::HarvestableSection;
 use crate::unit::{CelestialBody, Harvestable, Unit, UnitKind};
-use crate::{NamedUnit, Vector};
+use crate::Vector;
 
 #[derive(Debug)]
 pub struct Moon {
@@ -27,14 +27,12 @@ impl Moon {
     }
 }
 
-impl NamedUnit for Moon {
+impl Unit for Moon {
     #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
-}
 
-impl Unit for Moon {
     #[inline]
     fn cluster(&self) -> ClusterId {
         self.body.cluster
@@ -53,6 +51,11 @@ impl Unit for Moon {
     #[inline]
     fn radius(&self) -> f64 {
         self.body.radius
+    }
+
+    fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.body.update(reader);
+        self.harvestable.update(reader);
     }
 
     #[inline]

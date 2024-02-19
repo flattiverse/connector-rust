@@ -20,6 +20,9 @@ pub trait PacketReader {
     fn read_boolean(&mut self) -> bool;
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
+
+    fn peek_string(&self) -> String;
+    fn jump_over_string(&mut self);
 }
 
 impl PacketReader for BytesMut {
@@ -122,5 +125,17 @@ impl PacketReader for BytesMut {
         } else {
             None
         }
+    }
+
+    fn peek_string(&self) -> String {
+        let length = self[0];
+        let length = usize::from(length);
+        String::from_utf8((&self[..length]).to_vec()).expect("Invalid UTF-8 received")
+    }
+
+    fn jump_over_string(&mut self) {
+        let length = self.read_byte();
+        let length = usize::from(length);
+        self.advance(length);
     }
 }

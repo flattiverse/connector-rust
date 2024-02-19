@@ -2,7 +2,7 @@ use crate::hierarchy::ClusterId;
 use crate::network::PacketReader;
 use crate::unit::sub_components::BlackHoleSection;
 use crate::unit::{CelestialBody, Unit, UnitKind};
-use crate::{NamedUnit, Vector};
+use crate::Vector;
 
 #[derive(Debug)]
 pub struct BlackHole {
@@ -24,14 +24,12 @@ impl BlackHole {
     // TODO pub async fn remove
 }
 
-impl NamedUnit for BlackHole {
+impl Unit for BlackHole {
     #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
-}
 
-impl Unit for BlackHole {
     #[inline]
     fn cluster(&self) -> ClusterId {
         self.body.cluster
@@ -50,6 +48,13 @@ impl Unit for BlackHole {
     #[inline]
     fn radius(&self) -> f64 {
         self.body.radius
+    }
+
+    fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.body.update(reader);
+        self.sections = (0..reader.read_byte())
+            .map(|_| BlackHoleSection::default().with_read(reader))
+            .collect();
     }
 
     #[inline]

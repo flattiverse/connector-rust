@@ -14,4 +14,10 @@ impl Harvestable {
                 .collect(),
         }
     }
+
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.sections = (0..reader.read_byte())
+            .map(|_| HarvestableSection::default().with_read(reader))
+            .collect();
+    }
 }

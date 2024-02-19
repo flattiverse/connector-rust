@@ -5,8 +5,9 @@ use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
-use crate::unit::{Ship, ShipId, UnitKind};
-use crate::{unit, PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
+use crate::unit::UnitKind;
+use crate::unit::{Ship, ShipId};
+use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;
@@ -201,21 +202,53 @@ impl Galaxy {
                     }))
                 }
 
+                // we see a new unit which we didn't see before
+                0x1C => {
+                    let cluster_id = ClusterId(packet.header().id0());
+                    let unit_kind = UnitKind::try_from_primitive(packet.header().param0())
+                        .expect("Unknown UnitKind ");
+                    warn!("{unit_kind:?}");
+                    match self.clusters.get_mut(cluster_id) {
+                        Some(cluster) => packet
+                            .read(|reader| cluster.see_new_unit(unit_kind, reader))
+                            .map(Some),
+                        None => {
+                            warn!("{cluster_id:?} is missing for see_new_unit.");
+                            Ok(None)
+                        }
+                    }
+                }
+
+                // a unit we see has been updated.
+                0x1D => {
+                    let cluster_id = ClusterId(packet.header().id0());
+                    match self.clusters.get_mut(cluster_id) {
+                        Some(cluster) => packet.read(|reader| cluster.see_update_unit(reader)),
+                        None => {
+                            warn!("{cluster_id:?} is missing for see_update_unit.");
+                            Ok(None)
+                        }
+                    }
+                }
+
+                // a once known unit vanished.
+                0x1E => {
+                    let cluster_id = ClusterId(packet.header().id0());
+                    match self.clusters.get_mut(cluster_id) {
+                        Some(cluster) => {
+                            packet.read(|reader| cluster.see_unit_no_more(reader.read_string()))
+                        }
+                        None => {
+                            warn!("{cluster_id:?} is missing for see_unit_no_more.");
+                            Ok(None)
+                        }
+                    }
+                }
+
                 // tick completed
                 0x20 => {
                     self.login_completed = true;
                     Ok(Some(FlattiverseEvent::TickCompleted))
-                }
-
-                // unit
-                0x50 => {
-                    let kind = UnitKind::try_from_primitive(packet.header().param0());
-                    let id = ClusterId(packet.header().id0());
-                    info!("Received {kind:?} for {id:?}.");
-                    let unit = unit::from_packet(id, packet);
-                    info!("Received {unit:?}.");
-                    // TODO
-                    Ok(None)
                 }
 
                 cmd => Err(
