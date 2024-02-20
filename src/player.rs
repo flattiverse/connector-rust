@@ -1,6 +1,7 @@
 use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
 use crate::{Indexer, NamedUnit, TeamId};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -61,5 +62,12 @@ impl NamedUnit for Player {
     #[inline]
     fn name(&self) -> &str {
         Player::name(self)
+    }
+}
+
+impl Display for Player {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Player [{}] {}({:?})", self.id.0, self.name, self.kind)
     }
 }
