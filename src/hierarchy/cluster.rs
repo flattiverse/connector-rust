@@ -154,7 +154,7 @@ impl Cluster {
         reader: &mut dyn PacketReader,
     ) -> Result<FlattiverseEvent, GameError> {
         // let unit_kind = UnitKind::try_from_primitive(packet.header().param0()).unwrap();
-        let unit = crate::unit::from_packet(self.id, kind, reader)?;
+        let unit = crate::unit::from_packet(self.id, kind, reader, self.connection.clone())?;
         let name = unit.name().to_string();
         self.units.insert(name.clone(), unit);
         Ok(FlattiverseEvent::SeeingNewUnit {

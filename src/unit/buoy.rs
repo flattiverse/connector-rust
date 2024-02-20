@@ -1,22 +1,35 @@
 use crate::hierarchy::ClusterId;
-use crate::network::PacketReader;
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::{CelestialBody, Unit, UnitKind};
-use crate::Vector;
+use crate::{GameError, Vector};
+use std::future::Future;
 
 #[derive(Debug)]
 pub struct Buoy {
     body: CelestialBody,
+    connection: ConnectionHandle,
 }
 
 impl Buoy {
-    pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(
+        cluster: ClusterId,
+        reader: &mut dyn PacketReader,
+        connection: ConnectionHandle,
+    ) -> Self {
         Self {
             body: CelestialBody::new(cluster, reader),
+            connection,
         }
     }
 
     // TODO pub async fn configure
-    // TODO pub async fn remove
+
+    /// Removes this unit.
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .remove_unit_split(self.body.cluster, self.name().to_string(), self.kind())
+            .await
+    }
 }
 
 impl Unit for Buoy {

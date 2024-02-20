@@ -7,7 +7,7 @@ use crate::unit::configurations::{
     BlackHoleConfiguration, BuoyConfiguration, Configuration, MeteoroidConfiguration,
     MoonConfiguration, PlanetConfiguration, SunConfiguration,
 };
-use crate::unit::ShipId;
+use crate::unit::{ShipId, UnitKind};
 use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -609,6 +609,38 @@ impl ConnectionHandle {
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(config.kind().into());
         packet.write(|writer| config.write(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Removes the [`crate::unit::Unit`] with the given name.
+    #[inline]
+    pub async fn remove_unit(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        kind: UnitKind,
+    ) -> Result<(), GameError> {
+        self.remove_unit_split(cluster, name, kind).await?.await
+    }
+
+    /// Removes the [`crate::unit::Unit`] with the given name.
+    pub async fn remove_unit_split(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        kind: UnitKind,
+    ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x53);
+        packet.header_mut().set_id0(cluster.0);
+        packet.header_mut().set_param0(kind.into());
+        packet.write(|writer| writer.write_string(&name));
 
         let session = self.send_packet_on_new_session(packet).await?;
 

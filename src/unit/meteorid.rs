@@ -1,25 +1,38 @@
 use crate::hierarchy::ClusterId;
-use crate::network::PacketReader;
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::sub_components::HarvestableSection;
 use crate::unit::{CelestialBody, Harvestable, Unit, UnitKind};
-use crate::Vector;
+use crate::{GameError, Vector};
+use std::future::Future;
 
 #[derive(Debug)]
 pub struct Meteoroid {
     body: CelestialBody,
     harvestable: Harvestable,
+    connection: ConnectionHandle,
 }
 
 impl Meteoroid {
-    pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(
+        cluster: ClusterId,
+        reader: &mut dyn PacketReader,
+        connection: ConnectionHandle,
+    ) -> Self {
         Self {
             body: CelestialBody::new(cluster, reader),
             harvestable: Harvestable::new(reader),
+            connection,
         }
     }
 
     // TODO pub async fn configure
-    // TODO pub async fn remove
+
+    /// Removes this unit.
+    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .remove_unit_split(self.body.cluster, self.name().to_string(), self.kind())
+            .await
+    }
 
     #[inline]
     pub fn harvestable_sections(&self) -> &[HarvestableSection] {

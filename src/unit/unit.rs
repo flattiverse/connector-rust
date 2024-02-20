@@ -1,5 +1,5 @@
 use crate::hierarchy::ClusterId;
-use crate::network::PacketReader;
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::{BlackHole, Buoy, Meteoroid};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
@@ -128,14 +128,15 @@ pub(crate) fn from_packet(
     cluster: ClusterId,
     kind: UnitKind,
     reader: &mut dyn PacketReader,
+    connection: ConnectionHandle,
 ) -> Result<Box<dyn Unit>, GameError> {
     Ok(match kind {
-        UnitKind::Sun => Box::new(Sun::new(cluster, reader)) as Box<dyn Unit>,
-        UnitKind::BlackHole => Box::new(BlackHole::new(cluster, reader)),
-        UnitKind::Planet => Box::new(Planet::new(cluster, reader)),
-        UnitKind::Moon => Box::new(Moon::new(cluster, reader)),
-        UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader)),
-        UnitKind::Buoy => Box::new(Buoy::new(cluster, reader)),
+        UnitKind::Sun => Box::new(Sun::new(cluster, reader, connection)) as Box<dyn Unit>,
+        UnitKind::BlackHole => Box::new(BlackHole::new(cluster, reader, connection)),
+        UnitKind::Planet => Box::new(Planet::new(cluster, reader, connection)),
+        UnitKind::Moon => Box::new(Moon::new(cluster, reader, connection)),
+        UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader, connection)),
+        UnitKind::Buoy => Box::new(Buoy::new(cluster, reader, connection)),
         UnitKind::PlayerUnit => todo!(),
     })
 }
