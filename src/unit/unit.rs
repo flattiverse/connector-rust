@@ -3,7 +3,7 @@ use crate::network::PacketReader;
 use crate::unit::{BlackHole, Buoy, Meteoroid};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 
 /// Represents an unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
@@ -115,6 +115,12 @@ impl NamedUnit for dyn Unit {
     #[inline]
     fn name(&self) -> &str {
         Unit::name(self)
+    }
+}
+
+impl Display for dyn Unit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} {}", self.kind(), self.name())
     }
 }
 
