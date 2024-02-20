@@ -1,5 +1,6 @@
 use crate::hierarchy::ClusterId;
 use crate::network::{ConnectionHandle, PacketReader};
+use crate::unit::configurations::{BuoyConfiguration, SunConfiguration};
 use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{GameError, Vector};
 use std::future::Future;
@@ -22,7 +23,28 @@ impl Buoy {
         }
     }
 
-    // TODO pub async fn configure
+    /// Requests the current configuration of this unit from the server.
+    pub async fn retrieve_configuration(
+        &self,
+    ) -> Result<impl Future<Output = Result<BuoyConfiguration, GameError>>, GameError> {
+        self.connection
+            .retrieve_unit_configuration_split(
+                self.body.cluster,
+                self.name().to_string(),
+                self.kind(),
+            )
+            .await
+    }
+
+    /// Requests the server to apply the given configuration onto this unit.
+    pub async fn configure(
+        &self,
+        configuration: SunConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection
+            .configure_unit_split(self.body.cluster, configuration)
+            .await
+    }
 
     /// Removes this unit.
     pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {

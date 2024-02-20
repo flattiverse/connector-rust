@@ -650,6 +650,74 @@ impl ConnectionHandle {
         })
     }
 
+    /// Retrieves the [`crate::Configuration`] of [`crate::unit::Unit`] with the given name.
+    #[inline]
+    pub async fn retrieve_unit_configuration<T: Configuration + Default>(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        kind: UnitKind,
+    ) -> Result<T, GameError> {
+        self.retrieve_unit_configuration_split::<T>(cluster, name, kind)
+            .await?
+            .await
+    }
+
+    /// Retrieves the [`crate::Configuration`] of [`crate::unit::Unit`] with the given name.
+    pub async fn retrieve_unit_configuration_split<T: Configuration + Default>(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        kind: UnitKind,
+    ) -> Result<impl Future<Output = Result<T, GameError>> + 'static, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x50);
+        packet.header_mut().set_id0(cluster.0);
+        packet.header_mut().set_param0(kind.into());
+        packet.write(|writer| writer.write_string(&name));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |mut packet| {
+                Ok(packet.read(|reader| T::default().with_read(reader)))
+            })
+        })
+    }
+
+    /// Applies the given [`crate::Configuration`].
+    #[inline]
+    pub async fn configure_unit<T: Configuration + Default>(
+        &self,
+        cluster: ClusterId,
+        configuration: T,
+    ) -> Result<(), GameError> {
+        self.configure_unit_split::<T>(cluster, configuration)
+            .await?
+            .await
+    }
+
+    /// Removes the [`crate::unit::Unit`] with the given name.
+    pub async fn configure_unit_split<T: Configuration + Default>(
+        &self,
+        cluster: ClusterId,
+        configuration: T,
+    ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x52);
+        packet.header_mut().set_id0(cluster.0);
+        packet.header_mut().set_param0(configuration.kind().into());
+        packet.write(|writer| configuration.write(writer));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
     pub async fn send_packet_on_new_session(
         &self,
         mut packet: Packet,

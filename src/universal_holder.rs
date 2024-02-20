@@ -16,7 +16,7 @@ impl<I, T> Debug for UniversalHolder<I, T> {
             type_name::<I>(),
             type_name::<T>()
         ))
-            .finish_non_exhaustive()
+        .finish_non_exhaustive()
     }
 }
 
