@@ -1,7 +1,7 @@
 use crate::hierarchy::GlaxyId;
 use crate::hierarchy::{ClusterId, RegionId};
 use crate::unit::ShipId;
-use crate::{PlayerId, TeamId, UpgradeId};
+use crate::{Player, PlayerId, TeamId, UpgradeId};
 use std::time::Duration;
 
 #[derive(Debug)]
@@ -41,6 +41,10 @@ pub enum FlattiverseEvent {
     PlayerUpdated {
         galaxy: GlaxyId,
         player: PlayerId,
+    },
+    PlayerRemoved {
+        galaxy: GlaxyId,
+        player: Player,
     },
 
     /// A new [`crate::unit::Unit`] became visible.

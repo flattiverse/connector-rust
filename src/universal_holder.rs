@@ -16,7 +16,7 @@ impl<I, T> Debug for UniversalHolder<I, T> {
             type_name::<I>(),
             type_name::<T>()
         ))
-        .finish_non_exhaustive()
+            .finish_non_exhaustive()
     }
 }
 
@@ -34,6 +34,11 @@ impl<I, T> UniversalHolder<I, T> {
 }
 
 impl<I: Indexer, T> UniversalHolder<I, T> {
+    #[inline]
+    pub fn remove(&mut self, index: I) -> Option<T> {
+        core::mem::take(&mut self.data[index.index()])
+    }
+
     #[inline]
     pub fn set(&mut self, index: I, value: impl Into<Option<T>>) {
         self.data[index.index()] = value.into();
@@ -57,7 +62,7 @@ impl<T: NamedUnit> UniversalHolder<(), T> {
 }
 
 impl<I, T: NamedUnit> UniversalHolder<I, T> {
-    pub fn remove(&mut self, name: &str) -> Option<T> {
+    pub fn remove_by_name(&mut self, name: &str) -> Option<T> {
         self.data.iter_mut().find_map(|slot| match slot {
             Some(value) if value.name() == name => slot.take(),
             _ => None,

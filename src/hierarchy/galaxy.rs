@@ -76,7 +76,7 @@ impl Galaxy {
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Disconnected) => {
-                    return Err(GameErrorKind::ConnectionClosed.into())
+                    return Err(GameErrorKind::ConnectionClosed.into());
                 }
                 Ok(event) => {
                     if let Some(event) = self.on_connection_event(event)? {
@@ -199,6 +199,19 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::PlayerUpdated {
                         galaxy: self.id,
                         player: player_id,
+                    }))
+                }
+
+                // player removed info
+                0x17 => {
+                    let player_id = PlayerId(packet.header().id0());
+                    let team_id = TeamId(packet.header().id1());
+                    let player_kind = PlayerKind::from_primitive(packet.header().param0());
+                    let _ = self.players.remove(player_id);
+                    Ok(Some(FlattiverseEvent::PlayerRemoved {
+                        galaxy: self.id,
+                        player: packet
+                            .read(|read| Player::new(player_id, player_kind, team_id, read)),
                     }))
                 }
 
