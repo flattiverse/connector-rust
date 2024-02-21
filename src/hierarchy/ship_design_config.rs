@@ -13,7 +13,7 @@ pub struct ShipDesignConfig {
     pub hull: f64,
     pub hull_repair: f64,
     pub shields: f64,
-    pub shields_repair: f64,
+    pub shields_load: f64,
     pub size: f64,
     pub weight: f64,
     pub energy_max: f64,
@@ -59,25 +59,25 @@ impl ShipDesignConfig {
         self.hull = reader.read_2u(10.0);
         self.hull_repair = reader.read_2u(100.0);
         self.shields = reader.read_2u(10.0);
-        self.shields_repair = reader.read_2u(100.0);
+        self.shields_load = reader.read_2u(100.0);
         self.size = reader.read_2u(10.0);
-        self.weight = reader.read_2s(10000.0);
+        self.weight = reader.read_2s(10_000.0);
         self.energy_max = reader.read_2u(10.0);
         self.energy_cells = reader.read_4u(100.0);
         self.energy_reactor = reader.read_2u(100.0);
         self.energy_transfer = reader.read_2u(100.0);
         self.ion_max = reader.read_2u(100.0);
         self.ion_cells = reader.read_2u(100.0);
-        self.ion_reactor = reader.read_2u(1000.0);
-        self.ion_transfer = reader.read_2u(1000.0);
-        self.thruster = reader.read_2u(10000.0);
+        self.ion_reactor = reader.read_2u(1_000.0);
+        self.ion_transfer = reader.read_2u(1_000.0);
+        self.thruster = reader.read_2u(10_000.0);
         self.nozzle = reader.read_2u(100.0);
         self.speed = reader.read_2u(100.0);
         self.turnrate = reader.read_2u(100.0);
-        self.cargo = reader.read_4u(1000.0);
+        self.cargo = reader.read_4u(1_000.0);
         self.extractor = reader.read_2u(100.0);
         self.weapon_speed = reader.read_2u(10.0);
-        self.weapon_time = reader.read_uint16() as _;
+        self.weapon_time = reader.read_uint16() as f64 / 20.0;
         self.weapon_load = reader.read_2u(10.0);
         self.weapon_ammo = reader.read_uint16();
         self.weapon_ammo_production = reader.read_2u(100_000.0);
@@ -96,7 +96,7 @@ impl ShipDesignConfig {
         writer.write_2u(self.hull, 10.0);
         writer.write_2u(self.hull_repair, 100.0);
         writer.write_2u(self.shields, 10.0);
-        writer.write_2u(self.shields_repair, 100.0);
+        writer.write_2u(self.shields_load, 100.0);
         writer.write_2u(self.size, 10.0);
         writer.write_2s(self.weight, 10000.0);
         writer.write_2u(self.energy_max, 10.0);

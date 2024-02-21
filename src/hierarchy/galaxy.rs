@@ -109,6 +109,7 @@ impl Galaxy {
             Err(GameError::from(GameErrorKind::Unspecified(0))
                 .with_info("At this point, no session specific packet should be handled"))
         } else {
+            debug!("Processing packet with command=0x{:02x}", packet.header().command());
             match packet.header().command() {
                 // galaxy info
                 0x10 => {

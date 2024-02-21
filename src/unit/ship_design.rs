@@ -32,8 +32,8 @@ impl ShipDesign {
         Self {
             id: id.into(),
             galaxy,
-            upgrades: UniversalHolder::with_capacity(256),
             config: ShipDesignConfig::from(reader),
+            upgrades: UniversalHolder::with_capacity(256),
             connection,
         }
     }
