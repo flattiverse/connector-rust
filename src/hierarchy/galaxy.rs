@@ -341,7 +341,9 @@ impl Galaxy {
     /// Waits until the login proceedure has been completed for  this [`Galaxy`].
     pub async fn wait_login_completed(&mut self) -> Result<(), GameError> {
         while !self.login_completed {
-            if let FlattiverseEvent::TickCompleted = self.receive().await? {
+            let event = self.receive().await?;
+            debug!("{event:?}");
+            if let FlattiverseEvent::TickCompleted = event {
                 break;
             }
         }
