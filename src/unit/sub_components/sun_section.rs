@@ -117,7 +117,7 @@ impl SunSection {
     }
 
     pub fn set_angel_from(&mut self, angle: f64) -> Result<(), GameError> {
-        if angle.is_infinite() || angle.is_nan() || angle < 0.0 || angle >= self.angel_to {
+        if angle.is_infinite() || angle.is_nan() || angle < 0.0  {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else if self.configuration.is_none() {
             Err(GameErrorKind::NotConfigurable.into())
@@ -133,7 +133,7 @@ impl SunSection {
     }
 
     pub fn set_angel_to(&mut self, angle: f64) -> Result<(), GameError> {
-        if angle.is_infinite() || angle.is_nan() || angle > 360.0 || self.angel_from >= angle {
+        if angle.is_infinite() || angle.is_nan() || angle > 360.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else if self.configuration.is_none() {
             Err(GameErrorKind::NotConfigurable.into())
