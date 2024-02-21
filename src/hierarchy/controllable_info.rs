@@ -3,6 +3,7 @@ use crate::network::PacketReader;
 use crate::unit::ShipDesignId;
 use crate::{PlayerId, UpgradeId};
 
+#[derive(Debug)]
 pub struct ControllableInfo {
     cluster: ClusterId,
     name: String,

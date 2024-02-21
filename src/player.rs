@@ -2,6 +2,8 @@ use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
 use crate::{Indexer, NamedUnit, TeamId};
 use std::fmt::{Display, Formatter};
+use rustc_hash::FxHashMap;
+use crate::hierarchy::ControllableInfo;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -19,6 +21,8 @@ pub struct Player {
     name: String,
     kind: PlayerKind,
     team: TeamId,
+    active: bool,
+    controllables: FxHashMap<String, ControllableInfo>,
 }
 
 impl Player {
@@ -30,10 +34,12 @@ impl Player {
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
+            active: true,
             id: id.into(),
             kind,
             team,
             name: reader.read_string(),
+            controllables: FxHashMap::default(),
         }
     }
 
@@ -55,6 +61,24 @@ impl Player {
     #[inline]
     pub fn team(&self) -> TeamId {
         self.team
+    }
+
+    #[inline]
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    pub(crate) fn add_controllable_info(&mut self, info: ControllableInfo) {
+        let name = info.name().to_string();
+        self.controllables.insert(name, info);
+    }
+
+    pub(crate) fn remove_controllable_info(&mut self, name: &str) {
+        if let Some(mut controllable) = self.controllables.remove(name) {
+            controllable.deactivate();
+        } else {
+            warn!("Did not find ControllableInfo for name={name}");
+        }
     }
 }
 
