@@ -7,7 +7,7 @@ use crate::unit::configurations::{
     BlackHoleConfiguration, BuoyConfiguration, Configuration, MeteoroidConfiguration,
     MoonConfiguration, PlanetConfiguration, SunConfiguration,
 };
-use crate::unit::{ShipId, UnitKind};
+use crate::unit::{ShipDesignId, UnitKind};
 use crate::{GameError, GameErrorKind, TeamId, UpgradeId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -317,20 +317,20 @@ impl ConnectionHandle {
         })
     }
 
-    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::Ship`].
+    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::ShipDesign`].
     #[inline]
     pub async fn create_upgrade(
         &self,
-        ship: ShipId,
+        ship: ShipDesignId,
         config: &UpgradeConfig,
     ) -> Result<(), GameError> {
         self.create_upgrade_split(ship, config).await?.await
     }
 
-    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::Ship`].
+    /// Creates an [`crate::Upgrade`] with the given values for the given [`crate::unit::ShipDesign`].
     pub async fn create_upgrade_split(
         &self,
-        ship: ShipId,
+        ship: ShipDesignId,
         config: &UpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
@@ -398,17 +398,17 @@ impl ConnectionHandle {
         })
     }
 
-    /// Creates a new [`crate::unit::Ship`] for the given values.
+    /// Creates a new [`crate::unit::ShipDesign`] for the given values.
     #[inline]
-    pub async fn create_ship(&self, config: &ShipConfig) -> Result<ShipId, GameError> {
+    pub async fn create_ship(&self, config: &ShipConfig) -> Result<ShipDesignId, GameError> {
         self.create_ship_split(config).await?.await
     }
 
-    /// Creates a new [`crate::unit::Ship`] for the given values.
+    /// Creates a new [`crate::unit::ShipDesign`] for the given values.
     pub async fn create_ship_split(
         &self,
         config: &ShipConfig,
-    ) -> Result<impl Future<Output = Result<ShipId, GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ShipDesignId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4A);
         packet.write(|writer| config.write(writer));
@@ -417,20 +417,24 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.receiver.await?;
-            GameError::check(response, |p| Ok(ShipId(p.header().param0())))
+            GameError::check(response, |p| Ok(ShipDesignId(p.header().param0())))
         })
     }
 
-    /// Sets the given values for the given [`crate::unit::Ship`].
+    /// Sets the given values for the given [`crate::unit::ShipDesign`].
     #[inline]
-    pub async fn configure_ship(&self, ship: ShipId, config: &ShipConfig) -> Result<(), GameError> {
+    pub async fn configure_ship(
+        &self,
+        ship: ShipDesignId,
+        config: &ShipConfig,
+    ) -> Result<(), GameError> {
         self.configure_ship_split(ship, config).await?.await
     }
 
-    /// Sets the given values for the given [`crate::unit::Ship`].
+    /// Sets the given values for the given [`crate::unit::ShipDesign`].
     pub async fn configure_ship_split(
         &self,
-        ship: ShipId,
+        ship: ShipDesignId,
         config: &ShipConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
@@ -446,16 +450,16 @@ impl ConnectionHandle {
         })
     }
 
-    /// Removes the given [`crate::unit::Ship`].
+    /// Removes the given [`crate::unit::ShipDesign`].
     #[inline]
-    pub async fn remove_ship(&self, ship: ShipId) -> Result<(), GameError> {
+    pub async fn remove_ship(&self, ship: ShipDesignId) -> Result<(), GameError> {
         self.remove_ship_split(ship).await?.await
     }
 
-    /// Removes the given [`crate::unit::Ship`].
+    /// Removes the given [`crate::unit::ShipDesign`].
     pub async fn remove_ship_split(
         &self,
-        ship: ShipId,
+        ship: ShipDesignId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4C);

@@ -6,7 +6,7 @@ use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::UnitKind;
-use crate::unit::{Ship, ShipId};
+use crate::unit::{ShipDesign, ShipDesignId};
 use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
@@ -23,7 +23,7 @@ pub struct Galaxy {
     config: GalaxyConfig,
 
     clusters: UniversalHolder<ClusterId, Cluster>,
-    ships: UniversalHolder<ShipId, Ship>,
+    ships: UniversalHolder<ShipDesignId, ShipDesign>,
     teams: UniversalHolder<TeamId, Team>,
     players: UniversalHolder<PlayerId, Player>,
 
@@ -158,11 +158,11 @@ impl Galaxy {
 
                 // ship info
                 0x14 => {
-                    let ship_id = ShipId(packet.header().id0());
+                    let ship_id = ShipDesignId(packet.header().id0());
                     self.ships.set(
                         ship_id,
                         packet.read(|reader| {
-                            Ship::new(ship_id, self.id, self.connection.clone(), reader)
+                            ShipDesign::new(ship_id, self.id, self.connection.clone(), reader)
                         }),
                     );
                     Ok(Some(FlattiverseEvent::ShipUpdated {
@@ -174,7 +174,7 @@ impl Galaxy {
                 // upgrade info
                 0x15 => {
                     let upgrade_id = UpgradeId(packet.header().id0());
-                    let ship_id = ShipId(packet.header().id1());
+                    let ship_id = ShipDesignId(packet.header().id1());
                     packet.read(|reader| {
                         self.ships[ship_id].read_upgrade(upgrade_id, reader);
                     });
@@ -327,13 +327,13 @@ impl Galaxy {
         self.connection.create_team_split(config).await
     }
 
-    /// Creates a [`Ship`] within this [`Galaxy`].
+    /// Creates a [`ShipDesign`] within this [`Galaxy`].
     /// See also [`ConnectionHandle::create_ship`].
     #[inline]
     pub async fn create_ship(
         &self,
         config: &ShipConfig,
-    ) -> Result<impl Future<Output = Result<ShipId, GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ShipDesignId, GameError>>, GameError> {
         self.connection.create_ship_split(config).await
     }
 
@@ -353,7 +353,7 @@ impl Galaxy {
     }
 
     #[inline]
-    pub fn ships(&self) -> &UniversalHolder<ShipId, Ship> {
+    pub fn ships(&self) -> &UniversalHolder<ShipDesignId, ShipDesign> {
         &self.ships
     }
 

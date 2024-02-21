@@ -5,7 +5,7 @@ use crate::UpgradeId;
 pub struct UpgradeConfig {
     pub name: String,
     /// The id of the previous [`crate::Upgrade`], which can be found on the orresponding
-    /// [`crate::unit::Ship`] of this [`crate::Upgrade`].
+    /// [`crate::unit::ShipDesign`] of this [`crate::Upgrade`].
     pub previous_upgrade: Option<UpgradeId>,
     pub cost_energy: f64,
     pub cost_ion: f64,

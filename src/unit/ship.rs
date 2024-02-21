@@ -4,9 +4,9 @@ use crate::{GameError, Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
 use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct ShipId(pub(crate) u8);
+pub struct ShipDesignId(pub(crate) u8);
 
-impl Indexer for ShipId {
+impl Indexer for ShipDesignId {
     #[inline]
     fn index(&self) -> usize {
         usize::from(self.0)
@@ -14,17 +14,17 @@ impl Indexer for ShipId {
 }
 
 #[derive(Debug)]
-pub struct Ship {
+pub struct ShipDesign {
     galaxy: GlaxyId,
-    id: ShipId,
+    id: ShipDesignId,
     upgrades: UniversalHolder<UpgradeId, Upgrade>,
     config: ShipConfig,
     connection: ConnectionHandle,
 }
 
-impl Ship {
+impl ShipDesign {
     pub fn new(
-        id: impl Into<ShipId>,
+        id: impl Into<ShipDesignId>,
         galaxy: GlaxyId,
         connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
@@ -45,7 +45,7 @@ impl Ship {
         );
     }
 
-    /// Sets the given values for this [`Ship`].
+    /// Sets the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::configure_ship`].
     #[inline]
     pub async fn configure(
@@ -55,14 +55,14 @@ impl Ship {
         self.connection.configure_ship_split(self.id, config).await
     }
 
-    /// Removes this [`Ship`].
+    /// Removes this [`ShipDesign`].
     /// See also [`ConnectionHandle::remove_ship`].
     #[inline]
     pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection.remove_ship_split(self.id).await
     }
 
-    /// Creates an [`Upgrade`] with the given values for this [`Ship`].
+    /// Creates an [`Upgrade`] with the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::create_upgrade`]
     #[inline]
     pub async fn create_upgrade(
@@ -73,7 +73,7 @@ impl Ship {
     }
 
     #[inline]
-    pub fn id(&self) -> ShipId {
+    pub fn id(&self) -> ShipDesignId {
         self.id
     }
 
@@ -98,9 +98,9 @@ impl Ship {
     }
 }
 
-impl NamedUnit for Ship {
+impl NamedUnit for ShipDesign {
     #[inline]
     fn name(&self) -> &str {
-        Ship::name(self)
+        ShipDesign::name(self)
     }
 }

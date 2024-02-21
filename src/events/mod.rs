@@ -1,6 +1,6 @@
 use crate::hierarchy::GlaxyId;
 use crate::hierarchy::{ClusterId, RegionId};
-use crate::unit::ShipId;
+use crate::unit::ShipDesignId;
 use crate::{Player, PlayerId, TeamId, UpgradeId};
 use std::time::Duration;
 
@@ -28,13 +28,13 @@ pub enum FlattiverseEvent {
     /// The [`crate::Ship`] of the given [`crate::Galaxy`] was updated.
     ShipUpdated {
         galaxy: GlaxyId,
-        ship: ShipId,
+        ship: ShipDesignId,
     },
-    /// The [`crate::Upgrade`] of the given [`crate::unit::Ship`] in the given
+    /// The [`crate::Upgrade`] of the given [`crate::unit::ShipDesign`] in the given
     /// [`crate::hierarchy::Galaxy`] was upated.
     UpgradeUpdated {
         galaxy: GlaxyId,
-        ship: ShipId,
+        ship: ShipDesignId,
         upgrade: UpgradeId,
     },
     /// The [`crate::Player`] of the given [`crate::Galaxy`] was updated.
