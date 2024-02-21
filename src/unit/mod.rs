@@ -1,8 +1,8 @@
 pub mod configurations;
 pub mod sub_components;
 
-mod ship;
-pub use ship::*;
+mod ship_design;
+pub use ship_design::*;
 
 mod mobility;
 pub use mobility::*;
@@ -36,3 +36,6 @@ pub use meteorid::*;
 
 mod black_hole;
 pub use black_hole::*;
+
+mod ship;
+pub use ship::*;

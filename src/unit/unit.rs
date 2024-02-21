@@ -1,6 +1,6 @@
 use crate::hierarchy::ClusterId;
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::unit::{BlackHole, Buoy, Meteoroid};
+use crate::unit::{BlackHole, Buoy, Meteoroid, Ship};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
 use std::fmt::{Debug, Display, Formatter};
@@ -137,6 +137,6 @@ pub(crate) fn from_packet(
         UnitKind::Moon => Box::new(Moon::new(cluster, reader, connection)),
         UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader, connection)),
         UnitKind::Buoy => Box::new(Buoy::new(cluster, reader, connection)),
-        UnitKind::Ship => todo!(),
+        UnitKind::Ship => Box::new(Ship::new(cluster, reader)),
     })
 }
