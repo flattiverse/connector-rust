@@ -53,18 +53,31 @@ pub enum FlattiverseEvent {
         cluster: ClusterId,
         name: String,
     },
-
-    /// A watched [`crate::unit::Unit`] updated.
+    /// A watched [`crate::unit::Unit`] updated.N
     SeeingUnitUpdated {
         galaxy: GlaxyId,
         cluster: ClusterId,
         name: String,
     },
-
     /// A watched [`crate::unit::Unit`] vanished.
     SeeingUnitNoMore {
         galaxy: GlaxyId,
         cluster: ClusterId,
+        name: String,
+    },
+
+    /// The [`crate::hierarchy::ControllableInfo`] for the given values was updated.
+    ControllableInfoUpdated {
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        player: PlayerId,
+        name: String,
+    },
+    /// The [`crate::hierarchy::ControllableInfo`] for the given values was removed.
+    ControllableInfoRemoved {
+        galaxy: GlaxyId,
+        cluster: ClusterId,
+        player: PlayerId,
         name: String,
     },
 

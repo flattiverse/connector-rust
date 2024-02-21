@@ -43,6 +43,25 @@ impl Player {
         }
     }
 
+    pub(crate) fn deactivate(&mut self) {
+        self.active = false;
+    }
+
+    pub(crate) fn add_controllable_info(&mut self, info: ControllableInfo) {
+        let name = info.name().to_string();
+        self.controllables.insert(name, info);
+    }
+
+    pub(crate) fn remove_controllable_info(&mut self, name: &str) -> Option<ControllableInfo> {
+        if let Some(mut controllable) = self.controllables.remove(name) {
+            controllable.deactivate();
+            Some(controllable)
+        } else {
+            warn!("Did not find ControllableInfo for name={name}");
+            None
+        }
+    }
+
     #[inline]
     pub fn id(&self) -> PlayerId {
         self.id
@@ -66,19 +85,6 @@ impl Player {
     #[inline]
     pub fn active(&self) -> bool {
         self.active
-    }
-
-    pub(crate) fn add_controllable_info(&mut self, info: ControllableInfo) {
-        let name = info.name().to_string();
-        self.controllables.insert(name, info);
-    }
-
-    pub(crate) fn remove_controllable_info(&mut self, name: &str) {
-        if let Some(mut controllable) = self.controllables.remove(name) {
-            controllable.deactivate();
-        } else {
-            warn!("Did not find ControllableInfo for name={name}");
-        }
     }
 }
 
