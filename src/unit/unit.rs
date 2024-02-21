@@ -137,6 +137,6 @@ pub(crate) fn from_packet(
         UnitKind::Moon => Box::new(Moon::new(cluster, reader, connection)),
         UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader, connection)),
         UnitKind::Buoy => Box::new(Buoy::new(cluster, reader, connection)),
-        UnitKind::PlayerUnit => todo!(),
+        UnitKind::Ship => todo!(),
     })
 }
