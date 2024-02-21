@@ -1,7 +1,7 @@
 use crate::network::{PacketReader, PacketWriter};
 
 #[derive(Debug, Clone, Default)]
-pub struct ShipConfig {
+pub struct ShipDesignConfig {
     pub name: String,
     pub cost_energy: f64,
     pub cost_ion: f64,
@@ -36,7 +36,7 @@ pub struct ShipConfig {
     pub free_spawn: bool,
 }
 
-impl From<&mut dyn PacketReader> for ShipConfig {
+impl From<&mut dyn PacketReader> for ShipDesignConfig {
     fn from(reader: &mut dyn PacketReader) -> Self {
         let mut this = Self::default();
         this.read(reader);
@@ -44,7 +44,7 @@ impl From<&mut dyn PacketReader> for ShipConfig {
     }
 }
 
-impl ShipConfig {
+impl ShipDesignConfig {
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.name = reader.read_string();
         self.cost_energy = reader.read_2u(1.0);

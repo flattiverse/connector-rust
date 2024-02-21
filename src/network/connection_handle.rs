@@ -1,5 +1,5 @@
 use crate::hierarchy::{
-    ClusterConfig, ClusterId, GalaxyConfig, GlaxyId, RegionConfig, RegionId, ShipConfig,
+    ClusterConfig, ClusterId, GalaxyConfig, GlaxyId, RegionConfig, RegionId, ShipDesignConfig,
     TeamConfig, UpgradeConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
@@ -400,14 +400,14 @@ impl ConnectionHandle {
 
     /// Creates a new [`crate::unit::ShipDesign`] for the given values.
     #[inline]
-    pub async fn create_ship(&self, config: &ShipConfig) -> Result<ShipDesignId, GameError> {
+    pub async fn create_ship(&self, config: &ShipDesignConfig) -> Result<ShipDesignId, GameError> {
         self.create_ship_split(config).await?.await
     }
 
     /// Creates a new [`crate::unit::ShipDesign`] for the given values.
     pub async fn create_ship_split(
         &self,
-        config: &ShipConfig,
+        config: &ShipDesignConfig,
     ) -> Result<impl Future<Output = Result<ShipDesignId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4A);
@@ -426,7 +426,7 @@ impl ConnectionHandle {
     pub async fn configure_ship(
         &self,
         ship: ShipDesignId,
-        config: &ShipConfig,
+        config: &ShipDesignConfig,
     ) -> Result<(), GameError> {
         self.configure_ship_split(ship, config).await?.await
     }
@@ -435,7 +435,7 @@ impl ConnectionHandle {
     pub async fn configure_ship_split(
         &self,
         ship: ShipDesignId,
-        config: &ShipConfig,
+        config: &ShipDesignConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4B);

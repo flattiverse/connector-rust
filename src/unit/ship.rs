@@ -1,4 +1,4 @@
-use crate::hierarchy::{GlaxyId, ShipConfig, UpgradeConfig};
+use crate::hierarchy::{GlaxyId, ShipDesignConfig, UpgradeConfig};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
 use std::future::Future;
@@ -18,7 +18,7 @@ pub struct ShipDesign {
     galaxy: GlaxyId,
     id: ShipDesignId,
     upgrades: UniversalHolder<UpgradeId, Upgrade>,
-    config: ShipConfig,
+    config: ShipDesignConfig,
     connection: ConnectionHandle,
 }
 
@@ -33,7 +33,7 @@ impl ShipDesign {
             id: id.into(),
             galaxy,
             upgrades: UniversalHolder::with_capacity(256),
-            config: ShipConfig::from(reader),
+            config: ShipDesignConfig::from(reader),
             connection,
         }
     }
@@ -50,7 +50,7 @@ impl ShipDesign {
     #[inline]
     pub async fn configure(
         &self,
-        config: &ShipConfig,
+        config: &ShipDesignConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection.configure_ship_split(self.id, config).await
     }
@@ -88,7 +88,7 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn config(&self) -> &ShipConfig {
+    pub fn config(&self) -> &ShipDesignConfig {
         &self.config
     }
 

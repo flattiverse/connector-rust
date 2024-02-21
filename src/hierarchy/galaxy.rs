@@ -1,6 +1,6 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
-use crate::hierarchy::{Cluster, GalaxyConfig, RegionId, ShipConfig, TeamConfig};
+use crate::hierarchy::{Cluster, GalaxyConfig, RegionId, ShipDesignConfig, TeamConfig};
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
@@ -332,7 +332,7 @@ impl Galaxy {
     #[inline]
     pub async fn create_ship(
         &self,
-        config: &ShipConfig,
+        config: &ShipDesignConfig,
     ) -> Result<impl Future<Output = Result<ShipDesignId, GameError>>, GameError> {
         self.connection.create_ship_split(config).await
     }
