@@ -37,6 +37,8 @@ pub struct UpgradeConfig {
     pub weapon_speed: f64,
     pub weapon_time: f64,
     pub weapon_load: f64,
+    pub weapon_ammo: u16,
+    pub weapon_ammo_production: f64,
     pub free_spawn: bool,
 }
 
@@ -82,6 +84,8 @@ impl UpgradeConfig {
         self.weapon_speed = reader.read_2u(10.0);
         self.weapon_time = reader.read_uint16() as f64 / 20.0;
         self.weapon_load = reader.read_2u(10.0);
+        self.weapon_ammo = reader.read_uint16();
+        self.weapon_ammo_production = reader.read_2u(100_000.0);
         self.free_spawn = reader.read_boolean();
     }
 
@@ -118,6 +122,8 @@ impl UpgradeConfig {
         writer.write_2u(self.weapon_speed, 10.0);
         writer.write_uint16(self.weapon_time as _);
         writer.write_2u(self.weapon_load, 10.0);
+        writer.write_uint16(self.weapon_ammo);
+        writer.write_2u(self.weapon_ammo_production, 100_000.0);
         writer.write_boolean(self.free_spawn);
     }
 }
