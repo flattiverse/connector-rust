@@ -3,6 +3,7 @@ extern crate log;
 
 pub use tokio;
 
+pub mod atomics;
 pub mod hierarchy;
 pub mod network;
 pub mod unit;

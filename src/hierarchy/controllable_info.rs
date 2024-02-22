@@ -1,11 +1,22 @@
 use crate::hierarchy::ClusterId;
 use crate::network::PacketReader;
 use crate::unit::ShipDesignId;
-use crate::{PlayerId, UpgradeId};
+use crate::{Indexer, NamedUnit, PlayerId, UpgradeId};
+
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
+pub struct ControllableInfoId(pub(crate) u16);
+
+impl Indexer for ControllableInfoId {
+    #[inline]
+    fn index(&self) -> usize {
+        usize::from(self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct ControllableInfo {
     cluster: ClusterId,
+    id: ControllableInfoId,
     name: String,
     reduced: bool,
     ship_design: ShipDesignId,
@@ -30,6 +41,7 @@ pub struct ControllableInfo {
 impl ControllableInfo {
     pub fn new(
         cluster: ClusterId,
+        id: ControllableInfoId,
         player: PlayerId,
         reader: &mut dyn PacketReader,
         reduced: bool,
@@ -37,6 +49,7 @@ impl ControllableInfo {
         Self {
             active: true,
             cluster,
+            id,
             player,
             reduced,
 
@@ -76,6 +89,11 @@ impl ControllableInfo {
     #[inline]
     pub fn cluster(&self) -> ClusterId {
         self.cluster
+    }
+
+    #[inline]
+    pub fn id(&self) -> ControllableInfoId {
+        self.id
     }
 
     #[inline]
@@ -142,9 +160,15 @@ impl ControllableInfo {
     pub fn ion_max(&self) -> f64 {
         self.ion_max
     }
-
     #[inline]
     pub fn active(&self) -> bool {
         self.active
+    }
+}
+
+impl NamedUnit for ControllableInfo {
+    #[inline]
+    fn name(&self) -> &str {
+        ControllableInfo::name(self)
     }
 }

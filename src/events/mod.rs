@@ -1,5 +1,5 @@
-use crate::hierarchy::GlaxyId;
 use crate::hierarchy::{ClusterId, RegionId};
+use crate::hierarchy::{ControllableInfoId, GlaxyId};
 use crate::unit::ShipDesignId;
 use crate::{Player, PlayerId, TeamId, UpgradeId};
 use std::time::Duration;
@@ -71,14 +71,14 @@ pub enum FlattiverseEvent {
         galaxy: GlaxyId,
         cluster: ClusterId,
         player: PlayerId,
-        name: String,
+        controllable: ControllableInfoId,
     },
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was removed.
     ControllableInfoRemoved {
         galaxy: GlaxyId,
         cluster: ClusterId,
         player: PlayerId,
-        name: String,
+        controllable: ControllableInfoId,
     },
 
     TickCompleted,

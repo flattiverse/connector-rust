@@ -1,7 +1,8 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::hierarchy::{
-    Cluster, ControllableInfo, GalaxyConfig, RegionId, ShipDesignConfig, TeamConfig,
+    Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesignConfig,
+    TeamConfig,
 };
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
@@ -109,7 +110,10 @@ impl Galaxy {
             Err(GameError::from(GameErrorKind::Unspecified(0))
                 .with_info("At this point, no session specific packet should be handled"))
         } else {
-            debug!("Processing packet with command=0x{:02x}", packet.header().command());
+            debug!(
+                "Processing packet with command=0x{:02x}",
+                packet.header().command()
+            );
             match packet.header().command() {
                 // galaxy info
                 0x10 => {
@@ -222,27 +226,27 @@ impl Galaxy {
 
                 // controllable info
                 0x18 => {
-                    let player_id = PlayerId(packet.header().param0());
-                    let cluster = ClusterId(
-                        packet
-                            .header()
-                            .id()
-                            .try_into()
-                            .expect("ClusterId not within the expected range"),
-                    );
+                    let player_id = PlayerId(packet.header().id1());
+                    let cluster = ClusterId(packet.header().id0());
+                    let controllable_id = ControllableInfoId(packet.header().id());
 
                     if let Some(player) = self.players.get_mut(player_id) {
                         let reduce = packet.header().param0() == 1;
                         let info = packet.read(|reader| {
-                            ControllableInfo::new(cluster, player_id, reader, reduce)
+                            ControllableInfo::new(
+                                cluster,
+                                controllable_id,
+                                player_id,
+                                reader,
+                                reduce,
+                            )
                         });
-                        let name = info.name().to_string();
                         player.add_controllable_info(info);
                         Ok(Some(FlattiverseEvent::ControllableInfoUpdated {
                             galaxy: self.id,
                             cluster,
                             player: player_id,
-                            name,
+                            controllable: controllable_id,
                         }))
                     } else {
                         warn!("Cannot update ControllableInfo because the player is missing for {player_id:?}");
@@ -252,25 +256,21 @@ impl Galaxy {
 
                 // controllable info removed
                 0x19 => {
-                    let player_id = PlayerId(packet.header().param0());
-                    let cluster = ClusterId(
-                        packet
-                            .header()
-                            .id()
-                            .try_into()
-                            .expect("ClusterId not within the expected range"),
-                    );
+                    let player_id = PlayerId(packet.header().id1());
+                    let cluster = ClusterId(packet.header().id0());
+                    let controllable_id = ControllableInfoId(packet.header().id());
 
                     if let Some(player) = self.players.get_mut(player_id) {
-                        let name = packet.read(|reader| reader.read_string());
-                        if player.remove_controllable_info(&name).is_none() {
-                            warn!("Tried to remove unknown ControllableInfo for name={name}");
+                        if player.remove_controllable_info(controllable_id).is_none() {
+                            warn!(
+                                "Tried to remove unknown ControllableInfo for {controllable_id:?}"
+                            );
                         }
                         Ok(Some(FlattiverseEvent::ControllableInfoRemoved {
                             galaxy: self.id,
                             cluster,
                             player: player_id,
-                            name,
+                            controllable: controllable_id,
                         }))
                     } else {
                         warn!("Cannot remove ControllableInfo because the player is missing for {player_id:?}");

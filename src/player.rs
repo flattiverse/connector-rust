@@ -1,9 +1,8 @@
+use crate::hierarchy::{ControllableInfo, ControllableInfoId};
 use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
-use crate::{Indexer, NamedUnit, TeamId};
+use crate::{Indexer, NamedUnit, TeamId, UniversalHolder};
 use std::fmt::{Display, Formatter};
-use rustc_hash::FxHashMap;
-use crate::hierarchy::ControllableInfo;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -22,7 +21,7 @@ pub struct Player {
     kind: PlayerKind,
     team: TeamId,
     active: bool,
-    controllables: FxHashMap<String, ControllableInfo>,
+    controllables: UniversalHolder<ControllableInfoId, ControllableInfo>,
 }
 
 impl Player {
@@ -39,7 +38,7 @@ impl Player {
             kind,
             team,
             name: reader.read_string(),
-            controllables: FxHashMap::default(),
+            controllables: UniversalHolder::with_capacity(256),
         }
     }
 
@@ -48,16 +47,18 @@ impl Player {
     }
 
     pub(crate) fn add_controllable_info(&mut self, info: ControllableInfo) {
-        let name = info.name().to_string();
-        self.controllables.insert(name, info);
+        self.controllables.set(info.id(), info);
     }
 
-    pub(crate) fn remove_controllable_info(&mut self, name: &str) -> Option<ControllableInfo> {
-        if let Some(mut controllable) = self.controllables.remove(name) {
+    pub(crate) fn remove_controllable_info(
+        &mut self,
+        id: ControllableInfoId,
+    ) -> Option<ControllableInfo> {
+        if let Some(mut controllable) = self.controllables.remove(id) {
             controllable.deactivate();
             Some(controllable)
         } else {
-            warn!("Did not find ControllableInfo for name={name}");
+            warn!("Did not find ControllableInfo for {id:?}");
             None
         }
     }
