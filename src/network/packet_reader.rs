@@ -13,6 +13,7 @@ pub trait PacketReader {
     fn read_1u(&mut self, shift: f64) -> f64;
     fn read_2s(&mut self, shift: f64) -> f64;
     fn read_2u(&mut self, shift: f64) -> f64;
+    fn read_3u(&mut self, shift: f64) -> f64;
     fn read_4s(&mut self, shift: f64) -> f64;
     fn read_4u(&mut self, shift: f64) -> f64;
     fn read_8s(&mut self, shift: f64) -> f64;
@@ -84,6 +85,16 @@ impl PacketReader for BytesMut {
     #[inline]
     fn read_2u(&mut self, shift: f64) -> f64 {
         f64::from(self.read_uint16()) / shift
+    }
+
+    fn read_3u(&mut self, shift: f64) -> f64 {
+        let mut data = [0u8; 3];
+        (&self[..3]).copy_to_slice(&mut data);
+        self.advance(3);
+        let first_byte = u32::from(data[0]);
+        let other_bytes = u32::from(u16::from_le_bytes([data[1], data[2]]));
+        let value = (first_byte * u32::from(u16::MAX)) + other_bytes;
+        value as f64 / shift
     }
 
     #[inline]

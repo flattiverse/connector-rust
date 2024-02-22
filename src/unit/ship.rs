@@ -1,11 +1,22 @@
 use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
 use crate::network::PacketReader;
-use crate::unit::{ Unit, UnitKind};
-use crate::{PlayerId, Vector};
+use crate::unit::{Unit, UnitKind};
+use crate::{Indexer, PlayerId, Vector};
+
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
+pub struct ShipId(pub(crate) u8);
+
+impl Indexer for ShipId {
+    #[inline]
+    fn index(&self) -> usize {
+        usize::from(self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct Ship {
     name: String,
+    id: ShipId,
     cluster: ClusterId,
     ship_design: ShipDesignId,
     player: PlayerId,
@@ -66,6 +77,12 @@ impl Ship {
                     .try_into()
                     .expect("ShipDesignId is not within the expected range"),
             ),
+            id: ShipId(
+                reader
+                    .read_int32()
+                    .try_into()
+                    .expect("ShipId is not within the expected range"),
+            ),
             upgrade: UpgradeId(
                 reader
                     .read_int32()
@@ -79,7 +96,7 @@ impl Ship {
             shields: reader.read_2u(10.0),
             shields_max: reader.read_2u(10.0),
             shields_load: reader.read_2u(100.0),
-            size: reader.read_2u(10.0),
+            size: reader.read_3u(1_000.0),
             weight: reader.read_2s(10000.0),
             energy: reader.read_4u(10.0),
             energy_max: reader.read_4u(10.0),
@@ -106,7 +123,7 @@ impl Ship {
             extractor_max: reader.read_2u(100.0),
             weapon_speed: reader.read_2u(10.0),
             weapon_time: reader.read_uint16(),
-            weapon_load: reader.read_2u(10.0),
+            weapon_load: reader.read_3u(1_000.0),
             weapon_ammo: reader.read_uint16(),
             weapon_ammo_max: reader.read_uint16(),
             weapon_ammo_production: reader.read_2u(100000.0),

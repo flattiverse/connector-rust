@@ -60,7 +60,7 @@ impl ShipDesignConfig {
         self.hull_repair = reader.read_2u(100.0);
         self.shields = reader.read_2u(10.0);
         self.shields_load = reader.read_2u(100.0);
-        self.size = reader.read_2u(10.0);
+        self.size = reader.read_3u(1_000.0);
         self.weight = reader.read_2s(10_000.0);
         self.energy_max = reader.read_2u(10.0);
         self.energy_cells = reader.read_4u(100.0);
@@ -77,8 +77,8 @@ impl ShipDesignConfig {
         self.cargo = reader.read_4u(1_000.0);
         self.extractor = reader.read_2u(100.0);
         self.weapon_speed = reader.read_2u(10.0);
-        self.weapon_time = reader.read_uint16() as f64 / 20.0;
-        self.weapon_load = reader.read_2u(10.0);
+        self.weapon_time = reader.read_uint16() as f64;
+        self.weapon_load = reader.read_3u(1_000.0);
         self.weapon_ammo = reader.read_uint16();
         self.weapon_ammo_production = reader.read_2u(100_000.0);
         self.free_spawn = reader.read_boolean();
@@ -97,7 +97,7 @@ impl ShipDesignConfig {
         writer.write_2u(self.hull_repair, 100.0);
         writer.write_2u(self.shields, 10.0);
         writer.write_2u(self.shields_load, 100.0);
-        writer.write_2u(self.size, 10.0);
+        writer.write_3u(self.size, 1_000.0);
         writer.write_2s(self.weight, 10000.0);
         writer.write_2u(self.energy_max, 10.0);
         writer.write_4u(self.energy_cells, 100.0);
@@ -115,7 +115,7 @@ impl ShipDesignConfig {
         writer.write_2u(self.extractor, 100.0);
         writer.write_2u(self.weapon_speed, 10.0);
         writer.write_uint16(self.weapon_time as _);
-        writer.write_2u(self.weapon_load, 10.0);
+        writer.write_3u(self.weapon_load, 1_000.0);
         writer.write_uint16(self.weapon_ammo);
         writer.write_2u(self.weapon_ammo_production, 100_000.0);
         writer.write_boolean(self.free_spawn);

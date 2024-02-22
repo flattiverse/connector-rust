@@ -30,8 +30,8 @@ impl SunSection {
     }
 
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-        self.inner_radius = reader.read_2u(100.0);
-        self.outer_radius = reader.read_2u(100.0);
+        self.inner_radius = reader.read_3u(1_000.0);
+        self.outer_radius = reader.read_3u(1_000.0);
         self.angle_from = reader.read_2u(100.0);
         self.angle_to = reader.read_2u(100.0);
 
@@ -40,8 +40,8 @@ impl SunSection {
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
-        writer.write_2u(self.inner_radius, 100.0);
-        writer.write_2u(self.outer_radius, 100.0);
+        writer.write_3u(self.inner_radius, 1_000.0);
+        writer.write_3u(self.outer_radius, 1_000.0);
         writer.write_2u(self.angle_from, 100.0);
         writer.write_2u(self.angle_to, 100.0);
 
@@ -98,9 +98,9 @@ impl SunSection {
 
     /// Sets the angle for the left (from) and the right (to) side at once.
     pub fn set_angles(&mut self, from: f64, to: f64) -> Result<(), GameError> {
-        if from.is_infinite() || from.is_nan() || from < 0.0 || from >= to {
+        if from.is_infinite() || from.is_nan() || from < 0.0 || to > 360.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
-        } else if to.is_infinite() || to.is_nan() || to > 360.0 {
+        } else if to.is_infinite() || to.is_nan() || from < 0.0 || to > 360.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else if self.configuration.is_none() {
             Err(GameErrorKind::NotConfigurable.into())
@@ -117,7 +117,7 @@ impl SunSection {
     }
 
     pub fn set_angle_from(&mut self, angle: f64) -> Result<(), GameError> {
-        if angle.is_infinite() || angle.is_nan() || angle < 0.0  {
+        if angle.is_infinite() || angle.is_nan() || angle < 0.0 || angle > 360.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else if self.configuration.is_none() {
             Err(GameErrorKind::NotConfigurable.into())
@@ -133,7 +133,7 @@ impl SunSection {
     }
 
     pub fn set_angle_to(&mut self, angle: f64) -> Result<(), GameError> {
-        if angle.is_infinite() || angle.is_nan() || angle > 360.0 {
+        if angle.is_infinite() || angle.is_nan() || angle > 360.0 || angle < 0.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else if self.configuration.is_none() {
             Err(GameErrorKind::NotConfigurable.into())

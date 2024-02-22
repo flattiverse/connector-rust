@@ -13,6 +13,7 @@ pub trait PacketWriter {
     fn write_1u(&mut self, number: f64, shift: f64);
     fn write_2s(&mut self, number: f64, shift: f64);
     fn write_2u(&mut self, number: f64, shift: f64);
+    fn write_3u(&mut self, number: f64, shift: f64);
     fn write_4s(&mut self, number: f64, shift: f64);
     fn write_4u(&mut self, number: f64, shift: f64);
     fn write_8s(&mut self, number: f64, shift: f64);
@@ -81,6 +82,16 @@ impl PacketWriter for BytesMut {
     fn write_2u(&mut self, number: f64, shift: f64) {
         let value = number * shift + 0.5;
         self.put_u16_le(value as _);
+    }
+
+    fn write_3u(&mut self, number: f64, shift: f64) {
+        let temp = (number * shift + 0.5) as u32;
+
+        let least_significant_byte = (temp & 0xFF) as u8;
+        let middle_byte = ((temp >> 8) & 0xFF) as u8;
+        let third_byte = ((temp >> 16) & 0xFF) as u8;
+
+        self.put_slice(&[third_byte, middle_byte, least_significant_byte]);
     }
 
     fn write_4s(&mut self, number: f64, shift: f64) {
