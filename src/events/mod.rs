@@ -1,7 +1,6 @@
-use crate::hierarchy::{ClusterId, RegionId};
+use crate::hierarchy::{ClusterId, RegionId, ShipDesignId, UpgradeId};
 use crate::hierarchy::{ControllableInfoId, GlaxyId};
-use crate::unit::ShipDesignId;
-use crate::{Player, PlayerId, TeamId, UpgradeId};
+use crate::{Player, PlayerId, TeamId};
 use std::time::Duration;
 
 #[derive(Debug)]

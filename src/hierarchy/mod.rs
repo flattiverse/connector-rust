@@ -27,3 +27,9 @@ pub use galaxy_config::*;
 
 mod controllable_info;
 pub use controllable_info::*;
+
+mod ship_design;
+pub use ship_design::*;
+
+mod upgrade;
+pub use upgrade::*;

@@ -1,9 +1,6 @@
 pub mod configurations;
 pub mod sub_components;
 
-mod ship_design;
-pub use ship_design::*;
-
 mod mobility;
 pub use mobility::*;
 

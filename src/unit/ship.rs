@@ -1,7 +1,7 @@
-use crate::hierarchy::ClusterId;
+use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
 use crate::network::PacketReader;
-use crate::unit::{ShipDesignId, Unit, UnitKind};
-use crate::{PlayerId, UpgradeId, Vector};
+use crate::unit::{ Unit, UnitKind};
+use crate::{PlayerId, Vector};
 
 #[derive(Debug)]
 pub struct Ship {

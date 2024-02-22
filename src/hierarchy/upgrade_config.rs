@@ -1,5 +1,5 @@
+use crate::hierarchy::UpgradeId;
 use crate::network::{PacketReader, PacketWriter};
-use crate::UpgradeId;
 
 #[derive(Debug, Clone, Default)]
 pub struct UpgradeConfig {

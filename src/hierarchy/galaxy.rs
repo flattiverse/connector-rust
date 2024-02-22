@@ -1,16 +1,12 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
-use crate::hierarchy::{
-    Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesignConfig,
-    TeamConfig,
-};
+use crate::hierarchy::{Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesign, ShipDesignConfig, ShipDesignId, TeamConfig, UpgradeId};
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::UnitKind;
-use crate::unit::{ShipDesign, ShipDesignId};
-use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, UpgradeId};
+use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, };
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;

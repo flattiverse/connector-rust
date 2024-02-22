@@ -1,6 +1,6 @@
-use crate::hierarchy::{GlaxyId, ShipDesignConfig, UpgradeConfig};
+use crate::hierarchy::{GlaxyId, ShipDesignConfig, Upgrade, UpgradeConfig, UpgradeId};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::{GameError, Indexer, NamedUnit, UniversalHolder, Upgrade, UpgradeId};
+use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
 use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]

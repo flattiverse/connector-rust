@@ -1,6 +1,5 @@
-use crate::hierarchy::{GlaxyId, UpgradeConfig};
+use crate::hierarchy::{GlaxyId, ShipDesignId, UpgradeConfig};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::unit::ShipDesignId;
 use crate::{GameError, Indexer, NamedUnit};
 use std::future::Future;
 

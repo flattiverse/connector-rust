@@ -1,7 +1,6 @@
-use crate::hierarchy::ClusterId;
+use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
 use crate::network::PacketReader;
-use crate::unit::ShipDesignId;
-use crate::{Indexer, NamedUnit, PlayerId, UpgradeId};
+use crate::{Indexer, NamedUnit, PlayerId,};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ControllableInfoId(pub(crate) u16);
