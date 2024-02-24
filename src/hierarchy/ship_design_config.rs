@@ -9,7 +9,7 @@ pub struct ShipDesignConfig {
     pub cost_tungsten: f64,
     pub cost_silicon: f64,
     pub cost_tritium: f64,
-    pub cost_time: f64,
+    pub cost_time: u16,
     pub hull: f64,
     pub hull_repair: f64,
     pub shields: f64,
@@ -31,11 +31,21 @@ pub struct ShipDesignConfig {
     pub cargo: f64,
     pub extractor: f64,
     pub weapon_speed: f64,
-    pub weapon_time: f64,
+    pub weapon_time: u16,
     pub weapon_load: f64,
     pub weapon_ammo: u16,
     pub weapon_ammo_production: f64,
     pub free_spawn: bool,
+    pub nozzle_energy_consumption: f64,
+    pub thruster_energy_consumption: f64,
+    pub hull_repair_energy_consumption: f64,
+    pub hull_repair_iron_consumption: f64,
+    pub shields_ion_consumption: f64,
+    pub extractor_energy_consumption: f64,
+    pub weapon_energy_consumption: f64,
+    pub scanner_energy_consumption: f64,
+    pub scanner_range: f64,
+    pub scanner_width: f64,
 }
 
 impl From<&mut dyn PacketReader> for ShipDesignConfig {
@@ -55,7 +65,7 @@ impl ShipDesignConfig {
         self.cost_tungsten = reader.read_4u(1_000.0);
         self.cost_silicon = reader.read_4u(1_000.0);
         self.cost_tritium = reader.read_4u(1_000.0);
-        self.cost_time = reader.read_2u(10.0);
+        self.cost_time = reader.read_uint16();
         self.hull = reader.read_3u(10_000.0);
         self.hull_repair = reader.read_3u(10_000.0);
         self.shields = reader.read_3u(10_000.0);
@@ -77,11 +87,21 @@ impl ShipDesignConfig {
         self.cargo = reader.read_4u(1_000.0);
         self.extractor = reader.read_4u(1_000.0);
         self.weapon_speed = reader.read_2u(1_000.0);
-        self.weapon_time = reader.read_uint16() as f64;
+        self.weapon_time = reader.read_uint16();
         self.weapon_load = reader.read_3u(1_000.0);
         self.weapon_ammo = reader.read_uint16();
         self.weapon_ammo_production = reader.read_4u(1_000.0);
         self.free_spawn = reader.read_boolean();
+        self.nozzle_energy_consumption = reader.read_4u(1_000.0);
+        self.thruster_energy_consumption = reader.read_4u(1_000.0);
+        self.hull_repair_energy_consumption = reader.read_4u(1_000.0);
+        self.hull_repair_iron_consumption = reader.read_4u(1_000.0);
+        self.shields_ion_consumption = reader.read_4u(1_000.0);
+        self.extractor_energy_consumption = reader.read_4u(1_000.0);
+        self.weapon_energy_consumption = reader.read_4u(1_000.0);
+        self.scanner_energy_consumption = reader.read_4u(1_000.0);
+        self.scanner_range = reader.read_3u(1_000.0);
+        self.scanner_width = reader.read_3u(1_000.0);
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
@@ -92,7 +112,7 @@ impl ShipDesignConfig {
         writer.write_4u(self.cost_tungsten, 1_000.0);
         writer.write_4u(self.cost_silicon, 1_000.0);
         writer.write_4u(self.cost_tritium, 1_000.0);
-        writer.write_2u(self.cost_time, 10.0);
+        writer.write_uint16(self.cost_time);
         writer.write_3u(self.hull, 10_000.0);
         writer.write_3u(self.hull_repair, 10_000.0);
         writer.write_3u(self.shields, 1_000.0);
@@ -119,5 +139,15 @@ impl ShipDesignConfig {
         writer.write_uint16(self.weapon_ammo);
         writer.write_4u(self.weapon_ammo_production, 1_000.0);
         writer.write_boolean(self.free_spawn);
+        writer.write_4u(self.nozzle_energy_consumption, 1_000.0);
+        writer.write_4u(self.thruster_energy_consumption, 1_000.0);
+        writer.write_4u(self.hull_repair_energy_consumption, 1_000.0);
+        writer.write_4u(self.hull_repair_iron_consumption, 1_000.0);
+        writer.write_4u(self.shields_ion_consumption, 1_000.0);
+        writer.write_4u(self.extractor_energy_consumption, 1_000.0);
+        writer.write_4u(self.weapon_energy_consumption, 1_000.0);
+        writer.write_4u(self.scanner_energy_consumption, 1_000.0);
+        writer.write_3u(self.scanner_range, 1_000.0);
+        writer.write_3u(self.scanner_width, 1_000.0);
     }
 }

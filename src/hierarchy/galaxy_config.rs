@@ -9,11 +9,11 @@ pub struct GalaxyConfig {
     pub game_type: GameType,
     pub max_players: u8,
 
-    pub max_platforms_universe: u16,
-    pub max_probes_universe: u16,
-    pub max_drones_universe: u16,
-    pub max_ships_universe: u16,
-    pub max_bases_universe: u16,
+    pub max_platforms_galaxy: u16,
+    pub max_probes_galaxy: u16,
+    pub max_drones_galaxy: u16,
+    pub max_ships_galaxy: u16,
+    pub max_bases_galaxy: u16,
 
     pub max_platforms_team: u16,
     pub max_probes_team: u16,
@@ -42,11 +42,11 @@ impl GalaxyConfig {
         self.description = reader.read_string();
         self.game_type = GameType::from_primitive(reader.read_byte());
         self.max_players = reader.read_byte();
-        self.max_platforms_universe = reader.read_uint16();
-        self.max_probes_universe = reader.read_uint16();
-        self.max_drones_universe = reader.read_uint16();
-        self.max_ships_universe = reader.read_uint16();
-        self.max_bases_universe = reader.read_uint16();
+        self.max_platforms_galaxy = reader.read_uint16();
+        self.max_probes_galaxy = reader.read_uint16();
+        self.max_drones_galaxy = reader.read_uint16();
+        self.max_ships_galaxy = reader.read_uint16();
+        self.max_bases_galaxy = reader.read_uint16();
         self.max_platforms_team = reader.read_uint16();
         self.max_probes_team = reader.read_uint16();
         self.max_drones_team = reader.read_uint16();
@@ -64,11 +64,11 @@ impl GalaxyConfig {
         writer.write_string(&self.description);
         writer.write_byte(self.game_type as u8);
         writer.write_byte(self.max_players);
-        writer.write_uint16(self.max_platforms_universe);
-        writer.write_uint16(self.max_probes_universe);
-        writer.write_uint16(self.max_drones_universe);
-        writer.write_uint16(self.max_ships_universe);
-        writer.write_uint16(self.max_bases_universe);
+        writer.write_uint16(self.max_platforms_galaxy);
+        writer.write_uint16(self.max_probes_galaxy);
+        writer.write_uint16(self.max_drones_galaxy);
+        writer.write_uint16(self.max_ships_galaxy);
+        writer.write_uint16(self.max_bases_galaxy);
         writer.write_uint16(self.max_platforms_team);
         writer.write_uint16(self.max_probes_team);
         writer.write_uint16(self.max_drones_team);

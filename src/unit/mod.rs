@@ -34,5 +34,5 @@ pub use meteorid::*;
 mod black_hole;
 pub use black_hole::*;
 
-mod ship;
-pub use ship::*;
+mod player_unit;
+pub use player_unit::*;

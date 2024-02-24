@@ -1,11 +1,11 @@
 use crate::network::{PacketReader, PacketWriter};
-use crate::unit::configurations::{CelestialBodyConfiguration, Configuration};
+use crate::unit::configurations::{Configuration, HarvestableConfiguration};
 use crate::unit::UnitKind;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Clone, Default)]
 pub struct MoonConfiguration {
-    pub(crate) base: CelestialBodyConfiguration,
+    pub(crate) base: HarvestableConfiguration,
 }
 
 impl Configuration for MoonConfiguration {
@@ -26,7 +26,7 @@ impl Configuration for MoonConfiguration {
 }
 
 impl Deref for MoonConfiguration {
-    type Target = CelestialBodyConfiguration;
+    type Target = HarvestableConfiguration;
 
     #[inline]
     fn deref(&self) -> &Self::Target {

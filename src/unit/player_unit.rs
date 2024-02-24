@@ -4,9 +4,9 @@ use crate::unit::{Unit, UnitKind};
 use crate::{Indexer, PlayerId, Vector};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct ShipId(pub(crate) u8);
+pub struct PlayerUnitId(pub(crate) u8);
 
-impl Indexer for ShipId {
+impl Indexer for PlayerUnitId {
     #[inline]
     fn index(&self) -> usize {
         usize::from(self.0)
@@ -14,9 +14,9 @@ impl Indexer for ShipId {
 }
 
 #[derive(Debug)]
-pub struct Ship {
+pub struct PlayerUnit {
     name: String,
-    id: ShipId,
+    id: PlayerUnitId,
     cluster: ClusterId,
     ship_design: ShipDesignId,
     player: PlayerId,
@@ -58,9 +58,12 @@ pub struct Ship {
     weapon_ammo: u16,
     weapon_ammo_max: u16,
     weapon_ammo_production: f64,
+    position: Vector,
+    movement: Vector,
+    active: bool,
 }
 
-impl Ship {
+impl PlayerUnit {
     pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
         Self {
             cluster,
@@ -77,7 +80,7 @@ impl Ship {
                     .try_into()
                     .expect("ShipDesignId is not within the expected range"),
             ),
-            id: ShipId(
+            id: PlayerUnitId(
                 reader
                     .read_int32()
                     .try_into()
@@ -127,6 +130,9 @@ impl Ship {
             weapon_ammo: reader.read_uint16(),
             weapon_ammo_max: reader.read_uint16(),
             weapon_ammo_production: reader.read_2u(100000.0),
+            position: Vector::default(),
+            movement: Vector::default(),
+            active: true,
         }
     }
 
@@ -339,17 +345,37 @@ impl Ship {
     pub fn weapon_ammo_production(&self) -> f64 {
         self.weapon_ammo_production
     }
+
+    #[inline]
+    pub fn id(&self) -> PlayerUnitId {
+        self.id
+    }
+
+    #[inline]
+    pub fn position(&self) -> Vector {
+        self.position
+    }
+
+    #[inline]
+    pub fn movement(&self) -> Vector {
+        self.movement
+    }
+
+    #[inline]
+    pub fn active(&self) -> bool {
+        self.active
+    }
 }
 
-impl Unit for Ship {
+impl Unit for PlayerUnit {
     #[inline]
     fn name(&self) -> &str {
-        Ship::name(self)
+        PlayerUnit::name(self)
     }
 
     #[inline]
     fn cluster(&self) -> ClusterId {
-        Ship::cluster(self)
+        PlayerUnit::cluster(self)
     }
 
     #[inline]

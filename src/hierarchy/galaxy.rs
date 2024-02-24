@@ -1,12 +1,15 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
-use crate::hierarchy::{Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesign, ShipDesignConfig, ShipDesignId, TeamConfig, UpgradeId};
+use crate::hierarchy::{
+    Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesign,
+    ShipDesignConfig, ShipDesignId, TeamConfig, UpgradeId,
+};
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::UnitKind;
-use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder, };
+use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;
@@ -224,17 +227,17 @@ impl Galaxy {
                 0x18 => {
                     let player_id = PlayerId(packet.header().id1());
                     let cluster = ClusterId(packet.header().id0());
-                    let controllable_id = ControllableInfoId(packet.header().id());
+                    let controllable_id = ControllableInfoId(packet.header().param0());
 
                     if let Some(player) = self.players.get_mut(player_id) {
-                        let reduce = packet.header().param0() == 1;
+                        let reduced = packet.header().param1() == 1;
                         let info = packet.read(|reader| {
                             ControllableInfo::new(
                                 cluster,
                                 controllable_id,
                                 player_id,
                                 reader,
-                                reduce,
+                                reduced,
                             )
                         });
                         player.add_controllable_info(info);
@@ -254,7 +257,7 @@ impl Galaxy {
                 0x19 => {
                     let player_id = PlayerId(packet.header().id1());
                     let cluster = ClusterId(packet.header().id0());
-                    let controllable_id = ControllableInfoId(packet.header().id());
+                    let controllable_id = ControllableInfoId(packet.header().param1());
 
                     if let Some(player) = self.players.get_mut(player_id) {
                         if player.remove_controllable_info(controllable_id).is_none() {

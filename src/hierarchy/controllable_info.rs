@@ -1,9 +1,9 @@
 use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
 use crate::network::PacketReader;
-use crate::{Indexer, NamedUnit, PlayerId,};
+use crate::{Indexer, NamedUnit, PlayerId};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct ControllableInfoId(pub(crate) u16);
+pub struct ControllableInfoId(pub(crate) u8);
 
 impl Indexer for ControllableInfoId {
     #[inline]
