@@ -1,6 +1,7 @@
-use crate::hierarchy::GalaxyId;
+use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeId};
 use crate::network::{ConnectionHandle, PacketReader};
-use crate::Indexer;
+use crate::{GameError, Indexer, Vector};
+use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ControllableId(pub(crate) u8);
@@ -18,6 +19,52 @@ pub struct Controllable {
     galaxy: GalaxyId,
     id: ControllableId,
     name: String,
+    ship_design: ShipDesignId,
+    active_upgrades: Box<[UpgradeId]>,
+
+    hull: f64,
+    hull_max: f64,
+    hull_repair: f64,
+    shields: f64,
+    shields_max: f64,
+    shields_load: f64,
+    size: f64,
+    weight: f64,
+    energy: f64,
+    energy_max: f64,
+    energy_cells: f64,
+    energy_reactor: f64,
+    energy_transfer: f64,
+    ion: f64,
+    ion_max: f64,
+    ion_cells: f64,
+    ion_reactor: f64,
+    ion_transfer: f64,
+    thruster: f64,
+    thruster_max_forward: f64,
+    thruster_max_backward: f64,
+    nozzle: f64,
+    nozzle_max: f64,
+    speed_max: f64,
+    turnrate: f64,
+    cargo_tungsten: f64,
+    cargo_iron: f64,
+    cargo_silicon: f64,
+    cargo_tritium: f64,
+    cargo_max: f64,
+    extractor_max: f64,
+    weapon_speed: f64,
+    weapon_time: u16,
+    weapon_load: f64,
+    weapon_damage: f64,
+    weapon_ammo: f64,
+    weapon_ammo_max: f64,
+    weapon_ammo_production: f64,
+    direction: f64,
+
+    position: Vector,
+    movement: Vector,
+
     connection: ConnectionHandle,
 }
 
@@ -33,19 +80,147 @@ impl Controllable {
             galaxy,
             id,
             name: reader.read_string(),
+            ship_design: ShipDesignId(reader.read_byte()),
+
+            size: reader.read_3u(1_000.0),
+            weight: reader.read_2s(10_000.0),
+            active_upgrades: reader
+                .read_bytes(32)
+                .into_iter()
+                .map(UpgradeId)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+            hull_max: reader.read_3u(10_000.0),
+            hull_repair: reader.read_3u(10_000.0),
+            shields_max: reader.read_3u(10_000.0),
+            shields_load: reader.read_3u(10_000.0),
+
+            hull: 0.0,
+            shields: 0.0,
+            energy: 0.0,
+            energy_max: 0.0,
+            energy_cells: 0.0,
+            energy_reactor: 0.0,
+            energy_transfer: 0.0,
+            ion: 0.0,
+            ion_max: 0.0,
+            ion_cells: 0.0,
+            ion_reactor: 0.0,
+            ion_transfer: 0.0,
+            thruster: 0.0,
+            thruster_max_forward: 0.0,
+            thruster_max_backward: 0.0,
+            nozzle: 0.0,
+            nozzle_max: 0.0,
+            speed_max: 0.0,
+            turnrate: 0.0,
+            cargo_tungsten: 0.0,
+            cargo_iron: 0.0,
+            cargo_silicon: 0.0,
+            cargo_tritium: 0.0,
+            cargo_max: 0.0,
+            extractor_max: 0.0,
+            weapon_speed: 0.0,
+            weapon_time: 0,
+            weapon_load: 0.0,
+            weapon_damage: 0.0,
+            weapon_ammo: 0.0,
+            weapon_ammo_max: 0.0,
+            weapon_ammo_production: 0.0,
+            direction: 0.0,
+
+            position: Default::default(),
+            movement: Default::default(),
+
             connection,
         }
+    }
+
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.energy_max = reader.read_4u(1_000.0);
+        self.energy_cells = reader.read_4u(1_000.0);
+        self.energy_reactor = reader.read_4u(1_000.0);
+        self.energy_transfer = reader.read_4u(1_000.0);
+        self.ion_max = reader.read_4u(1_000.0);
+        self.ion_cells = reader.read_4u(1_000.0);
+        self.ion_reactor = reader.read_4u(1_000.0);
+        self.ion_transfer = reader.read_4u(1_000.0);
+        self.thruster_max_forward = reader.read_2u(10_000.0);
+        self.thruster_max_backward = reader.read_2u(10_000.0);
+        self.nozzle_max = reader.read_2s(100.0);
+        self.speed_max = reader.read_2u(1_000.0);
+        self.cargo_max = reader.read_4u(1_000.0);
+        self.extractor_max = reader.read_4u(1_000.0);
+        self.weapon_speed = reader.read_2u(1_000.0);
+        self.weapon_time = reader.read_uint16();
+        self.weapon_load = reader.read_3u(1_000.0);
+        self.weapon_damage = reader.read_3u(10_000.0);
+        self.weapon_ammo_max = reader.read_uint16() as f64;
+        self.weapon_ammo_production = reader.read_4u(1_000.0);
+    }
+
+    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader) {
+        self.hull = reader.read_3u(10_000.0);
+        self.shields = reader.read_3u(10_000.0);
+        self.energy = reader.read_4u(1_000.0);
+        self.ion = reader.read_4u(1_000.0);
+        self.thruster = reader.read_2s(10_000.0);
+        self.nozzle = reader.read_2s(100.0);
+        self.turnrate = reader.read_2s(100.0);
+        self.cargo_tungsten = reader.read_4u(1_000.0);
+        self.cargo_iron = reader.read_4u(1_000.0);
+        self.cargo_silicon = reader.read_4u(1_000.0);
+        self.cargo_tritium = reader.read_4u(1_000.0);
+        self.weapon_ammo = reader.read_4u(1_000.0);
+        self.position = Vector::default().with_read(reader);
+        self.movement = Vector::default().with_read(reader);
+        self.direction = reader.read_2u(100.0);
     }
 
     pub(crate) fn deactivate(&mut self) {
         self.active = false;
     }
 
-    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
-        todo!()
+    /// Self-destructs this [`Controllable`].
+    /// See also [`ConnectionHandle::kill_controllable`].
+    #[inline]
+    pub async fn kill(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !self.alive() {
+            return Err(GameError::from(0xF5));
+        } else {
+            self.connection.kill_controllable_split(self.id).await
+        }
     }
 
-    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader) {
-        todo!()
+    /// Revives this [`Controllable`].
+    /// See also [`ConnectionHandle::continue_controllable`].
+    #[inline]
+    pub async fn r#continue(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if self.alive() {
+            return Err(GameError::from(0xF6));
+        } else {
+            self.connection.continue_controllable_split(self.id).await
+        }
+    }
+
+    /// Revives this [`Controllable`].
+    /// See also [`ConnectionHandle::unregister_controllable`].
+    #[inline]
+    pub async fn unregister(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.connection.unregister_controllable_split(self.id).await
+    }
+
+    #[inline]
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    #[inline]
+    pub fn alive(&self) -> bool {
+        self.hull > 0.0
     }
 }

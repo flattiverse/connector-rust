@@ -752,6 +752,77 @@ impl ConnectionHandle {
         })
     }
 
+    #[inline]
+    pub async fn kill_controllable(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.kill_controllable_split(controllable).await?.await
+    }
+
+    pub async fn kill_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x31);
+        packet.header_mut().set_id0(controllable.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    #[inline]
+    pub async fn continue_controllable(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.continue_controllable_split(controllable).await?.await
+    }
+
+    pub async fn continue_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x32);
+        packet.header_mut().set_id0(controllable.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    #[inline]
+    pub async fn unregister_controllable(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.unregister_controllable_split(controllable)
+            .await?
+            .await
+    }
+
+    pub async fn unregister_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x33);
+        packet.header_mut().set_id0(controllable.0);
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
     pub async fn send_packet_on_new_session(
         &self,
         mut packet: Packet,
