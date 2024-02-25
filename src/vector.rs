@@ -23,8 +23,8 @@ impl Vector {
     }
 
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-        self.x = reader.read_4s(100000.0);
-        self.y = reader.read_4s(100000.0);
+        self.x = reader.read_double();
+        self.y = reader.read_double();
         self.last_angle = 0.0;
     }
 
@@ -37,7 +37,7 @@ impl Vector {
             } else if self.x > 21470.0 {
                 writer.write_int32(2147000000)
             } else {
-                writer.write_4s(self.x, 100000.0)
+                writer.write_double(self.x)
             }
 
             if self.y < -21470.0 {
@@ -45,7 +45,7 @@ impl Vector {
             } else if self.y > 21470.0 {
                 writer.write_int32(2147000000)
             } else {
-                writer.write_4s(self.y, 100000.0)
+                writer.write_double(self.y)
             }
         }
     }

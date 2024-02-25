@@ -9,15 +9,7 @@ pub trait PacketWriter {
     fn write_uint32(&mut self, number: u32);
     fn write_int64(&mut self, number: i64);
     fn write_uint64(&mut self, number: u64);
-    fn write_1s(&mut self, number: f64, shift: f64);
-    fn write_1u(&mut self, number: f64, shift: f64);
-    fn write_2s(&mut self, number: f64, shift: f64);
-    fn write_2u(&mut self, number: f64, shift: f64);
-    fn write_3u(&mut self, number: f64, shift: f64);
-    fn write_4s(&mut self, number: f64, shift: f64);
-    fn write_4u(&mut self, number: f64, shift: f64);
-    fn write_8s(&mut self, number: f64, shift: f64);
-    fn write_8u(&mut self, number: f64, shift: f64);
+    fn write_double(&mut self, number: f64);
     fn write_boolean(&mut self, value: bool);
     fn write_string(&mut self, text: &str);
     fn write_nullable_byte(&mut self, value: Option<u8>);
@@ -64,54 +56,9 @@ impl PacketWriter for BytesMut {
         self.put_u64_le(number);
     }
 
-    fn write_1s(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_i8(value as _);
-    }
-
-    fn write_1u(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_u8(value as _);
-    }
-
-    fn write_2s(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_i16_le(value as _);
-    }
-
-    fn write_2u(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_u16_le(value as _);
-    }
-
-    fn write_3u(&mut self, number: f64, shift: f64) {
-        let temp = (number * shift + 0.5) as u32;
-
-        let least_significant_byte = (temp & 0xFF) as u8;
-        let middle_byte = ((temp >> 8) & 0xFF) as u8;
-        let third_byte = ((temp >> 16) & 0xFF) as u8;
-
-        self.put_slice(&[third_byte, middle_byte, least_significant_byte]);
-    }
-
-    fn write_4s(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_i32_le(value as _);
-    }
-
-    fn write_4u(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_u32_le(value as _);
-    }
-
-    fn write_8s(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_i64_le(value as _);
-    }
-
-    fn write_8u(&mut self, number: f64, shift: f64) {
-        let value = number * shift + 0.5;
-        self.put_u64_le(value as _);
+    #[inline]
+    fn write_double(&mut self, number: f64) {
+        self.put_f32_le(number as f32);
     }
 
     #[inline]

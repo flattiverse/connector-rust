@@ -6,9 +6,9 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone)]
 pub struct CelestialBodyConfiguration {
     pub(crate) base: UnitConfiguration,
-    pub(crate) position: Vector,
-    pub(crate) radius: f64,
-    pub(crate) graity: f64,
+    position: Vector,
+    radius: f64,
+    gravity: f64,
 }
 
 impl Default for CelestialBodyConfiguration {
@@ -17,7 +17,7 @@ impl Default for CelestialBodyConfiguration {
             base: UnitConfiguration::default(),
             position: Vector::from_xy(0.0, 0.0),
             radius: 10.0,
-            graity: 30.0,
+            gravity: 30.0,
         }
     }
 }
@@ -26,8 +26,8 @@ impl CelestialBodyConfiguration {
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.base.read(reader);
         self.position.read(reader);
-        self.radius = reader.read_4u(100.0);
-        self.graity = reader.read_4s(10000.0);
+        self.radius = reader.read_double();
+        self.gravity = reader.read_double();
 
         // reserved for orbiting units
         let _ = reader.read_byte();
@@ -36,8 +36,8 @@ impl CelestialBodyConfiguration {
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         self.base.write(writer);
         self.position.write(writer);
-        writer.write_4u(self.radius, 100.0);
-        writer.write_4s(self.graity, 10000.0);
+        writer.write_double(self.radius);
+        writer.write_double(self.gravity);
 
         // no orbiting configuration
         writer.write_byte(0x00);
@@ -78,14 +78,14 @@ impl CelestialBodyConfiguration {
 
     #[inline]
     pub fn gravity(&self) -> f64 {
-        self.graity
+        self.gravity
     }
 
     pub fn set_gravity(&mut self, gravity: f64) -> Result<(), GameError> {
         if gravity.is_infinite() || gravity.is_nan() || gravity < 30.0 || gravity > 30.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else {
-            self.graity = gravity;
+            self.gravity = gravity;
             Ok(())
         }
     }

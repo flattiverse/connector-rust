@@ -1,4 +1,6 @@
 use crate::network::{PacketReader, PacketWriter};
+use crate::utils::check_name_or_err_32;
+use crate::GameError;
 
 #[derive(Debug, Clone, Default)]
 pub struct ClusterConfig {
@@ -23,5 +25,11 @@ impl ClusterConfig {
     #[inline]
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
+    }
+
+    /// The name of the configured [`crate::hierarchy::Cluster`].
+    pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        self.name = check_name_or_err_32(name)?;
+        Ok(())
     }
 }

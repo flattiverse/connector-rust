@@ -17,14 +17,14 @@ impl CelestialBody {
             cluster,
             name: reader.read_string(),
             position: Vector::default().with_read(reader),
-            radius: reader.read_3u(1_000.0),
-            gravity: reader.read_4u(10_000.0),
+            radius: reader.read_double(),
+            gravity: reader.read_double(),
         }
     }
 
     pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
         self.position = Vector::default().with_read(reader);
-        self.radius = reader.read_3u(1_000.0);
-        self.gravity = reader.read_4u(10_000.0);
+        self.radius = reader.read_double();
+        self.gravity = reader.read_double();
     }
 }

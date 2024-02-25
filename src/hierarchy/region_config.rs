@@ -1,5 +1,6 @@
 use crate::network::{PacketReader, PacketWriter};
-use crate::TeamId;
+use crate::utils::check_name_or_err_64;
+use crate::{GameError, TeamId};
 
 #[derive(Debug, Clone)]
 pub struct RegionConfig {
@@ -35,25 +36,25 @@ impl From<&mut dyn PacketReader> for RegionConfig {
 impl RegionConfig {
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.name = reader.read_string();
-        self.start_propability = reader.read_2u(100.0);
-        self.respawn_propability = reader.read_2u(100.0);
+        self.start_propability = reader.read_double();
+        self.respawn_propability = reader.read_double();
         self.protected = reader.read_boolean();
-        self.left = reader.read_2u(100.0);
-        self.top = reader.read_2u(100.0);
-        self.right = reader.read_2u(100.0);
-        self.bottom = reader.read_2u(100.0);
+        self.left = reader.read_double();
+        self.top = reader.read_double();
+        self.right = reader.read_double();
+        self.bottom = reader.read_double();
         self.team = reader.read_uint32();
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
         writer.write_string(&self.name);
-        writer.write_2u(self.start_propability, 100.0);
-        writer.write_2u(self.respawn_propability, 100.0);
+        writer.write_double(self.start_propability);
+        writer.write_double(self.respawn_propability);
         writer.write_boolean(self.protected);
-        writer.write_2u(self.left, 100.0);
-        writer.write_2u(self.top, 100.0);
-        writer.write_2u(self.right, 100.0);
-        writer.write_2u(self.bottom, 100.0);
+        writer.write_double(self.left);
+        writer.write_double(self.top);
+        writer.write_double(self.right);
+        writer.write_double(self.bottom);
         writer.write_uint32(self.team)
     }
 
@@ -69,5 +70,11 @@ impl RegionConfig {
                 None
             }
         })
+    }
+
+    /// The name of the configured [`crate::hierarchy::Region`].
+    pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        self.name = check_name_or_err_64(name)?;
+        Ok(())
     }
 }

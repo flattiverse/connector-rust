@@ -16,8 +16,8 @@ pub use region_config::*;
 mod team_config;
 pub use team_config::*;
 
-mod upgrade_config;
-pub use upgrade_config::*;
+mod ship_upgrade_config;
+pub use ship_upgrade_config::*;
 
 mod ship_design_config;
 pub use ship_design_config::*;
@@ -31,5 +31,5 @@ pub use controllable_info::*;
 mod ship_design;
 pub use ship_design::*;
 
-mod upgrade;
-pub use upgrade::*;
+mod ship_upgrade;
+pub use ship_upgrade::*;

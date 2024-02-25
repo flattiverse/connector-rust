@@ -1,5 +1,6 @@
 use crate::network::{PacketReader, PacketWriter};
-use crate::GameType;
+use crate::utils::check_name_or_err_32;
+use crate::{GameError, GameType};
 use num_enum::FromPrimitive;
 
 #[derive(Debug, Clone, Default)]
@@ -79,5 +80,11 @@ impl GalaxyConfig {
         writer.write_byte(self.max_drones_player);
         writer.write_byte(self.max_ships_player);
         writer.write_byte(self.max_bases_player);
+    }
+
+    /// The name of the configured [`crate::hierarchy::Galaxy`].
+    pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        self.name = check_name_or_err_32(name)?;
+        Ok(())
     }
 }

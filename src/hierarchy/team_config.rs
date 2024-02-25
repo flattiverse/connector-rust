@@ -1,4 +1,6 @@
 use crate::network::{PacketReader, PacketWriter};
+use crate::utils::check_name_or_err_32;
+use crate::GameError;
 
 #[derive(Debug, Clone, Default)]
 pub struct TeamConfig {
@@ -29,5 +31,11 @@ impl TeamConfig {
         writer.write_byte(self.red);
         writer.write_byte(self.green);
         writer.write_byte(self.blue);
+    }
+
+    /// The name of the configured [`crate::Team`].
+    pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        self.name = check_name_or_err_32(name)?;
+        Ok(())
     }
 }

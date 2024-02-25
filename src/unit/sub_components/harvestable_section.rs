@@ -41,27 +41,27 @@ impl HarvestableSection {
     }
 
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-        self.inner_radius = reader.read_3u(1_000.0);
-        self.outer_radius = reader.read_3u(1_000.0);
-        self.angle_from = reader.read_2u(100.0);
-        self.angle_to = reader.read_2u(100.0);
+        self.inner_radius = reader.read_double();
+        self.outer_radius = reader.read_double();
+        self.angle_from = reader.read_double();
+        self.angle_to = reader.read_double();
 
-        self.iron = reader.read_2u(100.0);
-        self.silicon = reader.read_2u(100.0);
-        self.tungsten = reader.read_2u(100.0);
-        self.tritium = reader.read_2u(100.0);
+        self.iron = reader.read_double();
+        self.silicon = reader.read_double();
+        self.tungsten = reader.read_double();
+        self.tritium = reader.read_double();
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
-        writer.write_3u(self.inner_radius, 1_000.0);
-        writer.write_3u(self.outer_radius, 1_000.0);
-        writer.write_2u(self.angle_from, 100.0);
-        writer.write_2u(self.angle_to, 100.0);
+        writer.write_double(self.inner_radius);
+        writer.write_double(self.outer_radius);
+        writer.write_double(self.angle_from);
+        writer.write_double(self.angle_to);
 
-        writer.write_2u(self.iron, 100.0);
-        writer.write_2u(self.silicon, 100.0);
-        writer.write_2u(self.tungsten, 100.0);
-        writer.write_2u(self.tritium, 100.0);
+        writer.write_double(self.iron);
+        writer.write_double(self.silicon);
+        writer.write_double(self.tungsten);
+        writer.write_double(self.tritium);
     }
 
     /// Sets the radius for the inner and the outer radius at once.

@@ -67,9 +67,9 @@ impl PacketReader for BytesMut {
     }
 
     fn read_double(&mut self) -> f64 {
-        let value = self.get_f64_le();
+        let value = self.get_f32_le();
         if value.is_finite() {
-            value
+            f64::from(value)
         } else {
             1e40
         }

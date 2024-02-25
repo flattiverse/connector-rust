@@ -61,15 +61,15 @@ impl ControllableInfo {
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
 
-            hull_max: reader.read_2u(10.0),
-            shields_max: reader.read_2u(10.0),
-            energy_max: reader.read_4u(10.0),
-            ion_max: reader.read_2u(100.0),
+            hull_max: reader.read_double(),
+            shields_max: reader.read_double(),
+            energy_max: reader.read_double(),
+            ion_max: reader.read_double(),
 
-            hull: if reduced { 0.0 } else { reader.read_2u(10.0) },
-            shields: if reduced { 0.0 } else { reader.read_2u(10.0) },
-            energy: if reduced { 0.0 } else { reader.read_4u(10.0) },
-            ion: if reduced { 0.0 } else { reader.read_2u(100.0) },
+            hull: if reduced { 0.0 } else { reader.read_double() },
+            shields: if reduced { 0.0 } else { reader.read_double() },
+            energy: if reduced { 0.0 } else { reader.read_double() },
+            ion: if reduced { 0.0 } else { reader.read_double() },
         }
     }
 

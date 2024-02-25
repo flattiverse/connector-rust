@@ -82,27 +82,27 @@ impl Controllable {
             name: reader.read_string(),
             ship_design: ShipDesignId(reader.read_byte()),
 
-            size: reader.read_3u(1_000.0),
-            weight: reader.read_2s(10_000.0),
+            size: reader.read_double(),
+            weight: reader.read_double(),
             active_upgrades: reader
                 .read_bytes(32)
                 .into_iter()
                 .map(ShipUpgradeId)
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
-            hull_max: reader.read_3u(10_000.0),
-            hull_repair: reader.read_3u(10_000.0),
-            shields_max: reader.read_3u(10_000.0),
-            shields_load: reader.read_3u(10_000.0),
+            hull_max: reader.read_double(),
+            hull_repair: reader.read_double(),
+            shields_max: reader.read_double(),
+            shields_load: reader.read_double(),
 
-            energy_max: reader.read_4u(1_000.0),
-            energy_cells: reader.read_4u(1_000.0),
-            energy_reactor: reader.read_4u(1_000.0),
-            energy_transfer: reader.read_4u(1_000.0),
-            ion_max: reader.read_4u(1_000.0),
-            ion_cells: reader.read_4u(1_000.0),
-            ion_reactor: reader.read_4u(1_000.0),
-            ion_transfer: reader.read_4u(1_000.0),
+            energy_max: reader.read_double(),
+            energy_cells: reader.read_double(),
+            energy_reactor: reader.read_double(),
+            energy_transfer: reader.read_double(),
+            ion_max: reader.read_double(),
+            ion_cells: reader.read_double(),
+            ion_reactor: reader.read_double(),
+            ion_transfer: reader.read_double(),
 
             hull: 0.0,
             shields: 0.0,
@@ -138,45 +138,45 @@ impl Controllable {
     }
 
     pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
-        self.energy_max = reader.read_4u(1_000.0);
-        self.energy_cells = reader.read_4u(1_000.0);
-        self.energy_reactor = reader.read_4u(1_000.0);
-        self.energy_transfer = reader.read_4u(1_000.0);
-        self.ion_max = reader.read_4u(1_000.0);
-        self.ion_cells = reader.read_4u(1_000.0);
-        self.ion_reactor = reader.read_4u(1_000.0);
-        self.ion_transfer = reader.read_4u(1_000.0);
+        self.energy_max = reader.read_double();
+        self.energy_cells = reader.read_double();
+        self.energy_reactor = reader.read_double();
+        self.energy_transfer = reader.read_double();
+        self.ion_max = reader.read_double();
+        self.ion_cells = reader.read_double();
+        self.ion_reactor = reader.read_double();
+        self.ion_transfer = reader.read_double();
 
-        self.thruster_max_forward = reader.read_2u(10_000.0);
-        self.thruster_max_backward = reader.read_2u(10_000.0);
-        self.nozzle_max = reader.read_2s(100.0);
-        self.speed_max = reader.read_2u(1_000.0);
-        self.cargo_max = reader.read_4u(1_000.0);
-        self.extractor_max = reader.read_4u(1_000.0);
-        self.weapon_speed = reader.read_2u(1_000.0);
+        self.thruster_max_forward = reader.read_double();
+        self.thruster_max_backward = reader.read_double();
+        self.nozzle_max = reader.read_double();
+        self.speed_max = reader.read_double();
+        self.cargo_max = reader.read_double();
+        self.extractor_max = reader.read_double();
+        self.weapon_speed = reader.read_double();
         self.weapon_time = reader.read_uint16();
-        self.weapon_load = reader.read_3u(1_000.0);
-        self.weapon_damage = reader.read_3u(10_000.0);
+        self.weapon_load = reader.read_double();
+        self.weapon_damage = reader.read_double();
         self.weapon_ammo_max = reader.read_uint16() as f64;
-        self.weapon_ammo_production = reader.read_4u(1_000.0);
+        self.weapon_ammo_production = reader.read_double();
     }
 
     pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader) {
-        self.hull = reader.read_3u(10_000.0);
-        self.shields = reader.read_3u(10_000.0);
-        self.energy = reader.read_4u(1_000.0);
-        self.ion = reader.read_4u(1_000.0);
-        self.thruster = reader.read_2s(10_000.0);
-        self.nozzle = reader.read_2s(100.0);
-        self.turnrate = reader.read_2s(100.0);
-        self.cargo_tungsten = reader.read_4u(1_000.0);
-        self.cargo_iron = reader.read_4u(1_000.0);
-        self.cargo_silicon = reader.read_4u(1_000.0);
-        self.cargo_tritium = reader.read_4u(1_000.0);
-        self.weapon_ammo = reader.read_4u(1_000.0);
+        self.hull = reader.read_double();
+        self.shields = reader.read_double();
+        self.energy = reader.read_double();
+        self.ion = reader.read_double();
+        self.thruster = reader.read_double();
+        self.nozzle = reader.read_double();
+        self.turnrate = reader.read_double();
+        self.cargo_tungsten = reader.read_double();
+        self.cargo_iron = reader.read_double();
+        self.cargo_silicon = reader.read_double();
+        self.cargo_tritium = reader.read_double();
+        self.weapon_ammo = reader.read_double();
         self.position = Vector::default().with_read(reader);
         self.movement = Vector::default().with_read(reader);
-        self.direction = reader.read_2u(100.0);
+        self.direction = reader.read_double();
     }
 
     pub(crate) fn deactivate(&mut self) {
