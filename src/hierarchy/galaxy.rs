@@ -2,7 +2,7 @@ use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, Region, RegionId, ShipDesign,
-    ShipDesignConfig, ShipDesignId, TeamConfig, Upgrade, UpgradeId,
+    ShipDesignConfig, ShipDesignId, ShipUpgrade, ShipUpgradeId, TeamConfig,
 };
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
@@ -244,13 +244,13 @@ impl Galaxy {
 
                 // ship upgrade created
                 0x45 => {
-                    let upgrade_id = UpgradeId(packet.header().id0());
+                    let upgrade_id = ShipUpgradeId(packet.header().id0());
                     let ship_design_id = ShipDesignId(packet.header().id1());
                     debug_assert!(self.ship_designs.get(ship_design_id).is_some(), "{ship_design_id:?} is not populated");
                     debug_assert!(self.ship_designs[ship_design_id].upgrades().get(upgrade_id).is_none(), "{upgrade_id:?} for {ship_design_id:?} is already populated: {:?}", self.ship_designs[ship_design_id].upgrades().get(upgrade_id));
                     self.ship_designs[ship_design_id].upgrades_mut().set(
                         upgrade_id,
-                        packet.read(|reader| Upgrade::new(upgrade_id, self.id, ship_design_id, self.connection.clone(), reader))
+                        packet.read(|reader| ShipUpgrade::new(upgrade_id, self.id, ship_design_id, self.connection.clone(), reader))
                     );
                     Ok(Some(FlattiverseEvent::UpgradeUpdated {
                         galaxy: self.id,

@@ -1,6 +1,6 @@
 use crate::hierarchy::{
     ClusterConfig, ClusterId, GalaxyConfig, GalaxyId, RegionConfig, RegionId, ShipDesignConfig,
-    ShipDesignId, TeamConfig, UpgradeConfig, UpgradeId,
+    ShipDesignId, ShipUpgradeConfig, ShipUpgradeId, TeamConfig,
 };
 use crate::network::{Packet, Session, SessionHandler};
 use crate::unit::configurations::{
@@ -322,7 +322,7 @@ impl ConnectionHandle {
     pub async fn create_upgrade(
         &self,
         ship: ShipDesignId,
-        config: &UpgradeConfig,
+        config: &ShipUpgradeConfig,
     ) -> Result<(), GameError> {
         self.create_upgrade_split(ship, config).await?.await
     }
@@ -331,7 +331,7 @@ impl ConnectionHandle {
     pub async fn create_upgrade_split(
         &self,
         ship: ShipDesignId,
-        config: &UpgradeConfig,
+        config: &ShipUpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4D);
@@ -350,8 +350,8 @@ impl ConnectionHandle {
     #[inline]
     pub async fn configure_upgrade(
         &self,
-        upgrade: UpgradeId,
-        config: &UpgradeConfig,
+        upgrade: ShipUpgradeId,
+        config: &ShipUpgradeConfig,
     ) -> Result<(), GameError> {
         self.configure_upgrade_split(upgrade, config).await?.await
     }
@@ -359,8 +359,8 @@ impl ConnectionHandle {
     /// Sets the given values for the given [`crate::Upgrade`].
     pub async fn configure_upgrade_split(
         &self,
-        upgrade: UpgradeId,
-        config: &UpgradeConfig,
+        upgrade: ShipUpgradeId,
+        config: &ShipUpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4E);
@@ -377,14 +377,14 @@ impl ConnectionHandle {
 
     /// Removes the given [`crate::Upgrade`].
     #[inline]
-    pub async fn remove_upgrade(&self, upgrade: UpgradeId) -> Result<(), GameError> {
+    pub async fn remove_upgrade(&self, upgrade: ShipUpgradeId) -> Result<(), GameError> {
         self.remove_upgrade_split(upgrade).await?.await
     }
 
     /// Removes the given [`crate::Upgrade`].
     pub async fn remove_upgrade_split(
         &self,
-        upgrade: UpgradeId,
+        upgrade: ShipUpgradeId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4F);

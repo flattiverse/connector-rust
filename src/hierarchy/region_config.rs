@@ -11,7 +11,7 @@ pub struct RegionConfig {
     pub top: f64,
     pub right: f64,
     pub bottom: f64,
-    pub team: TeamId,
+    pub team: u32,
 }
 
 impl From<&mut dyn PacketReader> for RegionConfig {
@@ -25,7 +25,7 @@ impl From<&mut dyn PacketReader> for RegionConfig {
             top: 0.0,
             right: 0.0,
             bottom: 0.0,
-            team: TeamId(0),
+            team: 0,
         };
         this.read(reader);
         this
@@ -42,12 +42,7 @@ impl RegionConfig {
         self.top = reader.read_2u(100.0);
         self.right = reader.read_2u(100.0);
         self.bottom = reader.read_2u(100.0);
-        self.team = TeamId(
-            reader
-                .read_uint32() // TODO dont forget to fix the writer as well
-                .try_into()
-                .expect("TeamId is not within expected range"),
-        );
+        self.team = reader.read_uint32();
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
@@ -59,6 +54,20 @@ impl RegionConfig {
         writer.write_2u(self.top, 100.0);
         writer.write_2u(self.right, 100.0);
         writer.write_2u(self.bottom, 100.0);
-        writer.write_uint32(u32::from(self.team.0))
+        writer.write_uint32(self.team)
+    }
+
+    /// Extracts the [`TeamId`]s from the `teams` bit-field.
+    pub fn teams(&self) -> impl Iterator<Item = TeamId> {
+        const MASK: u32 = 1;
+        let team = self.team;
+        (0..u32::BITS as u8).flat_map(move |bit| {
+            let mask = MASK << bit;
+            if team & mask == mask {
+                Some(TeamId(bit))
+            } else {
+                None
+            }
+        })
     }
 }

@@ -101,7 +101,7 @@ impl ShipDesignConfig {
         self.weapon_energy_consumption = reader.read_4u(1_000.0);
         self.scanner_energy_consumption = reader.read_4u(1_000.0);
         self.scanner_range = reader.read_3u(1_000.0);
-        self.scanner_width = reader.read_3u(1_000.0);
+        self.scanner_width = reader.read_2u(100.0);
     }
 
     pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
@@ -148,6 +148,6 @@ impl ShipDesignConfig {
         writer.write_4u(self.weapon_energy_consumption, 1_000.0);
         writer.write_4u(self.scanner_energy_consumption, 1_000.0);
         writer.write_3u(self.scanner_range, 1_000.0);
-        writer.write_3u(self.scanner_width, 1_000.0);
+        writer.write_2u(self.scanner_width, 100.0);
     }
 }

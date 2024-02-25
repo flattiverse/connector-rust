@@ -1,4 +1,4 @@
-use crate::hierarchy::{GalaxyId, ShipDesignConfig, Upgrade, UpgradeConfig, UpgradeId};
+use crate::hierarchy::{GalaxyId, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
 use std::future::Future;
@@ -18,7 +18,7 @@ impl Indexer for ShipDesignId {
 pub struct ShipDesign {
     galaxy: GalaxyId,
     id: ShipDesignId,
-    upgrades: UniversalHolder<UpgradeId, Upgrade>,
+    upgrades: UniversalHolder<ShipUpgradeId, ShipUpgrade>,
     config: ShipDesignConfig,
     connection: ConnectionHandle,
 }
@@ -56,12 +56,12 @@ impl ShipDesign {
         self.connection.remove_ship_split(self.id).await
     }
 
-    /// Creates an [`Upgrade`] with the given values for this [`ShipDesign`].
+    /// Creates an [`ShipUpgrade`] with the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::create_upgrade`]
     #[inline]
     pub async fn create_upgrade(
         &self,
-        config: &UpgradeConfig,
+        config: &ShipUpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection.create_upgrade_split(self.id, config).await
     }
@@ -87,28 +87,28 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn upgrades(&self) -> &UniversalHolder<UpgradeId, Upgrade> {
+    pub fn upgrades(&self) -> &UniversalHolder<ShipUpgradeId, ShipUpgrade> {
         &self.upgrades
     }
 
     #[inline]
-    pub fn upgrades_mut(&mut self) -> &mut UniversalHolder<UpgradeId, Upgrade> {
+    pub fn upgrades_mut(&mut self) -> &mut UniversalHolder<ShipUpgradeId, ShipUpgrade> {
         &mut self.upgrades
     }
 }
 
-impl Index<UpgradeId> for ShipDesign {
-    type Output = Upgrade;
+impl Index<ShipUpgradeId> for ShipDesign {
+    type Output = ShipUpgrade;
 
     #[inline]
-    fn index(&self, index: UpgradeId) -> &Self::Output {
+    fn index(&self, index: ShipUpgradeId) -> &Self::Output {
         &self.upgrades[index]
     }
 }
 
-impl IndexMut<UpgradeId> for ShipDesign {
+impl IndexMut<ShipUpgradeId> for ShipDesign {
     #[inline]
-    fn index_mut(&mut self, index: UpgradeId) -> &mut Self::Output {
+    fn index_mut(&mut self, index: ShipUpgradeId) -> &mut Self::Output {
         &mut self.upgrades[index]
     }
 }

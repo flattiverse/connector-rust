@@ -1,4 +1,4 @@
-use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
+use crate::hierarchy::{ClusterId, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::unit::{Unit, UnitKind};
 use crate::{Indexer, PlayerId, Vector};
@@ -20,7 +20,7 @@ pub struct PlayerUnit {
     cluster: ClusterId,
     ship_design: ShipDesignId,
     player: PlayerId,
-    upgrade: UpgradeId,
+    upgrade: ShipUpgradeId,
     hull: f64,
     hull_max: f64,
     hull_repair: f64,
@@ -86,7 +86,7 @@ impl PlayerUnit {
                     .try_into()
                     .expect("ShipId is not within the expected range"),
             ),
-            upgrade: UpgradeId(
+            upgrade: ShipUpgradeId(
                 reader
                     .read_int32()
                     .try_into()
@@ -157,7 +157,7 @@ impl PlayerUnit {
     }
 
     #[inline]
-    pub fn upgrade(&self) -> UpgradeId {
+    pub fn upgrade(&self) -> ShipUpgradeId {
         self.upgrade
     }
 

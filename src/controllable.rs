@@ -1,4 +1,4 @@
-use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeId};
+use crate::hierarchy::{GalaxyId, ShipDesignId, ShipUpgradeId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, Vector};
 use std::future::Future;
@@ -20,7 +20,7 @@ pub struct Controllable {
     id: ControllableId,
     name: String,
     ship_design: ShipDesignId,
-    active_upgrades: Box<[UpgradeId]>,
+    active_upgrades: Box<[ShipUpgradeId]>,
 
     hull: f64,
     hull_max: f64,
@@ -87,7 +87,7 @@ impl Controllable {
             active_upgrades: reader
                 .read_bytes(32)
                 .into_iter()
-                .map(UpgradeId)
+                .map(ShipUpgradeId)
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
             hull_max: reader.read_3u(10_000.0),
@@ -245,7 +245,7 @@ impl Controllable {
     }
 
     #[inline]
-    pub fn active_upgrades(&self) -> &[UpgradeId] {
+    pub fn active_upgrades(&self) -> &[ShipUpgradeId] {
         &self.active_upgrades[..]
     }
 

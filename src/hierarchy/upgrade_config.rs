@@ -1,12 +1,12 @@
-use crate::hierarchy::UpgradeId;
+use crate::hierarchy::ShipUpgradeId;
 use crate::network::{PacketReader, PacketWriter};
 
 #[derive(Debug, Clone, Default)]
-pub struct UpgradeConfig {
+pub struct ShipUpgradeConfig {
     pub name: String,
     /// The id of the previous [`crate::Upgrade`], which can be found on the orresponding
     /// [`crate::unit::ShipDesign`] of this [`crate::Upgrade`].
-    pub previous_upgrade: Option<UpgradeId>,
+    pub previous_upgrade: Option<ShipUpgradeId>,
     pub cost_energy: f64,
     pub cost_ion: f64,
     pub cost_iron: f64,
@@ -52,7 +52,7 @@ pub struct UpgradeConfig {
     pub scanner_width: f64,
 }
 
-impl From<&mut dyn PacketReader> for UpgradeConfig {
+impl From<&mut dyn PacketReader> for ShipUpgradeConfig {
     fn from(reader: &mut dyn PacketReader) -> Self {
         let mut this = Self::default();
         this.read(reader);
@@ -60,10 +60,10 @@ impl From<&mut dyn PacketReader> for UpgradeConfig {
     }
 }
 
-impl UpgradeConfig {
+impl ShipUpgradeConfig {
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.name = reader.read_string();
-        self.previous_upgrade = reader.read_nullable_byte().map(UpgradeId);
+        self.previous_upgrade = reader.read_nullable_byte().map(ShipUpgradeId);
         self.cost_energy = reader.read_2u(1.0);
         self.cost_ion = reader.read_2u(100.0);
         self.cost_iron = reader.read_2u(1.0);

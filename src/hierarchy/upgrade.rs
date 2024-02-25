@@ -1,12 +1,12 @@
-use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeConfig};
+use crate::hierarchy::{GalaxyId, ShipDesignId, ShipUpgradeConfig};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit};
 use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct UpgradeId(pub(crate) u8);
+pub struct ShipUpgradeId(pub(crate) u8);
 
-impl Indexer for UpgradeId {
+impl Indexer for ShipUpgradeId {
     #[inline]
     fn index(&self) -> usize {
         usize::from(self.0)
@@ -14,17 +14,17 @@ impl Indexer for UpgradeId {
 }
 
 #[derive(Debug)]
-pub struct Upgrade {
+pub struct ShipUpgrade {
     galaxy: GalaxyId,
-    ship: ShipDesignId,
-    id: UpgradeId,
-    config: UpgradeConfig,
+    ship_design: ShipDesignId,
+    id: ShipUpgradeId,
+    config: ShipUpgradeConfig,
     connection: ConnectionHandle,
 }
 
-impl Upgrade {
+impl ShipUpgrade {
     pub fn new(
-        id: impl Into<UpgradeId>,
+        id: impl Into<ShipUpgradeId>,
         galaxy: GalaxyId,
         ship: ShipDesignId,
         connection: ConnectionHandle,
@@ -33,25 +33,25 @@ impl Upgrade {
         Self {
             id: id.into(),
             galaxy,
-            ship,
-            config: UpgradeConfig::from(reader),
+            ship_design: ship,
+            config: ShipUpgradeConfig::from(reader),
             connection,
         }
     }
 
-    /// Sets the given values for this [`Upgrade`].
+    /// Sets the given values for this [`ShipUpgrade`].
     /// See also [`ConnectionHandle::configure_upgrade`].
     #[inline]
     pub async fn configure(
         &self,
-        config: &UpgradeConfig,
+        config: &ShipUpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection
             .configure_upgrade_split(self.id, config)
             .await
     }
 
-    /// Removes this [`Upgrade`].
+    /// Removes this [`ShipUpgrade`].
     /// See also [`ConnectionHandle::remove_upgrade`].
     #[inline]
     pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
@@ -64,12 +64,12 @@ impl Upgrade {
     }
 
     #[inline]
-    pub fn ship(&self) -> ShipDesignId {
-        self.ship
+    pub fn ship_design(&self) -> ShipDesignId {
+        self.ship_design
     }
 
     #[inline]
-    pub fn id(&self) -> UpgradeId {
+    pub fn id(&self) -> ShipUpgradeId {
         self.id
     }
 
@@ -79,14 +79,14 @@ impl Upgrade {
     }
 
     #[inline]
-    pub fn config(&self) -> &UpgradeConfig {
+    pub fn config(&self) -> &ShipUpgradeConfig {
         &self.config
     }
 }
 
-impl NamedUnit for Upgrade {
+impl NamedUnit for ShipUpgrade {
     #[inline]
     fn name(&self) -> &str {
-        Upgrade::name(self)
+        ShipUpgrade::name(self)
     }
 }

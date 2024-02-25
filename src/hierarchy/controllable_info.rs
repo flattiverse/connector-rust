@@ -1,4 +1,4 @@
-use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeId};
+use crate::hierarchy::{GalaxyId, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::{Indexer, NamedUnit, PlayerId};
 
@@ -21,7 +21,7 @@ pub struct ControllableInfo {
     reduced: bool,
     ship_design: ShipDesignId,
     player: PlayerId,
-    upgrade: UpgradeId,
+    upgrades: Box<[ShipUpgradeId]>,
 
     hull: f64,
     hull_max: f64,
@@ -53,30 +53,23 @@ impl ControllableInfo {
 
             name: reader.read_string(),
 
-            ship_design: ShipDesignId(
-                reader
-                    .read_int32()
-                    .try_into()
-                    .expect("ShipDesignId is not within the expected range"),
-            ),
-            upgrade: UpgradeId(
-                reader
-                    .read_int32()
-                    .try_into()
-                    .expect("UpgradeId is not within the expected range"),
-            ),
+            ship_design: ShipDesignId(reader.read_byte()),
+            upgrades: reader
+                .read_bytes(32)
+                .into_iter()
+                .map(ShipUpgradeId)
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+
+            hull_max: reader.read_2u(10.0),
+            shields_max: reader.read_2u(10.0),
+            energy_max: reader.read_4u(10.0),
+            ion_max: reader.read_2u(100.0),
 
             hull: if reduced { 0.0 } else { reader.read_2u(10.0) },
-            hull_max: if reduced { 0.0 } else { reader.read_2u(10.0) },
-
             shields: if reduced { 0.0 } else { reader.read_2u(10.0) },
-            shields_max: if reduced { 0.0 } else { reader.read_2u(10.0) },
-
             energy: if reduced { 0.0 } else { reader.read_4u(10.0) },
-            energy_max: if reduced { 0.0 } else { reader.read_4u(10.0) },
-
             ion: if reduced { 0.0 } else { reader.read_2u(100.0) },
-            ion_max: if reduced { 0.0 } else { reader.read_2u(100.0) },
         }
     }
 
@@ -115,8 +108,8 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn upgrade(&self) -> UpgradeId {
-        self.upgrade
+    pub fn upgrade(&self) -> &[ShipUpgradeId] {
+        &self.upgrades[..]
     }
 
     #[inline]
@@ -158,6 +151,7 @@ impl ControllableInfo {
     pub fn ion_max(&self) -> f64 {
         self.ion_max
     }
+
     #[inline]
     pub fn active(&self) -> bool {
         self.active
