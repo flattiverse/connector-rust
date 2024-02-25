@@ -23,6 +23,7 @@ impl CelestialBody {
     }
 
     pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.name = reader.read_string(); // 'jump over string'
         self.position = Vector::default().with_read(reader);
         self.radius = reader.read_double();
         self.gravity = reader.read_double();
