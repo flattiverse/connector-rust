@@ -17,7 +17,7 @@ impl Connection {
     pub fn spawn(self) -> (ConnectionHandle, Receiver<ConnectionEvent>) {
         let (sender, receiver) = tokio::sync::mpsc::channel(124);
         let handle = self.handle.clone();
-        crate::network::spawn(self.run(sender));
+        crate::runtime::spawn(self.run(sender));
         (handle, receiver)
     }
 

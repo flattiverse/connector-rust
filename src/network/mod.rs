@@ -13,9 +13,7 @@ mod driver_wasm;
 mod driver;
 
 mod connection_handle;
-
 pub use connection_handle::*;
-use std::future::Future;
 
 mod packet_header;
 pub use packet_header::PacketHeader;
@@ -58,22 +56,6 @@ pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, Conn
         target_os = "unknown"
     )))]
     return driver::connect(&url).await;
-}
-
-#[cfg(all(
-    any(target_arch = "wasm32", target_arch = "wasm64"),
-    target_os = "unknown"
-))]
-pub fn spawn(f: impl Future<Output = ()> + 'static) {
-    wasm_bindgen_futures::spawn_local(f);
-}
-
-#[cfg(not(all(
-    any(target_arch = "wasm32", target_arch = "wasm64"),
-    target_os = "unknown"
-)))]
-pub fn spawn(f: impl Future<Output = ()> + Send + 'static) {
-    tokio::runtime::Handle::current().spawn(f);
 }
 
 #[derive(Debug, thiserror::Error)]
