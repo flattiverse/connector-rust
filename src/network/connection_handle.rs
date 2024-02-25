@@ -615,10 +615,7 @@ impl ConnectionHandle {
         packet.header_mut().set_command(0x51);
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(config.kind().into());
-        packet.write(|writer| {
-            writer.write_string(config.unit_name());
-            config.write(writer);
-        });
+        packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -701,9 +698,10 @@ impl ConnectionHandle {
     pub async fn configure_unit<T: Configuration + Default>(
         &self,
         cluster: ClusterId,
+        name: &str,
         configuration: T,
     ) -> Result<(), GameError> {
-        self.configure_unit_split::<T>(cluster, configuration)
+        self.configure_unit_split::<T>(cluster, name, configuration)
             .await?
             .await
     }
@@ -712,6 +710,7 @@ impl ConnectionHandle {
     pub async fn configure_unit_split<T: Configuration + Default>(
         &self,
         cluster: ClusterId,
+        name: &str,
         configuration: T,
     ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
         let mut packet = Packet::default();
@@ -719,7 +718,7 @@ impl ConnectionHandle {
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(configuration.kind().into());
         packet.write(|writer| {
-            writer.write_string(configuration.unit_name());
+            writer.write_string(name);
             configuration.write(writer);
         });
 

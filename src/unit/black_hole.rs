@@ -47,7 +47,7 @@ impl BlackHole {
         configuration: BlackHoleConfiguration,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.connection
-            .configure_unit_split(self.body.cluster, configuration)
+            .configure_unit_split(self.body.cluster, &self.body.name, configuration)
             .await
     }
 
