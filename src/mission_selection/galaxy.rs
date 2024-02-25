@@ -2,7 +2,7 @@ use crate::hierarchy::Galaxy;
 use crate::mission_selection::{PlayerInfo, TeamInfo, Universe};
 use crate::{GameError, GameMode};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct GalaxyInfo {
     pub id: i32,
     pub name: String,

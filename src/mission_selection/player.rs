@@ -1,4 +1,4 @@
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PlayerInfo {
     #[serde(rename = "id")]
     pub id: i32,

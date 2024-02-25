@@ -28,4 +28,9 @@ impl Universe {
         galaxy.wait_login_completed().await?;
         Ok(galaxy)
     }
+
+    #[inline]
+    pub fn iter_galaxies(&self) -> impl Iterator<Item = &GalaxyInfo> {
+        self.0.iter()
+    }
 }
