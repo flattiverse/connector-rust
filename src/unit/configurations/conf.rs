@@ -2,6 +2,8 @@ use crate::network::{PacketReader, PacketWriter};
 use crate::unit::UnitKind;
 
 pub trait Configuration {
+    fn unit_name(&self) -> &str;
+
     #[inline]
     fn with_read(mut self, reader: &mut dyn PacketReader) -> Self
     where

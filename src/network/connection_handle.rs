@@ -615,7 +615,10 @@ impl ConnectionHandle {
         packet.header_mut().set_command(0x51);
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(config.kind().into());
-        packet.write(|writer| config.write(writer));
+        packet.write(|writer| {
+            writer.write_string(config.unit_name());
+            config.write(writer);
+        });
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -715,7 +718,10 @@ impl ConnectionHandle {
         packet.header_mut().set_command(0x52);
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(configuration.kind().into());
-        packet.write(|writer| configuration.write(writer));
+        packet.write(|writer| {
+            writer.write_string(configuration.unit_name());
+            configuration.write(writer);
+        });
 
         let session = self.send_packet_on_new_session(packet).await?;
 

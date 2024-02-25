@@ -10,6 +10,11 @@ pub struct PlanetConfiguration {
 
 impl Configuration for PlanetConfiguration {
     #[inline]
+    fn unit_name(&self) -> &str {
+        &self.base.name
+    }
+
+    #[inline]
     fn read(&mut self, reader: &mut dyn PacketReader) {
         self.base.read(reader);
     }
