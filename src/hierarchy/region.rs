@@ -16,6 +16,7 @@ impl Indexer for RegionId {
 
 #[derive(Debug)]
 pub struct Region {
+    active: bool,
     galaxy: GalaxyId,
     cluster: ClusterId,
     id: RegionId,
@@ -32,12 +33,21 @@ impl Region {
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
+            active: true,
             galaxy,
             cluster,
             id,
             config: RegionConfig::from(reader),
             connection,
         }
+    }
+
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.config = RegionConfig::from(reader);
+    }
+
+    pub(crate) fn deactivate(&mut self) {
+        self.active = false;
     }
 
     /// Sets the given values for this [`Region`].
@@ -60,6 +70,11 @@ impl Region {
     }
 
     #[inline]
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    #[inline]
     pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
     }
@@ -78,7 +93,6 @@ impl Region {
     pub fn name(&self) -> &str {
         &self.config.name
     }
-
     #[inline]
     pub fn config(&self) -> &RegionConfig {
         &self.config

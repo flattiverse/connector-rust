@@ -180,12 +180,31 @@ impl Galaxy {
 
                 //  region updated
                 0x52 => {
-                    todo!()
+                    let cluster_id = ClusterId(packet.header().id0());
+                    let region_id = RegionId(packet.header().id1());
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated.");
+                    debug_assert!(self.clusters[cluster_id].regions().get(region_id).is_some(), "{region_id:?} for {cluster_id:?} is not populated.");
+                    packet.read(|reader| self.clusters[cluster_id][region_id].update(reader));
+                    Ok(Some(FlattiverseEvent::RegionUpdated {
+                        galaxy: self.id,
+                        cluster: cluster_id,
+                        region: region_id,
+                    }))
                 }
 
                 //  region removed
                 0x72 => {
-                    todo!()
+                    let cluster_id = ClusterId(packet.header().id0());
+                    let region_id = RegionId(packet.header().id1());
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated.");
+                    debug_assert!(self.clusters[cluster_id].regions().get(region_id).is_some(), "{region_id:?} for {cluster_id:?} is not populated.");
+                    self.clusters[cluster_id][region_id].deactivate();
+                    self.clusters[cluster_id].regions_mut().remove(region_id);
+                    Ok(Some(FlattiverseEvent::RegionRemoved {
+                        galaxy: self.id,
+                        cluster: cluster_id,
+                        region: region_id,
+                    }))
                 }
 
                 // team created
@@ -205,17 +224,36 @@ impl Galaxy {
 
                 // team updated
                 0x53 => {
-                    todo!()
+                    let team_id = TeamId(packet.header().id0());
+                    debug_assert!(self.teams.get(team_id).is_some(), "{team_id:?} is not populated.");
+                    packet.read(|reader| self.teams[team_id].update(reader));
+                    Ok(Some(FlattiverseEvent::TeamUpdated {
+                        galaxy: self.id,
+                        team: team_id,
+                    }))
                 }
 
                 // team dynamic update (score of the team updated)
                 0x63 => {
-                    todo!()
+                    let team_id = TeamId(packet.header().id0());
+                    debug_assert!(self.teams.get(team_id).is_some(), "{team_id:?} is not populated.");
+                    packet.read(|reader| self.teams[team_id].dynamic_update(reader));
+                    Ok(Some(FlattiverseEvent::TeamUpdated {
+                        galaxy: self.id,
+                        team: team_id,
+                    }))
                 }
 
                 // team removed
                 0x73 => {
-                    todo!()
+                    let team_id = TeamId(packet.header().id0());
+                    debug_assert!(self.teams.get(team_id).is_some(), "{team_id:?} is not populated.");
+                    self.teams[team_id].deactivate();
+                    self.teams.remove(team_id);
+                    Ok(Some(FlattiverseEvent::TeamRemoved {
+                        galaxy: self.id,
+                        team: team_id,
+                    }))
                 }
 
                 // ship design created

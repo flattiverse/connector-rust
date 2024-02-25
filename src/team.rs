@@ -15,6 +15,7 @@ impl Indexer for TeamId {
 
 #[derive(Debug)]
 pub struct Team {
+    active: bool,
     id: TeamId,
     config: TeamConfig,
     connection: ConnectionHandle,
@@ -28,10 +29,21 @@ impl Team {
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
+            active: true,
             id: id.into(),
             config: TeamConfig::from(reader),
             connection,
         }
+    }
+
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.config = TeamConfig::from(reader);
+    }
+
+    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader) {}
+
+    pub(crate) fn deactivate(&mut self) {
+        self.active = false;
     }
 
     /// Sets the given values for this [`Team`]

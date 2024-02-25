@@ -10,15 +10,7 @@ pub trait PacketReader {
     fn read_uint32(&mut self) -> u32;
     fn read_int64(&mut self) -> i64;
     fn read_uint64(&mut self) -> u64;
-    fn read_1s(&mut self, shift: f64) -> f64;
-    fn read_1u(&mut self, shift: f64) -> f64;
-    fn read_2s(&mut self, shift: f64) -> f64;
-    fn read_2u(&mut self, shift: f64) -> f64;
-    fn read_3u(&mut self, shift: f64) -> f64;
-    fn read_4s(&mut self, shift: f64) -> f64;
-    fn read_4u(&mut self, shift: f64) -> f64;
-    fn read_8s(&mut self, shift: f64) -> f64;
-    fn read_8u(&mut self, shift: f64) -> f64;
+    fn read_double(&mut self) -> f64;
     fn read_boolean(&mut self) -> bool;
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
@@ -74,54 +66,13 @@ impl PacketReader for BytesMut {
         self.get_u64_le()
     }
 
-    #[inline]
-    fn read_1s(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_sbyte()) / shift
-    }
-
-    #[inline]
-    fn read_1u(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_byte()) / shift
-    }
-
-    #[inline]
-    fn read_2s(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_int16()) / shift
-    }
-
-    #[inline]
-    fn read_2u(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_uint16()) / shift
-    }
-
-    fn read_3u(&mut self, shift: f64) -> f64 {
-        let mut data = [0u8; 3];
-        (&self[..3]).copy_to_slice(&mut data);
-        self.advance(3);
-        let first_byte = u32::from(data[0]);
-        let other_bytes = u32::from(u16::from_le_bytes([data[1], data[2]]));
-        let value = (first_byte * u32::from(u16::MAX)) + other_bytes;
-        value as f64 / shift
-    }
-
-    #[inline]
-    fn read_4s(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_int32()) / shift
-    }
-
-    #[inline]
-    fn read_4u(&mut self, shift: f64) -> f64 {
-        f64::from(self.read_uint32()) / shift
-    }
-
-    #[inline]
-    fn read_8s(&mut self, shift: f64) -> f64 {
-        self.read_int64() as f64 / shift
-    }
-
-    #[inline]
-    fn read_8u(&mut self, shift: f64) -> f64 {
-        self.read_uint64() as f64 / shift
+    fn read_double(&mut self) -> f64 {
+        let value = self.get_f64_le();
+        if value.is_finite() {
+            value
+        } else {
+            1e40
+        }
     }
 
     #[inline]

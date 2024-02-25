@@ -24,8 +24,19 @@ pub enum FlattiverseEvent {
         cluster: ClusterId,
         region: RegionId,
     },
+    /// The [`crate::hierarchy::Region`] of the given id was removed.
+    RegionRemoved {
+        galaxy: GalaxyId,
+        cluster: ClusterId,
+        region: RegionId,
+    },
     /// The [`crate::Team`] of the given [`crate::Galaxy`] was updated.
     TeamUpdated {
+        galaxy: GalaxyId,
+        team: TeamId,
+    },
+    /// The [`crate::Team`] of the given [`crate::Galaxy`] was removed.
+    TeamRemoved {
         galaxy: GalaxyId,
         team: TeamId,
     },
