@@ -731,6 +731,10 @@ impl ConnectionHandle {
         })
     }
 
+    /// Registers a new ship with the given name and [`crate::hierarchy::ShipDesign`]. The name must
+    /// obey naming conventions and the chosen design must have set `free_spawn`. All
+    /// [`crate::hierarchy::ShipDesign`]s which don't have `free_spawn` set (=`false`) must be built
+    /// in game and can't be just registered.
     #[inline]
     pub async fn register_ship(
         &self,
@@ -740,6 +744,10 @@ impl ConnectionHandle {
         self.register_ship_split(name, design).await?.await
     }
 
+    /// Registers a new ship with the given name and [`crate::hierarchy::ShipDesign`]. The name must
+    /// obey naming conventions and the chosen design must have set `free_spawn`. All
+    /// [`crate::hierarchy::ShipDesign`]s which don't have `free_spawn` set (=`false`) must be built
+    /// in game and can't be just registered.
     pub async fn register_ship_split(
         &self,
         name: String,

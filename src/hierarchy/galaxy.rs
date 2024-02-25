@@ -549,6 +549,10 @@ impl Galaxy {
         self.connection.create_ship_design_split(config).await
     }
 
+    /// Registers a new ship with the given name and [`crate::hierarchy::ShipDesign`]. The name must
+    /// obey naming conventions and the chosen design must have set `free_spawn`. All
+    /// [`crate::hierarchy::ShipDesign`]s which don't have `free_spawn` set (=`false`) must be built
+    /// in game and can't be just registered.
     /// See also [`ConnectionHandle::register_ship`].
     #[inline]
     pub async fn register_ship(
