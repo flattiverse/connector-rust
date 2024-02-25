@@ -186,7 +186,7 @@ impl Controllable {
     #[inline]
     pub async fn kill(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         if !self.alive() {
-            return Err(GameError::from(0xF5));
+            return Err(GameError::from(0x20));
         } else {
             self.connection.kill_controllable_split(self.id).await
         }
@@ -199,7 +199,7 @@ impl Controllable {
         &self,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         if self.alive() {
-            return Err(GameError::from(0xF6));
+            return Err(GameError::from(0x21));
         } else {
             self.connection.continue_controllable_split(self.id).await
         }

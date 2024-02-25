@@ -83,6 +83,10 @@ impl Display for GameError {
     num_enum::IntoPrimitive,
 )]
 pub enum GameErrorKind {
+    #[error("The controllable must be laive to do this action.")]
+    ActionWithoutBeingAlive = 0x20,
+    #[error("You need to die first to .continue().")]
+    ContinueWithoutBeingDead = 0x21,
     #[error("The requested element doesn't exist or can't be accessed.")]
     ElementDoesntExist = 0x30,
     #[error("The parameter doesn't match the specification.")]
