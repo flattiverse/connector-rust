@@ -99,8 +99,10 @@ pub enum GameErrorKind {
     NotConfigurable = 0x34,
     #[error("Unit has been created but wasn't there when the session returned.")]
     CreatedButMissing = 0x35,
-    #[error("Unauthorized request. You prorbaly aren't the right kind of client: Player, Spectator or Admin.")]
+    #[error("Unauthorized request. You probably aren't the right kind of client: Player, Spectator or Admin.")]
     CommandDoesntExist = 0xE0,
+    #[error("Don't flood the server. Read the documentation, it will tell you how often you can use a command.")]
+    DontFlood = 0xEF,
     #[error("An unknown error occurred.")]
     UnknownError = 0xF0,
     #[error(
