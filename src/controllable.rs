@@ -138,6 +138,19 @@ impl Controllable {
     }
 
     pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.size = reader.read_double();
+        self.weight = reader.read_double();
+        self.active_upgrades = reader
+            .read_bytes(32)
+            .into_iter()
+            .map(ShipUpgradeId)
+            .collect();
+
+        self.hull_max = reader.read_double();
+        self.hull_repair = reader.read_double();
+        self.shields_max = reader.read_double();
+        self.shields_load = reader.read_double();
+
         self.energy_max = reader.read_double();
         self.energy_cells = reader.read_double();
         self.energy_reactor = reader.read_double();
@@ -157,7 +170,7 @@ impl Controllable {
         self.weapon_time = reader.read_uint16();
         self.weapon_load = reader.read_double();
         self.weapon_damage = reader.read_double();
-        self.weapon_ammo_max = reader.read_uint16() as f64;
+        self.weapon_ammo_max = reader.read_double();
         self.weapon_ammo_production = reader.read_double();
     }
 
