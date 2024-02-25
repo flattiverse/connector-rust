@@ -12,6 +12,8 @@ mod driver_wasm;
 )))]
 mod driver;
 
+mod fetch;
+
 mod connection_handle;
 pub use connection_handle::*;
 
@@ -56,6 +58,11 @@ pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, Conn
         target_os = "unknown"
     )))]
     return driver::connect(&url).await;
+}
+
+#[inline]
+pub async fn get_text(uri: &str) -> Result<String, ConnectError> {
+    fetch::get_text(uri).await
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,13 +1,13 @@
 use crate::network::{PacketReader, PacketWriter};
 use crate::utils::check_name_or_err_32;
-use crate::{GameError, GameType};
+use crate::{GameError, GameMode};
 use num_enum::FromPrimitive;
 
 #[derive(Debug, Clone, Default)]
 pub struct GalaxyConfig {
     pub name: String,
     pub description: String,
-    pub game_type: GameType,
+    pub game_type: GameMode,
     pub max_players: u8,
 
     pub max_platforms_galaxy: u16,
@@ -41,7 +41,7 @@ impl GalaxyConfig {
     pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
         self.name = reader.read_string();
         self.description = reader.read_string();
-        self.game_type = GameType::from_primitive(reader.read_byte());
+        self.game_type = GameMode::from_primitive(reader.read_byte());
         self.max_players = reader.read_byte();
         self.max_platforms_galaxy = reader.read_uint16();
         self.max_probes_galaxy = reader.read_uint16();

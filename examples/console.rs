@@ -4,10 +4,8 @@ use flattiverse_connector::Universe;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut galaxy = Universe::join(
         "wss://www.flattiverse.com/game/galaxies/0",
-        // admin
-        "CE43AE41B96111DB66D75AB943A3042755B98F10E6A09AF0D4190B0FFEC13EE8",
         // spectator
-        // "0000000000000000000000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000000000000000000000",
         0,
     )
     .await
