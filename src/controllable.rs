@@ -223,4 +223,234 @@ impl Controllable {
     pub fn alive(&self) -> bool {
         self.hull > 0.0
     }
+
+    #[inline]
+    pub fn galaxy(&self) -> GalaxyId {
+        self.galaxy
+    }
+
+    #[inline]
+    pub fn id(&self) -> ControllableId {
+        self.id
+    }
+
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[inline]
+    pub fn ship_design(&self) -> ShipDesignId {
+        self.ship_design
+    }
+
+    #[inline]
+    pub fn active_upgrades(&self) -> &[UpgradeId] {
+        &self.active_upgrades[..]
+    }
+
+    #[inline]
+    pub fn hull(&self) -> f64 {
+        self.hull
+    }
+
+    #[inline]
+    pub fn hull_max(&self) -> f64 {
+        self.hull_max
+    }
+
+    #[inline]
+    pub fn hull_repair(&self) -> f64 {
+        self.hull_repair
+    }
+
+    #[inline]
+    pub fn shields(&self) -> f64 {
+        self.shields
+    }
+
+    #[inline]
+    pub fn shields_max(&self) -> f64 {
+        self.shields_max
+    }
+
+    #[inline]
+    pub fn shields_load(&self) -> f64 {
+        self.shields_load
+    }
+
+    #[inline]
+    pub fn size(&self) -> f64 {
+        self.size
+    }
+
+    #[inline]
+    pub fn weight(&self) -> f64 {
+        self.weight
+    }
+
+    #[inline]
+    pub fn energy(&self) -> f64 {
+        self.energy
+    }
+
+    #[inline]
+    pub fn energy_max(&self) -> f64 {
+        self.energy_max
+    }
+
+    #[inline]
+    pub fn energy_cells(&self) -> f64 {
+        self.energy_cells
+    }
+
+    #[inline]
+    pub fn energy_reactor(&self) -> f64 {
+        self.energy_reactor
+    }
+
+    #[inline]
+    pub fn energy_transfer(&self) -> f64 {
+        self.energy_transfer
+    }
+
+    #[inline]
+    pub fn ion(&self) -> f64 {
+        self.ion
+    }
+
+    #[inline]
+    pub fn ion_max(&self) -> f64 {
+        self.ion_max
+    }
+
+    #[inline]
+    pub fn ion_cells(&self) -> f64 {
+        self.ion_cells
+    }
+
+    #[inline]
+    pub fn ion_reactor(&self) -> f64 {
+        self.ion_reactor
+    }
+
+    #[inline]
+    pub fn ion_transfer(&self) -> f64 {
+        self.ion_transfer
+    }
+
+    #[inline]
+    pub fn thruster(&self) -> f64 {
+        self.thruster
+    }
+
+    #[inline]
+    pub fn thruster_max_forward(&self) -> f64 {
+        self.thruster_max_forward
+    }
+
+    #[inline]
+    pub fn thruster_max_backward(&self) -> f64 {
+        self.thruster_max_backward
+    }
+
+    #[inline]
+    pub fn nozzle(&self) -> f64 {
+        self.nozzle
+    }
+
+    #[inline]
+    pub fn nozzle_max(&self) -> f64 {
+        self.nozzle_max
+    }
+
+    #[inline]
+    pub fn speed_max(&self) -> f64 {
+        self.speed_max
+    }
+
+    #[inline]
+    pub fn turnrate(&self) -> f64 {
+        self.turnrate
+    }
+
+    #[inline]
+    pub fn cargo_tungsten(&self) -> f64 {
+        self.cargo_tungsten
+    }
+
+    #[inline]
+    pub fn cargo_iron(&self) -> f64 {
+        self.cargo_iron
+    }
+
+    #[inline]
+    pub fn cargo_silicon(&self) -> f64 {
+        self.cargo_silicon
+    }
+
+    #[inline]
+    pub fn cargo_tritium(&self) -> f64 {
+        self.cargo_tritium
+    }
+
+    #[inline]
+    pub fn cargo_max(&self) -> f64 {
+        self.cargo_max
+    }
+
+    #[inline]
+    pub fn extractor_max(&self) -> f64 {
+        self.extractor_max
+    }
+
+    #[inline]
+    pub fn weapon_speed(&self) -> f64 {
+        self.weapon_speed
+    }
+
+    #[inline]
+    pub fn weapon_time(&self) -> u16 {
+        self.weapon_time
+    }
+
+    #[inline]
+    pub fn weapon_load(&self) -> f64 {
+        self.weapon_load
+    }
+
+    #[inline]
+    pub fn weapon_damage(&self) -> f64 {
+        self.weapon_damage
+    }
+
+    #[inline]
+    pub fn weapon_ammo(&self) -> f64 {
+        self.weapon_ammo
+    }
+
+    #[inline]
+    pub fn weapon_ammo_max(&self) -> f64 {
+        self.weapon_ammo_max
+    }
+
+    #[inline]
+    pub fn weapon_ammo_production(&self) -> f64 {
+        self.weapon_ammo_production
+    }
+
+    #[inline]
+    pub fn direction(&self) -> f64 {
+        self.direction
+    }
+
+    #[inline]
+    pub fn position(&self) -> Vector {
+        self.position
+    }
+
+    #[inline]
+    pub fn movement(&self) -> Vector {
+        self.movement
+    }
 }
