@@ -3,6 +3,7 @@ use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
 use crate::{Indexer, NamedUnit, TeamId, UniversalHolder};
 use std::fmt::{Display, Formatter};
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -46,23 +47,6 @@ impl Player {
         self.active = false;
     }
 
-    pub(crate) fn add_controllable_info(&mut self, info: ControllableInfo) {
-        self.controllables.set(info.id(), info);
-    }
-
-    pub(crate) fn remove_controllable_info(
-        &mut self,
-        id: ControllableInfoId,
-    ) -> Option<ControllableInfo> {
-        if let Some(mut controllable) = self.controllables.remove(id) {
-            controllable.deactivate();
-            Some(controllable)
-        } else {
-            warn!("Did not find ControllableInfo for {id:?}");
-            None
-        }
-    }
-
     #[inline]
     pub fn id(&self) -> PlayerId {
         self.id
@@ -86,6 +70,39 @@ impl Player {
     #[inline]
     pub fn active(&self) -> bool {
         self.active
+    }
+
+    #[inline]
+    pub fn controllables_info(&self) -> &UniversalHolder<ControllableInfoId, ControllableInfo> {
+        &self.controllables
+    }
+
+    #[inline]
+    pub fn controllables_info_mut(
+        &mut self,
+    ) -> &mut UniversalHolder<ControllableInfoId, ControllableInfo> {
+        &mut self.controllables
+    }
+
+    #[inline]
+    pub fn iter_controllables_info(&self) -> impl Iterator<Item = &ControllableInfo> {
+        self.controllables.iter()
+    }
+}
+
+impl Index<ControllableInfoId> for Player {
+    type Output = ControllableInfo;
+
+    #[inline]
+    fn index(&self, index: ControllableInfoId) -> &Self::Output {
+        &self.controllables[index]
+    }
+}
+
+impl IndexMut<ControllableInfoId> for Player {
+    #[inline]
+    fn index_mut(&mut self, index: ControllableInfoId) -> &mut Self::Output {
+        &mut self.controllables[index]
     }
 }
 

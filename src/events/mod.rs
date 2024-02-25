@@ -1,83 +1,98 @@
 use crate::hierarchy::{ClusterId, RegionId, ShipDesignId, UpgradeId};
-use crate::hierarchy::{ControllableInfoId, GlaxyId};
-use crate::{Player, PlayerId, TeamId};
+use crate::hierarchy::{ControllableInfoId, GalaxyId};
+use crate::{ControllableId, PlayerId, TeamId};
 use std::time::Duration;
 
 #[derive(Debug)]
 pub enum FlattiverseEvent {
     PingMeasured(Duration),
-    /// The [`crate::hierarchy::Cluster`] of the given id was updaed.
-    GalaxyUpdated(GlaxyId),
-    /// The [`crate::Cluster`] of the given [`crate::Galaxy`] was updaed.
+    /// The [`crate::hierarchy::Cluster`] of the given id was updated.
+    GalaxyUpdated(GalaxyId),
+    /// The [`crate::Cluster`] of the given [`crate::Galaxy`] was updated.
     ClusterUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
     },
-    /// The [`crate::hierarchy::Region`] of the given id was updaed.
+    /// The [`crate::Cluster`] of the given [`crate::Galaxy`] was removed.
+    ClusterRemoved {
+        galaxy: GalaxyId,
+        cluster: ClusterId,
+    },
+    /// The [`crate::hierarchy::Region`] of the given id was updated.
     RegionUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
         region: RegionId,
     },
     /// The [`crate::Team`] of the given [`crate::Galaxy`] was updated.
     TeamUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         team: TeamId,
     },
-    /// The [`crate::Ship`] of the given [`crate::Galaxy`] was updated.
-    ShipUpdated {
-        galaxy: GlaxyId,
-        ship: ShipDesignId,
+    /// The [`crate::hierarchy::ShipDesign`] of the given [`crate::Galaxy`] was updated.
+    ShipDesignUpdated {
+        galaxy: GalaxyId,
+        ship_design: ShipDesignId,
     },
     /// The [`crate::Upgrade`] of the given [`crate::unit::ShipDesign`] in the given
     /// [`crate::hierarchy::Galaxy`] was upated.
     UpgradeUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         ship: ShipDesignId,
         upgrade: UpgradeId,
     },
     /// The [`crate::Player`] of the given [`crate::Galaxy`] was updated.
     PlayerUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         player: PlayerId,
     },
+    /// The [`crate::Player`] of the given [`crate::Galaxy`] was removed.
     PlayerRemoved {
-        galaxy: GlaxyId,
-        player: Player,
+        galaxy: GalaxyId,
+        player: PlayerId,
     },
 
     /// A new [`crate::unit::Unit`] became visible.
     SeeingNewUnit {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
         name: String,
     },
     /// A watched [`crate::unit::Unit`] updated.N
     SeeingUnitUpdated {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
         name: String,
     },
     /// A watched [`crate::unit::Unit`] vanished.
     SeeingUnitNoMore {
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
         name: String,
     },
 
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was updated.
     ControllableInfoUpdated {
-        galaxy: GlaxyId,
-        cluster: ClusterId,
+        galaxy: GalaxyId,
         player: PlayerId,
-        controllable: ControllableInfoId,
+        controllable_info: ControllableInfoId,
     },
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was removed.
     ControllableInfoRemoved {
-        galaxy: GlaxyId,
-        cluster: ClusterId,
+        galaxy: GalaxyId,
         player: PlayerId,
-        controllable: ControllableInfoId,
+        controllable_info: ControllableInfoId,
+    },
+
+    /// The [`crate::Controllable`] for the given values was updated.
+    ControllableUpdated {
+        galaxy: GalaxyId,
+        controllable: ControllableId,
+    },
+    /// The [`crate::Controllable`] for the given values was removed.
+    ControllableRemoved {
+        galaxy: GalaxyId,
+        controllable: ControllableId,
     },
 
     TickCompleted,

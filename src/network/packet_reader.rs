@@ -2,6 +2,7 @@ use bytes::{Buf, BytesMut};
 
 pub trait PacketReader {
     fn read_sbyte(&mut self) -> i8;
+    fn read_bytes(&mut self, amount: usize) -> Vec<u8>;
     fn read_byte(&mut self) -> u8;
     fn read_int16(&mut self) -> i16;
     fn read_uint16(&mut self) -> u16;
@@ -30,6 +31,12 @@ impl PacketReader for BytesMut {
     #[inline]
     fn read_sbyte(&mut self) -> i8 {
         self.get_i8()
+    }
+
+    fn read_bytes(&mut self, amount: usize) -> Vec<u8> {
+        let bytes = (&self[..amount]).to_vec();
+        self.advance(amount);
+        bytes
     }
 
     #[inline]

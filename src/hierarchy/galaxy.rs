@@ -1,15 +1,15 @@
 use crate::error::{GameError, GameErrorKind};
 use crate::events::FlattiverseEvent;
 use crate::hierarchy::{
-    Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, RegionId, ShipDesign,
-    ShipDesignConfig, ShipDesignId, TeamConfig, UpgradeId,
+    Cluster, ControllableInfo, ControllableInfoId, GalaxyConfig, Region, RegionId, ShipDesign,
+    ShipDesignConfig, ShipDesignId, TeamConfig, Upgrade, UpgradeId,
 };
 use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionEvent, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
 use crate::unit::UnitKind;
-use crate::{PlayerId, PlayerKind, TeamId, UniversalHolder};
+use crate::{Controllable, ControllableId, PlayerId, PlayerKind, TeamId, UniversalHolder};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;
@@ -17,16 +17,17 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct GlaxyId(pub(crate) u16);
+pub struct GalaxyId(pub(crate) u16);
 
 #[derive(Debug)]
 pub struct Galaxy {
-    id: GlaxyId,
+    id: GalaxyId,
     config: GalaxyConfig,
 
     clusters: UniversalHolder<ClusterId, Cluster>,
-    ships: UniversalHolder<ShipDesignId, ShipDesign>,
+    ship_designs: UniversalHolder<ShipDesignId, ShipDesign>,
     teams: UniversalHolder<TeamId, Team>,
+    controllables: UniversalHolder<ControllableId, Controllable>,
     players: UniversalHolder<PlayerId, Player>,
 
     //
@@ -47,12 +48,13 @@ impl Galaxy {
         let (handle, receiver) = connection.spawn();
 
         Ok(Self {
-            id: GlaxyId(0),
+            id: GalaxyId(0),
             config: GalaxyConfig::default(),
 
             clusters: UniversalHolder::with_capacity(256),
-            ships: UniversalHolder::with_capacity(256),
+            ship_designs: UniversalHolder::with_capacity(256),
             teams: UniversalHolder::with_capacity(256),
+            controllables: UniversalHolder::with_capacity(256),
             players: UniversalHolder::with_capacity(256),
 
             connection: handle,
@@ -114,167 +116,288 @@ impl Galaxy {
                 packet.header().command()
             );
             match packet.header().command() {
-                // galaxy info
-                0x10 => {
-                    self.id = GlaxyId(packet.header().param());
-                    packet.read(|reader| self.config.read(reader));
+                // galaxy created
+                0x40 |
+                // galaxy updated
+                0x50 => {
+                    self.update(packet);
                     Ok(Some(FlattiverseEvent::GalaxyUpdated(self.id)))
-                }
-                // cluster info
-                0x11 => {
+                },
+
+                // cluster created
+                0x41 => {
                     let cluster_id = ClusterId(packet.header().id0());
+                    debug_assert!(self.clusters.get(cluster_id).is_none(), "{cluster_id:?} is already populated: {:?}", self.clusters.get(cluster_id));
                     self.clusters.set(
                         cluster_id,
-                        packet.read(|reader| {
-                            Cluster::new(cluster_id, self.id, self.connection.clone(), reader)
-                        }),
+                        packet.read(|reader| Cluster::new(cluster_id, self.id, self.connection.clone(), reader))
                     );
+                    Ok(Some(FlattiverseEvent::ClusterUpdated {
+                        galaxy: self.id,
+                        cluster: cluster_id,
+                    }))
+                },
+
+                // cluster updated
+                0x51 => {
+                    let cluster_id = ClusterId(packet.header().id0());
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    packet.read(|reader| self.clusters[cluster_id].update(reader));
                     Ok(Some(FlattiverseEvent::ClusterUpdated {
                         galaxy: self.id,
                         cluster: cluster_id,
                     }))
                 }
 
-                // region info
-                0x12 => {
-                    let cluster_id = ClusterId(packet.header().id1());
+                // cluster removed
+                0x71 => {
+                    let cluster_id = ClusterId(packet.header().id0());
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    self.clusters[cluster_id].deactivate();
+                    self.clusters.remove(cluster_id);
+                    Ok(Some(FlattiverseEvent::ClusterRemoved {
+                        galaxy: self.id,
+                        cluster: cluster_id,
+                    }))
+                }
+
+                // region created
+                0x42 => {
                     let region_id = RegionId(packet.header().id0());
-                    packet.read(|reader| {
-                        self.clusters[cluster_id].read_region(region_id, reader);
-                    });
+                    let cluster_id = ClusterId(packet.header().id1());
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    debug_assert!(self.clusters[cluster_id].regions().get(region_id).is_none(), "{region_id:?} for {cluster_id:?} is already populated: {:?}", self.clusters[cluster_id].regions().get(region_id));
+                    self.clusters[cluster_id].regions_mut().set(
+                        region_id,
+                        packet.read(|reader| Region::new(self.id, cluster_id, region_id, self.connection.clone(), reader))
+                    );
                     Ok(Some(FlattiverseEvent::RegionUpdated {
                         galaxy: self.id,
                         cluster: cluster_id,
-                        region: region_id,
+                        region: region_id
                     }))
                 }
 
-                // team info
-                0x13 => {
+                //  region updated
+                0x52 => {
+                    todo!()
+                }
+
+                //  region removed
+                0x72 => {
+                    todo!()
+                }
+
+                // team created
+                0x43 => {
                     let team_id = TeamId(packet.header().id0());
-                    self.teams.set(
+                    debug_assert!(self.teams.get(team_id).is_none(), "{team_id:?} is already populated: {:?}", self.teams.get(team_id));
+                    self.teams.set(team_id, packet.read(|reader| Team::new(
                         team_id,
-                        packet.read(|reader| Team::new(team_id, self.connection.clone(), reader)),
-                    );
+                        self.connection.clone(),
+                        reader
+                    )));
                     Ok(Some(FlattiverseEvent::TeamUpdated {
                         galaxy: self.id,
-                        team: team_id,
+                        team: team_id
                     }))
                 }
 
-                // ship info
-                0x14 => {
-                    let ship_id = ShipDesignId(packet.header().id0());
-                    self.ships.set(
-                        ship_id,
-                        packet.read(|reader| {
-                            ShipDesign::new(ship_id, self.id, self.connection.clone(), reader)
-                        }),
+                // team updated
+                0x53 => {
+                    todo!()
+                }
+
+                // team dynamic update (score of the team updated)
+                0x63 => {
+                    todo!()
+                }
+
+                // team removed
+                0x73 => {
+                    todo!()
+                }
+
+                // ship design created
+                0x44 => {
+                    let ship_design_id = ShipDesignId(packet.header().id0());
+                    debug_assert!(self.ship_designs.get(ship_design_id).is_none(), "{ship_design_id:?} is already populated: {:?}", self.ship_designs.get(ship_design_id));
+                    self.ship_designs.set(
+                        ship_design_id,
+                        packet.read(|reader| ShipDesign::new(ship_design_id, self.id, self.connection.clone(), reader))
                     );
-                    Ok(Some(FlattiverseEvent::ShipUpdated {
+                    Ok(Some(FlattiverseEvent::ShipDesignUpdated {
                         galaxy: self.id,
-                        ship: ship_id,
+                        ship_design: ship_design_id,
                     }))
                 }
 
-                // upgrade info
-                0x15 => {
+                // ship design updated
+                0x54 => {
+                    todo!()
+                }
+
+                // ship design removed
+                0x74 => {
+                    todo!()
+                }
+
+                // ship upgrade created
+                0x45 => {
                     let upgrade_id = UpgradeId(packet.header().id0());
-                    let ship_id = ShipDesignId(packet.header().id1());
-                    packet.read(|reader| {
-                        self.ships[ship_id].read_upgrade(upgrade_id, reader);
-                    });
+                    let ship_design_id = ShipDesignId(packet.header().id1());
+                    debug_assert!(self.ship_designs.get(ship_design_id).is_some(), "{ship_design_id:?} is not populated");
+                    debug_assert!(self.ship_designs[ship_design_id].upgrades().get(upgrade_id).is_none(), "{upgrade_id:?} for {ship_design_id:?} is already populated: {:?}", self.ship_designs[ship_design_id].upgrades().get(upgrade_id));
+                    self.ship_designs[ship_design_id].upgrades_mut().set(
+                        upgrade_id,
+                        packet.read(|reader| Upgrade::new(upgrade_id, self.id, ship_design_id, self.connection.clone(), reader))
+                    );
                     Ok(Some(FlattiverseEvent::UpgradeUpdated {
                         galaxy: self.id,
-                        ship: ship_id,
-                        upgrade: upgrade_id,
+                        ship: ship_design_id,
+                        upgrade: upgrade_id
                     }))
                 }
 
-                // new player joined info
-                0x16 => {
+                // ship upgrade updated
+                0x55 => {
+                    todo!()
+                }
+
+                // ship upgrade removed
+                0x75 => {
+                    todo!()
+                }
+
+                // player created
+                0x46 => {
                     let player_id = PlayerId(packet.header().id0());
                     let team_id = TeamId(packet.header().id1());
                     let player_kind = PlayerKind::from_primitive(packet.header().param0());
-                    packet.read(|reader| {
-                        self.players.set(
-                            player_id,
-                            Player::new(player_id, player_kind, team_id, reader),
-                        );
-                    });
+                    debug_assert!(self.players.get(player_id).is_none(), "{player_id:?} is already populated: {:?}", self.players.get(player_id));
+                    debug_assert!(self.teams.get(team_id).is_some(), "{team_id:?} is not populated.");
+                    self.players.set(
+                        player_id,
+                        packet.read(|reader| Player::new(player_id, player_kind, team_id, reader))
+                    );
                     Ok(Some(FlattiverseEvent::PlayerUpdated {
                         galaxy: self.id,
                         player: player_id,
                     }))
                 }
 
-                // player removed info
-                0x17 => {
-                    let player_id = PlayerId(packet.header().id0());
-                    if let Some(mut player) = self.players.remove(player_id) {
-                        player.deactivate();
-                        Ok(Some(FlattiverseEvent::PlayerRemoved {
-                            galaxy: self.id,
-                            player,
-                        }))
-                    } else {
-                        warn!("Cannot remove unknown player with {player_id:?}");
-                        Ok(None)
-                    }
+                // player dynamic update (score)
+                0x66 => {
+                    todo!()
                 }
 
-                // controllable info
-                0x18 => {
-                    let player_id = PlayerId(packet.header().id1());
-                    let cluster = ClusterId(packet.header().id0());
-                    let controllable_id = ControllableInfoId(packet.header().param0());
+                // player removed
+                0x76 => {
+                    let player_id = PlayerId(packet.header().id0());
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    self.players[player_id].deactivate();
+                    self.players.remove(player_id);
+                    Ok(Some(FlattiverseEvent::PlayerRemoved {
+                        galaxy: self.id,
+                        player: player_id,
+                    }))
+                }
 
-                    if let Some(player) = self.players.get_mut(player_id) {
-                        let reduced = packet.header().param1() == 1;
-                        let info = packet.read(|reader| {
-                            ControllableInfo::new(
-                                cluster,
-                                controllable_id,
-                                player_id,
-                                reader,
-                                reduced,
-                            )
-                        });
-                        player.add_controllable_info(info);
-                        Ok(Some(FlattiverseEvent::ControllableInfoUpdated {
-                            galaxy: self.id,
-                            cluster,
-                            player: player_id,
-                            controllable: controllable_id,
-                        }))
-                    } else {
-                        warn!("Cannot update ControllableInfo because the player is missing for {player_id:?}");
-                        Ok(None)
-                    }
+                // controllable info created
+                0x47 => {
+                    let controllable_info_id = ControllableInfoId(packet.header().id0());
+                    let player_id = PlayerId(packet.header().id1());
+                    let reduced = packet.header().param1() == 1;
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    debug_assert!(self.players[player_id].controllables_info().get(controllable_info_id).is_none(), "{controllable_info_id:?} for {player_id:?} is already populated: {:?}", self.players[player_id].controllables_info().get(controllable_info_id));
+                    self.players[player_id].controllables_info_mut().set(
+                        controllable_info_id,
+                        packet.read(|reader| ControllableInfo::new(
+                            self.id,
+                            controllable_info_id,
+                            player_id,
+                            reader,
+                            reduced
+                        ))
+                    );
+                    Ok(Some(FlattiverseEvent::ControllableInfoUpdated {
+                        galaxy: self.id,
+                        player: player_id,
+                        controllable_info: controllable_info_id,
+                    }))
+                }
+
+                // controllable info updated (live)
+                0x57 => {
+                    todo!()
+                }
+
+                // controllable info dynamic update (scores)
+                0x67 => {
+                    todo!()
                 }
 
                 // controllable info removed
-                0x19 => {
+                0x77 => {
                     let player_id = PlayerId(packet.header().id1());
-                    let cluster = ClusterId(packet.header().id0());
-                    let controllable_id = ControllableInfoId(packet.header().param1());
+                    let controllable_info_id = ControllableInfoId(packet.header().param1());
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    debug_assert!(self.players[player_id].controllables_info().get(controllable_info_id).is_some(), "{controllable_info_id:?} is not populated.");
+                    self.players[player_id][controllable_info_id].deactivate();
+                    self.players[player_id].controllables_info_mut().remove(controllable_info_id);
+                    Ok(Some(FlattiverseEvent::ControllableInfoRemoved {
+                        galaxy: self.id,
+                        player: player_id,
+                        controllable_info: controllable_info_id
+                    }))
+                }
 
-                    if let Some(player) = self.players.get_mut(player_id) {
-                        if player.remove_controllable_info(controllable_id).is_none() {
-                            warn!(
-                                "Tried to remove unknown ControllableInfo for {controllable_id:?}"
-                            );
-                        }
-                        Ok(Some(FlattiverseEvent::ControllableInfoRemoved {
-                            galaxy: self.id,
-                            cluster,
-                            player: player_id,
-                            controllable: controllable_id,
-                        }))
-                    } else {
-                        warn!("Cannot remove ControllableInfo because the player is missing for {player_id:?}");
-                        Ok(None)
-                    }
+                // controllable created
+                0x48 => {
+                    let controllable_id = ControllableId(packet.header().id0());
+                    debug_assert!(self.controllables.get(controllable_id).is_none(), "{controllable_id:?} is already populated: {:?}", self.controllables.get(controllable_id));
+                    self.controllables.set(
+                        controllable_id,
+                        packet.read(|reader| Controllable::new(self.id, controllable_id, reader, self.connection.clone()))
+                    );
+                    Ok(Some(FlattiverseEvent::ControllableUpdated {
+                        galaxy: self.id,
+                        controllable: controllable_id
+                    }))
+                }
+
+                // controllable update: list of configured upgrades, change of base-data (max_hull, ...)
+                0x58 => {
+                    let controllable_id = ControllableId(packet.header().id0());
+                    debug_assert!(self.controllables.get(controllable_id).is_some(), "{controllable_id:?} is not populated.");
+                    packet.read(|reader| self.controllables[controllable_id].update(reader));
+                    Ok(Some(FlattiverseEvent::ControllableUpdated {
+                        galaxy: self.id,
+                        controllable: controllable_id
+                    }))
+                }
+
+                // controllable dynamics update: position, movement, energy, hull...
+                0x68 => {
+                    let controllable_id = ControllableId(packet.header().id0());
+                    debug_assert!(self.controllables.get(controllable_id).is_some(), "{controllable_id:?} is not populated.");
+                    packet.read(|reader| self.controllables[controllable_id].dynamic_update(reader));
+                    Ok(Some(FlattiverseEvent::ControllableUpdated {
+                        galaxy: self.id,
+                        controllable: controllable_id
+                    }))
+                }
+
+                // controllable removed
+                0x78 => {
+                    let controllable_id = ControllableId(packet.header().id0());
+                    debug_assert!(self.controllables.get(controllable_id).is_some(), "{controllable_id:?} is not populated.");
+                    self.controllables[controllable_id].deactivate();
+                    self.controllables.remove(controllable_id);
+                    Ok(Some(FlattiverseEvent::ControllableRemoved {
+                        galaxy: self.id,
+                        controllable: controllable_id
+                    }))
                 }
 
                 // we see a new unit which we didn't see before
@@ -282,42 +405,24 @@ impl Galaxy {
                     let cluster_id = ClusterId(packet.header().id0());
                     let unit_kind = UnitKind::try_from_primitive(packet.header().param0())
                         .expect("Unknown UnitKind ");
-                    warn!("{unit_kind:?}");
-                    match self.clusters.get_mut(cluster_id) {
-                        Some(cluster) => packet
-                            .read(|reader| cluster.see_new_unit(unit_kind, reader))
-                            .map(Some),
-                        None => {
-                            warn!("{cluster_id:?} is missing for see_new_unit.");
-                            Ok(None)
-                        }
-                    }
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    packet
+                        .read(|reader| self.clusters[cluster_id].see_new_unit(unit_kind, reader))
+                        .map(Some)
                 }
 
                 // a unit we see has been updated.
                 0x1D => {
                     let cluster_id = ClusterId(packet.header().id0());
-                    match self.clusters.get_mut(cluster_id) {
-                        Some(cluster) => packet.read(|reader| cluster.see_update_unit(reader)),
-                        None => {
-                            warn!("{cluster_id:?} is missing for see_update_unit.");
-                            Ok(None)
-                        }
-                    }
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    packet.read(|reader| self.clusters[cluster_id].see_update_unit(reader))
                 }
 
                 // a once known unit vanished.
                 0x1E => {
                     let cluster_id = ClusterId(packet.header().id0());
-                    match self.clusters.get_mut(cluster_id) {
-                        Some(cluster) => {
-                            packet.read(|reader| cluster.see_unit_no_more(reader.read_string()))
-                        }
-                        None => {
-                            warn!("{cluster_id:?} is missing for see_unit_no_more.");
-                            Ok(None)
-                        }
-                    }
+                    debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
+                    packet.read(|reader| self.clusters[cluster_id].see_unit_no_more(reader.read_string()))
                 }
 
                 // tick completed
@@ -328,13 +433,18 @@ impl Galaxy {
 
                 cmd => Err(
                     GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
-                        "Unexpected command={cmd} for {:?}, header={:?}",
+                        "Unexpected command=0x{cmd:02x} for {:?}, header={:?}",
                         self.id,
                         packet.header()
                     )),
                 ),
             }
         }
+    }
+
+    fn update(&mut self, mut packet: Packet) {
+        self.id = GalaxyId(packet.header().param());
+        packet.read(|reader| self.config.read(reader));
     }
 
     /// Waits until the login proceedure has been completed for  this [`Galaxy`].
@@ -392,13 +502,24 @@ impl Galaxy {
     }
 
     /// Creates a [`ShipDesign`] within this [`Galaxy`].
-    /// See also [`ConnectionHandle::create_ship`].
+    /// See also [`ConnectionHandle::create_ship_design`].
     #[inline]
-    pub async fn create_ship(
+    pub async fn create_ship_design(
         &self,
         config: &ShipDesignConfig,
     ) -> Result<impl Future<Output = Result<ShipDesignId, GameError>>, GameError> {
-        self.connection.create_ship_split(config).await
+        self.connection.create_ship_design_split(config).await
+    }
+
+    /// See also [`ConnectionHandle::register_ship`].
+    #[inline]
+    pub async fn register_ship(
+        &self,
+        name: impl Into<String>,
+        design: ShipDesignId,
+    ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
+        let name = name.into();
+        self.connection.register_ship_split(name, design).await
     }
 
     #[inline]
@@ -417,8 +538,8 @@ impl Galaxy {
     }
 
     #[inline]
-    pub fn ships(&self) -> &UniversalHolder<ShipDesignId, ShipDesign> {
-        &self.ships
+    pub fn ship_designs(&self) -> &UniversalHolder<ShipDesignId, ShipDesign> {
+        &self.ship_designs
     }
 
     #[inline]

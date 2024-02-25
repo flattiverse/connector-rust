@@ -1,4 +1,4 @@
-use crate::hierarchy::GlaxyId;
+use crate::hierarchy::GalaxyId;
 use crate::hierarchy::{ClusterId, RegionConfig};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit};
@@ -16,7 +16,7 @@ impl Indexer for RegionId {
 
 #[derive(Debug)]
 pub struct Region {
-    galaxy: GlaxyId,
+    galaxy: GalaxyId,
     cluster: ClusterId,
     id: RegionId,
     config: RegionConfig,
@@ -25,7 +25,7 @@ pub struct Region {
 
 impl Region {
     pub fn new(
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         cluster: ClusterId,
         id: RegionId,
         connection: ConnectionHandle,
@@ -60,7 +60,7 @@ impl Region {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GlaxyId {
+    pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
     }
 

@@ -1,4 +1,4 @@
-use crate::hierarchy::{ClusterId, ShipDesignId, UpgradeId};
+use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeId};
 use crate::network::PacketReader;
 use crate::{Indexer, NamedUnit, PlayerId};
 
@@ -14,7 +14,8 @@ impl Indexer for ControllableInfoId {
 
 #[derive(Debug)]
 pub struct ControllableInfo {
-    cluster: ClusterId,
+    active: bool,
+    galaxy: GalaxyId,
     id: ControllableInfoId,
     name: String,
     reduced: bool,
@@ -33,13 +34,11 @@ pub struct ControllableInfo {
 
     ion: f64,
     ion_max: f64,
-
-    active: bool,
 }
 
 impl ControllableInfo {
     pub fn new(
-        cluster: ClusterId,
+        galaxy: GalaxyId,
         id: ControllableInfoId,
         player: PlayerId,
         reader: &mut dyn PacketReader,
@@ -47,7 +46,7 @@ impl ControllableInfo {
     ) -> Self {
         Self {
             active: true,
-            cluster,
+            galaxy,
             id,
             player,
             reduced,
@@ -86,8 +85,8 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn cluster(&self) -> ClusterId {
-        self.cluster
+    pub fn galaxy(&self) -> GalaxyId {
+        self.galaxy
     }
 
     #[inline]

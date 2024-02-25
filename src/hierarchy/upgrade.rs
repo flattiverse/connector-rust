@@ -1,4 +1,4 @@
-use crate::hierarchy::{GlaxyId, ShipDesignId, UpgradeConfig};
+use crate::hierarchy::{GalaxyId, ShipDesignId, UpgradeConfig};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit};
 use std::future::Future;
@@ -15,7 +15,7 @@ impl Indexer for UpgradeId {
 
 #[derive(Debug)]
 pub struct Upgrade {
-    galaxy: GlaxyId,
+    galaxy: GalaxyId,
     ship: ShipDesignId,
     id: UpgradeId,
     config: UpgradeConfig,
@@ -25,7 +25,7 @@ pub struct Upgrade {
 impl Upgrade {
     pub fn new(
         id: impl Into<UpgradeId>,
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         ship: ShipDesignId,
         connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
@@ -59,7 +59,7 @@ impl Upgrade {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GlaxyId {
+    pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
     }
 

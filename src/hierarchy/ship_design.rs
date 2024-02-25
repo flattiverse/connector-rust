@@ -1,7 +1,8 @@
-use crate::hierarchy::{GlaxyId, ShipDesignConfig, Upgrade, UpgradeConfig, UpgradeId};
+use crate::hierarchy::{GalaxyId, ShipDesignConfig, Upgrade, UpgradeConfig, UpgradeId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
 use std::future::Future;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipDesignId(pub(crate) u8);
@@ -15,7 +16,7 @@ impl Indexer for ShipDesignId {
 
 #[derive(Debug)]
 pub struct ShipDesign {
-    galaxy: GlaxyId,
+    galaxy: GalaxyId,
     id: ShipDesignId,
     upgrades: UniversalHolder<UpgradeId, Upgrade>,
     config: ShipDesignConfig,
@@ -25,7 +26,7 @@ pub struct ShipDesign {
 impl ShipDesign {
     pub fn new(
         id: impl Into<ShipDesignId>,
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
@@ -36,13 +37,6 @@ impl ShipDesign {
             upgrades: UniversalHolder::with_capacity(256),
             connection,
         }
-    }
-
-    pub(crate) fn read_upgrade(&mut self, id: UpgradeId, reader: &mut dyn PacketReader) {
-        self.upgrades.set(
-            id,
-            Upgrade::new(id, self.galaxy, self.id, self.connection.clone(), reader),
-        );
     }
 
     /// Sets the given values for this [`ShipDesign`].
@@ -78,7 +72,7 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GlaxyId {
+    pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
     }
 
@@ -93,8 +87,29 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn get_upgrade(&self, id: UpgradeId) -> Option<&Upgrade> {
-        self.upgrades.get(id)
+    pub fn upgrades(&self) -> &UniversalHolder<UpgradeId, Upgrade> {
+        &self.upgrades
+    }
+
+    #[inline]
+    pub fn upgrades_mut(&mut self) -> &mut UniversalHolder<UpgradeId, Upgrade> {
+        &mut self.upgrades
+    }
+}
+
+impl Index<UpgradeId> for ShipDesign {
+    type Output = Upgrade;
+
+    #[inline]
+    fn index(&self, index: UpgradeId) -> &Self::Output {
+        &self.upgrades[index]
+    }
+}
+
+impl IndexMut<UpgradeId> for ShipDesign {
+    #[inline]
+    fn index_mut(&mut self, index: UpgradeId) -> &mut Self::Output {
+        &mut self.upgrades[index]
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::hierarchy::{ClusterConfig, GlaxyId, Region, RegionConfig, RegionId};
+use crate::hierarchy::{ClusterConfig, GalaxyId, Region, RegionConfig, RegionId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::configurations::{
     BlackHoleConfiguration, BuoyConfiguration, MeteoroidConfiguration, MoonConfiguration,
@@ -8,6 +8,7 @@ use crate::unit::{Unit, UnitKind};
 use crate::{FlattiverseEvent, GameError, Indexer, NamedUnit, UniversalHolder};
 use rustc_hash::FxHashMap;
 use std::future::Future;
+use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -21,8 +22,9 @@ impl Indexer for ClusterId {
 
 #[derive(Debug)]
 pub struct Cluster {
+    active: bool,
     id: ClusterId,
-    galaxy: GlaxyId,
+    galaxy: GalaxyId,
     config: ClusterConfig,
     units: FxHashMap<String, Box<dyn Unit>>,
     regions: UniversalHolder<RegionId, Region>,
@@ -33,11 +35,12 @@ impl Cluster {
     #[inline]
     pub fn new(
         id: impl Into<ClusterId>,
-        galaxy: GlaxyId,
+        galaxy: GalaxyId,
         connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
+            active: true,
             id: id.into(),
             galaxy,
             connection,
@@ -48,11 +51,13 @@ impl Cluster {
     }
 
     #[inline]
-    pub(crate) fn read_region(&mut self, id: RegionId, reader: &mut dyn PacketReader) {
-        self.regions.set(
-            id,
-            Region::new(self.galaxy, self.id, id, self.connection.clone(), reader),
-        );
+    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+        self.config.read(reader);
+    }
+
+    #[inline]
+    pub(crate) fn deactivate(&mut self) {
+        self.active = false;
     }
 
     /// Sets the given values for this [`Cluster`].
@@ -203,12 +208,17 @@ impl Cluster {
     }
 
     #[inline]
+    pub fn active(&self) -> bool {
+        self.active
+    }
+
+    #[inline]
     pub fn id(&self) -> ClusterId {
         self.id
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GlaxyId {
+    pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
     }
 
@@ -228,6 +238,11 @@ impl Cluster {
     }
 
     #[inline]
+    pub fn regions_mut(&mut self) -> &mut UniversalHolder<RegionId, Region> {
+        &mut self.regions
+    }
+
+    #[inline]
     pub fn get_unit(&self, name: &str) -> Option<&dyn Unit> {
         self.units.get(name).map(|unit| &**unit)
     }
@@ -237,6 +252,31 @@ impl Cluster {
         self.units
             .iter()
             .map(|(name, unit)| (name.as_str(), &**unit))
+    }
+}
+
+impl Index<RegionId> for Cluster {
+    type Output = Region;
+
+    #[inline]
+    fn index(&self, index: RegionId) -> &Self::Output {
+        &self.regions[index]
+    }
+}
+
+impl IndexMut<RegionId> for Cluster {
+    #[inline]
+    fn index_mut(&mut self, index: RegionId) -> &mut Self::Output {
+        &mut self.regions[index]
+    }
+}
+
+impl Index<&str> for Cluster {
+    type Output = dyn Unit;
+
+    #[inline]
+    fn index(&self, index: &str) -> &Self::Output {
+        &*self.units[index]
     }
 }
 
