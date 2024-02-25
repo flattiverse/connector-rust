@@ -123,6 +123,13 @@ impl PacketHeader {
     pub fn size(&self) -> u16 {
         u16::from_le_bytes([self.0[6], self.0[7]])
     }
+
+    #[inline]
+    pub fn set_size(&mut self, size: u16) {
+        let bytes = size.to_le_bytes();
+        self.0[6] = bytes[0];
+        self.0[7] = bytes[1];
+    }
 }
 
 impl From<PacketHeader> for BytesMut {

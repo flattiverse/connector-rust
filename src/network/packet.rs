@@ -75,7 +75,10 @@ impl Packet {
 
     #[inline]
     pub fn write<T>(&mut self, f: impl FnOnce(&mut dyn PacketWriter) -> T) -> T {
-        f(&mut self.payload)
+        let result = f(&mut self.payload);
+        let len = self.payload.len() as u16;
+        self.header_mut().set_size(len);
+        result
     }
 
     #[inline]
