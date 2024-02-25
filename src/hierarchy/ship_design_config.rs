@@ -24,7 +24,8 @@ pub struct ShipDesignConfig {
     pub ion_cells: f64,
     pub ion_reactor: f64,
     pub ion_transfer: f64,
-    pub thruster: f64,
+    pub thruster_forward: f64,
+    pub thruster_backward: f64,
     pub nozzle: f64,
     pub speed: f64,
     pub turnrate: f64,
@@ -80,7 +81,8 @@ impl ShipDesignConfig {
         self.ion_cells = reader.read_4u(1_000.0);
         self.ion_reactor = reader.read_4u(1_000.0);
         self.ion_transfer = reader.read_4u(1_000.0);
-        self.thruster = reader.read_2u(10_000.0);
+        self.thruster_forward = reader.read_2u(10_000.0);
+        self.thruster_backward = reader.read_2u(10_000.0);
         self.nozzle = reader.read_2u(100.0);
         self.speed = reader.read_2u(1_000.0);
         self.turnrate = reader.read_2u(100.0);
@@ -127,7 +129,8 @@ impl ShipDesignConfig {
         writer.write_4u(self.ion_cells, 1_000.0);
         writer.write_4u(self.ion_reactor, 1_000.0);
         writer.write_4u(self.ion_transfer, 1_000.0);
-        writer.write_2u(self.thruster, 10_000.0);
+        writer.write_2u(self.thruster_forward, 10_000.0);
+        writer.write_2u(self.thruster_backward, 10_000.0);
         writer.write_2u(self.nozzle, 100.0);
         writer.write_2u(self.speed, 1_000.0);
         writer.write_2u(self.turnrate, 100.0);

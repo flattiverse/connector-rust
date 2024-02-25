@@ -95,18 +95,19 @@ impl Controllable {
             shields_max: reader.read_3u(10_000.0),
             shields_load: reader.read_3u(10_000.0),
 
+            energy_max: reader.read_4u(1_000.0),
+            energy_cells: reader.read_4u(1_000.0),
+            energy_reactor: reader.read_4u(1_000.0),
+            energy_transfer: reader.read_4u(1_000.0),
+            ion_max: reader.read_4u(1_000.0),
+            ion_cells: reader.read_4u(1_000.0),
+            ion_reactor: reader.read_4u(1_000.0),
+            ion_transfer: reader.read_4u(1_000.0),
+
             hull: 0.0,
             shields: 0.0,
             energy: 0.0,
-            energy_max: 0.0,
-            energy_cells: 0.0,
-            energy_reactor: 0.0,
-            energy_transfer: 0.0,
             ion: 0.0,
-            ion_max: 0.0,
-            ion_cells: 0.0,
-            ion_reactor: 0.0,
-            ion_transfer: 0.0,
             thruster: 0.0,
             thruster_max_forward: 0.0,
             thruster_max_backward: 0.0,
@@ -145,6 +146,7 @@ impl Controllable {
         self.ion_cells = reader.read_4u(1_000.0);
         self.ion_reactor = reader.read_4u(1_000.0);
         self.ion_transfer = reader.read_4u(1_000.0);
+
         self.thruster_max_forward = reader.read_2u(10_000.0);
         self.thruster_max_backward = reader.read_2u(10_000.0);
         self.nozzle_max = reader.read_2s(100.0);

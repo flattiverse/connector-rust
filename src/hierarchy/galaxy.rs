@@ -305,9 +305,9 @@ impl Galaxy {
 
                 // controllable info created
                 0x47 => {
-                    let controllable_info_id = ControllableInfoId(packet.header().id0());
-                    let player_id = PlayerId(packet.header().id1());
-                    let reduced = packet.header().param1() == 1;
+                    let player_id = PlayerId(packet.header().id0());
+                    let controllable_info_id = ControllableInfoId(packet.header().id1());
+                    let reduced = packet.header().param0() == 1;
                     debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
                     debug_assert!(self.players[player_id].controllables_info().get(controllable_info_id).is_none(), "{controllable_info_id:?} for {player_id:?} is already populated: {:?}", self.players[player_id].controllables_info().get(controllable_info_id));
                     self.players[player_id].controllables_info_mut().set(
@@ -339,8 +339,8 @@ impl Galaxy {
 
                 // controllable info removed
                 0x77 => {
-                    let player_id = PlayerId(packet.header().id1());
-                    let controllable_info_id = ControllableInfoId(packet.header().param1());
+                    let player_id = PlayerId(packet.header().id0());
+                    let controllable_info_id = ControllableInfoId(packet.header().id1());
                     debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
                     debug_assert!(self.players[player_id].controllables_info().get(controllable_info_id).is_some(), "{controllable_info_id:?} is not populated.");
                     self.players[player_id][controllable_info_id].deactivate();
