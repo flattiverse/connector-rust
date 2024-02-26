@@ -367,12 +367,23 @@ impl Galaxy {
 
                 // controllable info updated (live)
                 0x57 => {
-                    todo!()
+                    warn!("Not implemented: Controllable Info Updated");
+                    Ok(None)
                 }
 
                 // controllable info dynamic update (scores)
                 0x67 => {
-                    todo!()
+                    let player_id = PlayerId(packet.header().id0());
+                    let controllable_info_id = ControllableInfoId(packet.header().id1());
+                    let reduced = packet.header().param0() == 1;
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    debug_assert!(self.players[player_id].controllables_info().get(controllable_info_id).is_some(), "{controllable_info_id:?} for {player_id:?} is not populated.");
+                    packet.read(|reader| self.players[player_id][controllable_info_id].dynamic_update(reader, reduced));
+                    Ok(Some(FlattiverseEvent::ControllableInfoUpdated {
+                        galaxy: self.id,
+                        player: player_id,
+                        controllable_info: controllable_info_id,
+                    }))
                 }
 
                 // controllable info removed

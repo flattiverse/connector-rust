@@ -77,6 +77,17 @@ impl ControllableInfo {
         self.active = false;
     }
 
+    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader, reduced: bool) {
+        if reduced {
+            let _ = reader.read_boolean();
+        } else {
+            self.hull = reader.read_double();
+            self.shields = reader.read_double();
+            self.energy = reader.read_double();
+            self.ion = reader.read_double();
+        }
+    }
+
     #[inline]
     pub fn galaxy(&self) -> GalaxyId {
         self.galaxy
