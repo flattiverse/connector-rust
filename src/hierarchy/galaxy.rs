@@ -601,6 +601,11 @@ impl Galaxy {
     }
 
     #[inline]
+    pub fn controllables(&self) -> &UniversalHolder<ControllableId, Controllable> {
+        &self.controllables
+    }
+
+    #[inline]
     pub fn players(&self) -> &UniversalHolder<PlayerId, Player> {
         &self.players
     }
