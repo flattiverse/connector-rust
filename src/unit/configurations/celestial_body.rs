@@ -16,8 +16,8 @@ impl Default for CelestialBodyConfiguration {
         Self {
             base: UnitConfiguration::default(),
             position: Vector::from_xy(0.0, 0.0),
-            radius: 10.0,
-            gravity: 30.0,
+            radius: 50.0,
+            gravity: 1.0,
         }
     }
 }
