@@ -333,12 +333,12 @@ impl PlayerUnit {
     }
 
     #[inline]
-    pub fn weapon_ammo(&self) -> u16 {
+    pub fn weapon_ammo(&self) -> f64 {
         self.weapon_ammo
     }
 
     #[inline]
-    pub fn weapon_ammo_max(&self) -> u16 {
+    pub fn weapon_ammo_max(&self) -> f64 {
         self.weapon_ammo_max
     }
 
