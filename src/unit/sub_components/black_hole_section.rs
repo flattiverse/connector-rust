@@ -4,11 +4,11 @@ use crate::{GameError, GameErrorKind};
 
 #[derive(Debug, Clone, Default)]
 pub struct BlackHoleSection {
-    inner_radius: f64,
-    outer_radius: f64,
-    angle_from: f64,
-    angle_to: f64,
-    additional_gravity: f64,
+    pub inner_radius: f64,
+    pub outer_radius: f64,
+    pub angle_from: f64,
+    pub angle_to: f64,
+    pub additional_gravity: f64,
     configuration: Option<BlackHoleConfiguration>,
 }
 

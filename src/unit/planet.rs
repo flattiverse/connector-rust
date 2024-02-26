@@ -4,6 +4,7 @@ use crate::unit::configurations::PlanetConfiguration;
 use crate::unit::sub_components::HarvestableSection;
 use crate::unit::{CelestialBody, Harvestable, Unit, UnitKind};
 use crate::{GameError, Vector};
+use std::any::Any;
 use std::future::Future;
 
 #[derive(Debug)]
@@ -96,5 +97,10 @@ impl Unit for Planet {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Planet
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &*self
     }
 }

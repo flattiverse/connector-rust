@@ -4,6 +4,7 @@ use crate::unit::configurations::BlackHoleConfiguration;
 use crate::unit::sub_components::BlackHoleSection;
 use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{GameError, Vector};
+use std::any::Any;
 use std::future::Future;
 
 #[derive(Debug)]
@@ -95,5 +96,10 @@ impl Unit for BlackHole {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::BlackHole
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &*self
     }
 }

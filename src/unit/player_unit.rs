@@ -2,6 +2,7 @@ use crate::hierarchy::{ClusterId, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::unit::{Unit, UnitKind};
 use crate::{Indexer, PlayerId, Vector};
+use std::any::Any;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerUnitId(pub(crate) u8);
@@ -404,5 +405,10 @@ impl Unit for PlayerUnit {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Ship
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &*self
     }
 }

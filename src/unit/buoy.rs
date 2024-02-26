@@ -3,6 +3,7 @@ use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::configurations::{BuoyConfiguration, SunConfiguration};
 use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{GameError, Vector};
+use std::any::Any;
 use std::future::Future;
 
 #[derive(Debug)]
@@ -88,5 +89,10 @@ impl Unit for Buoy {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Buoy
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &*self
     }
 }

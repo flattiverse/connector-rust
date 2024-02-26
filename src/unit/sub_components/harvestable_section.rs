@@ -4,15 +4,15 @@ use crate::{GameError, GameErrorKind};
 
 #[derive(Debug, Clone, Default)]
 pub struct HarvestableSection {
-    inner_radius: f64,
-    outer_radius: f64,
-    angle_from: f64,
-    angle_to: f64,
+    pub inner_radius: f64,
+    pub outer_radius: f64,
+    pub angle_from: f64,
+    pub angle_to: f64,
 
-    iron: f64,
-    silicon: f64,
-    tungsten: f64,
-    tritium: f64,
+    pub iron: f64,
+    pub silicon: f64,
+    pub tungsten: f64,
+    pub tritium: f64,
 
     configuration: Option<HarvestableConfiguration>,
 }

@@ -3,12 +3,13 @@ use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::{BlackHole, Buoy, Meteoroid, PlayerUnit};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
 use crate::{GameError, NamedUnit, TeamId, Vector};
+use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
 
-/// Represents an unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
+/// Represents a unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
 /// those methods and might add futher propeties.
-pub trait Unit: Debug {
+pub trait Unit: Any + Debug {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
     fn name(&self) -> &str;
 
@@ -102,6 +103,9 @@ pub trait Unit: Debug {
     ///
     /// [downcasting]: std::any::Any
     fn kind(&self) -> UnitKind;
+
+    /// Workaround for as long as `trait_upcasting` is unstable.
+    fn as_any(&self) -> &dyn Any;
 }
 
 impl<T: Unit> NamedUnit for T {

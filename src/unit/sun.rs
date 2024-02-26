@@ -4,6 +4,7 @@ use crate::unit::configurations::SunConfiguration;
 use crate::unit::sub_components::SunSection;
 use crate::unit::{CelestialBody, Unit, UnitKind};
 use crate::{GameError, Vector};
+use std::any::Any;
 use std::future::Future;
 
 #[derive(Debug)]
@@ -100,5 +101,10 @@ impl Unit for Sun {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Sun
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &*self
     }
 }
