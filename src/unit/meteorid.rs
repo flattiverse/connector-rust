@@ -65,6 +65,11 @@ impl Meteoroid {
 
 impl Unit for Meteoroid {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }

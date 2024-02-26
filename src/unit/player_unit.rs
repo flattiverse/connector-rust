@@ -87,12 +87,14 @@ impl PlayerUnit {
                     .try_into()
                     .expect("ShipId is not within the expected range"),
             ),
-            upgrade: ShipUpgradeId(
-                reader
-                    .read_int32()
-                    .try_into()
-                    .expect("UpgradeId is not within the expected range"),
-            ),
+            upgrade: ShipUpgradeId({
+                let value = reader.read_int32();
+                let id = value.try_into();
+                if id.is_err() {
+                    warn!("ShpUpgradeId-Raw({value})");
+                }
+                id.unwrap_or(0) // .expect("UpgradeId is not within the expected range")
+            }),
 
             hull: reader.read_double(),
             hull_max: reader.read_double(),
@@ -370,6 +372,11 @@ impl PlayerUnit {
 
 impl Unit for PlayerUnit {
     #[inline]
+    fn active(&self) -> bool {
+        self.active
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         PlayerUnit::name(self)
     }
@@ -379,22 +386,23 @@ impl Unit for PlayerUnit {
         PlayerUnit::cluster(self)
     }
 
+    fn movement(&self) -> Vector {
+        self.movement
+    }
+
     #[inline]
     fn position(&self) -> Vector {
-        warn!("Ship has no position yet!");
-        Vector::default()
+        self.position
     }
 
     #[inline]
     fn gravity(&self) -> f64 {
-        warn!("Ship has no gravity set!");
-        0.0
+        self.weight
     }
 
     #[inline]
     fn radius(&self) -> f64 {
-        warn!("Ship has no radius yet!");
-        0.0
+        self.size
     }
 
     fn update(&mut self, reader: &mut dyn PacketReader) {

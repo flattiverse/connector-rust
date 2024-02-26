@@ -65,6 +65,11 @@ impl Planet {
 
 impl Unit for Planet {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }

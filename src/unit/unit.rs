@@ -13,10 +13,10 @@ pub trait Unit: Any + Debug {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
     fn name(&self) -> &str;
 
-    //    /// Indicates whether this [`Unit`] is still active. A [`Unit`] is active as long as it is
-    //    /// visible to the current player. If this [`Unit`] moves out of all scan areas, it is
-    //    /// deactivated and [`Unit::active`] will return `false`.
-    //    fn active(&self) -> bool;
+    /// Indicates whether this [`Unit`] is still active. A [`Unit`] is active as long as it is
+    /// visible to the current player. If this [`Unit`] moves out of all scan areas, it is
+    /// deactivated and [`Unit::active`] will return `false`.
+    fn active(&self) -> bool;
     //
     //    /// For internal use only.
     //    fn deactivate(&mut self);

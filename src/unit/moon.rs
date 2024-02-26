@@ -65,6 +65,11 @@ impl Moon {
 
 impl Unit for Moon {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }

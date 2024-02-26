@@ -67,6 +67,11 @@ impl BlackHole {
 
 impl Unit for BlackHole {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }

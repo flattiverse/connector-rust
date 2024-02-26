@@ -67,6 +67,11 @@ impl Sun {
 
 impl Unit for Sun {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }

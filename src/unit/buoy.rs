@@ -57,6 +57,11 @@ impl Buoy {
 
 impl Unit for Buoy {
     #[inline]
+    fn active(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn name(&self) -> &str {
         &self.body.name
     }
