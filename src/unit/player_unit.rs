@@ -1,7 +1,7 @@
-use crate::hierarchy::{ClusterId, ControllableInfoId, ShipDesignId, ShipUpgradeId};
+use crate::hierarchy::{ClusterId, ControllableInfoId};
 use crate::network::PacketReader;
 use crate::unit::{Unit, UnitKind};
-use crate::{ControllableId, Indexer, PlayerId, Vector};
+use crate::{PlayerId, Vector};
 use std::any::Any;
 
 #[derive(Debug)]
