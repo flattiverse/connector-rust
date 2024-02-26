@@ -163,8 +163,8 @@ impl Galaxy {
 
                 // region created
                 0x42 => {
-                    let region_id = RegionId(packet.header().id0());
-                    let cluster_id = ClusterId(packet.header().id1());
+                    let cluster_id = ClusterId(packet.header().id0());
+                    let region_id = RegionId(packet.header().id1());
                     debug_assert!(self.clusters.get(cluster_id).is_some(), "{cluster_id:?} is not populated");
                     debug_assert!(self.clusters[cluster_id].regions().get(region_id).is_none(), "{region_id:?} for {cluster_id:?} is already populated: {:?}", self.clusters[cluster_id].regions().get(region_id));
                     self.clusters[cluster_id].regions_mut().set(
