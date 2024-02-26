@@ -18,7 +18,13 @@ impl CelestialBody {
             name: reader.read_string(),
             position: Vector::default().with_read(reader),
             radius: reader.read_double(),
-            gravity: reader.read_double(),
+            gravity: {
+                let gravity = reader.read_double();
+
+                let _orbiting = reader.read_byte();
+
+                gravity
+            },
         }
     }
 
@@ -27,5 +33,7 @@ impl CelestialBody {
         self.position = Vector::default().with_read(reader);
         self.radius = reader.read_double();
         self.gravity = reader.read_double();
+
+        let _orbiting = reader.read_byte();
     }
 }
