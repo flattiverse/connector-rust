@@ -91,7 +91,7 @@ impl PlayerUnit {
                 let value = reader.read_int32();
                 let id = value.try_into();
                 if id.is_err() {
-                    warn!("ShpUpgradeId-Raw({value})");
+                    warn!("ShipUpgradeId-Raw({value})");
                 }
                 id.unwrap_or(0) // .expect("UpgradeId is not within the expected range")
             }),
