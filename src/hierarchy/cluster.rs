@@ -253,6 +253,11 @@ impl Cluster {
             .iter()
             .map(|(name, unit)| (name.as_str(), &**unit))
     }
+
+    #[inline]
+    pub fn connection(&self) -> &ConnectionHandle {
+        &self.connection
+    }
 }
 
 impl Index<RegionId> for Cluster {

@@ -38,7 +38,11 @@ impl Player {
             id: id.into(),
             kind,
             team,
-            name: reader.read_string(),
+            name: {
+                let name = reader.read_string();
+                let _ping = reader.read_int32();
+                name
+            },
             controllables: UniversalHolder::with_capacity(256),
         }
     }

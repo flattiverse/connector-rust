@@ -4,7 +4,7 @@ use crate::{GameError, Indexer, NamedUnit};
 use std::future::Future;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct TeamId(pub(crate) u8);
+pub struct TeamId(pub u8);
 
 impl Indexer for TeamId {
     #[inline]

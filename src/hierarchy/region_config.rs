@@ -2,7 +2,7 @@ use crate::network::{PacketReader, PacketWriter};
 use crate::utils::check_name_or_err_64;
 use crate::{GameError, TeamId};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RegionConfig {
     pub name: String,
     pub start_propability: f64,
@@ -56,6 +56,21 @@ impl RegionConfig {
         writer.write_double(self.right);
         writer.write_double(self.bottom);
         writer.write_uint32(self.team)
+    }
+
+    pub fn contains_team(&self, team: TeamId) -> bool {
+        let mask = 0x01_u32 << team.0;
+        (self.team & mask) == mask
+    }
+
+    pub fn set_team(&mut self, team: TeamId) {
+        let mask = 0x01_u32 << team.0;
+        self.team |= mask;
+    }
+
+    pub fn reset_team(&mut self, team: TeamId) {
+        let mask = 0x01_u32 << team.0;
+        self.team &= !mask;
     }
 
     /// Extracts the [`TeamId`]s from the `teams` bit-field.
