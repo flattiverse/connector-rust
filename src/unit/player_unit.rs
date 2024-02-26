@@ -133,8 +133,8 @@ impl PlayerUnit {
             weapon_ammo: reader.read_double(),
             weapon_ammo_max: reader.read_double(),
             weapon_ammo_production: reader.read_double(),
-            position: Vector::default(),
-            movement: Vector::default(),
+            position: Vector::default().with_read(reader),
+            movement: Vector::default().with_read(reader),
             active: true,
         }
     }
