@@ -111,7 +111,7 @@ impl Galaxy {
             Err(GameError::from(GameErrorKind::Unspecified(0))
                 .with_info("At this point, no session specific packet should be handled"))
         } else {
-            debug!(
+            info!(
                 "Processing packet with command=0x{:02x}",
                 packet.header().command()
             );
@@ -450,7 +450,7 @@ impl Galaxy {
                 }
 
                 // we see a new unit which we didn't see before
-                0x1C => {
+                0x1c => {
                     let cluster_id = ClusterId(packet.header().id0());
                     let unit_kind = UnitKind::try_from_primitive(packet.header().param0())
                         .expect("Unknown UnitKind ");
