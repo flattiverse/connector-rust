@@ -74,7 +74,13 @@ impl RegionConfig {
 
     /// The name of the configured [`crate::hierarchy::Region`].
     pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        let name = name.into();
         self.name = check_name_or_err_64(name)?;
         Ok(())
+    }
+
+    #[inline]
+    pub fn name_valid(&self) -> bool {
+        check_name_or_err_64(&self.name).is_ok()
     }
 }

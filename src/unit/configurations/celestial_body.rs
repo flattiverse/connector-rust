@@ -6,9 +6,9 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone)]
 pub struct CelestialBodyConfiguration {
     pub(crate) base: UnitConfiguration,
-    position: Vector,
-    radius: f64,
-    gravity: f64,
+    pub position: Vector,
+    pub radius: f64,
+    pub gravity: f64,
 }
 
 impl Default for CelestialBodyConfiguration {

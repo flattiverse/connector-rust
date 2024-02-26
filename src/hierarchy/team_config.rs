@@ -35,7 +35,13 @@ impl TeamConfig {
 
     /// The name of the configured [`crate::Team`].
     pub fn set_name(&mut self, name: impl Into<String>) -> Result<(), GameError> {
+        let name = name.into();
         self.name = check_name_or_err_32(name)?;
         Ok(())
+    }
+
+    #[inline]
+    pub fn name_valid(&self) -> bool {
+        check_name_or_err_32(&self.name).is_ok()
     }
 }
