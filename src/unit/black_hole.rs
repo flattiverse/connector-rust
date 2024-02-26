@@ -58,6 +58,11 @@ impl BlackHole {
             .remove_unit_split(self.body.cluster, self.name().to_string(), self.kind())
             .await
     }
+
+    #[inline]
+    pub fn sections(&self) -> &[BlackHoleSection] {
+        &self.sections
+    }
 }
 
 impl Unit for BlackHole {

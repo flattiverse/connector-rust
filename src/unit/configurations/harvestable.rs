@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone, Default)]
 pub struct HarvestableConfiguration {
     pub(crate) base: CelestialBodyConfiguration,
-    pub(crate) sections: Vec<HarvestableSection>,
+    pub sections: Vec<HarvestableSection>,
 }
 
 impl HarvestableConfiguration {
@@ -29,16 +29,6 @@ impl HarvestableConfiguration {
 
         writer.write_byte(self.sections.len() as _);
         self.sections.iter().for_each(|s| s.write(writer));
-    }
-
-    #[inline]
-    pub fn sections(&self) -> &[HarvestableSection] {
-        &self.sections
-    }
-
-    #[inline]
-    pub fn sections_mut(&mut self) -> &mut [HarvestableSection] {
-        &mut self.sections
     }
 
     /// Returns the index of the new [`HarvestableSection`] on success.

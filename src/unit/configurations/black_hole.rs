@@ -8,20 +8,10 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Clone, Default)]
 pub struct BlackHoleConfiguration {
     pub(crate) base: CelestialBodyConfiguration,
-    pub(crate) sections: Vec<BlackHoleSection>,
+    pub sections: Vec<BlackHoleSection>,
 }
 
 impl BlackHoleConfiguration {
-    #[inline]
-    pub fn sections(&self) -> &[BlackHoleSection] {
-        &self.sections
-    }
-
-    #[inline]
-    pub fn sections_mut(&mut self) -> &mut [BlackHoleSection] {
-        &mut self.sections
-    }
-
     /// Returns the index of the new [`BlackHoleSection`] on success.
     pub fn add_section(&mut self) -> Result<usize, GameError> {
         if self.sections.len() >= 16 {
