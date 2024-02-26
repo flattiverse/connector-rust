@@ -64,7 +64,11 @@ impl Packet {
 
     #[inline]
     pub fn read<T>(&mut self, f: impl FnOnce(&mut dyn PacketReader) -> T) -> T {
-        f(&mut self.payload)
+        let response = f(&mut self.payload);
+        if !self.payload.is_empty() {
+            warn!("There are still {} bytes remaining", self.payload.len());
+        }
+        response
     }
 
     #[inline]
