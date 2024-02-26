@@ -82,7 +82,7 @@ impl CelestialBodyConfiguration {
     }
 
     pub fn set_gravity(&mut self, gravity: f64) -> Result<(), GameError> {
-        if gravity.is_infinite() || gravity.is_nan() || gravity < 30.0 || gravity > 30.0 {
+        if gravity.is_infinite() || gravity.is_nan() || gravity < -5.0 || gravity > 5.0 {
             Err(GameErrorKind::ParameterNotWithinSpecification.into())
         } else {
             self.gravity = gravity;
