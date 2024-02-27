@@ -8,7 +8,7 @@ use crate::unit::configurations::{
     MoonConfiguration, PlanetConfiguration, SunConfiguration,
 };
 use crate::unit::UnitKind;
-use crate::{Controllable, ControllableId, GameError, GameErrorKind, TeamId};
+use crate::{ControllableId, GameError, GameErrorKind, TeamId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;

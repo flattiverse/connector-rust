@@ -9,6 +9,8 @@ use std::future::Future;
 #[derive(Debug)]
 pub struct Buoy {
     body: CelestialBody,
+    message: String,
+    beacons: Vec<Vector>,
     connection: ConnectionHandle,
 }
 
@@ -20,6 +22,10 @@ impl Buoy {
     ) -> Self {
         Self {
             body: CelestialBody::new(cluster, reader),
+            message: reader.read_string(),
+            beacons: (0..reader.read_byte())
+                .map(|_| Vector::default().with_read(reader))
+                .collect(),
             connection,
         }
     }
@@ -52,6 +58,19 @@ impl Buoy {
         self.connection
             .remove_unit_split(self.body.cluster, self.name().to_string(), self.kind())
             .await
+    }
+
+    /// The message of this [`Buoy`].
+    #[inline]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Beacons of this [`Buoy`]. Beacons are locations relative to a [`Buoy`] for which the space
+    /// in between might be of interest.
+    #[inline]
+    pub fn beacons(&self) -> &[Vector] {
+        &self.beacons
     }
 }
 
@@ -89,6 +108,11 @@ impl Unit for Buoy {
     #[inline]
     fn update(&mut self, reader: &mut dyn PacketReader) {
         self.body.update(reader);
+
+        self.message = reader.read_string();
+        self.beacons = (0..reader.read_byte())
+            .map(|_| Vector::default().with_read(reader))
+            .collect();
     }
 
     #[inline]
