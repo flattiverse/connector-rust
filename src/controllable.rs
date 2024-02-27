@@ -220,9 +220,11 @@ impl Controllable {
         }
     }
 
-    /// Revives this [`Controllable`].
+    /// Sets the thruster fand nozzle of this [`Controllable`] at the same time. Please note, that
+    /// you need to stay within the limits of your ships configuration. A postive thruster value
+    /// make your ship advance forward. A negative thruster value negatively. Usually a ship is
+    /// designed to be faster when flying forward.
     /// See also [`ConnectionHandle::set_controllable_thruster_nozzel`].
-    #[inline]
     pub async fn set_thruster_nozzle(
         &self,
         thruster: f64,
@@ -241,6 +243,29 @@ impl Controllable {
         } else {
             self.connection
                 .set_controllable_thruster_nozzel_split(self.id, thruster, nozzle)
+                .await
+        }
+    }
+
+    /// Sets the thruster of the [`ControllableId`]. Please note, that you need to stay within the
+    /// limits of your ships configuration. A positive thruster value will make your ship advance
+    /// forward. A negative thruster value nagetively. Usually, a ship is deisgned to be faster when
+    /// flying forward.
+    pub async fn set_thruster(
+        &self,
+        thruster: f64,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !self.active {
+            return Err(GameError::from(0x22));
+        } else if self.hull <= 0.0 {
+            return Err(GameError::from(0x20));
+        } else if thruster < self.thruster_max_backward * -1.05
+            || thruster > self.thruster_max_forward * 1.05
+        {
+            return Err(GameError::from(0x31));
+        } else {
+            self.connection
+                .set_controllable_thruster_split(self.id, thruster)
                 .await
         }
     }

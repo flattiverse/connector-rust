@@ -8,7 +8,7 @@ use crate::unit::configurations::{
     MoonConfiguration, PlanetConfiguration, SunConfiguration,
 };
 use crate::unit::UnitKind;
-use crate::{ControllableId, GameError, GameErrorKind, TeamId};
+use crate::{Controllable, ControllableId, GameError, GameErrorKind, TeamId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
@@ -810,6 +810,10 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the thruster fand nozzle of the [`Controllable`] at the same time. Please note, that
+    /// you need to stay within the limits of your ships configuration. A postive thruster value
+    /// make your ship advance forward. A negative thruster value negatively. Usually a ship is
+    /// designed to be faster when flying forward.
     #[inline]
     pub async fn set_controllable_thruster_nozzel(
         &self,
@@ -822,6 +826,10 @@ impl ConnectionHandle {
             .await
     }
 
+    /// Sets the thruster fand nozzle of the [`Controllable`] at the same time. Please note, that
+    /// you need to stay within the limits of your ships configuration. A postive thruster value
+    /// make your ship advance forward. A negative thruster value negatively. Usually a ship is
+    /// designed to be faster when flying forward.
     pub async fn set_controllable_thruster_nozzel_split(
         &self,
         controllable: ControllableId,
@@ -838,6 +846,49 @@ impl ConnectionHandle {
         packet.write(|writer| {
             writer.write_double(thruster);
             writer.write_double(nozzle);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sets the thruster of the [`ControllableId`]. Please note, that you need to stay within the
+    /// limits of your ships configuration. A positive thruster value will make your ship advance
+    /// forward. A negative thruster value nagetively. Usually, a ship is deisgned to be faster when
+    /// flying forward.
+    #[inline]
+    pub async fn set_controllable_thruster(
+        &self,
+        controllable: ControllableId,
+        thruster: f64,
+    ) -> Result<(), GameError> {
+        self.set_controllable_thruster_split(controllable, thruster)
+            .await?
+            .await
+    }
+
+    /// Sets the thruster of the [`ControllableId`]. Please note, that you need to stay within the
+    /// limits of your ships configuration. A positive thruster value will make your ship advance
+    /// forward. A negative thruster value nagetively. Usually, a ship is deisgned to be faster when
+    /// flying forward.
+    pub async fn set_controllable_thruster_split(
+        &self,
+        controllable: ControllableId,
+        thruster: f64,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !thruster.is_finite() {
+            return Err(GameError::from(0x31));
+        }
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x31);
+        packet.header_mut().set_id0(controllable.0);
+        packet.write(|writer| {
+            writer.write_double(thruster);
         });
 
         let session = self.send_packet_on_new_session(packet).await?;
