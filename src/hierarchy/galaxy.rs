@@ -13,6 +13,7 @@ use crate::{Controllable, ControllableId, PlayerId, PlayerKind, TeamId, Universa
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::future::Future;
+use std::ops::Index;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
 
@@ -613,5 +614,13 @@ impl Galaxy {
     #[inline]
     pub fn connection(&self) -> &ConnectionHandle {
         &self.connection
+    }
+}
+
+impl Index<ControllableId> for Galaxy {
+    type Output = Controllable;
+
+    fn index(&self, index: ControllableId) -> &Self::Output {
+        &self.controllables[index]
     }
 }
