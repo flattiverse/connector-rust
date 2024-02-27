@@ -117,6 +117,37 @@ impl Galaxy {
                 packet.header().command()
             );
             match packet.header().command() {
+                // message to player
+                0x30 => {
+                    let player_id = PlayerId(packet.header().id0());
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    Ok(Some(FlattiverseEvent::PlayerChatMessageReceived {
+                        time: crate::runtime::now(),
+                        player: player_id,
+                        message: packet.read(|reader| reader.read_remaining_as_string()),
+                    }))
+                }
+                // message to team
+                0x31 => {
+                    let player_id = PlayerId(packet.header().id0());
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    Ok(Some(FlattiverseEvent::TeamChatMessageReceived {
+                        time: crate::runtime::now(),
+                        player: player_id,
+                        message: packet.read(|reader| reader.read_remaining_as_string()),
+                    }))
+                }
+                // message to galaxy
+                0x32 => {
+                    let player_id = PlayerId(packet.header().id0());
+                    debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
+                    Ok(Some(FlattiverseEvent::GalaxyChatMessageReceived {
+                        time: crate::runtime::now(),
+                        player: player_id,
+                        message: packet.read(|reader| reader.read_remaining_as_string()),
+                    }))
+                }
+
                 // galaxy created
                 0x40 |
                 // galaxy updated

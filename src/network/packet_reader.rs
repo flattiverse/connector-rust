@@ -15,6 +15,8 @@ pub trait PacketReader {
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
 
+    fn read_remaining_as_string(&mut self) -> String;
+
     fn peek_string(&self) -> String;
     fn jump_over_string(&mut self);
 }
@@ -94,6 +96,14 @@ impl PacketReader for BytesMut {
         } else {
             None
         }
+    }
+
+    fn read_remaining_as_string(&mut self) -> String {
+        let slice = &self[..];
+        let length = slice.len();
+        let string = String::from_utf8(slice.to_vec()).unwrap();
+        self.advance(length);
+        string
     }
 
     fn peek_string(&self) -> String {

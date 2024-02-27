@@ -1,7 +1,7 @@
 use crate::hierarchy::{ClusterId, RegionId, ShipDesignId, ShipUpgradeId};
 use crate::hierarchy::{ControllableInfoId, GalaxyId};
 use crate::{ControllableId, PlayerId, TeamId};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 #[derive(Debug)]
 pub enum FlattiverseEvent {
@@ -131,6 +131,25 @@ pub enum FlattiverseEvent {
     ControllableRemoved {
         galaxy: GalaxyId,
         controllable: ControllableId,
+    },
+
+    /// Received a message from the given player.
+    PlayerChatMessageReceived {
+        time: SystemTime,
+        player: PlayerId,
+        message: String,
+    },
+    /// Received a message from the given team.
+    TeamChatMessageReceived {
+        time: SystemTime,
+        player: PlayerId,
+        message: String,
+    },
+    /// Received a message from the given galaxy.
+    GalaxyChatMessageReceived {
+        time: SystemTime,
+        player: PlayerId,
+        message: String,
     },
 
     TickCompleted,
