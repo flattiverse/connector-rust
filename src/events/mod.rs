@@ -8,15 +8,26 @@ pub enum FlattiverseEvent {
     PingMeasured(Duration),
     /// The [`crate::hierarchy::Cluster`] of the given id was updated.
     GalaxyUpdated(GalaxyId),
-    /// The [`crate::Cluster`] of the given [`crate::hierarchy::Galaxy`] was updated.
+    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was created.
+    ClusterCreated {
+        galaxy: GalaxyId,
+        cluster: ClusterId,
+    },
+    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was updated.
     ClusterUpdated {
         galaxy: GalaxyId,
         cluster: ClusterId,
     },
-    /// The [`crate::Cluster`] of the given [`crate::hierarchy::Galaxy`] was removed.
+    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was removed.
     ClusterRemoved {
         galaxy: GalaxyId,
         cluster: ClusterId,
+    },
+    /// The [`crate::hierarchy::Region`] of the given id was created.
+    RegionCreated {
+        galaxy: GalaxyId,
+        cluster: ClusterId,
+        region: RegionId,
     },
     /// The [`crate::hierarchy::Region`] of the given id was updated.
     RegionUpdated {
@@ -30,6 +41,11 @@ pub enum FlattiverseEvent {
         cluster: ClusterId,
         region: RegionId,
     },
+    /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was created.
+    TeamCreated {
+        galaxy: GalaxyId,
+        team: TeamId,
+    },
     /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was updated.
     TeamUpdated {
         galaxy: GalaxyId,
@@ -40,8 +56,8 @@ pub enum FlattiverseEvent {
         galaxy: GalaxyId,
         team: TeamId,
     },
-    /// The [`crate::hierarchy::ShipDesign`] of the given [`crate::hierarchy::Galaxy`] was updated.
-    ShipDesignUpdated {
+    /// The [`crate::hierarchy::ShipDesign`] of the given [`crate::hierarchy::Galaxy`] was created.
+    ShipDesignCreated {
         galaxy: GalaxyId,
         ship_design: ShipDesignId,
     },
@@ -52,13 +68,13 @@ pub enum FlattiverseEvent {
         ship: ShipDesignId,
         upgrade: ShipUpgradeId,
     },
-    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] was updated.
-    PlayerUpdated {
+    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has joined the game.
+    PlayerJoined {
         galaxy: GalaxyId,
         player: PlayerId,
     },
-    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] was removed.
-    PlayerRemoved {
+    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has left the game.
+    PlayerParted {
         galaxy: GalaxyId,
         player: PlayerId,
     },
@@ -82,6 +98,12 @@ pub enum FlattiverseEvent {
         name: String,
     },
 
+    /// The [`crate::hierarchy::ControllableInfo`] for the given values was created.
+    ControllableInfoCreated {
+        galaxy: GalaxyId,
+        player: PlayerId,
+        controllable_info: ControllableInfoId,
+    },
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was updated.
     ControllableInfoUpdated {
         galaxy: GalaxyId,
@@ -95,12 +117,17 @@ pub enum FlattiverseEvent {
         controllable_info: ControllableInfoId,
     },
 
+    /// The [`crate::controllable::Controllable`] for the given values has joined the game.
+    ControllableJoined {
+        galaxy: GalaxyId,
+        controllable: ControllableId,
+    },
     /// The [`crate::controllable::Controllable`] for the given values was updated.
     ControllableUpdated {
         galaxy: GalaxyId,
         controllable: ControllableId,
     },
-    /// The [`crate::controllable::Controllable`] for the given values was removed.
+    /// The [`crate::controllable::Controllable`] for the given values hsa left the game.
     ControllableRemoved {
         galaxy: GalaxyId,
         controllable: ControllableId,

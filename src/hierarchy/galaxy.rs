@@ -132,7 +132,7 @@ impl Galaxy {
                         cluster_id,
                         packet.read(|reader| Cluster::new(cluster_id, self.id, self.connection.clone(), reader))
                     );
-                    Ok(Some(FlattiverseEvent::ClusterUpdated {
+                    Ok(Some(FlattiverseEvent::ClusterCreated {
                         galaxy: self.id,
                         cluster: cluster_id,
                     }))
@@ -171,7 +171,7 @@ impl Galaxy {
                         region_id,
                         packet.read(|reader| Region::new(self.id, cluster_id, region_id, self.connection.clone(), reader))
                     );
-                    Ok(Some(FlattiverseEvent::RegionUpdated {
+                    Ok(Some(FlattiverseEvent::RegionCreated {
                         galaxy: self.id,
                         cluster: cluster_id,
                         region: region_id
@@ -216,7 +216,7 @@ impl Galaxy {
                         self.connection.clone(),
                         reader
                     )));
-                    Ok(Some(FlattiverseEvent::TeamUpdated {
+                    Ok(Some(FlattiverseEvent::TeamCreated {
                         galaxy: self.id,
                         team: team_id
                     }))
@@ -264,7 +264,7 @@ impl Galaxy {
                         ship_design_id,
                         packet.read(|reader| ShipDesign::new(ship_design_id, self.id, self.connection.clone(), reader))
                     );
-                    Ok(Some(FlattiverseEvent::ShipDesignUpdated {
+                    Ok(Some(FlattiverseEvent::ShipDesignCreated {
                         galaxy: self.id,
                         ship_design: ship_design_id,
                     }))
@@ -318,7 +318,7 @@ impl Galaxy {
                         player_id,
                         packet.read(|reader| Player::new(player_id, player_kind, team_id, reader))
                     );
-                    Ok(Some(FlattiverseEvent::PlayerUpdated {
+                    Ok(Some(FlattiverseEvent::PlayerJoined {
                         galaxy: self.id,
                         player: player_id,
                     }))
@@ -335,7 +335,7 @@ impl Galaxy {
                     debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
                     self.players[player_id].deactivate();
                     self.players.remove(player_id);
-                    Ok(Some(FlattiverseEvent::PlayerRemoved {
+                    Ok(Some(FlattiverseEvent::PlayerParted {
                         galaxy: self.id,
                         player: player_id,
                     }))
@@ -358,7 +358,7 @@ impl Galaxy {
                             reduced
                         ))
                     );
-                    Ok(Some(FlattiverseEvent::ControllableInfoUpdated {
+                    Ok(Some(FlattiverseEvent::ControllableInfoCreated {
                         galaxy: self.id,
                         player: player_id,
                         controllable_info: controllable_info_id,
@@ -409,7 +409,7 @@ impl Galaxy {
                         controllable_id,
                         packet.read(|reader| Controllable::new(self.id, controllable_id, reader, self.connection.clone()))
                     );
-                    Ok(Some(FlattiverseEvent::ControllableUpdated {
+                    Ok(Some(FlattiverseEvent::ControllableJoined {
                         galaxy: self.id,
                         controllable: controllable_id
                     }))
