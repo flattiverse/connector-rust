@@ -221,6 +221,31 @@ impl Controllable {
     }
 
     /// Revives this [`Controllable`].
+    /// See also [`ConnectionHandle::set_controllable_thruster_nozzel`].
+    #[inline]
+    pub async fn set_thruster_nozzle(
+        &self,
+        thruster: f64,
+        nozzle: f64,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !self.active {
+            return Err(GameError::from(0x22));
+        } else if self.hull <= 0.0 {
+            return Err(GameError::from(0x20));
+        } else if thruster < self.thruster_max_backward * -1.05
+            || thruster > self.thruster_max_forward * 1.05
+            || nozzle < self.nozzle_max * -1.05
+            || nozzle > self.nozzle_max * 1.05
+        {
+            return Err(GameError::from(0x31));
+        } else {
+            self.connection
+                .set_controllable_thruster_nozzel_split(self.id, thruster, nozzle)
+                .await
+        }
+    }
+
+    /// Revives this [`Controllable`].
     /// See also [`ConnectionHandle::unregister_controllable`].
     #[inline]
     pub async fn unregister(

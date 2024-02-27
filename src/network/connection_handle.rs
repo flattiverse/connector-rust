@@ -811,6 +811,44 @@ impl ConnectionHandle {
     }
 
     #[inline]
+    pub async fn set_controllable_thruster_nozzel(
+        &self,
+        controllable: ControllableId,
+        thruster: f64,
+        nozzle: f64,
+    ) -> Result<(), GameError> {
+        self.set_controllable_thruster_nozzel_split(controllable, thruster, nozzle)
+            .await?
+            .await
+    }
+
+    pub async fn set_controllable_thruster_nozzel_split(
+        &self,
+        controllable: ControllableId,
+        thruster: f64,
+        nozzle: f64,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !thruster.is_finite() || !nozzle.is_finite() {
+            return Err(GameError::from(0x31));
+        }
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x36);
+        packet.header_mut().set_id0(controllable.0);
+        packet.write(|writer| {
+            writer.write_double(thruster);
+            writer.write_double(nozzle);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    #[inline]
     pub async fn unregister_controllable(
         &self,
         controllable: ControllableId,
