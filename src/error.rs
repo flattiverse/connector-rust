@@ -87,7 +87,7 @@ pub enum GameErrorKind {
     ActionWithoutBeingAlive = 0x20,
     #[error("You need to die first to .continue().")]
     ContinueWithoutBeingDead = 0x21,
-    #[error("You can't do this while the unit is being deactivated.")]
+    #[error("You can't do this while the unit is (being) deactivated.")]
     UnitIsBeingDeactivated = 0x22,
     #[error("All start-locations are currently overcrowded. Try to .continue() later.")]
     StartLocationsOvercrowded = 0x23,
