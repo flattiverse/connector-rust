@@ -35,6 +35,7 @@ pub struct Galaxy {
     connection: ConnectionHandle,
     receiver: Receiver<ConnectionEvent>,
     login_completed: bool,
+    connected: bool,
 }
 
 impl Galaxy {
@@ -61,13 +62,17 @@ impl Galaxy {
             connection: handle,
             receiver,
             login_completed: false,
+            connected: true,
         })
     }
 
     pub async fn receive(&mut self) -> Result<FlattiverseEvent, GameError> {
         loop {
             match self.receiver.recv().await {
-                None => return Err(GameErrorKind::ConnectionClosed.into()),
+                None => {
+                    self.connected = false;
+                    return Err(GameErrorKind::ConnectionClosed.into());
+                }
                 Some(event) => {
                     if let Some(event) = self.on_connection_event(event)? {
                         return Ok(event);
@@ -81,6 +86,7 @@ impl Galaxy {
         loop {
             match self.receiver.try_recv() {
                 Err(TryRecvError::Disconnected) => {
+                    self.connected = false;
                     return Err(GameErrorKind::ConnectionClosed.into());
                 }
                 Ok(event) => {
@@ -420,6 +426,7 @@ impl Galaxy {
 
                 // controllable info removed
                 0x77 => {
+                    warn!("controllable info removed: {:?}", packet.header());
                     let player_id = PlayerId(packet.header().id0());
                     let controllable_info_id = ControllableInfoId(packet.header().id1());
                     debug_assert!(self.players.get(player_id).is_some(), "{player_id:?} is not populated.");
@@ -655,6 +662,11 @@ impl Galaxy {
     #[inline]
     pub fn connection(&self) -> &ConnectionHandle {
         &self.connection
+    }
+
+    #[inline]
+    pub fn connected(&self) -> bool {
+        self.connected
     }
 }
 
