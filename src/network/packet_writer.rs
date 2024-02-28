@@ -12,6 +12,7 @@ pub trait PacketWriter {
     fn write_double(&mut self, number: f64);
     fn write_boolean(&mut self, value: bool);
     fn write_string(&mut self, text: &str);
+    fn write_string_without_len(&mut self, text: &str);
     fn write_nullable_byte(&mut self, value: Option<u8>);
 }
 
@@ -70,6 +71,11 @@ impl PacketWriter for BytesMut {
         let bytes = text.as_bytes();
         self.write_byte(bytes.len() as _);
         self.put_slice(bytes);
+    }
+
+    #[inline]
+    fn write_string_without_len(&mut self, text: &str) {
+        self.put_slice(text.as_bytes())
     }
 
     fn write_nullable_byte(&mut self, value: Option<u8>) {

@@ -1,8 +1,9 @@
 use crate::hierarchy::{ControllableInfo, ControllableInfoId};
-use crate::network::PacketReader;
+use crate::network::{ConnectionHandle, PacketReader};
 use crate::player_kind::PlayerKind;
-use crate::{Indexer, NamedUnit, TeamId, UniversalHolder};
+use crate::{GameError, GameErrorKind, Indexer, NamedUnit, TeamId, UniversalHolder};
 use std::fmt::{Display, Formatter};
+use std::future::Future;
 use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -23,6 +24,7 @@ pub struct Player {
     team: TeamId,
     active: bool,
     controllables: UniversalHolder<ControllableInfoId, ControllableInfo>,
+    connection: ConnectionHandle,
 }
 
 impl Player {
@@ -32,6 +34,7 @@ impl Player {
         kind: PlayerKind,
         team: TeamId,
         reader: &mut dyn PacketReader,
+        connection: ConnectionHandle,
     ) -> Self {
         Self {
             active: true,
@@ -44,6 +47,21 @@ impl Player {
                 name
             },
             controllables: UniversalHolder::with_capacity(256),
+            connection,
+        }
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to this [`Player`].
+    #[inline]
+    pub async fn chat(
+        &mut self,
+        message: impl Into<String>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if !self.active {
+            Err(GameErrorKind::UnitIsBeingDeactivated.into())
+        } else {
+            let message = message.into();
+            self.connection.chat_player_split(self.id, message).await
         }
     }
 

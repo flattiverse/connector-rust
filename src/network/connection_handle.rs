@@ -8,7 +8,8 @@ use crate::unit::configurations::{
     MoonConfiguration, PlanetConfiguration, SunConfiguration,
 };
 use crate::unit::UnitKind;
-use crate::{ControllableId, GameError, GameErrorKind, TeamId};
+use crate::utils::check_message_or_err;
+use crate::{ControllableId, GameError, GameErrorKind, PlayerId, TeamId};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
@@ -762,6 +763,89 @@ impl ConnectionHandle {
         Ok(async move {
             let response = session.receiver.await?;
             GameError::check(response, |packet| Ok(ControllableId(packet.header().id0())))
+        })
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to the given [`crate::Player`].
+    #[inline]
+    pub async fn chat_player(&self, player: PlayerId, message: String) -> Result<(), GameError> {
+        self.chat_player_split(player, message).await?.await
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to the given [`crate::Player`].
+    pub async fn chat_player_split(
+        &self,
+        player: PlayerId,
+        message: String,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let message = check_message_or_err(message)?;
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x20);
+        packet.header_mut().set_id0(player.0);
+        packet.write(|writer| writer.write_string_without_len(&message));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to all playerss in the given
+    /// [`crate::Team`].
+    #[inline]
+    pub async fn chat_team(&self, team: TeamId, message: String) -> Result<(), GameError> {
+        self.chat_team_split(team, message).await?.await
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to all playerss in the given
+    /// [`crate::Team`].
+    pub async fn chat_team_split(
+        &self,
+        team: TeamId,
+        message: String,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let message = check_message_or_err(message)?;
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x21);
+        packet.header_mut().set_id0(team.0);
+        packet.write(|writer| writer.write_string_without_len(&message));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to all players in the connected
+    /// [`crate::hierarchy::Galaxy`].
+    #[inline]
+    pub async fn chat_galaxy(&self, message: String) -> Result<(), GameError> {
+        self.chat_galaxy_split(message).await?.await
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to all players in the connected
+    /// [`crate::hierarchy::Galaxy`].
+    pub async fn chat_galaxy_split(
+        &self,
+        message: String,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let message = check_message_or_err(message)?;
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x22);
+        packet.write(|writer| writer.write_string_without_len(&message));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.receiver.await?;
+            GameError::check(response, |_| Ok(()))
         })
     }
 

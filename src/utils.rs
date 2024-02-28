@@ -32,3 +32,47 @@ pub fn check_name(name: &str) -> bool {
             || matches!(c as u32, 192..=214 | 216..=246 | 248..=687)
     })
 }
+
+pub fn check_message_or_err<S: AsRef<str>>(message: S) -> Result<S, GameError> {
+    if check_message(message.as_ref()) {
+        Ok(message)
+    } else {
+        Err(GameErrorKind::ParameterNotWithinSpecification.into())
+    }
+}
+
+pub fn check_message(message: &str) -> bool {
+    if message.len() < 1 || message.len() > 512 {
+        false
+    } else if message.trim().len() != message.len() {
+        false
+    } else {
+        message.chars().all(|c| {
+            matches!(
+                c,
+                '€' | '‚'
+                    | '„'
+                    | '…'
+                    | '‰'
+                    | '‹'
+                    | '›'
+                    | '™'
+                    | '•'
+                    | '¢'
+                    | '£'
+                    | '¡'
+                    | '¤'
+                    | '¥'
+                    | '©'
+                    | '®'
+                    | '±'
+                    | '²'
+                    | '³'
+                    | 'µ'
+                    | '¿'
+                    | '«'
+                    | '»'
+            ) || matches!(c as u32, 32..=126 | 192..=214 | 216..=246 | 248..=687)
+        })
+    }
+}

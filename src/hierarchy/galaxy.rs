@@ -348,7 +348,7 @@ impl Galaxy {
                     debug_assert!(self.teams.get(team_id).is_some(), "{team_id:?} is not populated.");
                     self.players.set(
                         player_id,
-                        packet.read(|reader| Player::new(player_id, player_kind, team_id, reader))
+                        packet.read(|reader| Player::new(player_id, player_kind, team_id, reader, self.connection.clone()))
                     );
                     Ok(Some(FlattiverseEvent::PlayerJoined {
                         galaxy: self.id,
@@ -605,6 +605,16 @@ impl Galaxy {
     ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
         let name = name.into();
         self.connection.register_ship_split(name, design).await
+    }
+
+    /// Sends a chat message with a maximum of 512 characters to all players in this [`Galaxy`].
+    #[inline]
+    pub async fn chat(
+        &mut self,
+        message: impl Into<String>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let message = message.into();
+        self.connection.chat_galaxy_split(message).await
     }
 
     #[inline]

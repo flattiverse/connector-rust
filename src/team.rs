@@ -63,6 +63,16 @@ impl Team {
         self.connection.remove_team_split(self.id).await
     }
 
+    /// Sends a chat message with a maximum of 512 characters to all players in this [`Team`].
+    #[inline]
+    pub async fn chat(
+        &mut self,
+        message: impl Into<String>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let message = message.into();
+        self.connection.chat_team_split(self.id, message).await
+    }
+
     #[inline]
     pub fn id(&self) -> TeamId {
         self.id
