@@ -173,4 +173,9 @@ impl Unit for PlayerUnit {
     fn as_any(&self) -> &dyn Any {
         &*self
     }
+
+    #[inline]
+    fn direction(&self) -> f64 {
+        self.direction
+    }
 }
