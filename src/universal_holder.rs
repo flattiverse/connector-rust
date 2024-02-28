@@ -84,7 +84,7 @@ impl<I, T: NamedUnit> UniversalHolder<I, T> {
     }
 }
 
-impl<I: Indexer, T> Index<I> for UniversalHolder<I, T> {
+impl<I: Indexer + Debug + Copy, T> Index<I> for UniversalHolder<I, T> {
     type Output = T;
 
     #[inline]
@@ -92,18 +92,17 @@ impl<I: Indexer, T> Index<I> for UniversalHolder<I, T> {
         let usize_index = index.index();
         match self.get(index) {
             Some(value) => value,
-            None => panic!("There is no entry for the given Index={}", usize_index),
+            None => panic!("There is no entry for the given Index={index:?}"),
         }
     }
 }
 
-impl<I: Indexer, T> IndexMut<I> for UniversalHolder<I, T> {
+impl<I: Indexer + Debug + Copy, T> IndexMut<I> for UniversalHolder<I, T> {
     #[inline]
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        let usize_index = index.index();
         match self.get_mut(index) {
             Some(value) => value,
-            None => panic!("There is no entry for the given Index={}", usize_index),
+            None => panic!("There is no entry for the given Index={index:?}"),
         }
     }
 }
