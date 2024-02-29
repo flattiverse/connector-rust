@@ -63,6 +63,11 @@ impl PlayerUnit {
     }
 
     #[inline]
+    pub fn controllable_info(&self) -> &Arc<ControllableInfo> {
+        &self.controllable_info
+    }
+
+    #[inline]
     pub fn thruster(&self) -> f64 {
         self.thruster.load()
     }
@@ -76,7 +81,6 @@ impl PlayerUnit {
     pub fn turnrate(&self) -> f64 {
         self.turnrate.load()
     }
-
     #[inline]
     pub fn weapon_ammo(&self) -> f64 {
         self.weapon_ammo.load()
