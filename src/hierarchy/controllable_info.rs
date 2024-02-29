@@ -174,12 +174,12 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn active(&self) -> bool {
+    pub fn is_active(&self) -> bool {
         self.active.load()
     }
 
     #[inline]
-    pub fn alive(&self) -> bool {
+    pub fn is_alive(&self) -> bool {
         self.alive.load()
     }
 }
