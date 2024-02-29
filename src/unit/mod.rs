@@ -36,3 +36,6 @@ pub use black_hole::*;
 
 mod player_unit;
 pub use player_unit::*;
+
+mod destruction_reason;
+pub use destruction_reason::*;
