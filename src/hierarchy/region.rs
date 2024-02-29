@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct RegionId(pub(crate) u8);
+pub struct RegionId(pub u8);
 
 impl Indexer for RegionId {
     #[inline]
