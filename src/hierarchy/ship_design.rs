@@ -1,8 +1,7 @@
-use crate::hierarchy::{GalaxyId, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId};
-use crate::network::{ConnectionHandle, PacketReader};
-use crate::{GameError, Indexer, NamedUnit, UniversalHolder};
-use std::future::Future;
-use std::ops::{Index, IndexMut};
+use crate::hierarchy::{Galaxy, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId};
+use crate::network::PacketReader;
+use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipDesignId(pub(crate) u8);
@@ -16,54 +15,51 @@ impl Indexer for ShipDesignId {
 
 #[derive(Debug)]
 pub struct ShipDesign {
-    galaxy: GalaxyId,
+    galaxy: Arc<Galaxy>,
+    upgrades: UniversalArcHolder<ShipUpgradeId, ShipUpgrade>,
     id: ShipDesignId,
-    upgrades: UniversalHolder<ShipUpgradeId, ShipUpgrade>,
     config: ShipDesignConfig,
-    connection: ConnectionHandle,
 }
 
 impl ShipDesign {
     pub fn new(
+        galaxy: Arc<Galaxy>,
         id: impl Into<ShipDesignId>,
-        galaxy: GalaxyId,
-        connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
-            id: id.into(),
             galaxy,
+            id: id.into(),
             config: ShipDesignConfig::from(reader),
-            upgrades: UniversalHolder::with_capacity(256),
-            connection,
+            upgrades: UniversalArcHolder::with_capacity(256),
         }
     }
 
     /// Sets the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::configure_ship`].
     #[inline]
-    pub async fn configure(
-        &self,
-        config: &ShipDesignConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.configure_ship_split(self.id, config).await
+    pub async fn configure(&self, config: &ShipDesignConfig) -> Result<(), GameError> {
+        self.galaxy
+            .connection()
+            .configure_ship(self.id, config)
+            .await
     }
 
     /// Removes this [`ShipDesign`].
     /// See also [`ConnectionHandle::remove_ship`].
     #[inline]
-    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.remove_ship_split(self.id).await
+    pub async fn remove(&self) -> Result<(), GameError> {
+        self.galaxy.connection().remove_ship(self.id).await
     }
 
     /// Creates an [`ShipUpgrade`] with the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::create_upgrade`]
     #[inline]
-    pub async fn create_upgrade(
-        &self,
-        config: &ShipUpgradeConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.create_upgrade_split(self.id, config).await
+    pub async fn create_upgrade(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
+        self.galaxy
+            .connection()
+            .create_upgrade(self.id, config)
+            .await
     }
 
     #[inline]
@@ -72,8 +68,8 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GalaxyId {
-        self.galaxy
+    pub fn galaxy(&self) -> &Arc<Galaxy> {
+        &self.galaxy
     }
 
     #[inline]
@@ -87,29 +83,15 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn upgrades(&self) -> &UniversalHolder<ShipUpgradeId, ShipUpgrade> {
+    pub fn upgrades(&self) -> &UniversalArcHolder<ShipUpgradeId, ShipUpgrade> {
         &self.upgrades
     }
-
-    #[inline]
-    pub fn upgrades_mut(&mut self) -> &mut UniversalHolder<ShipUpgradeId, ShipUpgrade> {
-        &mut self.upgrades
-    }
 }
 
-impl Index<ShipUpgradeId> for ShipDesign {
-    type Output = ShipUpgrade;
-
+impl Identifiable<ShipDesignId> for ShipDesign {
     #[inline]
-    fn index(&self, index: ShipUpgradeId) -> &Self::Output {
-        &self.upgrades[index]
-    }
-}
-
-impl IndexMut<ShipUpgradeId> for ShipDesign {
-    #[inline]
-    fn index_mut(&mut self, index: ShipUpgradeId) -> &mut Self::Output {
-        &mut self.upgrades[index]
+    fn id(&self) -> ShipDesignId {
+        self.id
     }
 }
 

@@ -1,10 +1,10 @@
-use crate::hierarchy::{ControllableInfo, ControllableInfoId};
-use crate::network::{ConnectionHandle, PacketReader};
+use crate::atomics::Atomic;
+use crate::hierarchy::{ControllableInfo, ControllableInfoId, Galaxy};
+use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
-use crate::{GameError, GameErrorKind, Indexer, NamedUnit, TeamId, UniversalHolder};
+use crate::{GameError, GameErrorKind, Identifiable, Indexer, NamedUnit, Team, UniversalArcHolder};
 use std::fmt::{Display, Formatter};
-use std::future::Future;
-use std::ops::{Index, IndexMut};
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -18,55 +18,51 @@ impl Indexer for PlayerId {
 
 #[derive(Debug)]
 pub struct Player {
+    galaxy: Arc<Galaxy>,
     id: PlayerId,
     name: String,
     kind: PlayerKind,
-    team: TeamId,
-    active: bool,
-    controllables: UniversalHolder<ControllableInfoId, ControllableInfo>,
-    connection: ConnectionHandle,
+    team: Arc<Team>,
+    active: Atomic<bool>,
+    controllables: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
 }
 
 impl Player {
     #[inline]
     pub fn new(
+        galaxy: Arc<Galaxy>,
         id: impl Into<PlayerId>,
         kind: PlayerKind,
-        team: TeamId,
+        team: Arc<Team>,
         reader: &mut dyn PacketReader,
-        connection: ConnectionHandle,
     ) -> Self {
         Self {
-            active: true,
+            galaxy,
             id: id.into(),
-            kind,
-            team,
             name: {
                 let name = reader.read_string();
                 let _ping = reader.read_int32();
                 name
             },
-            controllables: UniversalHolder::with_capacity(256),
-            connection,
+            kind,
+            team,
+            active: Atomic::from(true),
+            controllables: UniversalArcHolder::with_capacity(256),
         }
     }
 
     /// Sends a chat message with a maximum of 512 characters to this [`Player`].
     #[inline]
-    pub async fn chat(
-        &mut self,
-        message: impl Into<String>,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        if !self.active {
+    pub async fn chat(&mut self, message: impl AsRef<str>) -> Result<(), GameError> {
+        if !self.active() {
             Err(GameErrorKind::UnitIsBeingDeactivated.into())
         } else {
-            let message = message.into();
-            self.connection.chat_player_split(self.id, message).await
+            self.galaxy.connection().chat_player(self.id, message).await
         }
     }
 
-    pub(crate) fn deactivate(&mut self) {
-        self.active = false;
+    pub(crate) fn deactivate(&self) {
+        self.active.store(false);
     }
 
     #[inline]
@@ -85,46 +81,25 @@ impl Player {
     }
 
     #[inline]
-    pub fn team(&self) -> TeamId {
-        self.team
+    pub fn team(&self) -> &Arc<Team> {
+        &self.team
     }
 
     #[inline]
     pub fn active(&self) -> bool {
-        self.active
+        self.active.load()
     }
 
     #[inline]
-    pub fn controllables_info(&self) -> &UniversalHolder<ControllableInfoId, ControllableInfo> {
+    pub fn controllable_info(&self) -> &UniversalArcHolder<ControllableInfoId, ControllableInfo> {
         &self.controllables
     }
-
-    #[inline]
-    pub fn controllables_info_mut(
-        &mut self,
-    ) -> &mut UniversalHolder<ControllableInfoId, ControllableInfo> {
-        &mut self.controllables
-    }
-
-    #[inline]
-    pub fn iter_controllables_info(&self) -> impl Iterator<Item = &ControllableInfo> {
-        self.controllables.iter()
-    }
 }
 
-impl Index<ControllableInfoId> for Player {
-    type Output = ControllableInfo;
-
+impl Identifiable<PlayerId> for Player {
     #[inline]
-    fn index(&self, index: ControllableInfoId) -> &Self::Output {
-        &self.controllables[index]
-    }
-}
-
-impl IndexMut<ControllableInfoId> for Player {
-    #[inline]
-    fn index_mut(&mut self, index: ControllableInfoId) -> &mut Self::Output {
-        &mut self.controllables[index]
+    fn id(&self) -> PlayerId {
+        self.id
     }
 }
 

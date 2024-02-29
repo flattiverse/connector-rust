@@ -1,7 +1,10 @@
-use crate::hierarchy::TeamConfig;
-use crate::network::{ConnectionHandle, PacketReader};
-use crate::{GameError, Indexer, NamedUnit};
-use std::future::Future;
+use crate::atomics::Atomic;
+use crate::hierarchy::{Galaxy, TeamConfig};
+use crate::network::PacketReader;
+use crate::{GameError, Identifiable, Indexer};
+use arc_swap::ArcSwap;
+use std::ops::Deref;
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub u8);
@@ -15,62 +18,59 @@ impl Indexer for TeamId {
 
 #[derive(Debug)]
 pub struct Team {
-    active: bool,
+    galaxy: Arc<Galaxy>,
+    active: Atomic<bool>,
     id: TeamId,
-    config: TeamConfig,
-    connection: ConnectionHandle,
+    config: ArcSwap<TeamConfig>,
 }
 
 impl Team {
     #[inline]
-    pub fn new(
-        id: impl Into<TeamId>,
-        connection: ConnectionHandle,
-        reader: &mut dyn PacketReader,
-    ) -> Self {
+    pub fn new(galaxy: Arc<Galaxy>, id: impl Into<TeamId>, reader: &mut dyn PacketReader) -> Self {
         Self {
-            active: true,
+            galaxy,
             id: id.into(),
-            config: TeamConfig::from(reader),
-            connection,
+            active: Atomic::from(true),
+            config: ArcSwap::from(Arc::new(TeamConfig::from(reader))),
         }
     }
 
-    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
-        self.config = TeamConfig::from(reader);
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        self.config.swap(Arc::new(TeamConfig::from(reader)));
     }
 
-    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader) {}
+    pub(crate) fn dynamic_update(&self, reader: &mut dyn PacketReader) {}
 
-    pub(crate) fn deactivate(&mut self) {
-        self.active = false;
+    pub(crate) fn deactivate(&self) {
+        self.active.store(false);
     }
 
     /// Sets the given values for this [`Team`]
     /// See also [`ConnectionHandle::configure_team`]
     #[inline]
-    pub async fn configure(
-        &self,
-        config: &TeamConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.configure_team_split(self.id, config).await
+    pub async fn configure(&self, config: &TeamConfig) -> Result<(), GameError> {
+        self.galaxy
+            .connection()
+            .configure_team(self.id, config)
+            .await
     }
 
     /// Removes this [`Team`]
     /// See also [`ConnectionHandle::remove_team`]
     #[inline]
-    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.remove_team_split(self.id).await
+    pub async fn remove(&self) -> Result<(), GameError> {
+        self.galaxy.connection().remove_team(self.id).await
     }
 
     /// Sends a chat message with a maximum of 512 characters to all players in this [`Team`].
     #[inline]
-    pub async fn chat(
-        &mut self,
-        message: impl Into<String>,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        let message = message.into();
-        self.connection.chat_team_split(self.id, message).await
+    pub async fn chat(&mut self, message: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy.connection().chat_team(self.id, message).await
+    }
+
+    #[inline]
+    pub fn galaxy(&self) -> &Arc<Galaxy> {
+        &self.galaxy
     }
 
     #[inline]
@@ -79,19 +79,14 @@ impl Team {
     }
 
     #[inline]
-    pub fn name(&self) -> &str {
-        &&self.config.name
-    }
-
-    #[inline]
-    pub fn config(&self) -> &TeamConfig {
-        &self.config
+    pub fn config(&self) -> impl Deref<Target = Arc<TeamConfig>> {
+        self.config.load()
     }
 }
 
-impl NamedUnit for Team {
+impl Identifiable<TeamId> for Team {
     #[inline]
-    fn name(&self) -> &str {
-        Team::name(self)
+    fn id(&self) -> TeamId {
+        self.id
     }
 }

@@ -1,14 +1,15 @@
-use crate::hierarchy::{ClusterConfig, GalaxyId, Region, RegionConfig, RegionId};
+use crate::atomics::Atomic;
+use crate::hierarchy::{ClusterConfig, Galaxy, Region, RegionConfig, RegionId};
 use crate::network::{ConnectionHandle, PacketReader};
 use crate::unit::configurations::{
     BlackHoleConfiguration, BuoyConfiguration, MeteoroidConfiguration, MoonConfiguration,
     PlanetConfiguration, SunConfiguration,
 };
 use crate::unit::{Unit, UnitKind};
-use crate::{FlattiverseEvent, GameError, Indexer, NamedUnit, UniversalHolder};
-use rustc_hash::FxHashMap;
-use std::future::Future;
-use std::ops::{Index, IndexMut};
+use crate::{FlattiverseEvent, GameError, Identifiable, Indexer, UniversalArcHolder};
+use arc_swap::ArcSwap;
+use std::ops::Deref;
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -22,71 +23,61 @@ impl Indexer for ClusterId {
 
 #[derive(Debug)]
 pub struct Cluster {
-    active: bool,
+    active: Atomic<bool>,
     id: ClusterId,
-    galaxy: GalaxyId,
-    config: ClusterConfig,
-    units: FxHashMap<String, Box<dyn Unit>>,
-    regions: UniversalHolder<RegionId, Region>,
-    connection: ConnectionHandle,
+    galaxy: Arc<Galaxy>,
+    config: ArcSwap<ClusterConfig>,
+    units: UniversalArcHolder<(), Arc<dyn Unit>>,
+    regions: UniversalArcHolder<RegionId, Region>,
 }
 
 impl Cluster {
     #[inline]
     pub fn new(
+        galaxy: Arc<Galaxy>,
         id: impl Into<ClusterId>,
-        galaxy: GalaxyId,
-        connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
-            active: true,
+            active: Atomic::from(true),
             id: id.into(),
             galaxy,
-            connection,
-            config: ClusterConfig::from(reader),
-            units: FxHashMap::default(),
-            regions: UniversalHolder::with_capacity(256),
+            config: ArcSwap::new(Arc::new(ClusterConfig::from(reader))),
+            units: UniversalArcHolder::with_capacity(256),
+            regions: UniversalArcHolder::with_capacity(256),
         }
     }
 
     #[inline]
-    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
-        self.config.read(reader);
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        self.config.store(Arc::new(ClusterConfig::from(reader)));
     }
 
     #[inline]
-    pub(crate) fn deactivate(&mut self) {
-        self.active = false;
+    pub(crate) fn deactivate(&self) {
+        self.active.store(false);
     }
 
     /// Sets the given values for this [`Cluster`].
     /// See also [`ConnectionHandle::configure_cluster`].
     #[inline]
-    pub async fn configure(
-        &self,
-        config: &ClusterConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection
-            .configure_cluster_split(self.id, config)
-            .await
+    pub async fn configure(&self, config: &ClusterConfig) -> Result<(), GameError> {
+        self.connection().configure_cluster(self.id, config).await
     }
 
     /// Removes this [`Cluster`].
     /// See also [`ConnectionHandle::remove_cluster`].
     #[inline]
-    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.remove_cluster_split(self.id).await
+    pub async fn remove(&self) -> Result<(), GameError> {
+        self.connection().remove_cluster(self.id).await
     }
 
     /// Creates a [`Region`] with the given values in this [`Cluster`].
     /// See also [`ConnectionHandle::create_region`].
     #[inline]
-    pub async fn create_region(
-        &self,
-        config: &RegionConfig,
-    ) -> Result<impl Future<Output = Result<RegionId, GameError>>, GameError> {
-        self.connection.create_region_split(self.id, config).await
+    pub async fn create_region(&self, config: &RegionConfig) -> Result<Arc<Region>, GameError> {
+        let region = self.connection().create_region(self.id, config).await?;
+        Ok(self.regions.get(region))
     }
 
     /// Creates a [`crate::unit::Sun`] with the given values in this [`Cluster`].
@@ -95,8 +86,9 @@ impl Cluster {
     pub async fn create_sun(
         &self,
         config: &SunConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.create_sun_split(self.id, config).await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.connection().create_sun(self.id, config).await?;
+        Ok(self.get_unit(config.name()))
     }
 
     /// Creates a [`crate::unit::BlackHole`] with the given values in this [`Cluster`].
@@ -105,10 +97,9 @@ impl Cluster {
     pub async fn create_black_hole(
         &self,
         config: &BlackHoleConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection
-            .create_black_hole_split(self.id, config)
-            .await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.connection().create_black_hole(self.id, config).await?;
+        Ok(self.get_unit(config.name()))
     }
 
     /// Creates a [`crate::unit::Planet`] with the given values in this [`Cluster`].
@@ -117,8 +108,9 @@ impl Cluster {
     pub async fn create_planet(
         &self,
         config: &PlanetConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.create_planet_split(self.id, config).await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.connection().create_planet(self.id, config).await?;
+        Ok(self.get_unit(config.name()))
     }
 
     /// Creates a [`crate::unit::Moon`] with the given values in this [`Cluster`].
@@ -127,8 +119,12 @@ impl Cluster {
     pub async fn create_moon(
         &self,
         config: &MoonConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.create_moon_split(self.id, config).await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.galaxy
+            .connection()
+            .create_moon(self.id, config)
+            .await?;
+        Ok(self.get_unit(config.name()))
     }
 
     /// Creates a [`crate::unit::Meteoroid`] with the given values in this [`Cluster`].
@@ -137,10 +133,12 @@ impl Cluster {
     pub async fn create_meteoroid(
         &self,
         config: &MeteoroidConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection
-            .create_meteoroid_split(self.id, config)
-            .await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.galaxy
+            .connection()
+            .create_meteoroid(self.id, config)
+            .await?;
+        Ok(self.get_unit(config.name()))
     }
 
     /// Creates a [`crate::unit::Buoy`] with the given values in this [`Cluster`].
@@ -149,37 +147,34 @@ impl Cluster {
     pub async fn create_buoy(
         &self,
         config: &BuoyConfiguration,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.create_buoy_split(self.id, config).await
+    ) -> Result<Arc<dyn Unit + 'static>, GameError> {
+        self.galaxy
+            .connection()
+            .create_buoy(self.id, config)
+            .await?;
+        Ok(self.get_unit(config.name()))
     }
 
     pub(crate) fn see_new_unit(
-        &mut self,
+        self: &Arc<Cluster>,
         kind: UnitKind,
         reader: &mut dyn PacketReader,
     ) -> Result<FlattiverseEvent, GameError> {
-        let unit = crate::unit::from_packet(self.id, kind, reader, self.connection.clone())?;
-        let name = unit.name().to_string();
-        self.units.insert(name.clone(), unit);
-        Ok(FlattiverseEvent::SeeingNewUnit {
-            galaxy: self.galaxy,
-            cluster: self.id,
-            name,
-        })
+        let unit = crate::unit::from_packet(Arc::clone(self), kind, reader)?;
+        self.units.push(Arc::new(Arc::clone(&unit)));
+        Ok(FlattiverseEvent::SeeingNewUnit { unit })
     }
 
     pub(crate) fn see_update_unit(
-        &mut self,
+        self: &Arc<Self>,
         reader: &mut dyn PacketReader,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         let name = reader.peek_string();
-        match self.units.get_mut(&name) {
+        match self.units.get_by_name_opt(&name) {
             Some(unit) => {
                 unit.update(reader);
                 Ok(Some(FlattiverseEvent::SeeingUnitUpdated {
-                    galaxy: self.galaxy,
-                    cluster: self.id,
-                    name,
+                    unit: Arc::clone(&*unit),
                 }))
             }
             None => {
@@ -190,15 +185,13 @@ impl Cluster {
     }
 
     pub(crate) fn see_unit_no_more(
-        &mut self,
+        self: &Arc<Self>,
         name: String,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
-        if let Some(_) = self.units.remove(&name) {
-            // unit.deactivate();
+        if let Some(unit) = self.units.remove_by_name_opt(&name) {
+            unit.deactivate();
             Ok(Some(FlattiverseEvent::SeeingUnitNoMore {
-                galaxy: self.galaxy,
-                cluster: self.id,
-                name,
+                unit: Arc::clone(&*unit),
             }))
         } else {
             warn!("Requested unit '{name}' should be known but isn't in the units dictionary.");
@@ -208,7 +201,7 @@ impl Cluster {
 
     #[inline]
     pub fn active(&self) -> bool {
-        self.active
+        self.active.load()
     }
 
     #[inline]
@@ -217,76 +210,49 @@ impl Cluster {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GalaxyId {
-        self.galaxy
+    pub fn galaxy(&self) -> &Arc<Galaxy> {
+        &self.galaxy
     }
 
     #[inline]
-    pub fn name(&self) -> &str {
-        &self.config.name
+    pub fn config(&self) -> impl Deref<Target = Arc<ClusterConfig>> {
+        self.config.load()
     }
 
     #[inline]
-    pub fn config(&self) -> &ClusterConfig {
-        &self.config
+    pub fn get_region(&self, id: RegionId) -> Arc<Region> {
+        self.regions.get(id)
     }
 
     #[inline]
-    pub fn regions(&self) -> &UniversalHolder<RegionId, Region> {
+    pub fn regions(&self) -> &UniversalArcHolder<RegionId, Region> {
         &self.regions
     }
 
     #[inline]
-    pub fn regions_mut(&mut self) -> &mut UniversalHolder<RegionId, Region> {
-        &mut self.regions
+    pub fn get_unit(&self, name: &str) -> Arc<dyn Unit> {
+        Arc::clone(&self.units.get_by_name(name))
     }
 
     #[inline]
-    pub fn get_unit(&self, name: &str) -> Option<&dyn Unit> {
-        self.units.get(name).map(|unit| &**unit)
+    pub fn iter_units(&self) -> impl Iterator<Item = Arc<dyn Unit + 'static>> + '_ {
+        self.units.iter().map(|unit| Arc::clone(&*unit))
     }
 
     #[inline]
-    pub fn iter_units(&self) -> impl Iterator<Item = (&str, &dyn Unit)> {
-        self.units
-            .iter()
-            .map(|(name, unit)| (name.as_str(), &**unit))
+    pub fn units(&self) -> &UniversalArcHolder<(), Arc<dyn Unit>> {
+        &self.units
     }
 
     #[inline]
     pub fn connection(&self) -> &ConnectionHandle {
-        &self.connection
+        self.galaxy.connection()
     }
 }
 
-impl Index<RegionId> for Cluster {
-    type Output = Region;
-
+impl Identifiable<ClusterId> for Cluster {
     #[inline]
-    fn index(&self, index: RegionId) -> &Self::Output {
-        &self.regions[index]
-    }
-}
-
-impl IndexMut<RegionId> for Cluster {
-    #[inline]
-    fn index_mut(&mut self, index: RegionId) -> &mut Self::Output {
-        &mut self.regions[index]
-    }
-}
-
-impl Index<&str> for Cluster {
-    type Output = dyn Unit;
-
-    #[inline]
-    fn index(&self, index: &str) -> &Self::Output {
-        &*self.units[index]
-    }
-}
-
-impl NamedUnit for Cluster {
-    #[inline]
-    fn name(&self) -> &str {
-        Cluster::name(self)
+    fn id(&self) -> ClusterId {
+        self.id
     }
 }

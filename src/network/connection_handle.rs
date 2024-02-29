@@ -631,7 +631,7 @@ impl ConnectionHandle {
     pub async fn remove_unit(
         &self,
         cluster: ClusterId,
-        name: String,
+        name: impl AsRef<str>,
         kind: UnitKind,
     ) -> Result<(), GameError> {
         self.remove_unit_split(cluster, name, kind).await?.await
@@ -641,14 +641,14 @@ impl ConnectionHandle {
     pub async fn remove_unit_split(
         &self,
         cluster: ClusterId,
-        name: String,
+        name: impl AsRef<str>,
         kind: UnitKind,
     ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x53);
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(kind.into());
-        packet.write(|writer| writer.write_string(&name));
+        packet.write(|writer| writer.write_string(name.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -663,7 +663,7 @@ impl ConnectionHandle {
     pub async fn retrieve_unit_configuration<T: Configuration + Default>(
         &self,
         cluster: ClusterId,
-        name: String,
+        name: impl AsRef<str>,
         kind: UnitKind,
     ) -> Result<T, GameError> {
         self.retrieve_unit_configuration_split::<T>(cluster, name, kind)
@@ -675,14 +675,14 @@ impl ConnectionHandle {
     pub async fn retrieve_unit_configuration_split<T: Configuration + Default>(
         &self,
         cluster: ClusterId,
-        name: String,
+        name: impl AsRef<str>,
         kind: UnitKind,
     ) -> Result<impl Future<Output = Result<T, GameError>> + 'static, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x50);
         packet.header_mut().set_id0(cluster.0);
         packet.header_mut().set_param0(kind.into());
-        packet.write(|writer| writer.write_string(&name));
+        packet.write(|writer| writer.write_string(name.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -700,7 +700,7 @@ impl ConnectionHandle {
         &self,
         cluster: ClusterId,
         name: &str,
-        configuration: T,
+        configuration: &T,
     ) -> Result<(), GameError> {
         self.configure_unit_split::<T>(cluster, name, configuration)
             .await?
@@ -712,7 +712,7 @@ impl ConnectionHandle {
         &self,
         cluster: ClusterId,
         name: &str,
-        configuration: T,
+        configuration: &T,
     ) -> Result<impl Future<Output = Result<(), GameError>> + 'static, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x52);
@@ -738,7 +738,7 @@ impl ConnectionHandle {
     #[inline]
     pub async fn register_ship(
         &self,
-        name: String,
+        name: impl AsRef<str>,
         design: ShipDesignId,
     ) -> Result<ControllableId, GameError> {
         self.register_ship_split(name, design).await?.await
@@ -750,13 +750,13 @@ impl ConnectionHandle {
     /// in game and can't be just registered.
     pub async fn register_ship_split(
         &self,
-        name: String,
+        name: impl AsRef<str>,
         design: ShipDesignId,
     ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x30);
         packet.header_mut().set_id0(design.0);
-        packet.write(|writer| writer.write_string(&name));
+        packet.write(|writer| writer.write_string(name.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -768,7 +768,11 @@ impl ConnectionHandle {
 
     /// Sends a chat message with a maximum of 512 characters to the given [`crate::Player`].
     #[inline]
-    pub async fn chat_player(&self, player: PlayerId, message: String) -> Result<(), GameError> {
+    pub async fn chat_player(
+        &self,
+        player: PlayerId,
+        message: impl AsRef<str>,
+    ) -> Result<(), GameError> {
         self.chat_player_split(player, message).await?.await
     }
 
@@ -776,14 +780,14 @@ impl ConnectionHandle {
     pub async fn chat_player_split(
         &self,
         player: PlayerId,
-        message: String,
+        message: impl AsRef<str>,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let message = check_message_or_err(message)?;
 
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x20);
         packet.header_mut().set_id0(player.0);
-        packet.write(|writer| writer.write_string_without_len(&message));
+        packet.write(|writer| writer.write_string_without_len(message.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -793,26 +797,26 @@ impl ConnectionHandle {
         })
     }
 
-    /// Sends a chat message with a maximum of 512 characters to all playerss in the given
+    /// Sends a chat message with a maximum of 512 characters to all players in the given
     /// [`crate::Team`].
     #[inline]
-    pub async fn chat_team(&self, team: TeamId, message: String) -> Result<(), GameError> {
+    pub async fn chat_team(&self, team: TeamId, message: impl AsRef<str>) -> Result<(), GameError> {
         self.chat_team_split(team, message).await?.await
     }
 
-    /// Sends a chat message with a maximum of 512 characters to all playerss in the given
+    /// Sends a chat message with a maximum of 512 characters to all players in the given
     /// [`crate::Team`].
     pub async fn chat_team_split(
         &self,
         team: TeamId,
-        message: String,
+        message: impl AsRef<str>,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let message = check_message_or_err(message)?;
 
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x21);
         packet.header_mut().set_id0(team.0);
-        packet.write(|writer| writer.write_string_without_len(&message));
+        packet.write(|writer| writer.write_string_without_len(message.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -825,7 +829,7 @@ impl ConnectionHandle {
     /// Sends a chat message with a maximum of 512 characters to all players in the connected
     /// [`crate::hierarchy::Galaxy`].
     #[inline]
-    pub async fn chat_galaxy(&self, message: String) -> Result<(), GameError> {
+    pub async fn chat_galaxy(&self, message: impl AsRef<str>) -> Result<(), GameError> {
         self.chat_galaxy_split(message).await?.await
     }
 
@@ -833,13 +837,13 @@ impl ConnectionHandle {
     /// [`crate::hierarchy::Galaxy`].
     pub async fn chat_galaxy_split(
         &self,
-        message: String,
+        message: impl AsRef<str>,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let message = check_message_or_err(message)?;
 
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x22);
-        packet.write(|writer| writer.write_string_without_len(&message));
+        packet.write(|writer| writer.write_string_without_len(message.as_ref()));
 
         let session = self.send_packet_on_new_session(packet).await?;
 

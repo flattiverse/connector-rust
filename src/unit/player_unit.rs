@@ -1,165 +1,147 @@
-use crate::hierarchy::{ClusterId, ControllableInfoId};
+use crate::atomics::Atomic;
+use crate::hierarchy::{Cluster, ControllableInfo, ControllableInfoId};
 use crate::network::PacketReader;
 use crate::unit::{Unit, UnitKind};
-use crate::{PlayerId, Vector};
+use crate::{Player, PlayerId, Team, Vector};
 use std::any::Any;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct PlayerUnit {
     name: String,
-    cluster: ClusterId,
+    cluster: Arc<Cluster>,
 
-    player: PlayerId,
-    controllable_info: ControllableInfoId,
+    player: Arc<Player>,
+    controllable_info: Arc<ControllableInfo>,
 
-    size: f64,
-    weight: f64,
-    thruster: f64,
-    nozzle: f64,
-    turnrate: f64,
-    weapon_ammo: f64,
+    radius: f64,
+    gravity: f64,
+    thruster: Atomic<f64>,
+    nozzle: Atomic<f64>,
+    turnrate: Atomic<f64>,
+    weapon_ammo: Atomic<f64>,
 
-    direction: f64,
-    position: Vector,
-    movement: Vector,
+    direction: Atomic<f64>,
+    position: Atomic<Vector>,
+    movement: Atomic<Vector>,
 
-    active: bool,
+    active: Atomic<bool>,
 }
 
 impl PlayerUnit {
-    pub fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(cluster: Arc<Cluster>, reader: &mut dyn PacketReader) -> Self {
+        let name = reader.read_string();
+        let player = cluster.galaxy().get_player(PlayerId(reader.read_byte()));
+        let controllable_info = player
+            .controllable_info()
+            .get(ControllableInfoId(reader.read_byte()));
+
         Self {
             cluster,
-            name: reader.read_string(),
+            name,
+            player,
+            controllable_info,
 
-            player: PlayerId(reader.read_byte()),
-            controllable_info: ControllableInfoId(reader.read_byte()),
+            radius: reader.read_double(),
+            gravity: reader.read_double(),
+            thruster: Atomic::from_reader(reader),
+            nozzle: Atomic::from_reader(reader),
+            turnrate: Atomic::from_reader(reader),
+            weapon_ammo: Atomic::from_reader(reader),
 
-            size: reader.read_double(),
-            weight: reader.read_double(),
-            thruster: reader.read_double(),
-            nozzle: reader.read_double(),
-            turnrate: reader.read_double(),
-            weapon_ammo: reader.read_double(),
+            direction: Atomic::from_reader(reader),
+            position: Atomic::from_reader(reader),
+            movement: Atomic::from_reader(reader),
 
-            direction: reader.read_double(),
-            position: Vector::default().with_read(reader),
-            movement: Vector::default().with_read(reader),
-
-            active: true,
+            active: Atomic::from(true),
         }
     }
 
     #[inline]
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    #[inline]
-    pub fn cluster(&self) -> ClusterId {
-        self.cluster
-    }
-
-    #[inline]
-    pub fn player(&self) -> PlayerId {
-        self.player
-    }
-
-    #[inline]
-    pub fn size(&self) -> f64 {
-        self.size
-    }
-
-    #[inline]
-    pub fn weight(&self) -> f64 {
-        self.weight
+    pub fn player(&self) -> &Arc<Player> {
+        &self.player
     }
 
     #[inline]
     pub fn thruster(&self) -> f64 {
-        self.thruster
+        self.thruster.load()
     }
 
     #[inline]
     pub fn nozzle(&self) -> f64 {
-        self.nozzle
+        self.nozzle.load()
     }
 
     #[inline]
     pub fn turnrate(&self) -> f64 {
-        self.turnrate
+        self.turnrate.load()
     }
 
     #[inline]
     pub fn weapon_ammo(&self) -> f64 {
-        self.weapon_ammo
-    }
-
-    #[inline]
-    pub fn direction(&self) -> f64 {
-        self.direction
-    }
-
-    #[inline]
-    pub fn position(&self) -> Vector {
-        self.position
-    }
-
-    #[inline]
-    pub fn movement(&self) -> Vector {
-        self.movement
-    }
-
-    #[inline]
-    pub fn active(&self) -> bool {
-        self.active
+        self.weapon_ammo.load()
     }
 }
 
 impl Unit for PlayerUnit {
     #[inline]
-    fn active(&self) -> bool {
-        self.active
-    }
-
-    #[inline]
     fn name(&self) -> &str {
-        PlayerUnit::name(self)
+        &self.name
     }
 
     #[inline]
-    fn cluster(&self) -> ClusterId {
-        PlayerUnit::cluster(self)
+    fn active(&self) -> bool {
+        self.active.load()
+    }
+
+    #[inline]
+    fn deactivate(&self) {
+        self.active.store(false);
+    }
+
+    #[inline]
+    fn cluster(&self) -> &Arc<Cluster> {
+        &self.cluster
+    }
+
+    #[inline]
+    fn direction(&self) -> f64 {
+        self.direction.load()
     }
 
     fn movement(&self) -> Vector {
-        self.movement
+        self.movement.load()
     }
 
     #[inline]
     fn position(&self) -> Vector {
-        self.position
+        self.position.load()
     }
 
     #[inline]
     fn gravity(&self) -> f64 {
-        self.weight
+        self.gravity
     }
 
     #[inline]
     fn radius(&self) -> f64 {
-        self.size
+        self.radius
     }
 
-    fn update(&mut self, reader: &mut dyn PacketReader) {
+    #[inline]
+    fn team(&self) -> Option<&Arc<Team>> {
+        Some(&self.player.team())
+    }
+
+    fn update(&self, reader: &mut dyn PacketReader) {
         let _ = reader.read_string(); // 'jump over string'
 
-        self.thruster = reader.read_double();
-        self.nozzle = reader.read_double();
-        self.turnrate = reader.read_double();
-        self.weapon_ammo = reader.read_double();
+        self.thruster.read(reader);
+        self.nozzle.read(reader);
+        self.turnrate.read(reader);
+        self.weapon_ammo.read(reader);
 
-        self.direction = reader.read_double();
+        self.direction.read(reader);
         self.position.read(reader);
         self.movement.read(reader);
     }
@@ -172,10 +154,5 @@ impl Unit for PlayerUnit {
     #[inline]
     fn as_any(&self) -> &dyn Any {
         &*self
-    }
-
-    #[inline]
-    fn direction(&self) -> f64 {
-        self.direction
     }
 }

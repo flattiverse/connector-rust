@@ -1,6 +1,7 @@
 use crate::hierarchy::Galaxy;
 use crate::mission_selection::{PlayerInfo, TeamInfo, Universe};
 use crate::{GameError, GameMode};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GalaxyInfo {
@@ -50,7 +51,7 @@ pub struct GalaxyInfo {
 
 impl GalaxyInfo {
     /// Joins the galaxy with the specified team.
-    pub async fn join(&self, auth: &str, team: &TeamInfo) -> Result<Galaxy, GameError> {
+    pub async fn join(&self, auth: &str, team: &TeamInfo) -> Result<Arc<Galaxy>, GameError> {
         Universe::manual_join(
             &format!("wss://{}/game/galaxies/{}", Universe::URI_BASE, self.id),
             auth,

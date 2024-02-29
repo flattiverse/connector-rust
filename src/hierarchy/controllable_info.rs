@@ -1,6 +1,8 @@
-use crate::hierarchy::{GalaxyId, ShipDesignId, ShipUpgradeId};
+use crate::atomics::Atomic;
+use crate::hierarchy::{Galaxy, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
-use crate::{Indexer, NamedUnit, PlayerId};
+use crate::{Identifiable, Indexer, NamedUnit, Player};
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ControllableInfoId(pub(crate) u8);
@@ -14,38 +16,38 @@ impl Indexer for ControllableInfoId {
 
 #[derive(Debug)]
 pub struct ControllableInfo {
-    active: bool,
-    galaxy: GalaxyId,
+    active: Atomic<bool>,
+    galaxy: Arc<Galaxy>,
     id: ControllableInfoId,
     name: String,
     reduced: bool,
     ship_design: ShipDesignId,
-    player: PlayerId,
+    player: Arc<Player>,
     upgrades: Box<[ShipUpgradeId]>,
 
-    hull: f64,
+    hull: Atomic<f64>,
     hull_max: f64,
 
-    shields: f64,
+    shields: Atomic<f64>,
     shields_max: f64,
 
-    energy: f64,
+    energy: Atomic<f64>,
     energy_max: f64,
 
-    ion: f64,
+    ion: Atomic<f64>,
     ion_max: f64,
 }
 
 impl ControllableInfo {
     pub fn new(
-        galaxy: GalaxyId,
+        galaxy: Arc<Galaxy>,
         id: ControllableInfoId,
-        player: PlayerId,
+        player: Arc<Player>,
         reader: &mut dyn PacketReader,
         reduced: bool,
     ) -> Self {
         Self {
-            active: true,
+            active: Atomic::from(true),
             galaxy,
             id,
             player,
@@ -66,31 +68,31 @@ impl ControllableInfo {
             energy_max: reader.read_double(),
             ion_max: reader.read_double(),
 
-            hull: if reduced { 0.0 } else { reader.read_double() },
-            shields: if reduced { 0.0 } else { reader.read_double() },
-            energy: if reduced { 0.0 } else { reader.read_double() },
-            ion: if reduced { 0.0 } else { reader.read_double() },
+            hull: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
+            shields: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
+            energy: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
+            ion: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
         }
     }
 
-    pub(crate) fn deactivate(&mut self) {
-        self.active = false;
+    pub(crate) fn deactivate(&self) {
+        self.active.store(false);
     }
 
-    pub(crate) fn dynamic_update(&mut self, reader: &mut dyn PacketReader, reduced: bool) {
+    pub(crate) fn dynamic_update(&self, reader: &mut dyn PacketReader, reduced: bool) {
         if reduced {
             let _ = reader.read_boolean();
         } else {
-            self.hull = reader.read_double();
-            self.shields = reader.read_double();
-            self.energy = reader.read_double();
-            self.ion = reader.read_double();
+            self.hull.read(reader);
+            self.shields.read(reader);
+            self.energy.read(reader);
+            self.ion.read(reader);
         }
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GalaxyId {
-        self.galaxy
+    pub fn galaxy(&self) -> &Arc<Galaxy> {
+        &self.galaxy
     }
 
     #[inline]
@@ -114,8 +116,8 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn player(&self) -> PlayerId {
-        self.player
+    pub fn player(&self) -> &Arc<Player> {
+        &self.player
     }
 
     #[inline]
@@ -125,7 +127,7 @@ impl ControllableInfo {
 
     #[inline]
     pub fn hull(&self) -> f64 {
-        self.hull
+        self.hull.load()
     }
 
     #[inline]
@@ -135,7 +137,7 @@ impl ControllableInfo {
 
     #[inline]
     pub fn shields(&self) -> f64 {
-        self.shields
+        self.shields.load()
     }
 
     #[inline]
@@ -145,7 +147,7 @@ impl ControllableInfo {
 
     #[inline]
     pub fn energy(&self) -> f64 {
-        self.energy
+        self.energy.load()
     }
 
     #[inline]
@@ -155,7 +157,7 @@ impl ControllableInfo {
 
     #[inline]
     pub fn ion(&self) -> f64 {
-        self.ion
+        self.ion.load()
     }
 
     #[inline]
@@ -165,7 +167,14 @@ impl ControllableInfo {
 
     #[inline]
     pub fn active(&self) -> bool {
-        self.active
+        self.active.load()
+    }
+}
+
+impl Identifiable<ControllableInfoId> for ControllableInfo {
+    #[inline]
+    fn id(&self) -> ControllableInfoId {
+        self.id
     }
 }
 

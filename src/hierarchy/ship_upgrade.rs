@@ -1,7 +1,7 @@
-use crate::hierarchy::{GalaxyId, ShipDesignId, ShipUpgradeConfig};
-use crate::network::{ConnectionHandle, PacketReader};
-use crate::{GameError, Indexer, NamedUnit};
-use std::future::Future;
+use crate::hierarchy::{Galaxy, ShipDesign, ShipUpgradeConfig};
+use crate::network::PacketReader;
+use crate::{GameError, Identifiable, Indexer, NamedUnit};
+use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipUpgradeId(pub(crate) u8);
@@ -15,57 +15,52 @@ impl Indexer for ShipUpgradeId {
 
 #[derive(Debug)]
 pub struct ShipUpgrade {
-    galaxy: GalaxyId,
-    ship_design: ShipDesignId,
+    galaxy: Arc<Galaxy>,
+    ship_design: Arc<ShipDesign>,
     id: ShipUpgradeId,
     config: ShipUpgradeConfig,
-    connection: ConnectionHandle,
 }
 
 impl ShipUpgrade {
     pub fn new(
+        galaxy: Arc<Galaxy>,
+        ship: Arc<ShipDesign>,
         id: impl Into<ShipUpgradeId>,
-        galaxy: GalaxyId,
-        ship: ShipDesignId,
-        connection: ConnectionHandle,
         reader: &mut dyn PacketReader,
     ) -> Self {
         Self {
-            id: id.into(),
             galaxy,
             ship_design: ship,
+            id: id.into(),
             config: ShipUpgradeConfig::from(reader),
-            connection,
         }
     }
 
     /// Sets the given values for this [`ShipUpgrade`].
     /// See also [`ConnectionHandle::configure_upgrade`].
     #[inline]
-    pub async fn configure(
-        &self,
-        config: &ShipUpgradeConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection
-            .configure_upgrade_split(self.id, config)
+    pub async fn configure(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
+        self.galaxy
+            .connection()
+            .configure_upgrade(self.id, config)
             .await
     }
 
     /// Removes this [`ShipUpgrade`].
     /// See also [`ConnectionHandle::remove_upgrade`].
     #[inline]
-    pub async fn remove(&self) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.connection.remove_upgrade_split(self.id).await
+    pub async fn remove(&self) -> Result<(), GameError> {
+        self.galaxy.connection().remove_upgrade(self.id).await
     }
 
     #[inline]
-    pub fn galaxy(&self) -> GalaxyId {
-        self.galaxy
+    pub fn galaxy(&self) -> &Arc<Galaxy> {
+        &self.galaxy
     }
 
     #[inline]
-    pub fn ship_design(&self) -> ShipDesignId {
-        self.ship_design
+    pub fn ship_design(&self) -> &Arc<ShipDesign> {
+        &self.ship_design
     }
 
     #[inline]
@@ -81,6 +76,13 @@ impl ShipUpgrade {
     #[inline]
     pub fn config(&self) -> &ShipUpgradeConfig {
         &self.config
+    }
+}
+
+impl Identifiable<ShipUpgradeId> for ShipUpgrade {
+    #[inline]
+    fn id(&self) -> ShipUpgradeId {
+        self.id
     }
 }
 

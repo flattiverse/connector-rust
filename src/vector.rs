@@ -5,7 +5,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub struct Vector {
     pub x: f64,
     pub y: f64,
-    last_angle: f64,
+    pub(crate) last_angle: f64,
 }
 
 impl Vector {

@@ -4,6 +4,8 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
+pub use arc_swap;
+pub use async_channel;
 pub use tokio;
 
 pub mod atomics;
@@ -37,6 +39,9 @@ pub use vector::*;
 
 mod universal_holder;
 pub use universal_holder::*;
+
+mod universal_holder_arc;
+pub use universal_holder_arc::*;
 
 mod controllable;
 pub use controllable::*;

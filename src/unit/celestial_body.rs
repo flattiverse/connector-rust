@@ -1,25 +1,23 @@
-use crate::hierarchy::ClusterId;
+use crate::atomics::Atomic;
 use crate::network::PacketReader;
 use crate::Vector;
 
 #[derive(Debug)]
 pub struct CelestialBody {
     pub(crate) name: String,
-    pub(crate) cluster: ClusterId,
-    pub(crate) position: Vector,
-    pub(crate) radius: f64,
-    pub(crate) gravity: f64,
+    pub(crate) position: Atomic<Vector>,
+    pub(crate) radius: Atomic<f64>,
+    pub(crate) gravity: Atomic<f64>,
 }
 
 impl CelestialBody {
-    pub(crate) fn new(cluster: ClusterId, reader: &mut dyn PacketReader) -> Self {
+    pub(crate) fn new(reader: &mut dyn PacketReader) -> Self {
         Self {
-            cluster,
             name: reader.read_string(),
-            position: Vector::default().with_read(reader),
-            radius: reader.read_double(),
+            position: Atomic::from_reader(reader),
+            radius: Atomic::from_reader(reader),
             gravity: {
-                let gravity = reader.read_double();
+                let gravity = Atomic::from_reader(reader);
 
                 let _orbiting = reader.read_byte();
 
@@ -28,12 +26,12 @@ impl CelestialBody {
         }
     }
 
-    pub(crate) fn update(&mut self, reader: &mut dyn PacketReader) {
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
         let _ = reader.read_string(); // 'jump over string'
 
-        self.position = Vector::default().with_read(reader);
-        self.radius = reader.read_double();
-        self.gravity = reader.read_double();
+        self.position.read(reader);
+        self.radius.read(reader);
+        self.gravity.read(reader);
 
         let _orbiting = reader.read_byte();
     }

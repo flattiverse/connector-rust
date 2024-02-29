@@ -89,7 +89,6 @@ impl<I: Indexer + Debug + Copy, T> Index<I> for UniversalHolder<I, T> {
 
     #[inline]
     fn index(&self, index: I) -> &Self::Output {
-        let usize_index = index.index();
         match self.get(index) {
             Some(value) => value,
             None => panic!("There is no entry for the given Index={index:?}"),
@@ -125,4 +124,8 @@ pub trait Indexer {
 
 pub trait NamedUnit {
     fn name(&self) -> &str;
+}
+
+pub trait Identifiable<T: Indexer> {
+    fn id(&self) -> T;
 }

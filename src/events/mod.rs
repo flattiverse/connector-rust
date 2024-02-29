@@ -1,154 +1,126 @@
-use crate::hierarchy::{ClusterId, RegionId, ShipDesignId, ShipUpgradeId};
-use crate::hierarchy::{ControllableInfoId, GalaxyId};
-use crate::{ControllableId, PlayerId, TeamId};
+use crate::hierarchy::{Cluster, Galaxy, Region};
+use crate::hierarchy::{ControllableInfo, ShipDesign, ShipUpgrade};
+use crate::unit::Unit;
+use crate::{Controllable, Player, Team};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
 #[derive(Debug)]
 pub enum FlattiverseEvent {
     PingMeasured(Duration),
     /// The [`crate::hierarchy::Cluster`] of the given id was updated.
-    GalaxyUpdated(GalaxyId),
+    GalaxyUpdated {
+        galaxy: Arc<Galaxy>,
+    },
     /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was created.
     ClusterCreated {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
+        cluster: Arc<Cluster>,
     },
     /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was updated.
     ClusterUpdated {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
+        cluster: Arc<Cluster>,
     },
     /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was removed.
     ClusterRemoved {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
+        cluster: Arc<Cluster>,
     },
     /// The [`crate::hierarchy::Region`] of the given id was created.
     RegionCreated {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        region: RegionId,
+        region: Arc<Region>,
     },
     /// The [`crate::hierarchy::Region`] of the given id was updated.
     RegionUpdated {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        region: RegionId,
+        region: Arc<Region>,
     },
     /// The [`crate::hierarchy::Region`] of the given id was removed.
     RegionRemoved {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        region: RegionId,
+        region: Arc<Region>,
     },
     /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was created.
     TeamCreated {
-        galaxy: GalaxyId,
-        team: TeamId,
+        team: Arc<Team>,
     },
     /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was updated.
     TeamUpdated {
-        galaxy: GalaxyId,
-        team: TeamId,
+        team: Arc<Team>,
     },
     /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was removed.
     TeamRemoved {
-        galaxy: GalaxyId,
-        team: TeamId,
+        team: Arc<Team>,
     },
     /// The [`crate::hierarchy::ShipDesign`] of the given [`crate::hierarchy::Galaxy`] was created.
     ShipDesignCreated {
-        galaxy: GalaxyId,
-        ship_design: ShipDesignId,
+        ship_design: Arc<ShipDesign>,
     },
     /// The [`crate::hierarchy::ShipUpgrade`] of the given [`crate::hierarchy::ShipDesign`] in the
     /// given [`crate::hierarchy::Galaxy`] was upated.
     UpgradeUpdated {
-        galaxy: GalaxyId,
-        ship: ShipDesignId,
-        upgrade: ShipUpgradeId,
+        upgrade: Arc<ShipUpgrade>,
     },
     /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has joined the game.
     PlayerJoined {
-        galaxy: GalaxyId,
-        player: PlayerId,
+        player: Arc<Player>,
     },
     /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has left the game.
     PlayerParted {
-        galaxy: GalaxyId,
-        player: PlayerId,
+        player: Arc<Player>,
     },
 
     /// A new [`crate::unit::Unit`] became visible.
     SeeingNewUnit {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        name: String,
+        unit: Arc<dyn Unit>,
     },
     /// A watched [`crate::unit::Unit`] updated.N
     SeeingUnitUpdated {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        name: String,
+        unit: Arc<dyn Unit>,
     },
     /// A watched [`crate::unit::Unit`] vanished.
     SeeingUnitNoMore {
-        galaxy: GalaxyId,
-        cluster: ClusterId,
-        name: String,
+        unit: Arc<dyn Unit>,
     },
 
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was created.
     ControllableInfoCreated {
-        galaxy: GalaxyId,
-        player: PlayerId,
-        controllable_info: ControllableInfoId,
+        controllable_info: Arc<ControllableInfo>,
     },
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was updated.
     ControllableInfoUpdated {
-        galaxy: GalaxyId,
-        player: PlayerId,
-        controllable_info: ControllableInfoId,
+        controllable_info: Arc<ControllableInfo>,
     },
     /// The [`crate::hierarchy::ControllableInfo`] for the given values was removed.
     ControllableInfoRemoved {
-        galaxy: GalaxyId,
-        player: PlayerId,
-        controllable_info: ControllableInfoId,
+        controllable_info: Arc<ControllableInfo>,
     },
 
     /// The [`crate::controllable::Controllable`] for the given values has joined the game.
     ControllableJoined {
-        galaxy: GalaxyId,
-        controllable: ControllableId,
+        controllable: Arc<Controllable>,
     },
     /// The [`crate::controllable::Controllable`] for the given values was updated.
     ControllableUpdated {
-        galaxy: GalaxyId,
-        controllable: ControllableId,
+        controllable: Arc<Controllable>,
     },
     /// The [`crate::controllable::Controllable`] for the given values hsa left the game.
     ControllableRemoved {
-        galaxy: GalaxyId,
-        controllable: ControllableId,
+        controllable: Arc<Controllable>,
     },
 
     /// Received a message from the given player.
     PlayerChatMessageReceived {
         time: SystemTime,
-        player: PlayerId,
+        player: Arc<Player>,
         message: String,
     },
     /// Received a message from the given team.
     TeamChatMessageReceived {
         time: SystemTime,
-        player: PlayerId,
+        player: Arc<Player>,
         message: String,
     },
     /// Received a message from the given galaxy.
     GalaxyChatMessageReceived {
         time: SystemTime,
-        player: PlayerId,
+        player: Arc<Player>,
         message: String,
     },
 

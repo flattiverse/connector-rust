@@ -1,10 +1,11 @@
-use crate::hierarchy::ClusterId;
-use crate::network::{ConnectionHandle, PacketReader};
+use crate::hierarchy::Cluster;
+use crate::network::PacketReader;
 use crate::unit::{BlackHole, Buoy, Meteoroid, PlayerUnit};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
-use crate::{GameError, NamedUnit, TeamId, Vector};
+use crate::{GameError, NamedUnit, Team, Vector};
 use std::any::Any;
 use std::fmt::{Debug, Display, Formatter};
+use std::sync::Arc;
 
 /// Represents a unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
@@ -17,12 +18,12 @@ pub trait Unit: Any + Debug {
     /// visible to the current player. If this [`Unit`] moves out of all scan areas, it is
     /// deactivated and [`Unit::active`] will return `false`.
     fn active(&self) -> bool;
-    //
-    //    /// For internal use only.
-    //    fn deactivate(&mut self);
+
+    /// For internal use only.
+    fn deactivate(&self) {}
 
     /// The [`crate::hierarchy::Cluster`] this [`Unit`] is in.
-    fn cluster(&self) -> ClusterId;
+    fn cluster(&self) -> &Arc<Cluster>;
 
     /// Specifies whether this [`Unit`] can hide othe [`Unit`]s behind it. True means you can't see
     /// [`Unit`] behind this [`Unit`] when scanning.
@@ -92,11 +93,11 @@ pub trait Unit: Any + Debug {
 
     /// Specifies the current [`crate::Team`] this [`Unit`] belongs to.
     #[inline]
-    fn team(&self) -> Option<TeamId> {
+    fn team(&self) -> Option<&Arc<Team>> {
         None
     }
 
-    fn update(&mut self, reader: &mut dyn PacketReader);
+    fn update(&self, reader: &mut dyn PacketReader);
 
     /// Specifies the [`UnitKind`] of this [`Unit`], which can be used to determin the [downcasting]
     /// target.
@@ -122,6 +123,13 @@ impl NamedUnit for dyn Unit {
     }
 }
 
+impl NamedUnit for Arc<dyn Unit> {
+    #[inline]
+    fn name(&self) -> &str {
+        Unit::name(&**self)
+    }
+}
+
 impl Display for dyn Unit {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?} {}", self.kind(), self.name())
@@ -129,18 +137,17 @@ impl Display for dyn Unit {
 }
 
 pub(crate) fn from_packet(
-    cluster: ClusterId,
+    cluster: Arc<Cluster>,
     kind: UnitKind,
     reader: &mut dyn PacketReader,
-    connection: ConnectionHandle,
-) -> Result<Box<dyn Unit>, GameError> {
+) -> Result<Arc<dyn Unit>, GameError> {
     Ok(match kind {
-        UnitKind::Sun => Box::new(Sun::new(cluster, reader, connection)) as Box<dyn Unit>,
-        UnitKind::BlackHole => Box::new(BlackHole::new(cluster, reader, connection)),
-        UnitKind::Planet => Box::new(Planet::new(cluster, reader, connection)),
-        UnitKind::Moon => Box::new(Moon::new(cluster, reader, connection)),
-        UnitKind::Meteoroid => Box::new(Meteoroid::new(cluster, reader, connection)),
-        UnitKind::Buoy => Box::new(Buoy::new(cluster, reader, connection)),
-        UnitKind::Ship => Box::new(PlayerUnit::new(cluster, reader)),
+        UnitKind::Sun => Arc::new(Sun::new(cluster, reader)) as Arc<dyn Unit>,
+        UnitKind::BlackHole => Arc::new(BlackHole::new(cluster, reader)),
+        UnitKind::Planet => Arc::new(Planet::new(cluster, reader)),
+        UnitKind::Moon => Arc::new(Moon::new(cluster, reader)),
+        UnitKind::Meteoroid => Arc::new(Meteoroid::new(cluster, reader)),
+        UnitKind::Buoy => Arc::new(Buoy::new(cluster, reader)),
+        UnitKind::Ship => Arc::new(PlayerUnit::new(cluster, reader)),
     })
 }

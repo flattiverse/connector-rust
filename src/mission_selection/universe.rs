@@ -2,6 +2,7 @@ use crate::hierarchy::Galaxy;
 use crate::mission_selection::GalaxyInfo;
 use crate::network::ConnectError;
 use crate::GameError;
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Universe(Vec<GalaxyInfo>);
@@ -23,8 +24,8 @@ impl Universe {
     }
 
     /// Don't use this method - only if you a _really_ sure what you are doing.
-    pub async fn manual_join(uri: &str, auth: &str, team: u8) -> Result<Galaxy, GameError> {
-        let mut galaxy = Galaxy::join(uri, auth, team).await?;
+    pub async fn manual_join(uri: &str, auth: &str, team: u8) -> Result<Arc<Galaxy>, GameError> {
+        let galaxy = Galaxy::join(uri, auth, team).await?;
         galaxy.wait_login_completed().await?;
         Ok(galaxy)
     }
