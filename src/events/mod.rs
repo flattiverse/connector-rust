@@ -122,27 +122,27 @@ pub enum FlattiverseEvent {
         message: String,
     },
 
-    /// A [`Controllable`] died by shutting down.
+    /// A [`ControllableInfo`] died by shutting down.
     DeathByShutdown {
-        controllable: Arc<Controllable>,
+        controllable_info: Arc<ControllableInfo>,
     },
-    /// A [`Controllable`] died by because the player decided to auto destruct the unit.
+    /// A [`ControllableInfo`] died by because the player decided to auto destruct the unit.
     DeathBySelfDestruction {
-        controllable: Arc<Controllable>,
+        controllable_info: Arc<ControllableInfo>,
     },
-    /// A [`Controllable`] died by colliding with a neutral [`crate::unit::Unit`]. The [`UnitKind`]
-    /// and the name is givne.
+    /// A [`ControllableInfo`] died by colliding with a neutral [`crate::unit::Unit`]. The
+    /// [`UnitKind`] and the name are provided.
     DeathByNeutralCollision {
-        controllable: Arc<Controllable>,
+        controllable_info: Arc<ControllableInfo>,
         unit: UnitKind,
         name: String,
     },
-    /// A [`Controllable`] died by colliding with another [`Controllable`]. The owning [`Player`]
-    /// and its ship name are given.
+    /// A [`ControllableInfo`] died by colliding with another [`ControllableInfo`]. The owning
+    /// [`Player`] and its ship name are given.
     DeathByControllableCollision {
-        controllable: Arc<Controllable>,
+        controllable_info: Arc<ControllableInfo>,
         other_player: Arc<Player>,
-        other_unit_name: String,
+        other_controllable: Arc<ControllableInfo>,
     },
 
     TickCompleted,

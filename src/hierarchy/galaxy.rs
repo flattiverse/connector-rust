@@ -125,35 +125,40 @@ impl Galaxy {
 
                 // controllable destroyed event
                 0x34 => {
-                    let controllable_id = ControllableId(packet.header().id0());
-                    debug_assert!(self.controllables.has(controllable_id), "{controllable_id:?} is not populated.");
-                    let controllable = self.controllables.get(controllable_id);
+                    let player_id = PlayerId(packet.header().id0());
+                    let controllable_info_id = ControllableInfoId(packet.header().id1());
+                    debug_assert!(self.players.has(player_id), "{player_id:?} is not populated.");
+                    debug_assert!(self.players.get(player_id).controllable_info().has(controllable_info_id), "{controllable_info_id:?} is not populated for {player_id:?}.");
+                    let player = self.players.get(player_id);
+                    let controllable_info = player.controllable_info().get(controllable_info_id);
                     let reason = DestructionReason::try_from_primitive(packet.header().param0())?;
                     Ok(Some(match reason {
                         DestructionReason::Shutdown => {
                             FlattiverseEvent::DeathByShutdown {
-                                controllable,
+                                controllable_info,
                             }
                         }
                         DestructionReason::SelfDestruction => {
                             FlattiverseEvent::DeathBySelfDestruction {
-                                controllable,
+                                controllable_info,
                             }
                         }
                         DestructionReason::Collision => {
                             if UnitKind::Ship as u8 == packet.header().param1() {
+                                let (other_player_id, other_controllable_info_id) = packet.read(|reader| {
+                                    (PlayerId(reader.read_byte()), ControllableInfoId(reader.read_byte()))
+                                });
+                                debug_assert!(self.players.has(other_player_id), "{other_player_id:?} is not populated.");
+                                debug_assert!(self.players.get(other_player_id).controllable_info().has(other_controllable_info_id), "{other_controllable_info_id:?} is not populated for {other_player_id:?}.");
+                                let other_player = self.players.get(other_player_id);
                                 FlattiverseEvent::DeathByControllableCollision {
-                                    controllable,
-                                    other_player: {
-                                        let player_id = PlayerId(packet.header().id1());
-                                        debug_assert!(self.players.has(player_id), "{player_id:?} is not populated.");
-                                        self.players.get(player_id)
-                                    },
-                                    other_unit_name: packet.read(|reader| reader.read_string()),
+                                    controllable_info,
+                                    other_controllable: other_player.controllable_info().get(other_controllable_info_id),
+                                    other_player,
                                 }
                             } else {
                                 FlattiverseEvent::DeathByNeutralCollision {
-                                    controllable,
+                                    controllable_info,
                                     unit: UnitKind::try_from_primitive(packet.header().param1())?,
                                     name: packet.read(|reader| reader.read_string()),
                                 }
@@ -412,7 +417,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::ControllableInfoCreated {
                         controllable_info: player.controllable_info().populate(packet.read(|reader| {
                             ControllableInfo::new(
-                                Arc::downgrade(self),
+                                self,
                                 controllable_info_id,
                                 Arc::clone(&player),
                                 reader,
