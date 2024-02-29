@@ -17,6 +17,7 @@ impl Indexer for ControllableInfoId {
 #[derive(Debug)]
 pub struct ControllableInfo {
     active: Atomic<bool>,
+    alive: Atomic<bool>,
     galaxy: Weak<Galaxy>,
     id: ControllableInfoId,
     name: String,
@@ -46,8 +47,9 @@ impl ControllableInfo {
         reader: &mut dyn PacketReader,
         reduced: bool,
     ) -> Self {
-        Self {
+        let this = Self {
             active: Atomic::from(true),
+            alive: Atomic::from(true),
             galaxy,
             id,
             player,
@@ -72,7 +74,13 @@ impl ControllableInfo {
             shields: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
             energy: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
             ion: Atomic::from(if reduced { 0.0 } else { reader.read_double() }),
+        };
+
+        if !reduced {
+            this.alive.store(this.hull() > 0.0);
         }
+
+        this
     }
 
     pub(crate) fn deactivate(&self) {
@@ -81,7 +89,7 @@ impl ControllableInfo {
 
     pub(crate) fn dynamic_update(&self, reader: &mut dyn PacketReader, reduced: bool) {
         if reduced {
-            let _ = reader.read_boolean();
+            self.alive.store(reader.read_boolean());
         } else {
             self.hull.read(reader);
             self.shields.read(reader);
@@ -168,6 +176,11 @@ impl ControllableInfo {
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
+    }
+
+    #[inline]
+    pub fn alive(&self) -> bool {
+        self.alive.load()
     }
 }
 
