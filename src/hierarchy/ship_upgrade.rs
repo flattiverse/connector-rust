@@ -42,7 +42,7 @@ impl ShipUpgrade {
     pub async fn configure(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
         self.galaxy
             .connection()?
-            .configure_upgrade(self.id, config)
+            .configure_upgrade(self.id, self.ship_design.id(), config)
             .await
     }
 
@@ -50,7 +50,10 @@ impl ShipUpgrade {
     /// See also [`ConnectionHandle::remove_upgrade`].
     #[inline]
     pub async fn remove(&self) -> Result<(), GameError> {
-        self.galaxy.connection()?.remove_upgrade(self.id).await
+        self.galaxy
+            .connection()?
+            .remove_upgrade(self.id, self.ship_design.id())
+            .await
     }
 
     #[inline]

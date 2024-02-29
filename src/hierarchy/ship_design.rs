@@ -3,7 +3,7 @@ use crate::hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipDesignId(pub(crate) u8);
@@ -57,11 +57,16 @@ impl ShipDesign {
     /// Creates an [`ShipUpgrade`] with the given values for this [`ShipDesign`].
     /// See also [`ConnectionHandle::create_upgrade`]
     #[inline]
-    pub async fn create_upgrade(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
-        self.galaxy
-            .connection()?
-            .create_upgrade(self.id, config)
-            .await
+    pub async fn create_upgrade(
+        &self,
+        config: &ShipUpgradeConfig,
+    ) -> Result<Arc<ShipUpgrade>, GameError> {
+        Ok(self.upgrades.get(
+            self.galaxy
+                .connection()?
+                .create_upgrade(self.id, config)
+                .await?,
+        ))
     }
 
     #[inline]

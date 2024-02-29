@@ -108,7 +108,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |p| Ok(ClusterId(p.header().param0())))
+            GameError::check(response, |p| Ok(ClusterId(p.header().id0())))
         })
     }
 
@@ -130,7 +130,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x42);
-        packet.header_mut().set_param0(cluster.0);
+        packet.header_mut().set_id0(cluster.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -154,7 +154,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x43);
-        packet.header_mut().set_param0(cluster.0);
+        packet.header_mut().set_id0(cluster.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -184,14 +184,14 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<RegionId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x44);
-        packet.header_mut().set_param0(cluster.0);
+        packet.header_mut().set_id0(cluster.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |p| Ok(RegionId(p.header().param0())))
+            GameError::check(response, |p| Ok(RegionId(p.header().id0())))
         })
     }
 
@@ -213,7 +213,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x45);
-        packet.header_mut().set_param0(region.0);
+        packet.header_mut().set_id0(region.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -236,7 +236,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x46);
-        packet.header_mut().set_param0(region.0);
+        packet.header_mut().set_id0(region.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -265,7 +265,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |p| Ok(TeamId(p.header().param0())))
+            GameError::check(response, |p| Ok(TeamId(p.header().id0())))
         })
     }
 
@@ -283,7 +283,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x48);
-        packet.header_mut().set_param0(team.0);
+        packet.header_mut().set_id0(team.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -307,7 +307,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x49);
-        packet.header_mut().set_param0(team.0);
+        packet.header_mut().set_id0(team.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -323,7 +323,7 @@ impl ConnectionHandle {
         &self,
         ship: ShipDesignId,
         config: &ShipUpgradeConfig,
-    ) -> Result<(), GameError> {
+    ) -> Result<ShipUpgradeId, GameError> {
         self.create_upgrade_split(ship, config).await?.await
     }
 
@@ -332,17 +332,17 @@ impl ConnectionHandle {
         &self,
         ship: ShipDesignId,
         config: &ShipUpgradeConfig,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+    ) -> Result<impl Future<Output = Result<ShipUpgradeId, GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4D);
-        packet.header_mut().set_param0(ship.0);
+        packet.header_mut().set_id0(ship.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check(response, |p| Ok(ShipUpgradeId(p.header().id0())))
         })
     }
 
@@ -351,20 +351,25 @@ impl ConnectionHandle {
     pub async fn configure_upgrade(
         &self,
         upgrade: ShipUpgradeId,
+        design: ShipDesignId,
         config: &ShipUpgradeConfig,
     ) -> Result<(), GameError> {
-        self.configure_upgrade_split(upgrade, config).await?.await
+        self.configure_upgrade_split(upgrade, design, config)
+            .await?
+            .await
     }
 
     /// Sets the given values for the given [`crate::Upgrade`].
     pub async fn configure_upgrade_split(
         &self,
         upgrade: ShipUpgradeId,
+        design: ShipDesignId,
         config: &ShipUpgradeConfig,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4E);
-        packet.header_mut().set_param0(upgrade.0);
+        packet.header_mut().set_id0(upgrade.0);
+        packet.header_mut().set_id1(design.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -377,18 +382,24 @@ impl ConnectionHandle {
 
     /// Removes the given [`crate::Upgrade`].
     #[inline]
-    pub async fn remove_upgrade(&self, upgrade: ShipUpgradeId) -> Result<(), GameError> {
-        self.remove_upgrade_split(upgrade).await?.await
+    pub async fn remove_upgrade(
+        &self,
+        upgrade: ShipUpgradeId,
+        design: ShipDesignId,
+    ) -> Result<(), GameError> {
+        self.remove_upgrade_split(upgrade, design).await?.await
     }
 
     /// Removes the given [`crate::Upgrade`].
     pub async fn remove_upgrade_split(
         &self,
         upgrade: ShipUpgradeId,
+        design: ShipDesignId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4F);
-        packet.header_mut().set_param0(upgrade.0);
+        packet.header_mut().set_id0(upgrade.0);
+        packet.header_mut().set_id1(design.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 
@@ -420,7 +431,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |p| Ok(ShipDesignId(p.header().param0())))
+            GameError::check(response, |p| Ok(ShipDesignId(p.header().id0())))
         })
     }
 
@@ -442,7 +453,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4B);
-        packet.header_mut().set_param0(ship.0);
+        packet.header_mut().set_id0(ship.0);
         packet.write(|writer| config.write(writer));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -466,7 +477,7 @@ impl ConnectionHandle {
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x4C);
-        packet.header_mut().set_param0(ship.0);
+        packet.header_mut().set_id0(ship.0);
 
         let session = self.send_packet_on_new_session(packet).await?;
 
