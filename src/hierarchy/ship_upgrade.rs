@@ -1,7 +1,7 @@
-use crate::hierarchy::{Galaxy, ShipDesign, ShipUpgradeConfig};
+use crate::hierarchy::{ConnectionProvider, Galaxy, ShipDesign, ShipUpgradeConfig};
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, NamedUnit};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipUpgradeId(pub(crate) u8);
@@ -15,7 +15,7 @@ impl Indexer for ShipUpgradeId {
 
 #[derive(Debug)]
 pub struct ShipUpgrade {
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     ship_design: Arc<ShipDesign>,
     id: ShipUpgradeId,
     config: ShipUpgradeConfig,
@@ -23,7 +23,7 @@ pub struct ShipUpgrade {
 
 impl ShipUpgrade {
     pub fn new(
-        galaxy: Arc<Galaxy>,
+        galaxy: Weak<Galaxy>,
         ship: Arc<ShipDesign>,
         id: impl Into<ShipUpgradeId>,
         reader: &mut dyn PacketReader,
@@ -41,7 +41,7 @@ impl ShipUpgrade {
     #[inline]
     pub async fn configure(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
         self.galaxy
-            .connection()
+            .connection()?
             .configure_upgrade(self.id, config)
             .await
     }
@@ -50,11 +50,11 @@ impl ShipUpgrade {
     /// See also [`ConnectionHandle::remove_upgrade`].
     #[inline]
     pub async fn remove(&self) -> Result<(), GameError> {
-        self.galaxy.connection().remove_upgrade(self.id).await
+        self.galaxy.connection()?.remove_upgrade(self.id).await
     }
 
     #[inline]
-    pub fn galaxy(&self) -> &Arc<Galaxy> {
+    pub fn galaxy(&self) -> &Weak<Galaxy> {
         &self.galaxy
     }
 

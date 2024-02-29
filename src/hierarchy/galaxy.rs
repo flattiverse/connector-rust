@@ -16,7 +16,7 @@ use async_channel::{Receiver, TryRecvError};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct GalaxyId(pub(crate) u16);
@@ -40,15 +40,28 @@ pub struct Galaxy {
 
 impl Galaxy {
     pub(crate) async fn join(uri: &str, auth: &str, team: u8) -> Result<Arc<Self>, GameError> {
-        let connection = crate::network::connect(uri, auth, team)
-            .await
-            .map_err(|e| match e {
-                ConnectError::GameError(error) => error,
-                e => GameError::from(GameErrorKind::GenericException)
-                    .with_info(format!("Failed to connect due to local issues: {e}")),
-            })?;
+        crate::network::connect(uri, auth, team, |handle, event_receiver| {
+            Arc::new(Self {
+                id: Atomic::from(GalaxyId(0)),
+                config: ArcSwap::new(Arc::new(GalaxyConfig::default())),
 
-        Ok(connection.spawn())
+                clusters: UniversalArcHolder::with_capacity(256),
+                ship_designs: UniversalArcHolder::with_capacity(256),
+                teams: UniversalArcHolder::with_capacity(256),
+                controllables: UniversalArcHolder::with_capacity(256),
+                players: UniversalArcHolder::with_capacity(256),
+
+                connection: handle,
+                login_completed: Atomic::from(false),
+                events: event_receiver,
+            })
+        })
+        .await
+        .map_err(|e| match e {
+            ConnectError::GameError(error) => error,
+            e => GameError::from(GameErrorKind::GenericException)
+                .with_info(format!("Failed to connect due to local issues: {e}")),
+        })
     }
 
     pub async fn next_event(&self) -> Result<FlattiverseEvent, GameError> {
@@ -115,9 +128,7 @@ impl Galaxy {
                 // galaxy updated
                 0x50 => {
                     self.update(packet);
-                    Ok(Some(FlattiverseEvent::GalaxyUpdated{
-                        galaxy: Arc::clone(self)
-                    }))
+                    Ok(Some(FlattiverseEvent::GalaxyUpdated))
                 },
 
                 // cluster created
@@ -127,7 +138,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::ClusterCreated {
                         cluster: self.clusters.populate(packet.read(|reader| {
                             Cluster::new(
-                                Arc::clone(self),
+                                Arc::downgrade(self),
                                 cluster_id,
                                 reader
                             )
@@ -171,7 +182,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::RegionCreated {
                         region: cluster.regions().populate(packet.read(|reader| {
                             Region::new(
-                                Arc::clone(self),
+                                Arc::downgrade(self),
                                 Arc::clone(&cluster),
                                 region_id,
                                 reader
@@ -218,7 +229,7 @@ impl Galaxy {
                     debug_assert!(self.teams.has_not(team_id), "{team_id:?} is already populated: {:?}", self.teams.get_opt(team_id));
                     Ok(Some(FlattiverseEvent::TeamCreated {
                         team: self.teams.populate(packet.read(|reader| Team::new(
-                            Arc::clone(self),
+                            Arc::downgrade(self),
                             team_id,
                             reader
                         )))
@@ -271,7 +282,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::ShipDesignCreated {
                         ship_design: self.ship_designs.populate(packet.read(|reader| {
                             ShipDesign::new(
-                                Arc::clone(&self),
+                                Arc::downgrade(self),
                                 ship_design_id,
                                 reader
                             )
@@ -299,7 +310,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::UpgradeUpdated {
                         upgrade: ship.upgrades().populate(packet.read(|reader| {
                             ShipUpgrade::new(
-                                Arc::clone(&self),
+                                Arc::downgrade(self),
                                 Arc::clone(&ship),
                                 upgrade_id,
                                 reader
@@ -328,7 +339,7 @@ impl Galaxy {
                     let team = self.teams.get(team_id);
                     Ok(Some(FlattiverseEvent::PlayerJoined {
                         player: packet.read(|reader| {
-                            self.players.populate(Player::new(Arc::clone(&self), player_id, player_kind, team, reader))
+                            self.players.populate(Player::new(Arc::downgrade(self), player_id, player_kind, team, reader))
                         }),
                     }))
                 }
@@ -362,7 +373,7 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::ControllableInfoCreated {
                         controllable_info: player.controllable_info().populate(packet.read(|reader| {
                             ControllableInfo::new(
-                                Arc::clone(self),
+                                Arc::downgrade(self),
                                 controllable_info_id,
                                 Arc::clone(&player),
                                 reader,
@@ -418,7 +429,7 @@ impl Galaxy {
                     debug_assert!(self.controllables.has_not(controllable_id), "{controllable_id:?} is already populated: {:?}", self.controllables.get_opt(controllable_id));
                     Ok(Some(FlattiverseEvent::ControllableJoined {
                         controllable: self.controllables.populate(packet.read(|reader|
-                            Controllable::new(Arc::clone(self), controllable_id, reader)
+                            Controllable::new(Arc::downgrade(self), controllable_id, reader)
                         ))
                     }))
                 }
@@ -463,7 +474,7 @@ impl Galaxy {
                         .expect("Unknown UnitKind ");
                     debug_assert!(self.clusters.has(cluster_id), "{cluster_id:?} is not populated");
                     packet
-                        .read(|reader| self.clusters.get(cluster_id).see_new_unit(unit_kind, reader))
+                        .read(|reader| self.clusters.get(cluster_id).see_new_unit(unit_kind, reader, self))
                         .map(Some)
                 }
 
@@ -639,7 +650,30 @@ impl Galaxy {
     }
 
     #[inline]
-    pub fn connected(&self) -> bool {
+    pub fn is_connected(&self) -> bool {
         !self.events.is_closed()
+    }
+}
+
+pub trait ConnectionProvider {
+    fn connection(&self) -> Result<impl Deref<Target = ConnectionHandle>, GameError>;
+}
+
+impl ConnectionProvider for Weak<Galaxy> {
+    fn connection(&self) -> Result<impl Deref<Target = ConnectionHandle>, GameError> {
+        Ok(GalaxyConnectionProviderAdapter(self.upgrade().ok_or_else(
+            || GameError::from(GameErrorKind::ConnectionClosed),
+        )?))
+    }
+}
+
+struct GalaxyConnectionProviderAdapter(Arc<Galaxy>);
+
+impl Deref for GalaxyConnectionProviderAdapter {
+    type Target = ConnectionHandle;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0.connection
     }
 }

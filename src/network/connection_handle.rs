@@ -16,12 +16,11 @@ use std::sync::Arc;
 use tokio::sync::mpsc::error::SendError;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot::error::RecvError;
-use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct ConnectionHandle {
     pub(crate) sender: Sender<SenderData>,
-    pub(crate) sessions: Arc<Mutex<SessionHandler>>,
+    pub(crate) sessions: Arc<SessionHandler>,
 }
 
 impl Debug for ConnectionHandle {
@@ -35,7 +34,7 @@ impl From<Sender<SenderData>> for ConnectionHandle {
     fn from(sender: Sender<SenderData>) -> Self {
         Self {
             sender,
-            sessions: Arc::new(Mutex::new(SessionHandler::default())),
+            sessions: Arc::new(SessionHandler::default()),
         }
     }
 }
@@ -57,7 +56,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             Ok(response.header().param0() != 0)
         })
     }
@@ -85,7 +84,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -108,7 +107,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |p| Ok(ClusterId(p.header().param0())))
         })
     }
@@ -137,7 +136,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -160,7 +159,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -191,7 +190,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |p| Ok(RegionId(p.header().param0())))
         })
     }
@@ -220,7 +219,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -242,7 +241,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let respones = session.receiver.await?;
+            let respones = session.response().await?;
             GameError::check(respones, |_| Ok(()))
         })
     }
@@ -265,7 +264,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |p| Ok(TeamId(p.header().param0())))
         })
     }
@@ -290,7 +289,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -313,7 +312,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -342,7 +341,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -371,7 +370,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -394,7 +393,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -420,7 +419,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |p| Ok(ShipDesignId(p.header().param0())))
         })
     }
@@ -449,7 +448,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -472,7 +471,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -621,7 +620,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -653,7 +652,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -687,7 +686,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |mut packet| {
                 Ok(packet.read(|reader| T::default().with_read(reader)))
             })
@@ -726,7 +725,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -761,7 +760,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |packet| Ok(ControllableId(packet.header().id0())))
         })
     }
@@ -792,7 +791,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -821,7 +820,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -848,7 +847,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -869,7 +868,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -893,7 +892,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -939,7 +938,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -982,7 +981,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -1008,7 +1007,7 @@ impl ConnectionHandle {
         let session = self.send_packet_on_new_session(packet).await?;
 
         Ok(async move {
-            let response = session.receiver.await?;
+            let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
     }
@@ -1017,15 +1016,12 @@ impl ConnectionHandle {
         &self,
         mut packet: Packet,
     ) -> Result<Session, GameError> {
-        let session = {
-            self.sessions
-                .lock()
-                .await
-                .get()
-                .ok_or(GameErrorKind::ConnectionClosed)?
-        };
+        let session = self
+            .sessions
+            .get()
+            .ok_or(GameErrorKind::SessionIdsExhausted)?;
 
-        packet.header_mut().set_session(session.id());
+        packet.header_mut().set_session(session.id().0);
 
         self.sender.send(SenderData::Packet(packet)).await?;
 
@@ -1037,6 +1033,7 @@ pub enum SenderData {
     #[cfg(not(feature = "wasm"))]
     Raw(tokio_tungstenite::tungstenite::Message),
     Packet(Packet),
+    Close,
 }
 
 impl From<RecvError> for GameError {
@@ -1049,6 +1046,13 @@ impl From<RecvError> for GameError {
 impl<T> From<SendError<T>> for GameError {
     #[inline]
     fn from(_error: SendError<T>) -> Self {
+        GameErrorKind::ConnectionClosed.into()
+    }
+}
+
+impl From<async_channel::RecvError> for GameError {
+    #[inline]
+    fn from(_: async_channel::RecvError) -> Self {
         GameErrorKind::ConnectionClosed.into()
     }
 }

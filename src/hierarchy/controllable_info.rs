@@ -2,7 +2,7 @@ use crate::atomics::Atomic;
 use crate::hierarchy::{Galaxy, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::{Identifiable, Indexer, NamedUnit, Player};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ControllableInfoId(pub(crate) u8);
@@ -17,7 +17,7 @@ impl Indexer for ControllableInfoId {
 #[derive(Debug)]
 pub struct ControllableInfo {
     active: Atomic<bool>,
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     id: ControllableInfoId,
     name: String,
     reduced: bool,
@@ -40,7 +40,7 @@ pub struct ControllableInfo {
 
 impl ControllableInfo {
     pub fn new(
-        galaxy: Arc<Galaxy>,
+        galaxy: Weak<Galaxy>,
         id: ControllableInfoId,
         player: Arc<Player>,
         reader: &mut dyn PacketReader,
@@ -91,7 +91,7 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> &Arc<Galaxy> {
+    pub fn galaxy(&self) -> &Weak<Galaxy> {
         &self.galaxy
     }
 

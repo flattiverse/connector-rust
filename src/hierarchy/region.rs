@@ -1,11 +1,11 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::RegionConfig;
 use crate::hierarchy::{Cluster, Galaxy};
+use crate::hierarchy::{ConnectionProvider, RegionConfig};
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer};
 use arc_swap::ArcSwap;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct RegionId(pub(crate) u8);
@@ -20,7 +20,7 @@ impl Indexer for RegionId {
 #[derive(Debug)]
 pub struct Region {
     active: Atomic<bool>,
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     cluster: Arc<Cluster>,
     id: RegionId,
     config: ArcSwap<RegionConfig>,
@@ -28,7 +28,7 @@ pub struct Region {
 
 impl Region {
     pub fn new(
-        galaxy: Arc<Galaxy>,
+        galaxy: Weak<Galaxy>,
         cluster: Arc<Cluster>,
         id: RegionId,
         reader: &mut dyn PacketReader,
@@ -55,7 +55,7 @@ impl Region {
     #[inline]
     pub async fn configure(&self, config: &RegionConfig) -> Result<(), GameError> {
         self.galaxy
-            .connection()
+            .connection()?
             .configure_region(self.id, config)
             .await
     }
@@ -64,7 +64,7 @@ impl Region {
     /// See also [`ConnectionHandle::remove_region`].
     #[inline]
     pub async fn remove(&self) -> Result<(), GameError> {
-        self.galaxy.connection().remove_region(self.id).await
+        self.galaxy.connection()?.remove_region(self.id).await
     }
 
     #[inline]
@@ -73,7 +73,7 @@ impl Region {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> &Arc<Galaxy> {
+    pub fn galaxy(&self) -> &Weak<Galaxy> {
         &self.galaxy
     }
 

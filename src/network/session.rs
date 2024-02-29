@@ -1,43 +1,58 @@
 use crate::network::Packet;
-use tokio::sync::oneshot::{Receiver, Sender};
+use arc_swap::ArcSwapOption;
+use async_channel::{Receiver, RecvError, Sender};
+use std::sync::Arc;
 
-pub type SessionId = u8;
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
+pub struct SessionId(pub(crate) u8);
 
 pub struct SessionHandler {
-    sessions: [Option<Sender<Packet>>; 256],
+    sessions: [ArcSwapOption<Sender<Packet>>; 256],
 }
 
 impl Default for SessionHandler {
     fn default() -> Self {
         Self {
-            sessions: core::array::from_fn(|_| None),
+            sessions: core::array::from_fn(|_| ArcSwapOption::default()),
         }
     }
 }
 
 impl SessionHandler {
-    pub fn get(&mut self) -> Option<Session> {
-        self.sessions
-            .iter_mut()
+    pub fn get(&self) -> Option<Session> {
+        let (sender, receiver) = async_channel::unbounded();
+        let sender = Arc::new(sender);
+        let id = self
+            .sessions
+            .iter()
             .enumerate()
             .skip(1) // TODo session id of 0 is not allowed
-            .filter(|(_, s)| s.is_none())
             .find_map(|(id, slot)| {
-                let (sender, receiver) = tokio::sync::oneshot::channel();
-                let session = Session {
-                    id: id as SessionId,
-                    receiver,
-                };
-                *slot = Some(sender);
-                Some(session)
+                if slot
+                    .compare_and_swap(&None::<Arc<Sender<Packet>>>, Some(Arc::clone(&sender)))
+                    .is_none()
+                {
+                    return Some(id);
+                } else {
+                    None
+                }
             })
+            .expect("Ids exhausted");
+
+        let session = Session {
+            id: SessionId(id as _),
+            receiver,
+        };
+        Some(session)
     }
 
-    pub fn resolve(&mut self, id: SessionId, packet: Packet) {
-        if let Some(session) = core::mem::take(&mut self.sessions[usize::from(id)]) {
-            let _ = session.send(packet);
+    pub fn resolve(&self, id: SessionId, packet: Packet) {
+        if let Some(session) = self.sessions[usize::from(id.0)].swap(None) {
+            if let Err(e) = session.try_send(packet) {
+                error!("Failed to resolve {id:?}: {e:?}");
+            }
         } else {
-            error!("Did not find Session for id={id}")
+            error!("Did not find Session for {id:?}")
         }
     }
 }
@@ -51,5 +66,10 @@ impl Session {
     #[inline]
     pub fn id(&self) -> SessionId {
         self.id
+    }
+
+    #[inline]
+    pub async fn response(self) -> Result<Packet, RecvError> {
+        self.receiver.recv().await
     }
 }

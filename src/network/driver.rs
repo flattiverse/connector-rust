@@ -1,10 +1,13 @@
+use crate::hierarchy::Galaxy;
 use crate::network::connection_handle::ConnectionHandle;
 use crate::network::packet::MultiPacketBuffer;
-use crate::network::{ConnectError, Connection, ConnectionEvent, SenderData};
+use crate::network::{ConnectError, Connection, SenderData};
+use crate::FlattiverseEvent;
 use bytes::BytesMut;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -18,7 +21,10 @@ pub const DEFAULT_PORT_WEB: u16 = 443;
 pub const DEFAULT_PORT_PROXY: u16 = 80;
 pub const ENV_PROXY: &'static str = "http_proxy";
 
-pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
+pub async fn connect(
+    url: &str,
+    f: impl FnOnce(ConnectionHandle, async_channel::Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
+) -> Result<Arc<Galaxy>, ConnectError> {
     let url = Url::from_str(url).map_err(ConnectError::MalformedHostUrl)?;
     let (mut stream, _response) = match std::env::var(ENV_PROXY).ok() {
         Some(proxy) => {
@@ -53,41 +59,41 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
 
     try_set_tcp_nodelay(&mut stream);
 
-    let (sender, receiver) = {
-        let (sink, stream) = stream.split();
-        let (sender, receiver) = tokio::sync::mpsc::channel(1024);
-        let (event_sender, event_receiver) = tokio::sync::mpsc::channel(1024);
+    let (sink, stream) = stream.split();
+    let (data_sender, data_receiver) = tokio::sync::mpsc::channel(1024);
+    let (event_sender, event_receiver) = async_channel::unbounded();
 
-        let mut sender_handle =
-            tokio::spawn(ConnectionSender { sink }.run(receiver, PING_INTERVAL));
+    let handle = ConnectionHandle::from(data_sender.clone());
+    let galaxy = f(handle.clone(), event_receiver);
+    let connection = Connection {
+        handle,
+        galaxy: Arc::downgrade(&galaxy),
+        sender: event_sender,
+    };
 
-        tokio::spawn({
-            let sender = sender.clone();
-            async move {
-                let receiver = ConnectionReceiver { stream }.run(sender, event_sender);
-                tokio::select! {
-                    r = &mut sender_handle => {
-                        if let Err(e) = r {
-                            eprintln!("ConnectionSender failed: {e:?}");
-                        }
-                    },
-                    r = receiver => {
-                        sender_handle.abort();
-                        if let Err(e) = r {
-                            eprintln!("ConnectionReceiver failed: {e:?}")
-                        }
+    let mut sender_handle =
+        tokio::spawn(ConnectionSender { sink }.run(data_receiver, PING_INTERVAL));
+    let receiver_handle = ConnectionReceiver { stream, connection }.run(data_sender);
+
+    tokio::spawn({
+        async move {
+            tokio::select! {
+                r = &mut sender_handle => {
+                    if let Err(e) = r {
+                        eprintln!("ConnectionSender failed: {e:?}");
+                    }
+                },
+                r = receiver_handle => {
+                    sender_handle.abort();
+                    if let Err(e) = r {
+                        eprintln!("ConnectionReceiver failed: {e:?}")
                     }
                 }
             }
-        });
+        }
+    });
 
-        (sender, event_receiver)
-    };
-
-    Ok(Connection::from_existing(
-        ConnectionHandle::from(sender),
-        receiver,
-    ))
+    Ok(galaxy)
 }
 
 fn try_set_tcp_nodelay(stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
@@ -125,13 +131,17 @@ impl ConnectionSender {
                 _ = ping_interval.tick() => self.send_ping().await?,
                 cmd = receiver.recv() => {
                     match cmd {
+                        Some(SenderData::Close) => {
+                            debug!("ConnectionSender received close request");
+                            return Ok(())
+                        }
                         Some(SenderData::Raw(message)) => {
                             self.send(message).await?;
                         }
                         Some(SenderData::Packet(packet)) => {
                             self.send(Message::Binary(packet.into_buf().to_vec())).await?;
                         }
-                        None => return Ok(()),
+                        None => return Ok(())
                     }
                 }
             }
@@ -165,14 +175,11 @@ pub enum SenderError {
 
 struct ConnectionReceiver {
     stream: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    connection: Connection,
 }
 
 impl ConnectionReceiver {
-    async fn run(
-        mut self,
-        sender: Sender<SenderData>,
-        event_sender: Sender<ConnectionEvent>,
-    ) -> Result<(), ReceiveError> {
+    async fn run(mut self, sender: Sender<SenderData>) -> Result<(), ReceiveError> {
         while let Some(message) = self.stream.next().await.transpose()? {
             match message {
                 b @ (Message::Frame(_) | Message::Text(_)) => {
@@ -182,9 +189,9 @@ impl ConnectionReceiver {
                     // TODo sad copy
                     let mut packet = MultiPacketBuffer::from(BytesMut::from(&bin[..]));
                     while let Some(packet) = packet.next_packet() {
-                        if let Err(e) = event_sender.send(ConnectionEvent::Packet(packet)).await {
-                            error!("Failed to send ConnectionEvent {e:?}");
-                            return Err(ReceiveError::ConnectionHandleGone);
+                        if let Err(e) = self.connection.handle(packet) {
+                            error!("Failed to handle Packet: {e:?}");
+                            return Err(ReceiveError::GalaxyGone);
                         }
                     }
                 }
@@ -193,7 +200,7 @@ impl ConnectionReceiver {
                         .try_send(SenderData::Raw(Message::Pong(data)))
                         .is_err()
                     {
-                        break;
+                        return Err(ReceiveError::SenderGone);
                     }
                 }
                 Message::Pong(data) => {
@@ -201,21 +208,24 @@ impl ConnectionReceiver {
                     let millis_len = millis.len();
                     if millis_len <= data.len() {
                         millis.copy_from_slice(&data[..millis_len]);
-                        if event_sender
-                            .try_send(ConnectionEvent::PingMeasured(Duration::from_millis(
-                                current_time_millis().saturating_sub(u64::from_le_bytes(millis)),
-                            )))
-                            .is_err()
-                        {
-                            break;
+                        let duration = Duration::from_millis(
+                            current_time_millis().saturating_sub(u64::from_le_bytes(millis)),
+                        );
+                        if let Err(e) = self.connection.on_ping_measured(duration) {
+                            error!("Failed to handle ping={duration:?} measurement: {e:?}");
+                            return Err(ReceiveError::GalaxyGone);
                         }
                     }
                 }
                 Message::Close(msg) => {
-                    let _ = event_sender.try_send(ConnectionEvent::Closed(
-                        msg.map(|msg| format!("{} - {}", msg.code, msg.reason)),
-                    ));
-                    break;
+                    info!(
+                        "Connection closed by the server: code={:?}, reason={:?}",
+                        msg.as_ref().map(|m| m.code),
+                        msg.as_ref().map(|m| m.reason.as_ref()).unwrap_or_default()
+                    );
+                    let _ = sender.try_send(SenderData::Close);
+                    self.connection.on_close();
+                    return Ok(());
                 }
             }
         }
@@ -225,10 +235,12 @@ impl ConnectionReceiver {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ReceiveError {
+    #[error("Sender channel gone")]
+    SenderGone,
     #[error("Connection has encountered an error: {0}")]
     ConnectionError(#[from] tokio_tungstenite::tungstenite::Error),
-    #[error("The ConnectionHandle is no longer reachable")]
-    ConnectionHandleGone,
+    #[error("The Galaxy is no longer reachable")]
+    GalaxyGone,
     #[error("Unexpected data received: {0}")]
     UnexpectedData(String),
 }

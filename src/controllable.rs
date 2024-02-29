@@ -1,10 +1,10 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::{Galaxy, ShipDesignId, ShipUpgradeId};
+use crate::hierarchy::{ConnectionProvider, Galaxy, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, Vector};
 use arc_swap::ArcSwap;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ControllableId(pub(crate) u8);
@@ -19,7 +19,7 @@ impl Indexer for ControllableId {
 #[derive(Debug)]
 pub struct Controllable {
     active: Atomic<bool>,
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     id: ControllableId,
     name: String,
     ship_design: ShipDesignId,
@@ -71,7 +71,7 @@ pub struct Controllable {
 }
 
 impl Controllable {
-    pub fn new(galaxy: Arc<Galaxy>, id: ControllableId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(galaxy: Weak<Galaxy>, id: ControllableId, reader: &mut dyn PacketReader) -> Self {
         Self {
             active: Atomic::from(true),
             galaxy,
@@ -201,7 +201,7 @@ impl Controllable {
         if !self.alive() {
             return Err(GameError::from(0x20));
         } else {
-            self.galaxy.connection().kill_controllable(self.id).await
+            self.galaxy.connection()?.kill_controllable(self.id).await
         }
     }
 
@@ -213,7 +213,7 @@ impl Controllable {
             return Err(GameError::from(0x21));
         } else {
             self.galaxy
-                .connection()
+                .connection()?
                 .continue_controllable(self.id)
                 .await
         }
@@ -237,7 +237,7 @@ impl Controllable {
             return Err(GameError::from(0x31));
         } else {
             self.galaxy
-                .connection()
+                .connection()?
                 .set_controllable_thruster_nozzel(self.id, thruster, nozzle)
                 .await
         }
@@ -258,7 +258,7 @@ impl Controllable {
             return Err(GameError::from(0x31));
         } else {
             self.galaxy
-                .connection()
+                .connection()?
                 .set_controllable_thruster(self.id, thruster)
                 .await
         }
@@ -268,7 +268,7 @@ impl Controllable {
     #[inline]
     pub async fn unregister(&self) -> Result<(), GameError> {
         self.galaxy
-            .connection()
+            .connection()?
             .unregister_controllable(self.id)
             .await
     }
@@ -284,7 +284,7 @@ impl Controllable {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> &Arc<Galaxy> {
+    pub fn galaxy(&self) -> &Weak<Galaxy> {
         &self.galaxy
     }
 

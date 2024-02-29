@@ -1,7 +1,9 @@
-use crate::hierarchy::{Galaxy, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId};
+use crate::hierarchy::{
+    ConnectionProvider, Galaxy, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId,
+};
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
-use std::sync::Arc;
+use std::sync::Weak;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ShipDesignId(pub(crate) u8);
@@ -15,7 +17,7 @@ impl Indexer for ShipDesignId {
 
 #[derive(Debug)]
 pub struct ShipDesign {
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     upgrades: UniversalArcHolder<ShipUpgradeId, ShipUpgrade>,
     id: ShipDesignId,
     config: ShipDesignConfig,
@@ -23,7 +25,7 @@ pub struct ShipDesign {
 
 impl ShipDesign {
     pub fn new(
-        galaxy: Arc<Galaxy>,
+        galaxy: Weak<Galaxy>,
         id: impl Into<ShipDesignId>,
         reader: &mut dyn PacketReader,
     ) -> Self {
@@ -40,7 +42,7 @@ impl ShipDesign {
     #[inline]
     pub async fn configure(&self, config: &ShipDesignConfig) -> Result<(), GameError> {
         self.galaxy
-            .connection()
+            .connection()?
             .configure_ship(self.id, config)
             .await
     }
@@ -49,7 +51,7 @@ impl ShipDesign {
     /// See also [`ConnectionHandle::remove_ship`].
     #[inline]
     pub async fn remove(&self) -> Result<(), GameError> {
-        self.galaxy.connection().remove_ship(self.id).await
+        self.galaxy.connection()?.remove_ship(self.id).await
     }
 
     /// Creates an [`ShipUpgrade`] with the given values for this [`ShipDesign`].
@@ -57,7 +59,7 @@ impl ShipDesign {
     #[inline]
     pub async fn create_upgrade(&self, config: &ShipUpgradeConfig) -> Result<(), GameError> {
         self.galaxy
-            .connection()
+            .connection()?
             .create_upgrade(self.id, config)
             .await
     }
@@ -68,7 +70,7 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn galaxy(&self) -> &Arc<Galaxy> {
+    pub fn galaxy(&self) -> &Weak<Galaxy> {
         &self.galaxy
     }
 

@@ -1,5 +1,5 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::{Cluster, ControllableInfo, ControllableInfoId};
+use crate::hierarchy::{Cluster, ControllableInfo, ControllableInfoId, Galaxy};
 use crate::network::PacketReader;
 use crate::unit::{Unit, UnitKind};
 use crate::{Player, PlayerId, Team, Vector};
@@ -29,9 +29,9 @@ pub struct PlayerUnit {
 }
 
 impl PlayerUnit {
-    pub fn new(cluster: Arc<Cluster>, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(galaxy: &Galaxy, cluster: Arc<Cluster>, reader: &mut dyn PacketReader) -> Self {
         let name = reader.read_string();
-        let player = cluster.galaxy().get_player(PlayerId(reader.read_byte()));
+        let player = galaxy.get_player(PlayerId(reader.read_byte()));
         let controllable_info = player
             .controllable_info()
             .get(ControllableInfoId(reader.read_byte()));

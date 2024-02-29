@@ -1,10 +1,10 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::{ControllableInfo, ControllableInfoId, Galaxy};
+use crate::hierarchy::{ConnectionProvider, ControllableInfo, ControllableInfoId, Galaxy};
 use crate::network::PacketReader;
 use crate::player_kind::PlayerKind;
 use crate::{GameError, GameErrorKind, Identifiable, Indexer, NamedUnit, Team, UniversalArcHolder};
 use std::fmt::{Display, Formatter};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -18,7 +18,7 @@ impl Indexer for PlayerId {
 
 #[derive(Debug)]
 pub struct Player {
-    galaxy: Arc<Galaxy>,
+    galaxy: Weak<Galaxy>,
     id: PlayerId,
     name: String,
     kind: PlayerKind,
@@ -30,7 +30,7 @@ pub struct Player {
 impl Player {
     #[inline]
     pub fn new(
-        galaxy: Arc<Galaxy>,
+        galaxy: Weak<Galaxy>,
         id: impl Into<PlayerId>,
         kind: PlayerKind,
         team: Arc<Team>,
@@ -57,7 +57,10 @@ impl Player {
         if !self.active() {
             Err(GameErrorKind::UnitIsBeingDeactivated.into())
         } else {
-            self.galaxy.connection().chat_player(self.id, message).await
+            self.galaxy
+                .connection()?
+                .chat_player(self.id, message)
+                .await
         }
     }
 

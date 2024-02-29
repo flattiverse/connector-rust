@@ -1,4 +1,4 @@
-use crate::hierarchy::Cluster;
+use crate::hierarchy::{Cluster, Galaxy};
 use crate::network::PacketReader;
 use crate::unit::{BlackHole, Buoy, Meteoroid, PlayerUnit};
 use crate::unit::{Mobility, Moon, Planet, Sun, UnitKind};
@@ -10,7 +10,7 @@ use std::sync::Arc;
 /// Represents a unit in Flattiverse. Each [`Unit`] in a [`crate::hierarchy::Cluster`] derives from
 /// this type. The [`Unit`] declares methods which all units have in common. Derived types implement
 /// those methods and might add futher propeties.
-pub trait Unit: Any + Debug {
+pub trait Unit: Any + Debug + Send + Sync {
     /// The name of this [`Unit`]. The name can't be changed after it has been setup.
     fn name(&self) -> &str;
 
@@ -137,6 +137,7 @@ impl Display for dyn Unit {
 }
 
 pub(crate) fn from_packet(
+    galaxy: &Galaxy,
     cluster: Arc<Cluster>,
     kind: UnitKind,
     reader: &mut dyn PacketReader,
@@ -148,6 +149,6 @@ pub(crate) fn from_packet(
         UnitKind::Moon => Arc::new(Moon::new(cluster, reader)),
         UnitKind::Meteoroid => Arc::new(Meteoroid::new(cluster, reader)),
         UnitKind::Buoy => Arc::new(Buoy::new(cluster, reader)),
-        UnitKind::Ship => Arc::new(PlayerUnit::new(cluster, reader)),
+        UnitKind::Ship => Arc::new(PlayerUnit::new(galaxy, cluster, reader)),
     })
 }

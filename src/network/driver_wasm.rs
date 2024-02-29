@@ -1,22 +1,38 @@
+use crate::hierarchy::Galaxy;
 use crate::network::packet::MultiPacketBuffer;
-use crate::network::{ConnectError, Connection, ConnectionEvent, ConnectionHandle, SenderData};
+use crate::network::{ConnectError, Connection, ConnectionHandle, SenderData};
+use crate::FlattiverseEvent;
+use async_channel::Receiver;
 use bytes::BytesMut;
+use std::sync::Arc;
 use web_sys::js_sys::{ArrayBuffer, JsString, Uint8Array};
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::{Blob, CloseEvent, MessageEvent, WebSocket};
 
-pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
+pub async fn connect(
+    url: &str,
+    f: impl FnOnce(ConnectionHandle, Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
+) -> Result<Arc<Galaxy>, ConnectError> {
     debug!("Connecting to {url:?}");
     match WebSocket::new(&url) {
         Ok(websocket) => {
             debug!("Target URL seems fine");
             websocket.set_binary_type(web_sys::BinaryType::Arraybuffer);
-            let (back_sender, back_receiver) = tokio::sync::mpsc::channel(124);
-            let (sender, mut receiver) = tokio::sync::mpsc::channel(124);
+            let (data_sender, mut data_receiver) = tokio::sync::mpsc::channel(124);
+            let (event_sender, event_receiver) = async_channel::unbounded();
+
+            let handle = ConnectionHandle::from(data_sender.clone());
+            let galaxy = f(handle.clone(), event_receiver);
+            let connection = Arc::new(Connection {
+                handle,
+                galaxy: Arc::downgrade(&galaxy),
+                sender: event_sender.clone(),
+            });
 
             let on_message_callback = Closure::<dyn FnMut(_)>::new({
-                let back_sender = back_sender.clone();
+                let connection = connection.clone();
+                let data_sender = data_sender.clone();
                 let websocket = websocket.clone();
                 move |msg: MessageEvent| {
                     let array = if let Ok(buffer) = msg.data().dyn_into::<ArrayBuffer>() {
@@ -41,8 +57,9 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
 
                     let mut packet = MultiPacketBuffer::from(data);
                     while let Some(packet) = packet.next_packet() {
-                        if let Err(e) = back_sender.try_send(ConnectionEvent::Packet(packet)) {
+                        if let Err(e) = connection.handle(packet) {
                             error!("Failed to send ConnectionEvent {e:?}");
+                            let _ = data_sender.try_send(SenderData::Close);
                             let _ = websocket.close();
                         }
                     }
@@ -52,8 +69,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
             on_message_callback.forget();
 
             let on_close_callback = Closure::<dyn FnMut(_)>::new({
-                let back_sender = back_sender.clone();
                 let websocket = websocket.clone();
+                let connection = connection.clone();
                 move |msg: CloseEvent| {
                     let error = ConnectError::game_error_from_http_status_code(msg.code());
                     warn!(
@@ -61,8 +78,8 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                         msg.code()
                     );
 
-                    let _ = back_sender.send(ConnectionEvent::GameError(error));
-                    let _ = back_sender.send(ConnectionEvent::Closed(None));
+                    connection.on_close();
+                    let _ = data_sender.try_send(SenderData::Close);
                     let _ = websocket.close();
                 }
             });
@@ -73,13 +90,16 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 debug!("FUTURE SPAWNED");
 
                 loop {
-                    match receiver.recv().await {
+                    match data_receiver.recv().await {
+                        Some(SenderData::Close) => {
+                            warn!("WebSocket Sender received close request");
+                            connection.on_close();
+                            break;
+                        }
                         Some(SenderData::Packet(packet)) => {
                             if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
-                                debug!("Faild to send Packet: {e:?}");
-                                let _ = back_sender.send(ConnectionEvent::Closed(Some(format!(
-                                    "Failed to send message: {e:?}"
-                                ))));
+                                error!("Failed to send Packet: {e:?}");
+                                connection.on_close();
                                 break;
                             }
                         }
@@ -94,10 +114,7 @@ pub async fn connect(url: &str) -> Result<Connection, ConnectError> {
                 let _ = websocket.close();
             });
 
-            Ok(Connection::from_existing(
-                ConnectionHandle::from(sender),
-                back_receiver,
-            ))
+            Ok(galaxy)
         }
         Err(e) => Err(ConnectError::Unknown(format!("{e:?}"))),
     }

@@ -103,6 +103,10 @@ pub enum GameErrorKind {
     NotConfigurable = 0x34,
     #[error("Unit has been created but wasn't there when the session returned.")]
     CreatedButMissing = 0x35,
+    #[error(
+        "All SessionIds are already in use. Wait for some answers before you send a new request."
+    )]
+    SessionIdsExhausted = 0xDF,
     #[error("Unauthorized request. You probably aren't the right kind of client: Player, Spectator or Admin.")]
     CommandDoesntExist = 0xE0,
     #[error("Don't flood the server. Read the documentation, it will tell you how often you can use a command.")]

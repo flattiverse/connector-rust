@@ -28,7 +28,7 @@ impl Planet {
     /// See also [`ConnectionHandle::retrieve_unit_configuration`].
     pub async fn retrieve_configuration(&self) -> Result<PlanetConfiguration, GameError> {
         self.cluster
-            .connection()
+            .connection()?
             .retrieve_unit_configuration(self.cluster.id(), self.name(), self.kind())
             .await
     }
@@ -37,7 +37,7 @@ impl Planet {
     /// See also [`ConnectionHandle::configure_unit`].
     pub async fn configure(&self, configuration: &PlanetConfiguration) -> Result<(), GameError> {
         self.cluster
-            .connection()
+            .connection()?
             .configure_unit(self.cluster.id(), self.name(), configuration)
             .await
     }
@@ -46,7 +46,7 @@ impl Planet {
     /// See also [`ConnectionHandle::remove_unit`].
     pub async fn remove(&self) -> Result<(), GameError> {
         self.cluster
-            .connection()
+            .connection()?
             .remove_unit(self.cluster.id(), self.name(), self.kind())
             .await
     }

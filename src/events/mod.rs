@@ -1,4 +1,4 @@
-use crate::hierarchy::{Cluster, Galaxy, Region};
+use crate::hierarchy::{Cluster, Region};
 use crate::hierarchy::{ControllableInfo, ShipDesign, ShipUpgrade};
 use crate::unit::Unit;
 use crate::{Controllable, Player, Team};
@@ -8,10 +8,8 @@ use std::time::{Duration, SystemTime};
 #[derive(Debug)]
 pub enum FlattiverseEvent {
     PingMeasured(Duration),
-    /// The [`crate::hierarchy::Cluster`] of the given id was updated.
-    GalaxyUpdated {
-        galaxy: Arc<Galaxy>,
-    },
+    /// The [`Galaxy`] instance has been updated.
+    GalaxyUpdated,
     /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was created.
     ClusterCreated {
         cluster: Arc<Cluster>,
@@ -125,4 +123,5 @@ pub enum FlattiverseEvent {
     },
 
     TickCompleted,
+    ConnectionClosed,
 }

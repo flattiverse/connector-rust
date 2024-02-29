@@ -15,7 +15,10 @@ mod driver;
 mod fetch;
 
 mod connection_handle;
+
+use async_channel::Receiver;
 pub use connection_handle::*;
+use std::sync::Arc;
 
 mod packet_header;
 pub use packet_header::PacketHeader;
@@ -36,8 +39,15 @@ mod session;
 pub use session::*;
 
 use crate::error::GameError;
+use crate::hierarchy::Galaxy;
+use crate::FlattiverseEvent;
 
-pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, ConnectError> {
+pub(crate) async fn connect(
+    uri: &str,
+    auth: &str,
+    team: u8,
+    f: impl FnOnce(ConnectionHandle, Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
+) -> Result<Arc<Galaxy>, ConnectError> {
     let team = Some(team).filter(|t| *t < 32);
     let url = format!(
         "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}",
@@ -51,13 +61,13 @@ pub async fn connect(uri: &str, auth: &str, team: u8) -> Result<Connection, Conn
         any(target_arch = "wasm32", target_arch = "wasm64"),
         target_os = "unknown"
     ))]
-    return driver_wasm::connect(&url).await;
+    return driver_wasm::connect(&url, f).await;
 
     #[cfg(not(all(
         any(target_arch = "wasm32", target_arch = "wasm64"),
         target_os = "unknown"
     )))]
-    return driver::connect(&url).await;
+    return driver::connect(&url, f).await;
 }
 
 #[inline]

@@ -1,5 +1,5 @@
 use std::future::Future;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 #[cfg(all(
     any(target_arch = "wasm32", target_arch = "wasm64"),
@@ -23,7 +23,7 @@ pub fn spawn(f: impl Future<Output = ()> + Send + 'static) {
 ))]
 pub fn now() -> SystemTime {
     let time = web_sys::js_sys::Date::now();
-    std::time::UNIX_EPOCH + Duration::from_secs_f64(time / 1000.0)
+    std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(time / 1000.0)
 }
 
 #[cfg(not(all(
