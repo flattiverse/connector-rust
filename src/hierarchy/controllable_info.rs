@@ -1,5 +1,5 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::{Galaxy, ShipDesignId, ShipUpgradeId};
+use crate::hierarchy::{Galaxy, ShipDesign, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::{Identifiable, Indexer, NamedUnit, Player};
 use std::sync::{Arc, Weak};
@@ -22,7 +22,7 @@ pub struct ControllableInfo {
     id: ControllableInfoId,
     name: String,
     reduced: bool,
-    ship_design: ShipDesignId,
+    ship_design: Arc<ShipDesign>,
     player: Arc<Player>,
     upgrades: Box<[ShipUpgradeId]>,
 
@@ -41,7 +41,7 @@ pub struct ControllableInfo {
 
 impl ControllableInfo {
     pub fn new(
-        galaxy: Weak<Galaxy>,
+        galaxy: &Arc<Galaxy>,
         id: ControllableInfoId,
         player: Arc<Player>,
         reader: &mut dyn PacketReader,
@@ -50,14 +50,14 @@ impl ControllableInfo {
         let this = Self {
             active: Atomic::from(true),
             alive: Atomic::from(true),
-            galaxy,
+            galaxy: Arc::downgrade(galaxy),
             id,
             player,
             reduced,
 
             name: reader.read_string(),
 
-            ship_design: ShipDesignId(reader.read_byte()),
+            ship_design: galaxy.get_ship_design(ShipDesignId(reader.read_byte())),
             upgrades: reader
                 .read_bytes(32)
                 .into_iter()
@@ -119,8 +119,8 @@ impl ControllableInfo {
     }
 
     #[inline]
-    pub fn ship_design(&self) -> ShipDesignId {
-        self.ship_design
+    pub fn ship_design(&self) -> &Arc<ShipDesign> {
+        &self.ship_design
     }
 
     #[inline]
