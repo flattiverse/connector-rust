@@ -1,9 +1,9 @@
 #[repr(u8)]
 #[derive(
-    Debug, Copy, Clone, Default, PartialEq, Eq, num_enum::FromPrimitive, num_enum::IntoPrimitive,
+    Debug, Copy, Clone, PartialEq, Eq, num_enum::TryFromPrimitive, num_enum::IntoPrimitive,
 )]
 pub enum DestructionReason {
     Shutdown,
-    Suicide,
+    SelfDestruction,
     Collision,
 }

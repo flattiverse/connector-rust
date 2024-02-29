@@ -53,6 +53,7 @@ impl Packet {
         Self { header, payload }
     }
 
+    #[inline]
     pub fn header(&self) -> &PacketHeader {
         &self.header
     }

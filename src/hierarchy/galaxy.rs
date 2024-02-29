@@ -9,7 +9,7 @@ use crate::hierarchy::{ClusterConfig, ClusterId};
 use crate::network::{ConnectError, ConnectionHandle, Packet};
 use crate::player::Player;
 use crate::team::Team;
-use crate::unit::UnitKind;
+use crate::unit::{DestructionReason, UnitKind};
 use crate::{Controllable, ControllableId, PlayerId, PlayerKind, TeamId, UniversalArcHolder};
 use arc_swap::ArcSwap;
 use async_channel::{Receiver, TryRecvError};
@@ -120,6 +120,45 @@ impl Galaxy {
                         time: crate::runtime::now(),
                         player: self.players.get(player_id),
                         message: packet.read(|reader| reader.read_remaining_as_string()),
+                    }))
+                }
+
+                // controllable destroyed event
+                0x34 => {
+                    let controllable_id = ControllableId(packet.header().id0());
+                    debug_assert!(self.controllables.has(controllable_id), "{controllable_id:?} is not populated.");
+                    let controllable = self.controllables.get(controllable_id);
+                    let reason = DestructionReason::try_from_primitive(packet.header().param0())?;
+                    Ok(Some(match reason {
+                        DestructionReason::Shutdown => {
+                            FlattiverseEvent::DeathByShutdown {
+                                controllable,
+                            }
+                        }
+                        DestructionReason::SelfDestruction => {
+                            FlattiverseEvent::DeathBySelfDestruction {
+                                controllable,
+                            }
+                        }
+                        DestructionReason::Collision => {
+                            if UnitKind::Ship as u8 == packet.header().param1() {
+                                FlattiverseEvent::DeathByControllableCollision {
+                                    controllable,
+                                    other_player: {
+                                        let player_id = PlayerId(packet.header().id1());
+                                        debug_assert!(self.players.has(player_id), "{player_id:?} is not populated.");
+                                        self.players.get(player_id)
+                                    },
+                                    other_unit_name: packet.read(|reader| reader.read_string()),
+                                }
+                            } else {
+                                FlattiverseEvent::DeathByNeutralCollision {
+                                    controllable,
+                                    unit: UnitKind::try_from_primitive(packet.header().param1())?,
+                                    name: packet.read(|reader| reader.read_string()),
+                                }
+                            }
+                        }
                     }))
                 }
 
@@ -470,8 +509,7 @@ impl Galaxy {
                 // we see a new unit which we didn't see before
                 0x1c => {
                     let cluster_id = ClusterId(packet.header().id0());
-                    let unit_kind = UnitKind::try_from_primitive(packet.header().param0())
-                        .expect("Unknown UnitKind ");
+                    let unit_kind = UnitKind::try_from_primitive(packet.header().param0())?;
                     debug_assert!(self.clusters.has(cluster_id), "{cluster_id:?} is not populated");
                     packet
                         .read(|reader| self.clusters.get(cluster_id).see_new_unit(unit_kind, reader, self))
@@ -498,13 +536,13 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::TickCompleted))
                 }
 
-                cmd => Err(
-                    GameError::from(GameErrorKind::Unspecified(0)).with_info(format!(
-                        "Unexpected command=0x{cmd:02x} for {:?}, header={:?}",
-                        self.id,
-                        packet.header()
-                    )),
-                ),
+                cmd => {
+                    error!("Unexpected command=0x{cmd:02x} for {:?}, header={:?}",
+                            self.id.load(),
+                            packet.header()
+                        );
+                    Ok(None)
+                },
             }
         }
     }

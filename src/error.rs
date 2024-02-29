@@ -1,5 +1,6 @@
 use crate::network::Packet;
-use num_enum::FromPrimitive;
+use crate::unit::{DestructionReason, UnitKind};
+use num_enum::{FromPrimitive, TryFromPrimitiveError};
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, thiserror::Error)]
@@ -146,4 +147,20 @@ pub enum GameErrorKind {
     #[num_enum(catch_all)]
     #[error("Unspecified GameError code received. Outdated connector somehow?!")]
     Unspecified(u8) = 0x00,
+}
+
+impl From<TryFromPrimitiveError<UnitKind>> for GameError {
+    fn from(value: TryFromPrimitiveError<UnitKind>) -> Self {
+        GameError::from(GameErrorKind::UnknownError)
+            .with_info(format!("Unexpected value for UnitKind={}", value.number))
+    }
+}
+
+impl From<TryFromPrimitiveError<DestructionReason>> for GameError {
+    fn from(value: TryFromPrimitiveError<DestructionReason>) -> Self {
+        GameError::from(GameErrorKind::UnknownError).with_info(format!(
+            "Unexpected value for DestructionReason={}",
+            value.number
+        ))
+    }
 }

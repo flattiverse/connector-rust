@@ -1,6 +1,6 @@
 use crate::hierarchy::{Cluster, Region};
 use crate::hierarchy::{ControllableInfo, ShipDesign, ShipUpgrade};
-use crate::unit::Unit;
+use crate::unit::{Unit, UnitKind};
 use crate::{Controllable, Player, Team};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -72,7 +72,7 @@ pub enum FlattiverseEvent {
     SeeingUnitUpdated {
         unit: Arc<dyn Unit>,
     },
-    /// A watched [`crate::unit::Unit`] vanished.
+    /// The [`crate::unit::Unit`] went outside the scanning cone.
     SeeingUnitNoMore {
         unit: Arc<dyn Unit>,
     },
@@ -120,6 +120,29 @@ pub enum FlattiverseEvent {
         time: SystemTime,
         player: Arc<Player>,
         message: String,
+    },
+
+    /// A [`Controllable`] died by shutting down.
+    DeathByShutdown {
+        controllable: Arc<Controllable>,
+    },
+    /// A [`Controllable`] died by because the player decided to auto destruct the unit.
+    DeathBySelfDestruction {
+        controllable: Arc<Controllable>,
+    },
+    /// A [`Controllable`] died by colliding with a neutral [`crate::unit::Unit`]. The [`UnitKind`]
+    /// and the name is givne.
+    DeathByNeutralCollision {
+        controllable: Arc<Controllable>,
+        unit: UnitKind,
+        name: String,
+    },
+    /// A [`Controllable`] died by colliding with another [`Controllable`]. The owning [`Player`]
+    /// and its ship name are given.
+    DeathByControllableCollision {
+        controllable: Arc<Controllable>,
+        other_player: Arc<Player>,
+        other_unit_name: String,
     },
 
     TickCompleted,
