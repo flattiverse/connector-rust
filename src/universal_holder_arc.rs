@@ -103,6 +103,16 @@ impl<T: NamedUnit> UniversalArcHolder<(), T> {
 }
 
 impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
+    pub fn has_with_name(&self, name: &str) -> bool {
+        self.data
+            .iter()
+            .find_map(|s| {
+                let guard = s.load();
+                guard.as_ref().map(|u| u.name() == name)
+            })
+            .is_some()
+    }
+
     #[inline]
     pub fn remove_by_name(&self, name: &str) -> Arc<T> {
         self.remove_by_name_opt(name)
