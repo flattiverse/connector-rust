@@ -20,8 +20,8 @@ pub struct ShipUpgradeConfig {
     pub hull_repair: f64,
     pub shields: f64,
     pub shields_repair: f64,
-    pub size: f64,
-    pub weight: f64,
+    pub radius: f64,
+    pub gravity: f64,
     pub energy_max: f64,
     pub energy_cells: f64,
     pub energy_reactor: f64,
@@ -77,8 +77,8 @@ impl ShipUpgradeConfig {
         self.hull_repair = reader.read_double();
         self.shields = reader.read_double();
         self.shields_repair = reader.read_double();
-        self.size = reader.read_double();
-        self.weight = reader.read_double();
+        self.radius = reader.read_double();
+        self.gravity = reader.read_double();
         self.energy_max = reader.read_double();
         self.energy_cells = reader.read_double();
         self.energy_reactor = reader.read_double();
@@ -125,8 +125,8 @@ impl ShipUpgradeConfig {
         writer.write_double(self.hull_repair);
         writer.write_double(self.shields);
         writer.write_double(self.shields_repair);
-        writer.write_double(self.size);
-        writer.write_double(self.weight);
+        writer.write_double(self.radius);
+        writer.write_double(self.gravity);
         writer.write_double(self.energy_max);
         writer.write_double(self.energy_cells);
         writer.write_double(self.energy_reactor);

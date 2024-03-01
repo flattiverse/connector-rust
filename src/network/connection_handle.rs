@@ -437,16 +437,16 @@ impl ConnectionHandle {
 
     /// Sets the given values for the given [`crate::unit::ShipDesign`].
     #[inline]
-    pub async fn configure_ship(
+    pub async fn configure_ship_design(
         &self,
         ship: ShipDesignId,
         config: &ShipDesignConfig,
     ) -> Result<(), GameError> {
-        self.configure_ship_split(ship, config).await?.await
+        self.configure_ship_design_split(ship, config).await?.await
     }
 
     /// Sets the given values for the given [`crate::unit::ShipDesign`].
-    pub async fn configure_ship_split(
+    pub async fn configure_ship_design_split(
         &self,
         ship: ShipDesignId,
         config: &ShipDesignConfig,
@@ -466,12 +466,12 @@ impl ConnectionHandle {
 
     /// Removes the given [`crate::unit::ShipDesign`].
     #[inline]
-    pub async fn remove_ship(&self, ship: ShipDesignId) -> Result<(), GameError> {
-        self.remove_ship_split(ship).await?.await
+    pub async fn remove_ship_design(&self, ship: ShipDesignId) -> Result<(), GameError> {
+        self.remove_ship_design_split(ship).await?.await
     }
 
     /// Removes the given [`crate::unit::ShipDesign`].
-    pub async fn remove_ship_split(
+    pub async fn remove_ship_design_split(
         &self,
         ship: ShipDesignId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {

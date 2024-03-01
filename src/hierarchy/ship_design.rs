@@ -6,7 +6,7 @@ use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub struct ShipDesignId(pub(crate) u8);
+pub struct ShipDesignId(pub u8);
 
 impl Indexer for ShipDesignId {
     #[inline]
@@ -43,7 +43,7 @@ impl ShipDesign {
     pub async fn configure(&self, config: &ShipDesignConfig) -> Result<(), GameError> {
         self.galaxy
             .connection()?
-            .configure_ship(self.id, config)
+            .configure_ship_design(self.id, config)
             .await
     }
 
@@ -51,7 +51,7 @@ impl ShipDesign {
     /// See also [`ConnectionHandle::remove_ship`].
     #[inline]
     pub async fn remove(&self) -> Result<(), GameError> {
-        self.galaxy.connection()?.remove_ship(self.id).await
+        self.galaxy.connection()?.remove_ship_design(self.id).await
     }
 
     /// Creates an [`ShipUpgrade`] with the given values for this [`ShipDesign`].
