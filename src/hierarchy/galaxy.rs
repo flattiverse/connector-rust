@@ -336,12 +336,23 @@ impl Galaxy {
 
                 // ship design updated
                 0x54 => {
-                    todo!()
+                    let ship_design_id = ShipDesignId(packet.header().id0());
+                    debug_assert!(self.ship_designs.has(ship_design_id), "{ship_design_id:?} is not populated.");
+                    let ship_design = self.ship_designs.get(ship_design_id);
+                    packet.read(|reader| ship_design.update(reader));
+                    Ok(Some(FlattiverseEvent::ShipDesignUpdated {
+                        ship_design
+                    }))
                 }
 
                 // ship design removed
                 0x74 => {
-                    todo!()
+                    let ship_design_id = ShipDesignId(packet.header().id0());
+                    debug_assert!(self.ship_designs.has(ship_design_id), "{ship_design_id:?} is not populated.");
+                    let ship_design = self.ship_designs.remove(ship_design_id);
+                    Ok(Some(FlattiverseEvent::ShipDesignUpdated {
+                        ship_design
+                    }))
                 }
 
                 // ship upgrade created

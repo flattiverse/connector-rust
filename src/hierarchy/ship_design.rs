@@ -3,6 +3,8 @@ use crate::hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
+use arc_swap::ArcSwap;
+use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -20,7 +22,7 @@ pub struct ShipDesign {
     galaxy: Weak<Galaxy>,
     upgrades: UniversalArcHolder<ShipUpgradeId, ShipUpgrade>,
     id: ShipDesignId,
-    config: ShipDesignConfig,
+    config: ArcSwap<ShipDesignConfig>,
 }
 
 impl ShipDesign {
@@ -32,9 +34,13 @@ impl ShipDesign {
         Self {
             galaxy,
             id: id.into(),
-            config: ShipDesignConfig::from(reader),
+            config: ArcSwap::new(Arc::new(ShipDesignConfig::from(reader))),
             upgrades: UniversalArcHolder::with_capacity(256),
         }
+    }
+
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        self.config.store(Arc::new(ShipDesignConfig::from(reader)));
     }
 
     /// Sets the given values for this [`ShipDesign`].
@@ -80,13 +86,8 @@ impl ShipDesign {
     }
 
     #[inline]
-    pub fn name(&self) -> &str {
-        &self.config.name
-    }
-
-    #[inline]
-    pub fn config(&self) -> &ShipDesignConfig {
-        &self.config
+    pub fn config(&self) -> impl Deref<Target = Arc<ShipDesignConfig>> {
+        self.config.load()
     }
 
     #[inline]

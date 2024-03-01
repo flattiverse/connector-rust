@@ -46,12 +46,20 @@ pub enum FlattiverseEvent {
     TeamRemoved {
         team: Arc<Team>,
     },
-    /// The [`crate::hierarchy::ShipDesign`] of the given [`crate::hierarchy::Galaxy`] was created.
+    /// The [`crate::hierarchy::ShipDesign`] was created.
     ShipDesignCreated {
         ship_design: Arc<ShipDesign>,
     },
+    /// The [`crate::hierarchy::ShipDesign`] was updated.
+    ShipDesignUpdated {
+        ship_design: Arc<ShipDesign>,
+    },
+    /// The [`crate::hierarchy::ShipDesign`] was removed.
+    ShipDesignRemoved {
+        ship_design: Arc<ShipDesign>,
+    },
     /// The [`crate::hierarchy::ShipUpgrade`] of the given [`crate::hierarchy::ShipDesign`] in the
-    /// given [`crate::hierarchy::Galaxy`] was upated.
+    /// given [`crate::hierarchy::Galaxy`] was updated.
     UpgradeUpdated {
         upgrade: Arc<ShipUpgrade>,
     },
