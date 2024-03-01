@@ -2,7 +2,7 @@ use crate::hierarchy::{
     ConnectionProvider, Galaxy, ShipDesignConfig, ShipUpgrade, ShipUpgradeConfig, ShipUpgradeId,
 };
 use crate::network::PacketReader;
-use crate::{GameError, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
+use crate::{GameError, Identifiable, Indexer, UniversalArcHolder};
 use arc_swap::ArcSwap;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
@@ -100,12 +100,5 @@ impl Identifiable<ShipDesignId> for ShipDesign {
     #[inline]
     fn id(&self) -> ShipDesignId {
         self.id
-    }
-}
-
-impl NamedUnit for ShipDesign {
-    #[inline]
-    fn name(&self) -> &str {
-        ShipDesign::name(self)
     }
 }
