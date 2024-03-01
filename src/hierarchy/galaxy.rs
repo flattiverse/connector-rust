@@ -87,10 +87,14 @@ impl Galaxy {
             Err(GameError::from(GameErrorKind::Unspecified(0))
                 .with_info("At this point, no session specific packet should be handled"))
         } else {
-            info!(
-                "Processing packet with command=0x{:02x}",
-                packet.header().command()
-            );
+            #[cfg(feature = "dev-environment")]
+            {
+                debug!(
+                    "Processing packet with command=0x{:02x}",
+                    packet.header().command()
+                );
+            }
+
             match packet.header().command() {
                 // message to player
                 0x30 => {
@@ -463,7 +467,6 @@ impl Galaxy {
 
                 // controllable info removed
                 0x77 => {
-                    warn!("controllable info removed: {:?}", packet.header());
                     let player_id = PlayerId(packet.header().id0());
                     let controllable_info_id = ControllableInfoId(packet.header().id1());
                     debug_assert!(self.players.has(player_id), "{player_id:?} is not populated.");
