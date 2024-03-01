@@ -36,6 +36,7 @@ pub struct ShipDesignConfig {
     pub weapon_speed: f64,
     pub weapon_time: u16,
     pub weapon_load: f64,
+    pub weapon_damage: f64,
     pub weapon_ammo: f64,
     pub weapon_ammo_production: f64,
     pub free_spawn: bool,
@@ -93,9 +94,11 @@ impl ShipDesignConfig {
         self.weapon_speed = reader.read_double();
         self.weapon_time = reader.read_uint16();
         self.weapon_load = reader.read_double();
+        self.weapon_damage = reader.read_double();
         self.weapon_ammo = reader.read_double();
         self.weapon_ammo_production = reader.read_double();
         self.free_spawn = reader.read_boolean();
+
         self.nozzle_energy_consumption = reader.read_double();
         self.thruster_energy_consumption = reader.read_double();
         self.hull_repair_energy_consumption = reader.read_double();
@@ -141,9 +144,11 @@ impl ShipDesignConfig {
         writer.write_double(self.weapon_speed);
         writer.write_uint16(self.weapon_time);
         writer.write_double(self.weapon_load);
+        writer.write_double(self.weapon_damage);
         writer.write_double(self.weapon_ammo);
         writer.write_double(self.weapon_ammo_production);
         writer.write_boolean(self.free_spawn);
+
         writer.write_double(self.nozzle_energy_consumption);
         writer.write_double(self.thruster_energy_consumption);
         writer.write_double(self.hull_repair_energy_consumption);
