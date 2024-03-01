@@ -75,7 +75,12 @@ impl Vector {
 
     #[inline]
     pub fn length(&self) -> f64 {
-        (self.x.powi(2) + self.y.powi(2)).sqrt()
+        self.length_squared().sqrt()
+    }
+
+    #[inline]
+    pub fn length_squared(&self) -> f64 {
+        (self.x * self.x) + (self.y * self.y)
     }
 
     pub fn set_length(&mut self, length: f64) {

@@ -484,7 +484,7 @@ impl Galaxy {
                     debug_assert!(self.controllables.has_not(controllable_id), "{controllable_id:?} is already populated: {:?}", self.controllables.get_opt(controllable_id));
                     Ok(Some(FlattiverseEvent::ControllableJoined {
                         controllable: self.controllables.populate(packet.read(|reader|
-                            Controllable::new(Arc::downgrade(self), controllable_id, reader)
+                            Controllable::new(self, controllable_id, reader)
                         ))
                     }))
                 }

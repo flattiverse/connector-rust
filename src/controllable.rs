@@ -1,5 +1,5 @@
 use crate::atomics::Atomic;
-use crate::hierarchy::{ConnectionProvider, Galaxy, ShipDesignId, ShipUpgradeId};
+use crate::hierarchy::{ConnectionProvider, Galaxy, ShipDesign, ShipDesignId, ShipUpgradeId};
 use crate::network::PacketReader;
 use crate::{GameError, Identifiable, Indexer, Vector};
 use arc_swap::ArcSwap;
@@ -22,7 +22,7 @@ pub struct Controllable {
     galaxy: Weak<Galaxy>,
     id: ControllableId,
     name: String,
-    ship_design: ShipDesignId,
+    ship_design: Arc<ShipDesign>,
     active_upgrades: ArcSwap<Vec<ShipUpgradeId>>,
 
     hull: Atomic<f64>,
@@ -71,13 +71,13 @@ pub struct Controllable {
 }
 
 impl Controllable {
-    pub fn new(galaxy: Weak<Galaxy>, id: ControllableId, reader: &mut dyn PacketReader) -> Self {
+    pub fn new(galaxy: &Arc<Galaxy>, id: ControllableId, reader: &mut dyn PacketReader) -> Self {
         Self {
             active: Atomic::from(true),
-            galaxy,
+            galaxy: Arc::downgrade(galaxy),
             id,
             name: reader.read_string(),
-            ship_design: ShipDesignId(reader.read_byte()),
+            ship_design: galaxy.get_ship_design(ShipDesignId(reader.read_byte())),
 
             radius: Atomic::from_reader(reader),
             gravity: Atomic::from_reader(reader),
@@ -299,8 +299,8 @@ impl Controllable {
     }
 
     #[inline]
-    pub fn ship_design(&self) -> ShipDesignId {
-        self.ship_design
+    pub fn ship_design(&self) -> &Arc<ShipDesign> {
+        &self.ship_design
     }
 
     #[inline]
