@@ -223,7 +223,7 @@ impl Controllable {
     /// you need to stay within the limits of your ships configuration. A postive thruster value
     /// make your ship advance forward. A negative thruster value negatively. Usually a ship is
     /// designed to be faster when flying forward.
-    /// See also [`ConnectionHandle::set_controllable_thruster_nozzel`].
+    /// See also [`ConnectionHandle::set_controllable_thruster_nozzle`].
     pub async fn set_thruster_nozzle(&self, thruster: f64, nozzle: f64) -> Result<(), GameError> {
         if !self.active() {
             return Err(GameError::from(0x22));
@@ -238,7 +238,7 @@ impl Controllable {
         } else {
             self.galaxy
                 .connection()?
-                .set_controllable_thruster_nozzel(self.id, thruster, nozzle)
+                .set_controllable_thruster_nozzle(self.id, thruster, nozzle)
                 .await
         }
     }
@@ -260,6 +260,26 @@ impl Controllable {
             self.galaxy
                 .connection()?
                 .set_controllable_thruster(self.id, thruster)
+                .await
+        }
+    }
+
+    /// Sets the nozzle of the [`ControllableId`]. Please note, that you need to stay within the
+    /// limits of your ships configuration. A positive nozzle value will increase the
+    /// direction-angle, a negative will decrease it.
+    ///
+    /// The nozzle value of `0` will stop the turning.
+    pub async fn set_nozzle(&self, nozzle: f64) -> Result<(), GameError> {
+        if !self.active() {
+            return Err(GameError::from(0x22));
+        } else if self.hull() <= 0.0 {
+            return Err(GameError::from(0x20));
+        } else if nozzle.abs() < self.nozzle_max() * -1.05 {
+            return Err(GameError::from(0x31));
+        } else {
+            self.galaxy
+                .connection()?
+                .set_controllable_nozzle(self.id, nozzle)
                 .await
         }
     }
