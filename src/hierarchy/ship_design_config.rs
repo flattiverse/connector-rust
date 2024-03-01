@@ -94,7 +94,7 @@ impl ShipDesignConfig {
         self.weapon_speed = reader.read_double();
         self.weapon_time = reader.read_uint16();
         self.weapon_load = reader.read_double();
-        self.weapon_damage = reader.read_double();
+        // self.weapon_damage = reader.read_double(); // TODO workaround
         self.weapon_ammo = reader.read_double();
         self.weapon_ammo_production = reader.read_double();
         self.free_spawn = reader.read_boolean();

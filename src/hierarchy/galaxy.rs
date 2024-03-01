@@ -129,6 +129,7 @@ impl Galaxy {
 
                 // controllable destroyed event
                 0x34 => {
+                    return Ok(None); // TODO workaround
                     let player_id = PlayerId(packet.header().id0());
                     let controllable_info_id = ControllableInfoId(packet.header().id1());
                     debug_assert!(self.players.has(player_id), "{player_id:?} is not populated.");
