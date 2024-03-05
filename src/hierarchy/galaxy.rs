@@ -16,6 +16,7 @@ use async_channel::{Receiver, TryRecvError};
 use num_enum::FromPrimitive;
 use num_enum::TryFromPrimitive;
 use std::ops::Deref;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -31,6 +32,9 @@ pub struct Galaxy {
     pub(crate) teams: UniversalArcHolder<TeamId, Team>,
     pub(crate) controllables: UniversalArcHolder<ControllableId, Controllable>,
     pub(crate) players: UniversalArcHolder<PlayerId, Player>,
+
+    pub(crate) logged_in_player_id: AtomicU8,
+    pub(crate) logged_in_player_kind: AtomicU8,
 
     //
     pub(crate) login_completed: Atomic<bool>,
@@ -50,6 +54,9 @@ impl Galaxy {
                 teams: UniversalArcHolder::with_capacity(256),
                 controllables: UniversalArcHolder::with_capacity(256),
                 players: UniversalArcHolder::with_capacity(256),
+
+                logged_in_player_id: AtomicU8::new(0xFF),
+                logged_in_player_kind: AtomicU8::new(PlayerKind::Spectator.into()),
 
                 connection: handle,
                 login_completed: Atomic::from(false),
@@ -556,6 +563,13 @@ impl Galaxy {
                     Ok(Some(FlattiverseEvent::TickCompleted))
                 }
 
+                // set logged-in player
+                0x21 => {
+                    self.logged_in_player_id.store(packet.header().id0(), Ordering::Relaxed);
+                    self.logged_in_player_kind.store(packet.header().param0(), Ordering::Relaxed);
+                    Ok(None)
+                }
+
                 cmd => {
                     error!("Unexpected command=0x{cmd:02x} for {:?}, header={:?}",
                             self.id.load(),
@@ -645,6 +659,20 @@ impl Galaxy {
     #[inline]
     pub async fn chat(&mut self, message: impl AsRef<str>) -> Result<(), GameError> {
         self.connection.chat_galaxy(message).await
+    }
+
+    /// The [`Player`] that is logged in for the connection to this [`Galaxy`]. This value is `None`
+    /// for [`PlayerKind::Spectator`]s and [`PlayerKind::Admin`]s.
+    #[inline]
+    pub fn logged_in_player(&self) -> Option<Arc<Player>> {
+        self.players
+            .get_opt(PlayerId(self.logged_in_player_id.load(Ordering::Relaxed)))
+    }
+
+    /// The [`PlayerKind`] of the player that is logged in for the connection to this [`Galaxy`].
+    #[inline]
+    pub fn logged_in_player_kind(&self) -> PlayerKind {
+        PlayerKind::from_primitive(self.logged_in_player_kind.load(Ordering::Relaxed))
     }
 
     #[inline]
