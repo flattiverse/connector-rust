@@ -1,4 +1,4 @@
-use crate::{Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
 use arc_swap::ArcSwapOption;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
@@ -108,7 +108,7 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
             .iter()
             .find_map(|s| {
                 let guard = s.load();
-                guard.as_ref().map(|u| u.name() == name)
+                guard.as_ref().map(|u| &*u.name() == name)
             })
             .is_some()
     }
@@ -123,11 +123,11 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
         self.data.iter().find_map(|slot| {
             let guard = slot.load();
             match &*guard {
-                Some(value) if value.name() == name => {
+                Some(value) if &*value.name() == name => {
                     return slot
                         .compare_and_swap(&*guard, None)
                         .as_ref()
-                        .filter(|v| v.name() == name)
+                        .filter(|v| &*v.name() == name)
                         .map(Arc::clone);
                 }
                 _ => None,
@@ -145,7 +145,7 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
         self.data.iter().find_map(|slot| {
             let guard = slot.load();
             match &*guard {
-                Some(value) if value.name() == name => Some(value.to_owned()),
+                Some(value) if &*value.name() == name => Some(value.to_owned()),
                 _ => None,
             }
         })

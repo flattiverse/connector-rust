@@ -1,7 +1,7 @@
-use crate::error::GameError;
-use crate::hierarchy::Galaxy;
+use crate::game_error::GameError;
+use crate::galaxy_hierarchy::Galaxy;
 use crate::network::{ConnectionHandle, Packet, SessionId};
-use crate::{FlattiverseEvent, GameErrorKind};
+use crate::{FlattiverseEvent, FlattiverseEventKind, GameErrorKind};
 use async_channel::Sender;
 use std::sync::Weak;
 use std::time::Duration;
@@ -13,16 +13,20 @@ pub struct Connection {
 }
 
 impl Connection {
+    #[inline]
     pub(crate) fn on_close(&self) {
-        let _ = self.sender.try_send(FlattiverseEvent::ConnectionClosed);
         self.sender.close();
     }
 
-    #[allow(unused)] // TODO JS-WebSockets do not support Ping/Pong
+
+    #[cfg_attr(all(
+        any(target_arch = "wasm32", target_arch = "wasm64"),
+        target_os = "unknown"
+    ), allow(unused))] // TODO JS-WebSockets do not support Ping/Pong atm
     pub(crate) fn on_ping_measured(&self, duration: Duration) -> Result<(), GameError> {
         self.sender
-            .try_send(FlattiverseEvent::PingMeasured(duration))
-            .map_err(|_| GameError::from(GameErrorKind::ConnectionClosed))
+            .try_send(FlattiverseEventKind::PingMeasured(duration).into())
+            .map_err(|_| GameError::from(GameErrorKind::ConnectionTerminated))
     }
 
     pub(crate) fn handle(&self, packet: Packet) -> Result<(), GameError> {
@@ -38,7 +42,7 @@ impl Connection {
                     Ok(Some(event)) => {
                         if self.sender.try_send(event).is_err() {
                             error!("Event-Receiver gone, shutting down connection!");
-                            Err(GameErrorKind::ConnectionClosed.into())
+                            Err(GameErrorKind::ConnectionTerminated.into())
                         } else {
                             Ok(())
                         }
@@ -51,7 +55,7 @@ impl Connection {
             }
         } else {
             error!("Galaxy gone, shutting down connection!");
-            Err(GameErrorKind::ConnectionClosed.into())
+            Err(GameErrorKind::ConnectionTerminated.into())
         }
     }
 }

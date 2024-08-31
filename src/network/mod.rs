@@ -1,4 +1,4 @@
-pub const PROTOCOL_VERSION: &'static str = "4";
+pub const PROTOCOL_VERSION: &'static str = "0";
 
 #[cfg(all(
     any(target_arch = "wasm32", target_arch = "wasm64"),
@@ -38,17 +38,16 @@ pub use connection::*;
 mod session;
 pub use session::*;
 
-use crate::error::GameError;
-use crate::hierarchy::Galaxy;
-use crate::FlattiverseEvent;
+use crate::galaxy_hierarchy::Galaxy;
+use crate::game_error::GameError;
+use crate::{FlattiverseEvent, GameErrorKind};
 
 pub(crate) async fn connect(
     uri: &str,
     auth: &str,
-    team: u8,
+    team: Option<&str>,
     f: impl FnOnce(ConnectionHandle, Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
 ) -> Result<Arc<Galaxy>, ConnectError> {
-    let team = Some(team).filter(|t| *t < 32);
     let url = format!(
         "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}",
         PROTOCOL_VERSION,
@@ -111,14 +110,12 @@ pub enum ConnectError {
 
 impl ConnectError {
     pub fn game_error_from_http_status_code(code: u16) -> GameError {
+        debug!("Trying to map HTTP status code {code} to GameErrorKind");
         match code {
-            502 | 504 => 0xF2,
-            400 => 0xF3,
-            401 => 0xF4,
-            409 => 0xF6,
-            412 => 0xF7,
-            415 => 0xF8,
-            _ => 0xF1,
+            400 | 502 | 504 => GameErrorKind::CantConnect,
+            401 => GameErrorKind::AuthFailed,
+            409 => GameErrorKind::InvalidProtocolVersion,
+            _ => GameErrorKind::CantConnect,
         }
         .into()
     }

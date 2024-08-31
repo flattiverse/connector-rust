@@ -15,6 +15,8 @@ pub trait PacketReader {
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
 
+    fn opt_read_byte(&mut self) -> Option<u8>;
+
     fn read_remaining_as_string(&mut self) -> String;
 
     fn peek_string(&self) -> String;
@@ -92,6 +94,15 @@ impl PacketReader for BytesMut {
 
     fn read_nullable_byte(&mut self) -> Option<u8> {
         if self.read_boolean() {
+            Some(self.read_byte())
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    fn opt_read_byte(&mut self) -> Option<u8> {
+        if self.remaining() > 0 {
             Some(self.read_byte())
         } else {
             None

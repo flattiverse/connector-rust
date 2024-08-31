@@ -1,158 +1,59 @@
-use crate::hierarchy::{Cluster, Region};
-use crate::hierarchy::{ControllableInfo, ShipDesign, ShipUpgrade};
-use crate::unit::{Unit, UnitKind};
-use crate::{Controllable, Player, Team};
-use std::sync::Arc;
+use std::fmt::{Debug, Display, Formatter};
 use std::time::{Duration, SystemTime};
 
+struct Inner {
+    stamp: SystemTime,
+    kind: FlattiverseEventKind,
+}
+
+#[repr(transparent)]
+pub struct FlattiverseEvent(Box<Inner>);
+
+impl Debug for FlattiverseEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FlattiverseEvent")
+            .field(&self.0.stamp)
+            .finish()
+    }
+}
+
+impl From<FlattiverseEventKind> for FlattiverseEvent {
+    #[inline]
+    fn from(kind: FlattiverseEventKind) -> Self {
+        Self(Box::new(Inner {
+            stamp: crate::runtime::now(),
+            kind,
+        }))
+    }
+}
+
+impl Display for FlattiverseEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ", crate::runtime::format_date_time(self.0.stamp))?;
+        write!(
+            f,
+            "{}",
+            match &self.0.kind {
+                FlattiverseEventKind::ConnectionTerminated { message } => match message.as_ref() {
+                    None => "Connection terminated.",
+                    Some(message) => return write!(f, "Connection terminated: {}", message),
+                },
+                FlattiverseEventKind::GalaxyTick => "Tick/Tack.",
+                FlattiverseEventKind::PingMeasured(ping) =>
+                    return write!(f, "Ping measured: {ping:?}"),
+            }
+        )
+    }
+}
+
+/// Specifies the various event kinds for a better match experience.
 #[derive(Debug)]
-pub enum FlattiverseEvent {
+pub enum FlattiverseEventKind {
     PingMeasured(Duration),
-    /// The [`Galaxy`] instance has been updated.
-    GalaxyUpdated,
-    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was created.
-    ClusterCreated {
-        cluster: Arc<Cluster>,
+    /// Is fired when the connection to the flattiverse has been terminated
+    ConnectionTerminated {
+        message: Option<String>,
     },
-    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was updated.
-    ClusterUpdated {
-        cluster: Arc<Cluster>,
-    },
-    /// The [`crate::hierarchy::Cluster`] of the given [`crate::hierarchy::Galaxy`] was removed.
-    ClusterRemoved {
-        cluster: Arc<Cluster>,
-    },
-    /// The [`crate::hierarchy::Region`] of the given id was created.
-    RegionCreated {
-        region: Arc<Region>,
-    },
-    /// The [`crate::hierarchy::Region`] of the given id was updated.
-    RegionUpdated {
-        region: Arc<Region>,
-    },
-    /// The [`crate::hierarchy::Region`] of the given id was removed.
-    RegionRemoved {
-        region: Arc<Region>,
-    },
-    /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was created.
-    TeamCreated {
-        team: Arc<Team>,
-    },
-    /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was updated.
-    TeamUpdated {
-        team: Arc<Team>,
-    },
-    /// The [`crate::Team`] of the given [`crate::hierarchy::Galaxy`] was removed.
-    TeamRemoved {
-        team: Arc<Team>,
-    },
-    /// The [`crate::hierarchy::ShipDesign`] was created.
-    ShipDesignCreated {
-        ship_design: Arc<ShipDesign>,
-    },
-    /// The [`crate::hierarchy::ShipDesign`] was updated.
-    ShipDesignUpdated {
-        ship_design: Arc<ShipDesign>,
-    },
-    /// The [`crate::hierarchy::ShipDesign`] was removed.
-    ShipDesignRemoved {
-        ship_design: Arc<ShipDesign>,
-    },
-    /// The [`crate::hierarchy::ShipUpgrade`] of the given [`crate::hierarchy::ShipDesign`] in the
-    /// given [`crate::hierarchy::Galaxy`] was updated.
-    UpgradeUpdated {
-        upgrade: Arc<ShipUpgrade>,
-    },
-    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has joined the game.
-    PlayerJoined {
-        player: Arc<Player>,
-    },
-    /// The [`crate::Player`] of the given [`crate::hierarchy::Galaxy`] has left the game.
-    PlayerParted {
-        player: Arc<Player>,
-    },
-
-    /// A new [`crate::unit::Unit`] became visible.
-    SeeingNewUnit {
-        unit: Arc<dyn Unit>,
-    },
-    /// A watched [`crate::unit::Unit`] updated.N
-    SeeingUnitUpdated {
-        unit: Arc<dyn Unit>,
-    },
-    /// The [`crate::unit::Unit`] went outside the scanning cone.
-    SeeingUnitNoMore {
-        unit: Arc<dyn Unit>,
-    },
-
-    /// The [`crate::hierarchy::ControllableInfo`] for the given values was created.
-    ControllableInfoCreated {
-        controllable_info: Arc<ControllableInfo>,
-    },
-    /// The [`crate::hierarchy::ControllableInfo`] for the given values was updated.
-    ControllableInfoUpdated {
-        controllable_info: Arc<ControllableInfo>,
-    },
-    /// The [`crate::hierarchy::ControllableInfo`] for the given values was removed.
-    ControllableInfoRemoved {
-        controllable_info: Arc<ControllableInfo>,
-    },
-
-    /// The [`crate::controllable::Controllable`] for the given values has joined the game.
-    ControllableJoined {
-        controllable: Arc<Controllable>,
-    },
-    /// The [`crate::controllable::Controllable`] for the given values was updated.
-    ControllableUpdated {
-        controllable: Arc<Controllable>,
-    },
-    /// The [`crate::controllable::Controllable`] for the given values hsa left the game.
-    ControllableRemoved {
-        controllable: Arc<Controllable>,
-    },
-
-    /// Received a message from the given player.
-    PlayerChatMessageReceived {
-        time: SystemTime,
-        player: Arc<Player>,
-        message: String,
-    },
-    /// Received a message from the given team.
-    TeamChatMessageReceived {
-        time: SystemTime,
-        player: Arc<Player>,
-        message: String,
-    },
-    /// Received a message from the given galaxy.
-    GalaxyChatMessageReceived {
-        time: SystemTime,
-        player: Arc<Player>,
-        message: String,
-    },
-
-    /// A [`ControllableInfo`] died by shutting down.
-    DeathByShutdown {
-        controllable_info: Arc<ControllableInfo>,
-    },
-    /// A [`ControllableInfo`] died by because the player decided to auto destruct the unit.
-    DeathBySelfDestruction {
-        controllable_info: Arc<ControllableInfo>,
-    },
-    /// A [`ControllableInfo`] died by colliding with a neutral [`crate::unit::Unit`]. The
-    /// [`UnitKind`] and the name are provided.
-    DeathByNeutralCollision {
-        controllable_info: Arc<ControllableInfo>,
-        unit: UnitKind,
-        name: String,
-    },
-    /// A [`ControllableInfo`] died by colliding with another [`ControllableInfo`]. The owning
-    /// [`Player`] and its ship name are given.
-    DeathByControllableCollision {
-        controllable_info: Arc<ControllableInfo>,
-        other_player: Arc<Player>,
-        other_controllable: Arc<ControllableInfo>,
-    },
-
-    TickCompleted,
-    ConnectionClosed,
+    /// Event that is raised when the server has processed a tick.
+    GalaxyTick,
 }

@@ -1,7 +1,7 @@
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, Index, IndexMut};
 
 pub struct UniversalHolder<I, T> {
     data: Vec<Option<T>>,
@@ -64,7 +64,7 @@ impl<T: NamedUnit> UniversalHolder<(), T> {
 impl<I, T: NamedUnit> UniversalHolder<I, T> {
     pub fn remove_by_name(&mut self, name: &str) -> Option<T> {
         self.data.iter_mut().find_map(|slot| match slot {
-            Some(value) if value.name() == name => slot.take(),
+            Some(value) if &*value.name() == name => slot.take(),
             _ => None,
         })
     }
@@ -73,14 +73,14 @@ impl<I, T: NamedUnit> UniversalHolder<I, T> {
         self.data
             .iter()
             .flat_map(|d| d.as_ref())
-            .find(|d| d.name() == name)
+            .find(|d| &*d.name() == name)
     }
 
     pub fn get_by_name_mut(&mut self, name: &str) -> Option<&mut T> {
         self.data
             .iter_mut()
             .flat_map(|d| d.as_mut())
-            .find(|d| d.name() == name)
+            .find(|d| &*d.name() == name)
     }
 }
 
@@ -123,7 +123,7 @@ pub trait Indexer {
 }
 
 pub trait NamedUnit {
-    fn name(&self) -> &str;
+    fn name<'a>(&'a self) -> impl Deref<Target = str> + 'a;
 }
 
 pub trait Identifiable<T: Indexer> {
