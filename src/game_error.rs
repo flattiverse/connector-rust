@@ -1,7 +1,7 @@
 use crate::account::AccountStatus;
 use crate::galaxy_hierarchy::PlayerKind;
 use crate::network::{Packet, PacketReader};
-use num_enum::{FromPrimitive, TryFromPrimitive};
+use num_enum::{FromPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, thiserror::Error)]
@@ -36,6 +36,19 @@ impl From<GameErrorKind> for GameError {
     }
 }
 
+impl<T: TryFromPrimitive> From<TryFromPrimitiveError<T>> for GameError
+where
+    <T as TryFromPrimitive>::Primitive: ToString,
+{
+    fn from(value: TryFromPrimitiveError<T>) -> Self {
+        GameErrorKind::InvalidPrimitiveValue {
+            value: value.number.to_string(),
+            r#type: std::any::type_name::<T>(),
+        }
+        .into()
+    }
+}
+
 impl Display for GameError {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -43,7 +56,7 @@ impl Display for GameError {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GameErrorKind {
     Unknown(u8),
     CantConnect,
@@ -51,7 +64,7 @@ pub enum GameErrorKind {
     AuthFailed,
     WrongAccountState(Option<AccountStatus>),
     InvalidOrMissingTeam,
-    ServerFullOfPlayerKind(Option<Result<PlayerKind, u8>>),
+    ServerFullOfPlayerKind(Option<PlayerKind>),
     SessionsExhausted,
     ConnectionTerminated,
     SpecifiedElementNotFound,
@@ -59,11 +72,13 @@ pub enum GameErrorKind {
 
     // TODO local only
     ParameterNotWithinSpecification,
+    InvalidPrimitiveValue { value: String, r#type: &'static str },
 }
 
 impl Display for GameErrorKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
+            GameErrorKind::Unknown(code) => return write!(f, "[{:#02x}] Unknown error code.", code),
             GameErrorKind::CantConnect => "[0x01] Couldn't connect to the flattiverse galaxy.",
             GameErrorKind::InvalidProtocolVersion => "[0x02] Invalid protocol version. Consider up(- or down)grading the connector.",
             GameErrorKind::AuthFailed => "[0x03] Authentication failed: Missing, wrong or unused API key.",
@@ -78,18 +93,18 @@ impl Display for GameErrorKind {
             },
             GameErrorKind::InvalidOrMissingTeam => "[0x05] No or non-existent team specified.",
             GameErrorKind::ServerFullOfPlayerKind(None) => "[0x08] Server is full of unknown things.",
-            GameErrorKind::ServerFullOfPlayerKind(Some(Err(id))) => return write!(f, "[0x08] Server is full of things with code {:#02x}.", id),
-            GameErrorKind::ServerFullOfPlayerKind(Some(Ok(kind))) => match kind {
+            GameErrorKind::ServerFullOfPlayerKind(Some(kind)) => match kind {
                 PlayerKind::Admin => "[0x08] Server is full of admins. (Too many admins connected to the galaxy server.)",
                 PlayerKind::Spectator => "[0x08] Server is full of spectators. (Too many spectators connected to the galaxy server.)",
                 PlayerKind::Player => "[0x08] All player slots are taken. Please wait until players leave the galaxy.",
+                PlayerKind::Unknown(id) => return write!(f, "[0x08] Server is full of things with code {:#02x}.", id)
             },
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
             GameErrorKind::ConnectionTerminated => "[0x0F] Connection has been terminated for unknown reason.",
             GameErrorKind::SpecifiedElementNotFound => "[0x05] No or non-existent team specified.",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
             GameErrorKind::ParameterNotWithinSpecification => "[0x??] Parameters are not within specification.",
-            GameErrorKind::Unknown(code) => return write!(f, "[{:#02x}] Unknown error code.", code)
+            GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
 
         })
     }
@@ -106,9 +121,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             ),
             0x05 => GameErrorKind::InvalidOrMissingTeam,
             0x08 => GameErrorKind::ServerFullOfPlayerKind(
-                reader
-                    .opt_read_byte()
-                    .map(|byte| PlayerKind::try_from_primitive(byte).map_err(|e| e.number)),
+                reader.opt_read_byte().map(PlayerKind::from_primitive),
             ),
             0x0C => GameErrorKind::SessionsExhausted,
             0x0F => GameErrorKind::ConnectionTerminated,

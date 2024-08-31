@@ -4,7 +4,6 @@
     Debug,
     Copy,
     Clone,
-    Default,
     PartialEq,
     Eq,
     num_enum::FromPrimitive,
@@ -14,7 +13,6 @@
 )]
 pub enum GameMode {
     /// In this game mode players try to complete mission objectives.
-    #[default]
     Mission = 0x00,
     /// In this game mode players try to shoot the enemy flag.
     ShootTheFlag = 0x01,
@@ -22,6 +20,8 @@ pub enum GameMode {
     Domination = 0x02,
     /// In this game mode players try to get the fastest time on a track.
     Race = 0x03,
+    #[num_enum(catch_all)]
+    Unknown(u8),
 }
 
 impl GameMode {

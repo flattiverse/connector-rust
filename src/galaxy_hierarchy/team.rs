@@ -1,7 +1,7 @@
-use crate::galaxy_hierarchy::{Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
 use crate::runtime::Atomic;
 use std::ops::Deref;
-use tokio::sync::{RwLock, RwLockReadGuard};
+use std::sync::RwLock;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub(crate) u8);
@@ -39,7 +39,7 @@ impl Team {
     }
 
     pub fn update(&self, name: String, red: u8, green: u8, blue: u8) {
-        *self.name.blocking_write() = name;
+        *self.name.write().unwrap() = name;
         self.red.store(red);
         self.green.store(green);
         self.blue.store(blue);
@@ -74,9 +74,15 @@ impl Team {
     }
 }
 
-impl NamedUnit for Team {
+impl Identifiable<TeamId> for Team {
     #[inline]
+    fn id(&self) -> TeamId {
+        self.id
+    }
+}
+
+impl NamedUnit for Team {
     fn name(&self) -> impl Deref<Target = str> {
-        RwLockReadGuard::map(self.name.blocking_read(), |s| s.as_str())
+        self.name.read().unwrap().clone()
     }
 }

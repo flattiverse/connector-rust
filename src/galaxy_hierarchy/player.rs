@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Indexer, NamedUnit, Team};
+use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit, Team};
 use crate::runtime::Atomic;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -56,6 +56,13 @@ impl Player {
     }
 }
 
+impl Identifiable<PlayerId> for Player {
+    #[inline]
+    fn id(&self) -> PlayerId {
+        self.id
+    }
+}
+
 impl NamedUnit for Player {
     #[inline]
     fn name(&self) -> impl Deref<Target = str> {
@@ -71,7 +78,7 @@ impl NamedUnit for Player {
     Clone,
     PartialEq,
     Eq,
-    num_enum::TryFromPrimitive,
+    num_enum::FromPrimitive,
     num_enum::IntoPrimitive,
     strum::EnumIter,
     strum::AsRefStr,
@@ -83,6 +90,8 @@ pub enum PlayerKind {
     Spectator = 0x02,
     /// It's an admin.
     Admin = 0x04,
+    #[num_enum(catch_all)]
+    Unknown(u8),
 }
 
 impl PlayerKind {

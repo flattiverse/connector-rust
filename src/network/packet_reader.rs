@@ -10,7 +10,7 @@ pub trait PacketReader {
     fn read_uint32(&mut self) -> u32;
     fn read_int64(&mut self) -> i64;
     fn read_uint64(&mut self) -> u64;
-    fn read_double(&mut self) -> f64;
+    fn read_f32(&mut self) -> f32;
     fn read_boolean(&mut self) -> bool;
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
@@ -70,13 +70,9 @@ impl PacketReader for BytesMut {
         self.get_u64_le()
     }
 
-    fn read_double(&mut self) -> f64 {
-        let value = self.get_f32_le();
-        if value.is_finite() {
-            f64::from(value)
-        } else {
-            1e40
-        }
+    #[inline]
+    fn read_f32(&mut self) -> f32 {
+        self.get_f32_le()
     }
 
     #[inline]

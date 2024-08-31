@@ -1,4 +1,3 @@
-use crate::network::{PacketReader, PacketWriter};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -17,38 +16,38 @@ impl Vector {
         }
     }
 
-    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
-        self.read(reader);
-        self
-    }
-
-    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-        self.x = reader.read_double();
-        self.y = reader.read_double();
-        self.last_angle = 0.0;
-    }
-
-    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
-        if self.is_damaged() {
-            writer.write_uint64(0);
-        } else {
-            if self.x < -21470.0 {
-                writer.write_int32(-2147000000)
-            } else if self.x > 21470.0 {
-                writer.write_int32(2147000000)
-            } else {
-                writer.write_double(self.x)
-            }
-
-            if self.y < -21470.0 {
-                writer.write_int32(-2147000000)
-            } else if self.y > 21470.0 {
-                writer.write_int32(2147000000)
-            } else {
-                writer.write_double(self.y)
-            }
-        }
-    }
+    //    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
+    //        self.read(reader);
+    //        self
+    //    }
+    //
+    //    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+    //        self.x = reader.read_double();
+    //        self.y = reader.read_double();
+    //        self.last_angle = 0.0;
+    //    }
+    //
+    //    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
+    //        if self.is_damaged() {
+    //            writer.write_uint64(0);
+    //        } else {
+    //            if self.x < -21470.0 {
+    //                writer.write_int32(-2147000000)
+    //            } else if self.x > 21470.0 {
+    //                writer.write_int32(2147000000)
+    //            } else {
+    //                writer.write_double(self.x)
+    //            }
+    //
+    //            if self.y < -21470.0 {
+    //                writer.write_int32(-2147000000)
+    //            } else if self.y > 21470.0 {
+    //                writer.write_int32(2147000000)
+    //            } else {
+    //                writer.write_double(self.y)
+    //            }
+    //        }
+    //    }
 
     pub fn from_angle_length(angle: f64, length: f64) -> Self {
         Self::from_xy(
