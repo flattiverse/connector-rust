@@ -1,4 +1,4 @@
-use crate::hierarchy::Galaxy;
+use crate::galaxy_hierarchy::Galaxy;
 use crate::network::packet::MultiPacketBuffer;
 use crate::network::{ConnectError, Connection, ConnectionHandle, SenderData};
 use crate::FlattiverseEvent;

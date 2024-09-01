@@ -12,13 +12,8 @@ mod driver_wasm;
 )))]
 mod driver;
 
-mod fetch;
-
 mod connection_handle;
-
-use async_channel::Receiver;
 pub use connection_handle::*;
-use std::sync::Arc;
 
 mod packet_header;
 pub use packet_header::PacketHeader;
@@ -38,6 +33,8 @@ pub use connection::*;
 mod session;
 pub use session::*;
 
+use async_channel::Receiver;
+use std::sync::Arc;
 use crate::galaxy_hierarchy::Galaxy;
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
@@ -69,10 +66,6 @@ pub(crate) async fn connect(
     return driver::connect(&url, f).await;
 }
 
-#[inline]
-pub async fn get_text(uri: &str) -> Result<String, ConnectError> {
-    fetch::get_text(uri).await
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConnectError {
