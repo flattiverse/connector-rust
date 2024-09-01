@@ -47,11 +47,21 @@ pub(crate) async fn connect(
     f: impl FnOnce(ConnectionHandle, Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
 ) -> Result<Arc<Galaxy>, ConnectError> {
     let url = format!(
-        "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}",
+        "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}&impl-target={}&impl-arch={}&impl-family={}&impl-os={}",
         PROTOCOL_VERSION,
         team.map(|_| "&team=").unwrap_or_default(),
         team.unwrap_or_default(),
         env!("CARGO_PKG_VERSION"),
+        if cfg!(feature = "desktop") {
+            "desktop"
+        } else if cfg!(feature = "wasm") {
+            "wasm"
+        } else {
+            "unknown"
+        },
+        std::env::consts::ARCH,
+        std::env::consts::FAMILY,
+        std::env::consts::OS,
     );
 
     debug!("Connecting to {}", url);
