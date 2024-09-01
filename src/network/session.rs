@@ -32,7 +32,7 @@ impl SessionHandler {
                     .compare_and_swap(&None::<Arc<Sender<Packet>>>, Some(Arc::clone(&sender)))
                     .is_none()
                 {
-                    return Some(id);
+                    Some(id)
                 } else {
                     None
                 }

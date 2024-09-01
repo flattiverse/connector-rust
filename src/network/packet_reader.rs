@@ -30,7 +30,7 @@ impl PacketReader for BytesMut {
     }
 
     fn read_bytes(&mut self, amount: usize) -> Vec<u8> {
-        let bytes = (&self[..amount]).to_vec();
+        let bytes = self[..amount].to_vec();
         self.advance(amount);
         bytes
     }
@@ -83,7 +83,7 @@ impl PacketReader for BytesMut {
     fn read_string(&mut self) -> String {
         let length = self.read_byte();
         let length = length as usize;
-        let string = String::from_utf8((&self[..length]).to_vec());
+        let string = String::from_utf8(self[..length].to_vec());
         self.advance(length);
         string.expect("Invalid UTF-8 received")
     }
@@ -116,7 +116,7 @@ impl PacketReader for BytesMut {
     fn peek_string(&self) -> String {
         let length = self[0];
         let length = usize::from(length);
-        String::from_utf8((&self[1..][..length]).to_vec()).expect("Invalid UTF-8 received")
+        String::from_utf8(self[1..][..length].to_vec()).expect("Invalid UTF-8 received")
     }
 
     fn jump_over_string(&mut self) {

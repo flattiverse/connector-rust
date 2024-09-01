@@ -19,7 +19,7 @@ use url::Url;
 pub const PING_INTERVAL: Duration = Duration::from_secs(1);
 pub const DEFAULT_PORT_WEB: u16 = 443;
 pub const DEFAULT_PORT_PROXY: u16 = 80;
-pub const ENV_PROXY: &'static str = "http_proxy";
+pub const ENV_PROXY: &str = "http_proxy";
 
 pub async fn connect(
     url: &str,

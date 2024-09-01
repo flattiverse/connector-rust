@@ -26,7 +26,7 @@ impl<I, T> UniversalArcHolder<I, T> {
     pub fn with_capacity(size: usize) -> Self {
         Self {
             data: (0..size).map(|_| ArcSwapOption::from(None)).collect(),
-            _i: PhantomData::default(),
+            _i: PhantomData,
         }
     }
 
@@ -73,8 +73,7 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
     {
         self.data
             .get(index.index())
-            .map(|v| v.load_full())
-            .flatten()
+            .and_then(|v| v.load_full())
             .unwrap_or_else(|| unreachable!("There is no entry for the given Index={index:?}"))
     }
 

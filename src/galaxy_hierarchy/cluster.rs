@@ -54,7 +54,7 @@ impl Identifiable<ClusterId> for Cluster {
 }
 
 impl NamedUnit for Cluster {
-    fn name<'a>(&'a self) -> impl Deref<Target = str> + 'a {
+    fn name(&self) -> impl Deref<Target = str> + '_ {
         self.name.read().unwrap().clone()
     }
 }

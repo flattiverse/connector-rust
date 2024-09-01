@@ -24,7 +24,7 @@ impl<I, T> UniversalHolder<I, T> {
     pub fn with_capacity(size: usize) -> Self {
         Self {
             data: (0..size).map(|_| None).collect(),
-            _i: PhantomData::default(),
+            _i: PhantomData,
         }
     }
 
@@ -123,7 +123,7 @@ pub trait Indexer {
 }
 
 pub trait NamedUnit {
-    fn name<'a>(&'a self) -> impl Deref<Target = str> + 'a;
+    fn name(&self) -> impl Deref<Target = str> + '_;
 }
 
 pub trait Identifiable<T: Indexer> {

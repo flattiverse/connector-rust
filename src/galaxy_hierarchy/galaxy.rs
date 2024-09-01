@@ -204,7 +204,7 @@ impl Galaxy {
         self.player_max_bases.store(player_max_bases);
 
         event_result!(UpdatedGalaxy {
-            galaxy: Arc::clone(&self),
+            galaxy: Arc::clone(self),
         })
     }
 
