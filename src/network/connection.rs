@@ -113,6 +113,7 @@ impl Connection {
             ),
             0x11 => galaxy.update_player(PlayerId(reader.read_byte()), reader.read_f32()),
             0x13 => galaxy.deactivate_player(PlayerId(reader.read_byte())),
+            0xc0 => galaxy.universe_tick(reader.read_int32()),
             _ => {
                 warn!("Received packet with unknown command={command:#02x}",);
                 Ok(None)

@@ -1,5 +1,6 @@
-use flattiverse_connector::galaxy_hierarchy::{Galaxy, NamedUnit};
+use flattiverse_connector::galaxy_hierarchy::Galaxy;
 use std::time::Duration;
+use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -7,6 +8,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // all spans/events with a level higher than TRACE (e.g, info, warn, etc.)
         // will be written to stdout.
         .with_max_level(tracing::Level::DEBUG)
+        .with_line_number(true)
+        .with_env_filter("flattiverse_connector=trace")
+        .with_span_events(FmtSpan::CLOSE)
         // sets this to be the default, global collector for this application.
         .init();
 

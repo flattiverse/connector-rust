@@ -155,8 +155,8 @@ impl ConnectionSender {
     }
 
     #[inline]
+    #[instrument(level = "trace", skip(self))]
     async fn send(&mut self, msg: Message) -> Result<(), SenderError> {
-        debug!("SENDING: {msg:?}");
         self.sink.send(msg).await?;
         self.sink.flush().await?;
         Ok(())

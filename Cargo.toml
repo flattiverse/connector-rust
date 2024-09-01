@@ -53,7 +53,7 @@ chrono = { version = "0.4.38", default-features = false, optional = true, featur
 
 [dev-dependencies]
 sdl2 = { version = "0.37.0", features = ["gfx"] }
-tracing-subscriber = "0.3.18"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [features]
 default = ["desktop"]

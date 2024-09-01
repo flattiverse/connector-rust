@@ -152,7 +152,7 @@ impl Galaxy {
         self.player.store(id);
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn ping_pong(&self, challenge: u16) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Responding to ping with challenge={challenge:#04x}");
         self.connection.respond_to_ping(challenge)?;
@@ -161,7 +161,7 @@ impl Galaxy {
         ))
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_galaxy(
         self: &Arc<Self>,
         game_mode: GameMode,
@@ -208,7 +208,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_team(
         &self,
         id: TeamId,
@@ -230,7 +230,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn deactivate_team(
         &self,
         id: TeamId,
@@ -245,7 +245,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_cluster(
         &self,
         id: ClusterId,
@@ -264,7 +264,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn deactivate_cluster(
         &self,
         id: ClusterId,
@@ -279,7 +279,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn create_player(
         &self,
         id: PlayerId,
@@ -292,14 +292,14 @@ impl Galaxy {
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has_not(id), "{id:?} does already exist.");
         debug_assert!(self.teams.has(team), "{team:?} does not exist.");
-        event_result!(CreatedPlayer {
+        event_result!(JoinedPlayer {
             player: self
                 .players
                 .populate(Player::new(id, kind, self.teams.get(team), name, ping)),
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_player(&self, id: PlayerId, ping: f32) -> EventResult {
         debug!("Updating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
@@ -313,17 +313,23 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace")]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn deactivate_player(&self, id: PlayerId) -> EventResult {
         debug!("Deactivating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
-        event_result!(DeactivatedPlayer {
+        event_result!(PartedPlayer {
             player: {
                 self.players.get(id).deactivate();
                 self.players.remove(id)
             }
         })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn universe_tick(&self, number: i32) -> EventResult {
+        debug!("Universe tick with #{number}");
+        event_result!(GalaxyTick { tick: number })
     }
 
     /// Yourself.

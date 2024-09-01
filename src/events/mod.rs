@@ -40,7 +40,9 @@ impl Display for FlattiverseEvent {
                     None => "Connection terminated.",
                     Some(message) => return write!(f, "Connection terminated: {}", message),
                 },
-                FlattiverseEventKind::GalaxyTick => "Tick/Tack.",
+                FlattiverseEventKind::GalaxyTick { tick } => {
+                    return write!(f, "Tick/Tack #{}", tick);
+                }
                 FlattiverseEventKind::PingMeasured(ping) =>
                     return write!(f, "Ping measured: {ping:?}"),
 
@@ -63,14 +65,26 @@ impl Display for FlattiverseEvent {
                 FlattiverseEventKind::DeactivatedCluster { cluster } => {
                     return write!(f, "Deactivated cluster: {:?}", &*cluster.name());
                 }
-                FlattiverseEventKind::CreatedPlayer { player } => {
-                    return write!(f, "Created player: {:?}", &*player.name());
-                }
                 FlattiverseEventKind::UpdatedPlayer { player } => {
                     return write!(f, "Updated player: {:?}", &*player.name());
                 }
-                FlattiverseEventKind::DeactivatedPlayer { player } => {
-                    return write!(f, "Deactivated player: {:?}", &*player.name());
+                FlattiverseEventKind::JoinedPlayer { player } => {
+                    return write!(
+                        f,
+                        "{:?} joined the galaxy with team {:?} as {:?}",
+                        &*player.name(),
+                        &*player.team.name(),
+                        player.kind
+                    );
+                }
+                FlattiverseEventKind::PartedPlayer { player } => {
+                    return write!(
+                        f,
+                        "{:?} parted the galaxy with team {:?} as {:?}",
+                        &*player.name(),
+                        &*player.team.name(),
+                        player.kind
+                    );
                 }
             }
         )
@@ -86,7 +100,17 @@ pub enum FlattiverseEventKind {
         message: Option<String>,
     },
     /// Event that is raised when the server has processed a tick.
-    GalaxyTick,
+    GalaxyTick {
+        tick: i32,
+    },
+    JoinedPlayer {
+        /// The player this event handles.
+        player: Arc<Player>,
+    },
+    PartedPlayer {
+        /// The player this event handles.
+        player: Arc<Player>,
+    },
 
     // ---------- local events below
     RespondedToPingMeasurement {
@@ -107,13 +131,7 @@ pub enum FlattiverseEventKind {
     DeactivatedCluster {
         cluster: Arc<Cluster>,
     },
-    CreatedPlayer {
-        player: Arc<Player>,
-    },
     UpdatedPlayer {
-        player: Arc<Player>,
-    },
-    DeactivatedPlayer {
         player: Arc<Player>,
     },
 }
