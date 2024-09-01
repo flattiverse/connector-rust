@@ -1,7 +1,7 @@
 use crate::network::{PacketHeader, PacketReader, PacketWriter};
 use bytes::{BufMut, BytesMut};
 
-pub const SERVER_DEFAULT_PACKET_SIZE: usize = 1048; // yes 10_48_
+pub const SERVER_DEFAULT_PACKET_SIZE: usize = 1052;
 
 pub struct MultiPacketBuffer(BytesMut);
 

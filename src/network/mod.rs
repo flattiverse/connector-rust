@@ -33,12 +33,13 @@ pub use connection::*;
 mod session;
 pub use session::*;
 
-use async_channel::Receiver;
-use std::sync::Arc;
 use crate::galaxy_hierarchy::Galaxy;
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
+use async_channel::Receiver;
+use std::sync::Arc;
 
+#[instrument(level = "trace", skip(f))]
 pub(crate) async fn connect(
     uri: &str,
     auth: &str,
@@ -53,6 +54,8 @@ pub(crate) async fn connect(
         env!("CARGO_PKG_VERSION"),
     );
 
+    debug!("Connecting to {}", url);
+
     #[cfg(all(
         any(target_arch = "wasm32", target_arch = "wasm64"),
         target_os = "unknown"
@@ -65,7 +68,6 @@ pub(crate) async fn connect(
     )))]
     return driver::connect(&url, f).await;
 }
-
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConnectError {

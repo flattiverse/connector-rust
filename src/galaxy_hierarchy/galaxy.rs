@@ -60,17 +60,43 @@ impl Galaxy {
     pub const URI_BASE: &'static str = "www.flattiverse.com";
 
     #[cfg(not(feature = "dev-environment"))]
-    pub const URI_GALAXY_DEFAULT: &'static str = "https://www.flattiverse.com/api/galaxies/all";
+    pub const URI_GALAXY_DEFAULT: &'static str = "wss://www.flattiverse.com/game/galaxies/0";
 
     #[cfg(feature = "dev-environment")]
     pub const URI_GALAXY_DEFAULT: &'static str = "ws://localhost:5000";
 
     #[inline]
     pub async fn connect(
+        galaxy: u16,
         auth: impl Into<Option<&str>>,
         team: impl Into<Option<&str>>,
     ) -> Result<Arc<Self>, GameError> {
-        Self::connect_to(Self::URI_GALAXY_DEFAULT, auth, team).await
+        #[cfg(not(feature = "dev-environment"))]
+        {
+            Self::connect_to(
+                &format!(
+                    "{}{}",
+                    &Self::URI_GALAXY_DEFAULT[..Self::URI_GALAXY_DEFAULT.len() - 1],
+                    galaxy
+                ),
+                auth,
+                team,
+            )
+            .await
+        }
+        #[cfg(feature = "dev-environment")]
+        {
+            Self::connect_to(
+                &format!(
+                    "{}{}",
+                    &Self::URI_GALAXY_DEFAULT[..Self::URI_GALAXY_DEFAULT.len() - 4],
+                    5000 + galaxy
+                ),
+                auth,
+                team,
+            )
+            .await
+        }
     }
 
     #[instrument(level = "trace", skip(auth, team))]
@@ -91,7 +117,7 @@ impl Galaxy {
                         .get()
                         .expect("Failed to get initial session"),
                 );
-                Arc::new(Self {
+                let this = Arc::new(Self {
                     name: RwLock::default(),
                     game_mode: Atomic::from(GameMode::Mission),
                     description: RwLock::default(),
@@ -111,17 +137,24 @@ impl Galaxy {
                     player_max_bases: Atomic::from(0),
                     maintenance: Atomic::from(false),
                     active: Atomic::from(true),
-                    teams: {
-                        let teams = UniversalArcHolder::with_capacity(33);
-                        teams.populate(Team::new(TeamId(32), "Spectators", 128, 128, 128));
-                        teams
-                    },
+                    teams: UniversalArcHolder::with_capacity(33),
                     clusters: UniversalArcHolder::with_capacity(64),
                     players: UniversalArcHolder::with_capacity(193),
                     connection: handle,
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
-                })
+                });
+
+                this.teams.populate(Team::new(
+                    Arc::downgrade(&this),
+                    TeamId(32),
+                    "Spectators",
+                    128,
+                    128,
+                    128,
+                ));
+
+                this
             },
         )
         .await
@@ -150,6 +183,12 @@ impl Galaxy {
         let id = PlayerId(id);
         debug_assert!(self.players.has(id), "{id:?} not setup.");
         self.player.store(id);
+    }
+
+    /// Sends a chat message to all players in this [`Galaxy`].
+    #[inline]
+    pub async fn chat(&self, message: impl AsRef<str>) -> Result<(), GameError> {
+        self.connection.chat_galaxy(message).await
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -210,7 +249,7 @@ impl Galaxy {
 
     #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_team(
-        &self,
+        self: &Arc<Self>,
         id: TeamId,
         red: u8,
         green: u8,
@@ -225,7 +264,9 @@ impl Galaxy {
                     team.update(name, red, green, blue);
                     team
                 }
-                None => self.teams.populate(Team::new(id, name, red, green, blue)),
+                None =>
+                    self.teams
+                        .populate(Team::new(Arc::downgrade(self), id, name, red, green, blue)),
             },
         })
     }
@@ -281,7 +322,7 @@ impl Galaxy {
 
     #[instrument(level = "trace", skip(self))]
     pub(crate) fn create_player(
-        &self,
+        self: &Arc<Self>,
         id: PlayerId,
         kind: PlayerKind,
         team: TeamId,
@@ -293,9 +334,14 @@ impl Galaxy {
         debug_assert!(self.players.has_not(id), "{id:?} does already exist.");
         debug_assert!(self.teams.has(team), "{team:?} does not exist.");
         event_result!(JoinedPlayer {
-            player: self
-                .players
-                .populate(Player::new(id, kind, self.teams.get(team), name, ping)),
+            player: self.players.populate(Player::new(
+                Arc::downgrade(self),
+                id,
+                kind,
+                self.teams.get(team),
+                name,
+                ping
+            )),
         })
     }
 
@@ -330,6 +376,39 @@ impl Galaxy {
     pub(crate) fn universe_tick(&self, number: i32) -> EventResult {
         debug!("Universe tick with #{number}");
         event_result!(GalaxyTick { tick: number })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn chat_galaxy(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+        debug!("Received galaxy chat message: {message:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        event_result!(GalaxyChat {
+            player: self.players.get(player),
+            destination: Arc::clone(self),
+            message
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn chat_team(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+        debug!("Received team chat message: {message:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        event_result!(TeamChat {
+            player: self.players.get(player),
+            destination: self.player(),
+            message
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn chat_player(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+        debug!("Received player chat message: {message:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        event_result!(PlayerChat {
+            player: self.players.get(player),
+            destination: self.player(),
+            message
+        })
     }
 
     /// Yourself.
@@ -450,5 +529,11 @@ impl Galaxy {
             Err(TryRecvError::Empty) => Ok(None),
             Err(TryRecvError::Closed) => Err(GameErrorKind::ConnectionTerminated.into()),
         }
+    }
+
+    /// Returns the underlying [`ConnectionHandle`] to the server.
+    #[inline]
+    pub(crate) fn connection(&self) -> &ConnectionHandle {
+        &self.connection
     }
 }

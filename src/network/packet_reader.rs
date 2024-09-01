@@ -82,7 +82,12 @@ impl PacketReader for BytesMut {
 
     fn read_string(&mut self) -> String {
         let length = self.read_byte();
-        let length = length as usize;
+        let length = if length == 0xFF {
+            self.read_uint16() as usize
+        } else {
+            length as usize
+        };
+
         let string = String::from_utf8(self[..length].to_vec());
         self.advance(length);
         string.expect("Invalid UTF-8 received")

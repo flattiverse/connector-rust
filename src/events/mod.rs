@@ -87,6 +87,41 @@ impl Display for FlattiverseEvent {
                         player.kind
                     );
                 }
+                FlattiverseEventKind::GalaxyChat {
+                    player,
+                    destination: _,
+                    message,
+                } => {
+                    return write!(f, "<[{}]{}> {}", &*player.team.name(), player.name, message);
+                }
+                FlattiverseEventKind::TeamChat {
+                    player,
+                    destination,
+                    message,
+                } => {
+                    return write!(
+                        f,
+                        "<[{}]{}->{}> {}",
+                        &*player.team.name(),
+                        player.name,
+                        destination.name,
+                        message
+                    );
+                }
+                FlattiverseEventKind::PlayerChat {
+                    player,
+                    destination,
+                    message,
+                } => {
+                    return write!(
+                        f,
+                        "<[{}]{}->{}> {}",
+                        &*player.team.name(),
+                        player.name,
+                        destination.name,
+                        message
+                    );
+                }
             }
         )
     }
@@ -95,25 +130,54 @@ impl Display for FlattiverseEvent {
 /// Specifies the various event kinds for a better match experience.
 #[derive(Debug)]
 pub enum FlattiverseEventKind {
-    PingMeasured(Duration),
-    /// Is fired when the connection to the flattiverse has been terminated
-    ConnectionTerminated {
-        message: Option<String>,
-    },
-    /// Event that is raised when the server has processed a tick.
-    GalaxyTick {
-        tick: i32,
-    },
+    /// A player has joined the galaxy
     JoinedPlayer {
         /// The player this event handles.
         player: Arc<Player>,
     },
+    /// A player has parted the galaxy.
     PartedPlayer {
         /// The player this event handles.
         player: Arc<Player>,
     },
+    /// You received a galaxy chat message.
+    GalaxyChat {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The destination where this message was sent to.
+        destination: Arc<Galaxy>,
+        /// The message of the chat.
+        message: String,
+    },
+    /// You received a team chat message.
+    TeamChat {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The destination where this message was sent to.
+        destination: Arc<Player>,
+        /// The message of the chat.
+        message: String,
+    },
+    /// You received a private message of a team member.
+    PlayerChat {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The destination where this message was sent to.
+        destination: Arc<Player>,
+        /// The message of the chat.
+        message: String,
+    },
+    /// The connection has been terminated.
+    ConnectionTerminated {
+        message: Option<String>,
+    },
+    /// A tick happened.
+    GalaxyTick {
+        tick: i32,
+    },
 
     // ---------- local events below
+    PingMeasured(Duration),
     RespondedToPingMeasurement {
         challenge: u16,
     },

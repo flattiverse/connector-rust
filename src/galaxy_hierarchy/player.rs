@@ -1,7 +1,8 @@
-use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit, Team};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit, Team};
 use crate::runtime::Atomic;
+use crate::GameError;
 use std::ops::Deref;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct PlayerId(pub(crate) u8);
@@ -16,6 +17,7 @@ impl Indexer for PlayerId {
 /// Represents a player in the galaxy.
 #[derive(Debug)]
 pub struct Player {
+    galaxy: Weak<Galaxy>,
     /// The id of the player
     pub id: PlayerId,
     /// The kind of the player.
@@ -29,8 +31,16 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(id: PlayerId, kind: PlayerKind, team: Arc<Team>, name: String, ping: f32) -> Self {
+    pub fn new(
+        galaxy: Weak<Galaxy>,
+        id: PlayerId,
+        kind: PlayerKind,
+        team: Arc<Team>,
+        name: String,
+        ping: f32,
+    ) -> Self {
         Self {
+            galaxy,
             id,
             kind,
             team,
@@ -38,6 +48,17 @@ impl Player {
             ping: Atomic::from(ping),
             active: Atomic::from(true),
         }
+    }
+
+    /// Sends a chat message to this [`Player`].
+    #[inline]
+    pub async fn chat(&self, message: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy
+            .upgrade()
+            .unwrap()
+            .connection()
+            .chat_player(self.id, message)
+            .await
     }
 
     /// The ping in ms of the player.

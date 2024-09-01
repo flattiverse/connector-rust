@@ -1,7 +1,8 @@
-use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
 use crate::runtime::Atomic;
+use crate::GameError;
 use std::ops::Deref;
-use std::sync::RwLock;
+use std::sync::{RwLock, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub(crate) u8);
@@ -16,6 +17,7 @@ impl Indexer for crate::galaxy_hierarchy::TeamId {
 /// Represents a team.
 #[derive(Debug)]
 pub struct Team {
+    galaxy: Weak<Galaxy>,
     /// The id of the team
     pub id: TeamId,
     /// The name of the team.
@@ -27,8 +29,16 @@ pub struct Team {
 }
 
 impl Team {
-    pub fn new(id: TeamId, name: impl Into<String>, red: u8, green: u8, blue: u8) -> Team {
+    pub fn new(
+        galaxy: Weak<Galaxy>,
+        id: TeamId,
+        name: impl Into<String>,
+        red: u8,
+        green: u8,
+        blue: u8,
+    ) -> Team {
         Self {
+            galaxy,
             id,
             name: RwLock::new(name.into()),
             red: Atomic::from(red),
@@ -36,6 +46,17 @@ impl Team {
             blue: Atomic::from(blue),
             active: Atomic::from(true),
         }
+    }
+
+    /// Sends a chat message to this [`Team`].
+    #[inline]
+    pub async fn chat(&self, message: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy
+            .upgrade()
+            .unwrap()
+            .connection()
+            .chat_team(self.id, message)
+            .await
     }
 
     pub fn update(&self, name: String, red: u8, green: u8, blue: u8) {
