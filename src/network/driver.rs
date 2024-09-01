@@ -150,7 +150,7 @@ impl ConnectionSender {
 
     #[inline]
     async fn send_ping(&mut self) -> Result<(), SenderError> {
-        self.send(Message::Ping(current_time_millis().to_le_bytes().to_vec()))
+        self.send(Message::Ping(current_time_micros().to_le_bytes().to_vec()))
             .await
     }
 
@@ -163,8 +163,8 @@ impl ConnectionSender {
     }
 }
 
-fn current_time_millis() -> u64 {
-    UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() as _
+fn current_time_micros() -> u64 {
+    UNIX_EPOCH.elapsed().unwrap_or_default().as_micros() as _
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -204,12 +204,12 @@ impl ConnectionReceiver {
                     }
                 }
                 Message::Pong(data) => {
-                    let mut millis = 0_u64.to_le_bytes();
-                    let millis_len = millis.len();
-                    if millis_len <= data.len() {
-                        millis.copy_from_slice(&data[..millis_len]);
-                        let duration = Duration::from_millis(
-                            current_time_millis().saturating_sub(u64::from_le_bytes(millis)),
+                    let mut micros = 0_u64.to_le_bytes();
+                    let micros_len = micros.len();
+                    if micros_len <= data.len() {
+                        micros.copy_from_slice(&data[..micros_len]);
+                        let duration = Duration::from_micros(
+                            current_time_micros().saturating_sub(u64::from_le_bytes(micros)),
                         );
                         if let Err(e) = self.connection.on_ping_measured(duration) {
                             error!("Failed to handle ping={duration:?} measurement: {e:?}");
