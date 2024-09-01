@@ -13,8 +13,9 @@ pub struct FlattiverseEvent(Box<Inner>);
 
 impl Debug for FlattiverseEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FlattiverseEvent")
-            .field(&self.0.stamp)
+        f.debug_struct("FlattiverseEvent")
+            .field("stamp", &self.0.stamp)
+            .field("kind", &self.0.kind)
             .finish()
     }
 }

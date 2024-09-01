@@ -1,5 +1,4 @@
 use flattiverse_connector::galaxy_hierarchy::Galaxy;
-use std::time::Duration;
 use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
@@ -21,7 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("    {:?}", galaxy.description());
     eprintln!("Myself: {:?}", galaxy.player().name);
 
-    tokio::time::sleep(Duration::from_secs(30)).await;
+    while let Ok(event) = galaxy.next_event().await {
+        eprintln!("{event}");
+    }
 
     // just to let everyone know
     eprintln!("SHUTTING DOWN");

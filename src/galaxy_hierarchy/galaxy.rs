@@ -4,7 +4,7 @@ use crate::galaxy_hierarchy::{
 use crate::network::{ConnectError, ConnectionHandle};
 use crate::runtime::Atomic;
 use crate::{FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind};
-use async_channel::Receiver;
+use async_channel::{Receiver, TryRecvError};
 use std::sync::{Arc, RwLock};
 use tracing::instrument;
 
@@ -433,5 +433,22 @@ impl Galaxy {
     /// changed when maintenance mode is enabled, in order to maintain a consistent player state.
     pub fn maintenance(&self) -> bool {
         self.maintenance.load()
+    }
+
+    /// Awaits the next [`FlattiverseEvent`]
+    pub async fn next_event(&self) -> Result<FlattiverseEvent, GameError> {
+        self.events
+            .recv()
+            .await
+            .map_err(|_| GameErrorKind::ConnectionTerminated.into())
+    }
+
+    /// Returns the next [`FlattiverseEvent`], if available.
+    pub fn poll_next_event(&self) -> Result<Option<FlattiverseEvent>, GameError> {
+        match self.events.try_recv() {
+            Ok(event) => Ok(Some(event)),
+            Err(TryRecvError::Empty) => Ok(None),
+            Err(TryRecvError::Closed) => Err(GameErrorKind::ConnectionTerminated.into()),
+        }
     }
 }
