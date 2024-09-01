@@ -377,17 +377,17 @@ impl Galaxy {
     }
 
     /// The maximum amount of total hips allowed per team in the galaxy.
-    pub fn team_max_probes(&self) -> u16 {
+    pub fn team_max_total_ships(&self) -> u16 {
         self.team_max_total_ships.load()
     }
 
     /// The maximum amount of classic style ships allowed per team in teh galaxy.
-    pub fn team_max_drones(&self) -> u16 {
+    pub fn team_max_classic_ships(&self) -> u16 {
         self.team_max_classic_ships.load()
     }
 
     /// The maximum amount of new style ships allowed per team in teh galaxy.
-    pub fn team_max_ships(&self) -> u16 {
+    pub fn team_max_new_ships(&self) -> u16 {
         self.team_max_new_ships.load()
     }
 
@@ -397,17 +397,17 @@ impl Galaxy {
     }
 
     /// The maximum amount of total ships allowed per player in the galaxy.
-    pub fn player_max_probes(&self) -> u8 {
+    pub fn player_max_total_ships(&self) -> u8 {
         self.player_max_total_ships.load()
     }
 
     /// The maximum amount of classic style ships allowed per player in the galaxy.
-    pub fn player_max_drones(&self) -> u8 {
+    pub fn player_max_classic_ships(&self) -> u8 {
         self.player_max_classic_ships.load()
     }
 
     /// The maximum amount of new style ships allowed per player in the galaxy.
-    pub fn player_max_ships(&self) -> u8 {
+    pub fn player_max_new_ships(&self) -> u8 {
         self.player_max_new_ships.load()
     }
 
