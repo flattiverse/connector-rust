@@ -2,7 +2,7 @@ mod player_unit_destroyed_reason;
 pub use player_unit_destroyed_reason::*;
 
 use crate::galaxy_hierarchy::{Cluster, ControllableInfo, Galaxy, NamedUnit, Player, Team};
-use crate::unit::UnitKind;
+use crate::unit::{Unit, UnitKind};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -217,6 +217,54 @@ impl Display for FlattiverseEvent {
                         controllable.kind()
                     );
                 }
+                FlattiverseEventKind::NewUnit { unit } => {
+                    let cluster = unit.cluster();
+                    let cluster = &*cluster.name();
+                    let kind = unit.kind();
+                    let name = unit.name();
+                    let position = unit.position();
+                    let radius = unit.radius();
+                    let gravity = unit.gravity();
+                    return match unit.team() {
+                        None => write!(f, "New Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
+                        Some(team) => {
+                            let team = &*team.name();
+                            write!(f, "New Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
+                        },
+                    };
+                }
+                FlattiverseEventKind::UpdatedUnit { unit } => {
+                    let cluster = unit.cluster();
+                    let cluster = &*cluster.name();
+                    let kind = unit.kind();
+                    let name = unit.name();
+                    let position = unit.position();
+                    let radius = unit.radius();
+                    let gravity = unit.gravity();
+                    return match unit.team() {
+                        None => write!(f, "Updated Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
+                        Some(team) => {
+                            let team = &*team.name();
+                            write!(f, "Updated Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
+                        },
+                    };
+                }
+                FlattiverseEventKind::RemovedUnit { unit } => {
+                    let cluster = unit.cluster();
+                    let cluster = &*cluster.name();
+                    let kind = unit.kind();
+                    let name = unit.name();
+                    let position = unit.position();
+                    let radius = unit.radius();
+                    let gravity = unit.gravity();
+                    return match unit.team() {
+                        None => write!(f, "Removed Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
+                        Some(team) => {
+                            let team = &*team.name();
+                            write!(f, "Removed Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
+                        },
+                    };
+                }
             }
         )
     }
@@ -279,6 +327,18 @@ pub enum FlattiverseEventKind {
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
+    },
+    /// You see a new unit.
+    NewUnit {
+        unit: Arc<Unit>,
+    },
+    /// An existing unit has been updated.
+    UpdatedUnit {
+        unit: Arc<Unit>,
+    },
+    /// You don't see the unit anymore.
+    RemovedUnit {
+        unit: Arc<Unit>,
     },
     /// You received a galaxy chat message.
     GalaxyChat {

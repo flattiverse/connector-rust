@@ -73,7 +73,15 @@ pub enum GameErrorKind {
         reason: InvalidArgumentKind,
         parameter: String,
     },
+    /// Thrown, if you try to call a command where you don't have access to.
     PermissionFailed,
+    /// Thrown, if the controllable you want to control is dead.
+    YouNeedToContinueFirst,
+    /// Thrown, if you try to do something which requires that your controllable is dead, like
+    /// `continue()`.
+    YouNeedToDieFirst,
+    /// Thrown, if a call to `continue()` fails, because there is no space for you.
+    AllStartLocationsAreOvercrowded,
 
     // TODO local only
     InvalidPrimitiveValue {
@@ -109,6 +117,8 @@ impl Display for GameErrorKind {
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
             GameErrorKind::ConnectionTerminated => "[0x0F] Connection has been terminated for unknown reason.",
             GameErrorKind::SpecifiedElementNotFound => "[0x05] No or non-existent team specified.",
+            GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
+            GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
             GameErrorKind::InvalidArgument {
                 reason,
                 parameter
@@ -122,10 +132,10 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::ConstrainedInfinity => "contained a \"Infinity\" value.",
                 InvalidArgumentKind::Unknown(..) => "is wrong due to an invalid value."
             }),
-            GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
-            GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
+            GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
+            GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
+            GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
-
         })
     }
 }
@@ -152,6 +162,9 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
                 parameter: reader.read_string(),
             },
             0x13 => GameErrorKind::PermissionFailed,
+            0x20 => GameErrorKind::YouNeedToContinueFirst,
+            0x21 => GameErrorKind::YouNeedToDieFirst,
+            0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
             code => GameErrorKind::Unknown(code),
         }
     }

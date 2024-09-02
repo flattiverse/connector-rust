@@ -1,5 +1,6 @@
 use crate::galaxy_hierarchy::{GameMode, PlayerId, TeamId};
 use crate::network::{PacketReader, PacketWriter};
+use crate::Vector;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
@@ -253,44 +254,44 @@ macro_rules! impl_atomar_for_id {
 
 impl_atomar_for_id!(u8, PlayerId, TeamId);
 
-// /// This implementation is quite the lie...
-// impl Atomar for Vector {
-//     type Container = (Atomic<f64>, Atomic<f64>, Atomic<f64>);
-//
-//     fn into_container(self) -> Self::Container {
-//         (
-//             Atomic::from(self.x),
-//             Atomic::from(self.y),
-//             Atomic::from(self.last_angle),
-//         )
-//     }
-//
-//     fn store(self, container: &Self::Container, ordering: Ordering) {
-//         container.0.store_with(self.x, ordering);
-//         container.1.store_with(self.y, ordering);
-//         container.2.store_with(self.last_angle, ordering);
-//     }
-//
-//     fn load(container: &Self::Container, ordering: Ordering) -> Self {
-//         Vector {
-//             x: container.0.load_with(ordering),
-//             y: container.1.load_with(ordering),
-//             last_angle: container.2.load_with(ordering),
-//         }
-//     }
-// }
-//
-// impl Readable for Vector {
-//     #[inline]
-//     fn read(reader: &mut dyn PacketReader) -> Self {
-//         Vector::from_xy(reader.read_double(), reader.read_double())
-//     }
-// }
-//
-// impl Writable for Vector {
-//     #[inline]
-//     fn write(&self, writer: &mut dyn PacketWriter) {
-//         writer.write_double(self.x);
-//         writer.write_double(self.y);
-//     }
-// }
+/// This implementation is quite the lie...
+impl Atomar for Vector {
+    type Container = (Atomic<f32>, Atomic<f32>, Atomic<f32>);
+
+    fn into_container(self) -> Self::Container {
+        (
+            Atomic::from(self.x),
+            Atomic::from(self.y),
+            Atomic::from(self.last_angle),
+        )
+    }
+
+    fn store(self, container: &Self::Container, ordering: Ordering) {
+        container.0.store_with(self.x, ordering);
+        container.1.store_with(self.y, ordering);
+        container.2.store_with(self.last_angle, ordering);
+    }
+
+    fn load(container: &Self::Container, ordering: Ordering) -> Self {
+        Vector {
+            x: container.0.load_with(ordering),
+            y: container.1.load_with(ordering),
+            last_angle: container.2.load_with(ordering),
+        }
+    }
+}
+
+impl Readable for Vector {
+    #[inline]
+    fn read(reader: &mut dyn PacketReader) -> Self {
+        Vector::from_xy(reader.read_f32(), reader.read_f32())
+    }
+}
+
+impl Writable for Vector {
+    #[inline]
+    fn write(&self, writer: &mut dyn PacketWriter) {
+        writer.write_f32(self.x);
+        writer.write_f32(self.y);
+    }
+}

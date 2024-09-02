@@ -1,14 +1,15 @@
+use crate::network::{PacketReader, PacketWriter};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Vector {
-    pub x: f64,
-    pub y: f64,
-    pub(crate) last_angle: f64,
+    pub x: f32,
+    pub y: f32,
+    pub(crate) last_angle: f32,
 }
 
 impl Vector {
-    pub const fn from_xy(x: f64, y: f64) -> Self {
+    pub const fn from_xy(x: f32, y: f32) -> Self {
         Self {
             x,
             y,
@@ -16,47 +17,30 @@ impl Vector {
         }
     }
 
-    //    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
-    //        self.read(reader);
-    //        self
-    //    }
-    //
-    //    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
-    //        self.x = reader.read_double();
-    //        self.y = reader.read_double();
-    //        self.last_angle = 0.0;
-    //    }
-    //
-    //    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
-    //        if self.is_damaged() {
-    //            writer.write_uint64(0);
-    //        } else {
-    //            if self.x < -21470.0 {
-    //                writer.write_int32(-2147000000)
-    //            } else if self.x > 21470.0 {
-    //                writer.write_int32(2147000000)
-    //            } else {
-    //                writer.write_double(self.x)
-    //            }
-    //
-    //            if self.y < -21470.0 {
-    //                writer.write_int32(-2147000000)
-    //            } else if self.y > 21470.0 {
-    //                writer.write_int32(2147000000)
-    //            } else {
-    //                writer.write_double(self.y)
-    //            }
-    //        }
-    //    }
+    pub(crate) fn with_read(mut self, reader: &mut dyn PacketReader) -> Self {
+        self.read(reader);
+        self
+    }
 
-    pub fn from_angle_length(angle: f64, length: f64) -> Self {
+    pub(crate) fn read(&mut self, reader: &mut dyn PacketReader) {
+        if !reader.maybe_read_f32(&mut self.x) || !reader.maybe_read_f32(&mut self.y) {
+            *self = Vector::default()
+        }
+    }
+
+    pub(crate) fn write(&self, writer: &mut dyn PacketWriter) {
+        writer.write_f32(self.x);
+        writer.write_f32(self.y);
+    }
+
+    pub fn from_angle_length(angle: f32, length: f32) -> Self {
         Self::from_xy(
             angle.to_radians().cos() * length,
             angle.to_radians().sin() * length,
         )
     }
 
-    pub fn angle(&self) -> f64 {
+    pub fn angle(&self) -> f32 {
         if self.x == 0.0 && self.y == 0.0 {
             self.last_angle
         } else {
@@ -64,8 +48,8 @@ impl Vector {
         }
     }
 
-    pub fn set_angle(&mut self, value: f64) {
-        let alpha = value * std::f64::consts::PI / 180.0;
+    pub fn set_angle(&mut self, value: f32) {
+        let alpha = value * std::f32::consts::PI / 180.0;
         let length = self.length();
 
         self.x = length * alpha.cos();
@@ -73,16 +57,16 @@ impl Vector {
     }
 
     #[inline]
-    pub fn length(&self) -> f64 {
+    pub fn length(&self) -> f32 {
         self.length_squared().sqrt()
     }
 
     #[inline]
-    pub fn length_squared(&self) -> f64 {
+    pub fn length_squared(&self) -> f32 {
         (self.x * self.x) + (self.y * self.y)
     }
 
-    pub fn set_length(&mut self, length: f64) {
+    pub fn set_length(&mut self, length: f32) {
         if length == 0.0 {
             self.last_angle = self.angle();
         }
@@ -98,12 +82,12 @@ impl Vector {
         }
     }
 
-    pub fn with_length(mut self, length: f64) -> Self {
+    pub fn with_length(mut self, length: f32) -> Self {
         self.set_length(length);
         self
     }
 
-    pub fn rotated_by(&self, degree: f64) -> Self {
+    pub fn rotated_by(&self, degree: f32) -> Self {
         let alpha = degree.to_radians();
         Self::from_xy(
             alpha.cos().mul(self.x) - alpha.sin().mul(self.y),
@@ -111,7 +95,7 @@ impl Vector {
         )
     }
 
-    pub fn angle_from(&self, other: &Vector) -> f64 {
+    pub fn angle_from(&self, other: &Vector) -> f32 {
         let mut degree = other.last_angle - self.last_angle;
         if degree < 0.0 {
             degree += 360.0;
@@ -148,20 +132,20 @@ impl Sub for Vector {
     }
 }
 
-impl Mul<f64> for Vector {
+impl Mul<f32> for Vector {
     type Output = Vector;
 
     #[inline]
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: f32) -> Self::Output {
         Vector::from_xy(self.x * rhs, self.y * rhs)
     }
 }
 
-impl Div<f64> for Vector {
+impl Div<f32> for Vector {
     type Output = Vector;
 
     #[inline]
-    fn div(self, rhs: f64) -> Self::Output {
+    fn div(self, rhs: f32) -> Self::Output {
         Vector::from_xy(self.x / rhs, self.y / rhs)
     }
 }

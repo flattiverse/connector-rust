@@ -1,8 +1,9 @@
 use crate::galaxy_hierarchy::{
     Cluster, ClusterId, GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
 };
-use crate::network::{ConnectError, ConnectionHandle};
+use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::runtime::Atomic;
+use crate::unit::{Unit, UnitKind};
 use crate::{FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind};
 use async_channel::{Receiver, TryRecvError};
 use std::sync::{Arc, RwLock};
@@ -370,6 +371,31 @@ impl Galaxy {
                 self.players.remove(id)
             }
         })
+    }
+
+    #[instrument(level = "trace", skip(self, reader))]
+    pub(crate) fn unit_new(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        kind: UnitKind,
+        reader: &mut dyn PacketReader,
+    ) -> EventResult {
+        debug!("Adding unit {name:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+
+        let cluster = self.clusters.get(cluster);
+        let unit = match Unit::try_read(kind, Arc::downgrade(&cluster), name, reader) {
+            None => {
+                error!("Unable to read Unit for UnitKind::{kind:?}");
+                return Ok(None);
+            }
+            Some(unit) => Arc::new(unit),
+        };
+
+        cluster.add_unit(Arc::clone(&unit));
+
+        event_result!(NewUnit { unit })
     }
 
     #[instrument(level = "trace", skip(self))]

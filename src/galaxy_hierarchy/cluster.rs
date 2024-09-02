@@ -1,7 +1,8 @@
-use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit, UniversalArcHolder};
 use crate::runtime::Atomic;
+use crate::unit::Unit;
 use std::ops::Deref;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -20,6 +21,7 @@ pub struct Cluster {
     pub id: ClusterId,
     name: RwLock<String>,
     active: Atomic<bool>,
+    units: UniversalArcHolder<(), Unit>,
 }
 
 impl Cluster {
@@ -28,6 +30,7 @@ impl Cluster {
             id,
             name: RwLock::new(name.into()),
             active: Atomic::from(true),
+            units: UniversalArcHolder::with_capacity(1024 * 1024),
         }
     }
 
@@ -37,6 +40,18 @@ impl Cluster {
 
     pub(crate) fn deactivate(&self) {
         self.active.store(false);
+    }
+
+    pub(crate) fn add_unit(&self, unit: Arc<Unit>) {
+        self.units.push(unit);
+    }
+
+    pub(crate) fn remove_unit(&self, name: &str) -> Arc<Unit> {
+        self.units.remove_by_name(name)
+    }
+
+    pub fn units(&self) -> impl Iterator<Item = Arc<Unit>> + '_ {
+        self.units.iter()
     }
 
     /// If false, you have been disconnected or the cluster has been removed and therefore disabled.
