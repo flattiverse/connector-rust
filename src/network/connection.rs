@@ -112,7 +112,7 @@ impl Connection {
                 reader.read_f32(),
             ),
             0x11 => galaxy.update_player(PlayerId(reader.read_byte()), reader.read_f32()),
-            0x13 => galaxy.deactivate_player(PlayerId(reader.read_byte())),
+            0x1F => galaxy.deactivate_player(PlayerId(reader.read_byte())),
             0xc0 => galaxy.universe_tick(reader.read_int32()),
             0xC4 => galaxy.chat_galaxy(PlayerId(reader.read_byte()), reader.read_string()),
             0xC5 => galaxy.chat_team(PlayerId(reader.read_byte()), reader.read_string()),

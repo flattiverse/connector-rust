@@ -1,4 +1,7 @@
-use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit, Team};
+use crate::galaxy_hierarchy::{
+    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, NamedUnit, Team,
+    UniversalArcHolder,
+};
 use crate::runtime::Atomic;
 use crate::GameError;
 use std::ops::Deref;
@@ -28,6 +31,7 @@ pub struct Player {
     pub name: String,
     ping: Atomic<f32>,
     active: Atomic<bool>,
+    controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
 }
 
 impl Player {
@@ -47,6 +51,7 @@ impl Player {
             name,
             ping: Atomic::from(ping),
             active: Atomic::from(true),
+            controllable_infos: UniversalArcHolder::with_capacity(256),
         }
     }
 
@@ -74,6 +79,24 @@ impl Player {
     pub(crate) fn deactivate(&self) {
         self.ping.store(-1.0);
         self.active.store(false);
+    }
+
+    #[inline]
+    pub fn get_controllable_info(&self, id: ControllableInfoId) -> Arc<ControllableInfo> {
+        self.controllable_infos.get(id)
+    }
+
+    #[inline]
+    pub fn get_controllable_info_opt(
+        &self,
+        id: ControllableInfoId,
+    ) -> Option<Arc<ControllableInfo>> {
+        self.controllable_infos.get_opt(id)
+    }
+
+    #[inline]
+    pub fn iter_controllable_infos(&self) -> impl Iterator<Item = Arc<ControllableInfo>> + '_ {
+        self.controllable_infos.iter()
     }
 }
 

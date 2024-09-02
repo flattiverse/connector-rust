@@ -9,6 +9,7 @@ pub mod account;
 pub mod galaxy_hierarchy;
 pub mod network;
 pub mod runtime;
+pub mod unit;
 pub mod utils;
 
 mod game_error;

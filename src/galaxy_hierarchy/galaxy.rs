@@ -536,4 +536,47 @@ impl Galaxy {
     pub(crate) fn connection(&self) -> &ConnectionHandle {
         &self.connection
     }
+
+    #[inline]
+    pub fn iter_teams(&self) -> impl Iterator<Item = Arc<Team>> + '_ {
+        self.teams.iter()
+    }
+
+    #[inline]
+    pub fn get_team(&self, id: TeamId) -> Arc<Team> {
+        self.teams.get(id)
+    }
+
+    #[inline]
+    pub fn get_team_opt(&self, id: TeamId) -> Option<Arc<Team>> {
+        self.teams.get_opt(id)
+    }
+    #[inline]
+    pub fn iter_clusters(&self) -> impl Iterator<Item = Arc<Cluster>> + '_ {
+        self.clusters.iter()
+    }
+
+    #[inline]
+    pub fn get_cluster(&self, id: ClusterId) -> Arc<Cluster> {
+        self.clusters.get(id)
+    }
+
+    #[inline]
+    pub fn get_cluster_opt(&self, id: ClusterId) -> Option<Arc<Cluster>> {
+        self.clusters.get_opt(id)
+    }
+    #[inline]
+    pub fn iter_players(&self) -> impl Iterator<Item = Arc<Player>> + '_ {
+        self.players.iter()
+    }
+
+    #[inline]
+    pub fn get_player(&self, id: PlayerId) -> Arc<Player> {
+        self.players.get(id)
+    }
+
+    #[inline]
+    pub fn get_player_opt(&self, id: PlayerId) -> Option<Arc<Player>> {
+        self.players.get_opt(id)
+    }
 }

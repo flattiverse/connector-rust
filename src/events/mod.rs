@@ -1,4 +1,8 @@
-use crate::galaxy_hierarchy::{Cluster, Galaxy, NamedUnit, Player, Team};
+mod player_unit_destroyed_reason;
+pub use player_unit_destroyed_reason::*;
+
+use crate::galaxy_hierarchy::{Cluster, ControllableInfo, Galaxy, NamedUnit, Player, Team};
+use crate::unit::UnitKind;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -10,6 +14,18 @@ struct Inner {
 
 #[repr(transparent)]
 pub struct FlattiverseEvent(Box<Inner>);
+
+impl FlattiverseEvent {
+    #[inline]
+    pub fn timestamp(&self) -> SystemTime {
+        self.0.stamp
+    }
+
+    #[inline]
+    pub fn kind(&self) -> &FlattiverseEventKind {
+        &self.0.kind
+    }
+}
 
 impl Debug for FlattiverseEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -122,6 +138,85 @@ impl Display for FlattiverseEvent {
                         message
                     );
                 }
+                FlattiverseEventKind::ControllableInfoRegistered {
+                    player,
+                    controllable,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} registered controllable {:?} of type {:?}",
+                        player.name,
+                        &*player.team.name(),
+                        controllable.name,
+                        controllable.kind()
+                    );
+                }
+                FlattiverseEventKind::ControllableInfoContinued {
+                    player,
+                    controllable,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} continued controllable {:?} of type {:?}",
+                        player.name,
+                        &*player.team.name(),
+                        controllable.name,
+                        controllable.kind()
+                    );
+                }
+                FlattiverseEventKind::NeutralDestroyedControllableInfo {
+                    player,
+                    controllable,
+                    reason: _,
+                    colliders_kind,
+                    colliders_name,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} controllable {:?} of type {:?} collided with a {:?} named {:?}.",
+                        player.name,
+                        &*player.team.name(),
+                        controllable.name,
+                        controllable.kind(),
+                        colliders_kind,
+                        colliders_name,
+                    );
+                }
+                FlattiverseEventKind::ControllableInfoDestroyed {
+                    player,
+                    controllable,
+                    reason,
+                    destroyed_unit: _,
+                    destroyed_player: _,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} controllable {:?} of type {:?} {}.",
+                        player.name,
+                        &*player.team.name(),
+                        controllable.name,
+                        controllable.kind(),
+                        match reason {
+                            PlayerUnitDestroyedReason::ByRules =>
+                                "got destroyed due to applied rules",
+                            PlayerUnitDestroyedReason::Suicided => "suicided",
+                            _ => "got destroyed",
+                        }
+                    );
+                }
+                FlattiverseEventKind::ControllableInfoClosed {
+                    player,
+                    controllable,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} closed/disposed controllable {:?} of type {:?}",
+                        player.name,
+                        &*player.team.name(),
+                        controllable.name,
+                        controllable.kind()
+                    );
+                }
             }
         )
     }
@@ -139,6 +234,51 @@ pub enum FlattiverseEventKind {
     PartedPlayer {
         /// The player this event handles.
         player: Arc<Player>,
+    },
+    /// A PlayerUnit has been registered
+    ControllableInfoRegistered {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+    },
+    /// A PlayerUnit did continue the game.
+    ControllableInfoContinued {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+    },
+    /// A PlayerUnit got destroyed by collision with a neutral unit.
+    NeutralDestroyedControllableInfo {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+        reason: PlayerUnitDestroyedReason,
+        /// The UnitKind of the unit the PlayerUnit collided with.
+        colliders_kind: UnitKind,
+        /// The name of the unit hte PlayerUnit collided with.
+        colliders_name: String,
+    },
+    /// A PlayerUnit was destroyed.
+    ControllableInfoDestroyed {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+        reason: PlayerUnitDestroyedReason,
+        /// The PlayerUnit which destroyed the PlayerUnit in question.
+        destroyed_unit: Arc<ControllableInfo>,
+        /// The Player of the unit which destroyed the PlayerUnit.
+        destroyed_player: Arc<Player>,
+    },
+    /// A PlayerUnit was unregistered.
+    ControllableInfoClosed {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
     },
     /// You received a galaxy chat message.
     GalaxyChat {

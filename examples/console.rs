@@ -2,6 +2,7 @@
 extern crate tracing;
 
 use flattiverse_connector::galaxy_hierarchy::Galaxy;
+use flattiverse_connector::FlattiverseEventKind;
 use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
@@ -32,8 +33,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
     galaxy.player().chat("Was geht bei mir!?").await.unwrap();
 
+    let mut log_tick_tack = false;
     while let Ok(event) = galaxy.next_event().await {
-        info!("{event}");
+        match event.kind() {
+            FlattiverseEventKind::GalaxyTick { .. } if !log_tick_tack => {}
+            _ => {
+                log_tick_tack = matches!(event.kind(), FlattiverseEventKind::PingMeasured(..));
+                info!("{event}");
+            }
+        }
     }
 
     // just to let everyone know

@@ -18,3 +18,6 @@ pub use game_mode::*;
 
 mod cluster;
 pub use cluster::*;
+
+mod controllable_info;
+pub use controllable_info::*;
