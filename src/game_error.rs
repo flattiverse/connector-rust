@@ -76,7 +76,6 @@ pub enum GameErrorKind {
     PermissionFailed,
 
     // TODO local only
-    ParameterNotWithinSpecification,
     InvalidPrimitiveValue {
         value: String,
         r#type: &'static str,
@@ -125,7 +124,6 @@ impl Display for GameErrorKind {
             }),
             GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
-            GameErrorKind::ParameterNotWithinSpecification => "[0x??] Parameters are not within specification.",
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
 
         })

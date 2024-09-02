@@ -1,3 +1,4 @@
+use crate::network::InvalidArgumentKind;
 use crate::{GameError, GameErrorKind};
 
 #[inline]
@@ -14,7 +15,11 @@ pub fn check_name_or_err<S: AsRef<str>>(name: S, max_len: usize) -> Result<S, Ga
     if name.as_ref().len() <= max_len && check_name(name.as_ref()) {
         Ok(name)
     } else {
-        Err(GameErrorKind::ParameterNotWithinSpecification.into())
+        Err(GameErrorKind::InvalidArgument {
+            reason: InvalidArgumentKind::NameConstraint,
+            parameter: "name".to_string(),
+        }
+        .into())
     }
 }
 
@@ -37,7 +42,11 @@ pub fn check_message_or_err<S: AsRef<str>>(message: S) -> Result<S, GameError> {
     if check_message(message.as_ref()) {
         Ok(message)
     } else {
-        Err(GameErrorKind::ParameterNotWithinSpecification.into())
+        Err(GameErrorKind::InvalidArgument {
+            reason: InvalidArgumentKind::ChatConstraint,
+            parameter: "chat_message".to_string(),
+        }
+        .into())
     }
 }
 
