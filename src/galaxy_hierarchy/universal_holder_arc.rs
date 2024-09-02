@@ -3,10 +3,12 @@ use arc_swap::ArcSwapOption;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
 pub struct UniversalArcHolder<I, T> {
     data: Vec<ArcSwapOption<T>>,
+    size: AtomicU32,
     _i: PhantomData<I>,
 }
 
@@ -26,12 +28,16 @@ impl<I, T> UniversalArcHolder<I, T> {
     pub fn with_capacity(size: usize) -> Self {
         Self {
             data: (0..size).map(|_| ArcSwapOption::from(None)).collect(),
+            size: AtomicU32::default(),
             _i: PhantomData,
         }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = Arc<T>> + '_ {
-        self.data.iter().flat_map(|arc| arc.load_full())
+        self.data
+            .iter()
+            .flat_map(|arc| arc.load_full())
+            .take(self.size.load(Ordering::Relaxed) as usize)
     }
 }
 
@@ -45,9 +51,12 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
             .unwrap_or_else(|| unreachable!("There is no entry for the given Index={index:?}"))
     }
 
-    #[inline]
     pub fn remove_opt(&self, index: I) -> Option<Arc<T>> {
-        self.data[index.index()].swap(None)
+        let result = self.data[index.index()].swap(None);
+        if result.is_some() {
+            self.size.fetch_sub(1, Ordering::Relaxed);
+        }
+        result
     }
 
     #[inline]
@@ -58,12 +67,14 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
         let value = Arc::new(value.into());
         let index = value.id();
         self.set(index, Some(Arc::clone(&value)));
+        self.size.fetch_add(1, Ordering::Relaxed);
         value
     }
 
-    #[inline]
     pub fn set(&self, index: I, value: impl Into<Option<Arc<T>>>) {
-        self.data[index.index()].store(value.into());
+        if self.data[index.index()].swap(value.into()).is_none() {
+            self.size.fetch_add(1, Ordering::Relaxed);
+        }
     }
 
     #[inline]
@@ -97,6 +108,8 @@ impl<T: NamedUnit> UniversalArcHolder<(), T> {
         {
             // TODO grow??
             unreachable!()
+        } else {
+            self.size.fetch_add(1, Ordering::Relaxed);
         }
     }
 }
@@ -119,7 +132,7 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
     }
 
     pub fn remove_by_name_opt(&self, name: &str) -> Option<Arc<T>> {
-        self.data.iter().find_map(|slot| {
+        let result = self.data.iter().find_map(|slot| {
             let guard = slot.load();
             match &*guard {
                 Some(value) if &*value.name() == name => {
@@ -131,7 +144,11 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
                 }
                 _ => None,
             }
-        })
+        });
+        if result.is_some() {
+            self.size.fetch_sub(1, Ordering::Relaxed);
+        }
+        result
     }
 
     #[inline]
