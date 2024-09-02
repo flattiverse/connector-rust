@@ -33,6 +33,9 @@ pub use connection::*;
 mod session;
 pub use session::*;
 
+mod invalid_argument_kind;
+pub use invalid_argument_kind::*;
+
 use crate::galaxy_hierarchy::Galaxy;
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
