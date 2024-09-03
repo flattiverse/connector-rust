@@ -1,5 +1,6 @@
-use crate::galaxy_hierarchy::{PlayerId, TeamId};
+use crate::galaxy_hierarchy::{ControllableId, PlayerId, TeamId};
 use crate::network::{Packet, Session, SessionHandler};
+use crate::utils::check_name_or_err_32;
 use crate::{GameError, GameErrorKind};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -88,6 +89,7 @@ impl ConnectionHandle {
             GameError::check(response, |_| Ok(()))
         })
     }
+
     /// Sends a chat message to all players in the connected [`crate::galaxy_hierarchy::Galaxy`].
     #[inline]
     pub async fn chat_galaxy(&self, message: impl AsRef<str>) -> Result<(), GameError> {
@@ -108,6 +110,62 @@ impl ConnectionHandle {
         Ok(async move {
             let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Call this to close a [`crate::galaxy_hierarchy::Controllable`].
+    #[inline]
+    pub async fn dispose_controllable(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.dispose_controllable_split(controllable).await?.await
+    }
+
+    /// Call this to close a [`crate::galaxy_hierarchy::Controllable`].
+    pub async fn dispose_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x8F);
+        packet.write(|writer| writer.write_byte(controllable.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Create a classic style ship.
+    #[inline]
+    pub async fn create_classic_style_ship(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<ControllableId, GameError> {
+        self.create_classic_style_ship_split(name).await?.await
+    }
+
+    /// Create a classic style ship.
+    pub async fn create_classic_style_ship_split(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
+        check_name_or_err_32(name.as_ref())?;
+
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x80);
+        packet.write(|writer| writer.write_string_with_len_prefix(name.as_ref()));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                Ok(packet.read(|reader| ControllableId(reader.read_byte())))
+            })
         })
     }
 

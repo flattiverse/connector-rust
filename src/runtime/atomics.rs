@@ -284,14 +284,13 @@ impl Atomar for Vector {
 impl Readable for Vector {
     #[inline]
     fn read(reader: &mut dyn PacketReader) -> Self {
-        Vector::from_xy(reader.read_f32(), reader.read_f32())
+        Self::default().with_read(reader)
     }
 }
 
 impl Writable for Vector {
     #[inline]
     fn write(&self, writer: &mut dyn PacketWriter) {
-        writer.write_f32(self.x);
-        writer.write_f32(self.y);
+        Vector::write(self, writer);
     }
 }

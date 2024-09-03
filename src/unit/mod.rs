@@ -10,6 +10,9 @@ pub use steady::*;
 mod mobility;
 pub use mobility::*;
 
+mod player_unit;
+pub use player_unit::*;
+
 use crate::galaxy_hierarchy::{Cluster, NamedUnit, Team};
 use crate::network::PacketReader;
 use crate::runtime::Readable;
@@ -22,7 +25,14 @@ use std::sync::{Arc, Weak};
 /// are store in the relevant variant or added via interfaces.
 #[derive(Debug)]
 pub enum Unit {
-    Planet { base: UnitBase, steady: SteadyUnit },
+    Planet {
+        base: UnitBase,
+        steady: SteadyUnit,
+    },
+    PlayerUnit {
+        base: UnitBase,
+        player_unit: PlayerUnit,
+    },
 }
 
 impl Unit {
@@ -32,7 +42,7 @@ impl Unit {
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Option<Self> {
-        let base = UnitBase::from_packet(cluster, name, reader);
+        let base = UnitBase::new(cluster, name);
         match kind {
             UnitKind::Sun => None,
             UnitKind::BlackHole => None,
@@ -42,7 +52,7 @@ impl Unit {
             }),
             UnitKind::Moon => None,
             UnitKind::Meteoroid => None,
-            UnitKind::ClassicalShipPlayerUnit => None,
+            UnitKind::ClassicShipPlayerUnit => None,
             UnitKind::NewShipPlayerUnit => None,
             UnitKind::Unknown(_) => None,
         }
@@ -55,21 +65,27 @@ impl Unit {
     }
 
     /// The radius of the unit.
-    #[inline]
     pub fn radius(&self) -> f32 {
-        self.base().radius()
+        match self {
+            Unit::Planet { steady, .. } => steady.radius(),
+            Unit::PlayerUnit { .. } => todo!(),
+        }
     }
 
     /// The position of the unit.
-    #[inline]
     pub fn position(&self) -> Vector {
-        self.base().position()
+        match self {
+            Unit::Planet { steady, .. } => steady.position(),
+            Unit::PlayerUnit { player_unit, .. } => player_unit.position(),
+        }
     }
 
     /// The movement of the unit.
-    #[inline]
     pub fn movement(&self) -> Vector {
-        dbg!(Vector::default())
+        match self {
+            Unit::Planet { .. } => Vector::default(),
+            Unit::PlayerUnit { player_unit, .. } => player_unit.movement(),
+        }
     }
 
     /// The direction the unit is looking into.
@@ -99,7 +115,10 @@ impl Unit {
     /// The gravity of this unit. This is how much this unit pulls others towards it.
     #[inline]
     pub fn gravity(&self) -> f32 {
-        self.steady().map(SteadyUnit::gravity).unwrap_or_default()
+        match self {
+            Unit::Planet { steady, .. } => steady.gravity(),
+            Unit::PlayerUnit { player_unit, .. } => dbg!(0.0f32),
+        }
     }
 
     /// The mobility of this unit.
@@ -107,6 +126,7 @@ impl Unit {
     pub fn mobility(&self) -> Mobility {
         match self {
             Unit::Planet { .. } => Mobility::Still,
+            Unit::PlayerUnit { .. } => Mobility::Mobile,
         }
     }
 
@@ -115,6 +135,7 @@ impl Unit {
     pub fn kind(&self) -> UnitKind {
         match self {
             Unit::Planet { .. } => UnitKind::Planet,
+            Unit::PlayerUnit { .. } => todo!(),
         }
     }
 
@@ -129,18 +150,28 @@ impl Unit {
     pub fn team(&self) -> Option<Arc<Team>> {
         match self {
             Unit::Planet { .. } => None,
+            Unit::PlayerUnit { player_unit, .. } => Some(player_unit.player().team()),
         }
     }
 
     pub fn base(&self) -> &UnitBase {
         match self {
-            Unit::Planet { base, .. } => &base,
+            Unit::Planet { base, .. } => base,
+            Unit::PlayerUnit { base, .. } => &base,
         }
     }
 
     pub fn steady(&self) -> Option<&SteadyUnit> {
         match self {
             Unit::Planet { steady, .. } => Some(steady),
+            Unit::PlayerUnit { .. } => None,
+        }
+    }
+
+    pub fn player_unit(&self) -> Option<&PlayerUnit> {
+        match self {
+            Unit::Planet { .. } => None,
+            Unit::PlayerUnit { player_unit, .. } => Some(player_unit),
         }
     }
 }
@@ -148,6 +179,6 @@ impl Unit {
 impl NamedUnit for Unit {
     #[inline]
     fn name(&self) -> impl Deref<Target = str> + '_ {
-        self.base().name.as_str()
+        self.base().name()
     }
 }

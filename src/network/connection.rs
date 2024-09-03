@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{ClusterId, Galaxy, GameMode, PlayerId, PlayerKind, TeamId};
+use crate::galaxy_hierarchy::{
+    ClusterId, ControllableId, ControllableInfoId, Galaxy, GameMode, PlayerId, PlayerKind, TeamId,
+};
 use crate::game_error::GameError;
 use crate::network::{ConnectionHandle, Packet, SessionId};
 use crate::unit::UnitKind;
@@ -114,6 +116,23 @@ impl Connection {
             ),
             0x11 => galaxy.update_player(PlayerId(reader.read_byte()), reader.read_f32()),
             0x1F => galaxy.deactivate_player(PlayerId(reader.read_byte())),
+            0x20 => galaxy.controllable_info_new(
+                PlayerId(reader.read_byte()),
+                UnitKind::from_primitive(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                reader.read_string(),
+                reader.read_boolean(),
+            ),
+            0x2F => galaxy.controllable_info_removed(
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+            ),
+            0x80 => galaxy.controllable_new(
+                UnitKind::from_primitive(reader.read_byte()),
+                ControllableId(reader.read_byte()),
+                reader.read_string(),
+                reader,
+            ),
             0x30 => galaxy.unit_new(
                 ClusterId(reader.read_byte()),
                 reader.read_string(),

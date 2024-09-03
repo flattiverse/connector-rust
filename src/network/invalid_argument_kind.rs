@@ -21,7 +21,9 @@ pub enum InvalidArgumentKind {
     /// The arguments value doesn't match the chat message constraints
     ChatConstraint = 0x04,
     /// The specified entity has not been found.
-    EntityNotFound = 0xFC,
+    EntityNotFound = 0xFB,
+    /// The specified name is already taken.
+    NameInUse = 0xFC,
     /// The arguments value did contain a Not a Number value.
     ConstrainedNaN = 0xFD,
     /// The argument contains an infinite value.

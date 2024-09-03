@@ -1,8 +1,8 @@
-use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit, UniversalArcHolder};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
 use crate::runtime::Atomic;
 use crate::unit::Unit;
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -17,16 +17,17 @@ impl Indexer for ClusterId {
 /// This is a subset of the galaxy. Each cluster is a separate map.
 #[derive(Debug)]
 pub struct Cluster {
-    /// The id within the galaxy of the cluster.
-    pub id: ClusterId,
+    id: ClusterId,
+    galaxy: Weak<Galaxy>,
     name: RwLock<String>,
     active: Atomic<bool>,
     units: UniversalArcHolder<(), Unit>,
 }
 
 impl Cluster {
-    pub fn new(id: ClusterId, name: impl Into<String>) -> Self {
+    pub fn new(galaxy: Weak<Galaxy>, id: ClusterId, name: impl Into<String>) -> Self {
         Self {
+            galaxy,
             id,
             name: RwLock::new(name.into()),
             active: Atomic::from(true),
@@ -54,10 +55,27 @@ impl Cluster {
         self.units.iter()
     }
 
+    /// The id within the galaxy of the cluster.
+    #[inline]
+    pub fn id(&self) -> ClusterId {
+        self.id
+    }
+
+    /// The name of the cluster.
+    #[inline]
+    pub fn name(&self) -> impl Deref<Target = str> + '_ {
+        NamedUnit::name(self)
+    }
+
     /// If false, you have been disconnected or the cluster has been removed and therefore disabled.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
+    }
+
+    #[inline]
+    pub fn galaxy(&self) -> Arc<Galaxy> {
+        self.galaxy.upgrade().unwrap()
     }
 }
 

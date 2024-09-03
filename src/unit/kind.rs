@@ -23,7 +23,7 @@ pub enum UnitKind {
     /// Represents a meteoroid.
     Meteoroid = 0x0A,
     /// Represents a classical player ship.
-    ClassicalShipPlayerUnit = 0xF0,
+    ClassicShipPlayerUnit = 0xF0,
     /// Represents a new style player ship.
     NewShipPlayerUnit = 0xF1,
     #[num_enum(catch_all)]

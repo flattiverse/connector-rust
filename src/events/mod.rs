@@ -90,8 +90,8 @@ impl Display for FlattiverseEvent {
                         f,
                         "{:?} joined the galaxy with team {:?} as {:?}",
                         &*player.name(),
-                        &*player.team.name(),
-                        player.kind
+                        &*player.team().name(),
+                        player.kind()
                     );
                 }
                 FlattiverseEventKind::PartedPlayer { player } => {
@@ -99,8 +99,8 @@ impl Display for FlattiverseEvent {
                         f,
                         "{:?} parted the galaxy with team {:?} as {:?}",
                         &*player.name(),
-                        &*player.team.name(),
-                        player.kind
+                        &*player.team().name(),
+                        player.kind()
                     );
                 }
                 FlattiverseEventKind::GalaxyChat {
@@ -108,7 +108,13 @@ impl Display for FlattiverseEvent {
                     destination: _,
                     message,
                 } => {
-                    return write!(f, "<[{}]{}> {}", &*player.team.name(), player.name, message);
+                    return write!(
+                        f,
+                        "<[{}]{}> {}",
+                        &*player.team().name(),
+                        player.name(),
+                        message
+                    );
                 }
                 FlattiverseEventKind::TeamChat {
                     player,
@@ -118,9 +124,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "<[{}]{}->{}> {}",
-                        &*player.team.name(),
-                        player.name,
-                        destination.name,
+                        &*player.team().name(),
+                        player.name(),
+                        destination.name(),
                         message
                     );
                 }
@@ -132,9 +138,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "<[{}]{}->{}> {}",
-                        &*player.team.name(),
-                        player.name,
-                        destination.name,
+                        &*player.team().name(),
+                        player.name(),
+                        destination.name(),
                         message
                     );
                 }
@@ -145,9 +151,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "Player {:?} of Team {:?} registered controllable {:?} of type {:?}",
-                        player.name,
-                        &*player.team.name(),
-                        controllable.name,
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
                         controllable.kind()
                     );
                 }
@@ -158,9 +164,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "Player {:?} of Team {:?} continued controllable {:?} of type {:?}",
-                        player.name,
-                        &*player.team.name(),
-                        controllable.name,
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
                         controllable.kind()
                     );
                 }
@@ -174,9 +180,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "Player {:?} of Team {:?} controllable {:?} of type {:?} collided with a {:?} named {:?}.",
-                        player.name,
-                        &*player.team.name(),
-                        controllable.name,
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
                         controllable.kind(),
                         colliders_kind,
                         colliders_name,
@@ -192,9 +198,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "Player {:?} of Team {:?} controllable {:?} of type {:?} {}.",
-                        player.name,
-                        &*player.team.name(),
-                        controllable.name,
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
                         controllable.kind(),
                         match reason {
                             PlayerUnitDestroyedReason::ByRules =>
@@ -211,9 +217,9 @@ impl Display for FlattiverseEvent {
                     return write!(
                         f,
                         "Player {:?} of Team {:?} closed/disposed controllable {:?} of type {:?}",
-                        player.name,
-                        &*player.team.name(),
-                        controllable.name,
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
                         controllable.kind()
                     );
                 }

@@ -21,17 +21,13 @@ impl Indexer for PlayerId {
 #[derive(Debug)]
 pub struct Player {
     galaxy: Weak<Galaxy>,
-    /// The id of the player
-    pub id: PlayerId,
-    /// The kind of the player.
-    pub kind: PlayerKind,
-    /// The team the player belongs to.
-    pub team: Arc<Team>,
-    /// The account name.
-    pub name: String,
+    id: PlayerId,
+    kind: PlayerKind,
+    team: Weak<Team>,
+    name: String,
     ping: Atomic<f32>,
     active: Atomic<bool>,
-    controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
+    pub(crate) controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
 }
 
 impl Player {
@@ -39,7 +35,7 @@ impl Player {
         galaxy: Weak<Galaxy>,
         id: PlayerId,
         kind: PlayerKind,
-        team: Arc<Team>,
+        team: Weak<Team>,
         name: String,
         ping: f32,
     ) -> Self {
@@ -53,6 +49,30 @@ impl Player {
             active: Atomic::from(true),
             controllable_infos: UniversalArcHolder::with_capacity(256),
         }
+    }
+
+    /// The id of the player
+    #[inline]
+    pub fn id(&self) -> PlayerId {
+        self.id
+    }
+
+    /// The kind of the player.
+    #[inline]
+    pub fn kind(&self) -> PlayerKind {
+        self.kind
+    }
+
+    /// The team the player belongs to.
+    #[inline]
+    pub fn team(&self) -> Arc<Team> {
+        self.team.upgrade().unwrap()
+    }
+
+    /// The account name.
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Sends a chat message to this [`Player`].
@@ -79,6 +99,10 @@ impl Player {
     pub(crate) fn deactivate(&self) {
         self.ping.store(-1.0);
         self.active.store(false);
+
+        for controllable in self.controllable_infos.iter() {
+            controllable.deactivate();
+        }
     }
 
     #[inline]

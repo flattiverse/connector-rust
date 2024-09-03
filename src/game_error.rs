@@ -128,6 +128,7 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::NameConstraint => "doesn't match the name constraint.",
                 InvalidArgumentKind::ChatConstraint => "doesn't match the chat constraint.",
                 InvalidArgumentKind::EntityNotFound => "doesn't point to an existing entity.",
+                InvalidArgumentKind::NameInUse => "references a name which is already in use.",
                 InvalidArgumentKind::ConstrainedNaN => "contained a \"Not a Number\" value.",
                 InvalidArgumentKind::ConstrainedInfinity => "contained a \"Infinity\" value.",
                 InvalidArgumentKind::Unknown(..) => "is wrong due to an invalid value."

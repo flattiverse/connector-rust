@@ -1,5 +1,6 @@
 use crate::galaxy_hierarchy::{
-    Cluster, ClusterId, GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
+    Cluster, ClusterId, Controllable, ControllableId, ControllableInfo, ControllableInfoId,
+    GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::runtime::Atomic;
@@ -48,6 +49,7 @@ pub struct Galaxy {
     teams: UniversalArcHolder<TeamId, Team>,
     clusters: UniversalArcHolder<ClusterId, Cluster>,
     players: UniversalArcHolder<PlayerId, Player>,
+    controllables: UniversalArcHolder<ControllableId, Controllable>,
 
     connection: ConnectionHandle,
     events: Receiver<FlattiverseEvent>,
@@ -141,6 +143,7 @@ impl Galaxy {
                     teams: UniversalArcHolder::with_capacity(33),
                     clusters: UniversalArcHolder::with_capacity(64),
                     players: UniversalArcHolder::with_capacity(193),
+                    controllables: UniversalArcHolder::with_capacity(192),
                     connection: handle,
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
@@ -190,6 +193,16 @@ impl Galaxy {
     #[inline]
     pub async fn chat(&self, message: impl AsRef<str>) -> Result<(), GameError> {
         self.connection.chat_galaxy(message).await
+    }
+
+    /// Create a classic style ship.
+    #[inline]
+    pub async fn create_classic_ship(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<Arc<Controllable>, GameError> {
+        let id = self.connection.create_classic_style_ship(name).await?;
+        Ok(self.get_controllable(id))
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -289,7 +302,7 @@ impl Galaxy {
 
     #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_cluster(
-        &self,
+        self: &Arc<Galaxy>,
         id: ClusterId,
         name: String,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
@@ -301,7 +314,9 @@ impl Galaxy {
                     cluster.update(name);
                     cluster
                 }
-                None => self.clusters.populate(Cluster::new(id, name)),
+                None => self
+                    .clusters
+                    .populate(Cluster::new(Arc::downgrade(self), id, name)),
             },
         })
     }
@@ -339,7 +354,7 @@ impl Galaxy {
                 Arc::downgrade(self),
                 id,
                 kind,
-                self.teams.get(team),
+                Arc::downgrade(&self.teams.get(team)),
                 name,
                 ping
             )),
@@ -371,6 +386,75 @@ impl Galaxy {
                 self.players.remove(id)
             }
         })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_new(
+        self: &Arc<Self>,
+        player: PlayerId,
+        kind: UnitKind,
+        id: ControllableInfoId,
+        name: String,
+        alive: bool,
+    ) -> EventResult {
+        debug!("New ControllableInfo for {player:?} with {id:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player
+            .controllable_infos
+            .populate(ControllableInfo::from_packet(
+                kind,
+                Arc::downgrade(&self),
+                Arc::downgrade(&player),
+                id,
+                name,
+                alive,
+            )?);
+        event_result!(ControllableInfoRegistered {
+            player,
+            controllable,
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_removed(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+    ) -> EventResult {
+        debug!("Removing ControllableInfo for {player:?} with {id:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        match player.controllable_infos.remove_opt(id) {
+            None => {
+                error!("Failed to remove ControllableInfo. {id:?} does not exist for {player:?}.");
+                Ok(None)
+            }
+            Some(controllable) => event_result!(ControllableInfoClosed {
+                player,
+                controllable,
+            }),
+        }
+    }
+
+    #[instrument(level = "trace", skip(self, reader))]
+    pub(crate) fn controllable_new(
+        self: &Arc<Self>,
+        kind: UnitKind,
+        id: ControllableId,
+        name: String,
+        reader: &mut dyn PacketReader,
+    ) -> EventResult {
+        debug!("New Controllable with {id:?} and name {name:?}");
+        let controllable = self.controllables.populate(Controllable::from_packet(
+            kind,
+            Arc::downgrade(&self.clusters.get(ClusterId(0))), // TODO
+            id,
+            name,
+            reader,
+        )?);
+
+        Ok(None)
     }
 
     #[instrument(level = "trace", skip(self, reader))]
@@ -591,6 +675,7 @@ impl Galaxy {
     pub fn get_cluster_opt(&self, id: ClusterId) -> Option<Arc<Cluster>> {
         self.clusters.get_opt(id)
     }
+
     #[inline]
     pub fn iter_players(&self) -> impl Iterator<Item = Arc<Player>> + '_ {
         self.players.iter()
@@ -604,5 +689,20 @@ impl Galaxy {
     #[inline]
     pub fn get_player_opt(&self, id: PlayerId) -> Option<Arc<Player>> {
         self.players.get_opt(id)
+    }
+
+    #[inline]
+    pub fn iter_controllables(&self) -> impl Iterator<Item = Arc<Controllable>> + '_ {
+        self.controllables.iter()
+    }
+
+    #[inline]
+    pub fn get_controllable(&self, id: ControllableId) -> Arc<Controllable> {
+        self.controllables.get(id)
+    }
+
+    #[inline]
+    pub fn get_controllable_opt(&self, id: ControllableId) -> Option<Arc<Controllable>> {
+        self.controllables.get_opt(id)
     }
 }

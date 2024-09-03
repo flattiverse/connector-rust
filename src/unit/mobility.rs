@@ -13,11 +13,11 @@
 )]
 pub enum Mobility {
     /// The unit doesn't move at all.
-    Still = 0x00,
+    Still = 0x01,
     /// The unit has a steady movement.
-    Steady = 0x01,
+    Steady = 0x02,
     /// the unit is mobile.
-    Mobile = 0x02,
+    Mobile = 0x04,
     #[num_enum(catch_all)]
     Unknown(u8),
 }

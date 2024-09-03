@@ -11,7 +11,6 @@ pub trait PacketWriter {
     fn write_uint64(&mut self, number: u64);
     fn write_f32(&mut self, number: f32);
     fn write_boolean(&mut self, value: bool);
-    fn write_string(&mut self, text: &str);
     fn write_string_with_len_prefix(&mut self, text: &str);
     fn write_string_without_len(&mut self, text: &str);
     fn write_nullable_byte(&mut self, value: Option<u8>);
@@ -66,12 +65,6 @@ impl PacketWriter for BytesMut {
     #[inline]
     fn write_boolean(&mut self, value: bool) {
         self.put_u8(if value { 1 } else { 0 })
-    }
-
-    fn write_string(&mut self, text: &str) {
-        let bytes = text.as_bytes();
-        self.write_byte(bytes.len() as _);
-        self.put_slice(bytes);
     }
 
     fn write_string_with_len_prefix(&mut self, text: &str) {

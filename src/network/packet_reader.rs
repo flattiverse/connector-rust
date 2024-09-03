@@ -142,7 +142,12 @@ impl PacketReader for BytesMut {
     }
 
     fn opt_read_sbyte(&mut self) -> Option<i8> {
-        todo!()
+        let mut value = Default::default();
+        if self.maybe_read_sbyte(&mut value) {
+            Some(value)
+        } else {
+            None
+        }
     }
 
     #[inline]
