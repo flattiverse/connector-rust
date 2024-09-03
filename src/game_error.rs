@@ -75,6 +75,10 @@ pub enum GameErrorKind {
     },
     /// Thrown, if you try to call a command where you don't have access to.
     PermissionFailed,
+    /// Thrown, if you didn't honor the flood control.
+    FloodcontrolTriggered,
+    /// Thrown, if you try to register too many units.
+    UnitConstraintViolation,
     /// Thrown, if the controllable you want to control is dead.
     YouNeedToContinueFirst,
     /// Thrown, if you try to do something which requires that your controllable is dead, like
@@ -119,6 +123,8 @@ impl Display for GameErrorKind {
             GameErrorKind::SpecifiedElementNotFound => "[0x05] No or non-existent team specified.",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
             GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
+            GameErrorKind::FloodcontrolTriggered => "[0x14] You probably type too fast: Don't flood the chat.",
+            GameErrorKind::UnitConstraintViolation => "[0x15] You tried to register too much units of a specific kind.",
             GameErrorKind::InvalidArgument {
                 reason,
                 parameter
