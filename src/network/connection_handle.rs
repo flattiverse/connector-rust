@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{ControllableId, PlayerId, TeamId};
-use crate::network::{Packet, Session, SessionHandler};
+use crate::network::{InvalidArgumentKind, Packet, Session, SessionHandler};
 use crate::utils::check_name_or_err_32;
-use crate::{GameError, GameErrorKind};
+use crate::{GameError, GameErrorKind, Vector};
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
@@ -137,6 +137,109 @@ impl ConnectionHandle {
             let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
+    }
+
+    /// Call this to continue the game with the unit after you are dead or when you hve created the
+    /// unit.
+    #[inline]
+    pub async fn continue_controllable(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.continue_controllable_split(controllable).await?.await
+    }
+
+    /// Call this to continue the game with the unit after you are dead or when you hve created the
+    /// unit.
+    pub async fn continue_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x84);
+        packet.write(|writer| writer.write_byte(controllable.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Call this to suicide (=self destroy).
+    #[inline]
+    pub async fn suicide_controllable(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.suicide_controllable_split(controllable).await?.await
+    }
+
+    /// Call this to suicide (=self destroy).
+    pub async fn suicide_controllable_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x85);
+        packet.write(|writer| writer.write_byte(controllable.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Call this to move your ship. This vector will be the impulse your ship gets every tick until
+    /// you specify a new vector. Length of 0 will turn off your engines.
+    #[inline]
+    pub async fn classic_controllable_move(
+        &self,
+        controllable: ControllableId,
+        movement: Vector,
+    ) -> Result<(), GameError> {
+        self.classic_controllable_move_split(controllable, movement)
+            .await?
+            .await
+    }
+
+    /// Call this to move your ship. This vector will be the impulse your ship gets every tick until
+    /// you specify a new vector. Length of 0 will turn off your engines.
+    pub async fn classic_controllable_move_split(
+        &self,
+        controllable: ControllableId,
+        movement: Vector,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if movement.is_damaged() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::ConstrainedInfinity,
+                parameter: "movement".to_string(),
+            }
+            .into())
+        } else if movement.length() > 0.101f32 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooLarge,
+                parameter: "movement".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x87);
+            packet.write(|writer| {
+                writer.write_byte(controllable.0);
+                movement.write(writer);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |_| Ok(()))
+            })
+        }
     }
 
     /// Create a classic style ship.

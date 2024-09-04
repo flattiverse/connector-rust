@@ -485,7 +485,7 @@ impl Galaxy {
         reader: &mut dyn PacketReader,
     ) -> EventResult {
         debug!("New Controllable with {id:?} and name {name:?}");
-        let controllable = self.controllables.populate(Controllable::from_packet(
+        let _controllable = self.controllables.populate(Controllable::from_packet(
             kind,
             Arc::downgrade(&self.clusters.get(ClusterId(0))), // TODO
             id,
@@ -551,11 +551,13 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        let unit = cluster.get_unit(&name);
-
-        unit.update_movement(reader);
-
-        event_result!(UpdatedUnit { unit })
+        if let Some(unit) = cluster.get_unit_opt(&name) {
+            unit.update_movement(reader);
+            event_result!(UpdatedUnit { unit })
+        } else {
+            error!("Failed to find unit with name {name:?}");
+            Ok(None)
+        }
     }
 
     #[instrument(level = "trace", skip(self))]

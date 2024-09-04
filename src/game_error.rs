@@ -120,7 +120,7 @@ impl Display for GameErrorKind {
             },
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
             GameErrorKind::ConnectionTerminated => "[0x0F] Connection has been terminated for unknown reason.",
-            GameErrorKind::SpecifiedElementNotFound => "[0x05] No or non-existent team specified.",
+            GameErrorKind::SpecifiedElementNotFound => "[0x10] Specified element not found.",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
             GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
             GameErrorKind::FloodcontrolTriggered => "[0x14] You probably type too fast: Don't flood the chat.",
@@ -135,7 +135,7 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::ChatConstraint => "doesn't match the chat constraint.",
                 InvalidArgumentKind::EntityNotFound => "doesn't point to an existing entity.",
                 InvalidArgumentKind::NameInUse => "references a name which is already in use.",
-                InvalidArgumentKind::ConstrainedNaN => "contained a \"Not a Number\" value.",
+                InvalidArgumentKind::ContainedNaN => "contained a \"Not a Number\" value.",
                 InvalidArgumentKind::ConstrainedInfinity => "contained a \"Infinity\" value.",
                 InvalidArgumentKind::Unknown(..) => "is wrong due to an invalid value."
             }),

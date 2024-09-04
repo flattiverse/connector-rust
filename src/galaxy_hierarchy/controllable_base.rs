@@ -94,5 +94,6 @@ impl ControllableBase {
     pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
         self.position.read(reader);
         self.movement.read(reader);
+        self.alive.store(true);
     }
 }

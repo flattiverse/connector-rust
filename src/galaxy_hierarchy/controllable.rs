@@ -7,10 +7,7 @@ use std::sync::{Arc, Weak};
 
 #[derive(Debug)]
 pub enum Controllable {
-    Classic {
-        base: ControllableBase,
-        classic: ClassicControls,
-    },
+    Classic(ClassicControls),
 }
 
 impl Controllable {
@@ -23,10 +20,7 @@ impl Controllable {
     ) -> Result<Self, GameError> {
         let base = ControllableBase::new(id, name, cluster, reader);
         match kind {
-            UnitKind::ClassicShipPlayerUnit => Ok(Self::Classic {
-                base,
-                classic: ClassicControls {},
-            }),
+            UnitKind::ClassicShipPlayerUnit => Ok(Self::Classic(ClassicControls { base })),
             _ => Err(GameErrorKind::InvalidArgument {
                 reason: InvalidArgumentKind::Unknown(Default::default()),
                 parameter: "kind".to_string(),
@@ -73,13 +67,21 @@ impl Controllable {
 
     /// Call this to continue the game with this unit after you are dead or when you hve created the
     /// unit.
-    pub fn r#continue(&self) {
-        todo!()
+    pub async fn r#continue(&self) -> Result<(), GameError> {
+        self.cluster()
+            .galaxy()
+            .connection()
+            .continue_controllable(self.id())
+            .await
     }
 
     /// Call this to suicide (=self destroy).
-    pub fn kill(&self) {
-        todo!()
+    pub async fn suicide(&self) -> Result<(), GameError> {
+        self.cluster()
+            .galaxy()
+            .connection()
+            .suicide_controllable(self.id())
+            .await
     }
 
     /// Call this to close the unit.
@@ -99,25 +101,66 @@ impl Controllable {
 
     pub(crate) fn deceased(&self) {
         match self {
-            Controllable::Classic { base, .. } => base.deceased(),
+            Controllable::Classic(classic) => classic.deceased(),
         }
     }
 
     pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
         match self {
-            Controllable::Classic { base, .. } => base.update(reader),
+            Controllable::Classic(classic) => classic.update(reader),
         }
     }
 
     pub fn base(&self) -> &ControllableBase {
         match self {
-            Controllable::Classic { base, .. } => base,
+            Controllable::Classic(classic) => &classic.base,
+        }
+    }
+
+    pub fn classic_controls(&self) -> Option<&ClassicControls> {
+        match self {
+            Controllable::Classic(classic) => Some(classic),
         }
     }
 }
 
 #[derive(Debug)]
-pub struct ClassicControls {}
+pub struct ClassicControls {
+    pub(crate) base: ControllableBase,
+}
+
+impl ClassicControls {
+    pub(crate) fn deceased(&self) {
+        self.base.deceased();
+    }
+
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        self.base.update(reader);
+    }
+
+    /// Call this to move your ship. This vector will be the impulse your ship gets every tick until
+    /// you specify a new vector. Length of 0 will turn off your engines.
+    pub async fn r#move(&self, movement: Vector) -> Result<(), GameError> {
+        if !self.base.active() {
+            Err(GameErrorKind::SpecifiedElementNotFound.into())
+        } else if !self.base.alive() {
+            Err(GameErrorKind::YouNeedToContinueFirst.into())
+        } else if movement.x.is_nan() || movement.y.is_nan() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::ContainedNaN,
+                parameter: "movement".to_string(),
+            }
+            .into())
+        } else {
+            self.base
+                .cluster()
+                .galaxy()
+                .connection()
+                .classic_controllable_move(self.base.id(), movement)
+                .await
+        }
+    }
+}
 
 impl Identifiable<ControllableId> for Controllable {
     #[inline]

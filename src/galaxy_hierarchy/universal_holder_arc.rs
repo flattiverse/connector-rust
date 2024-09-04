@@ -1,6 +1,7 @@
 use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
 use arc_swap::ArcSwapOption;
 use std::any::type_name;
+use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -8,7 +9,7 @@ use std::sync::Arc;
 
 pub struct UniversalArcHolder<I, T> {
     data: Vec<ArcSwapOption<T>>,
-    size: AtomicU32,
+    elements: AtomicU32,
     _i: PhantomData<I>,
 }
 
@@ -28,7 +29,7 @@ impl<I, T> UniversalArcHolder<I, T> {
     pub fn with_capacity(size: usize) -> Self {
         Self {
             data: (0..size).map(|_| ArcSwapOption::from(None)).collect(),
-            size: AtomicU32::default(),
+            elements: AtomicU32::default(),
             _i: PhantomData,
         }
     }
@@ -37,7 +38,7 @@ impl<I, T> UniversalArcHolder<I, T> {
         self.data
             .iter()
             .flat_map(|arc| arc.load_full())
-            .take(self.size.load(Ordering::Relaxed) as usize)
+            .take(self.elements.load(Ordering::Relaxed) as usize)
     }
 }
 
@@ -54,7 +55,7 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
     pub fn remove_opt(&self, index: I) -> Option<Arc<T>> {
         let result = self.data[index.index()].swap(None);
         if result.is_some() {
-            self.size.fetch_sub(1, Ordering::Relaxed);
+            self.elements.fetch_sub(1, Ordering::Relaxed);
         }
         result
     }
@@ -67,13 +68,13 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
         let value = Arc::new(value.into());
         let index = value.id();
         self.set(index, Some(Arc::clone(&value)));
-        self.size.fetch_add(1, Ordering::Relaxed);
+        self.elements.fetch_add(1, Ordering::Relaxed);
         value
     }
 
     pub fn set(&self, index: I, value: impl Into<Option<Arc<T>>>) {
         if self.data[index.index()].swap(value.into()).is_none() {
-            self.size.fetch_add(1, Ordering::Relaxed);
+            self.elements.fetch_add(1, Ordering::Relaxed);
         }
     }
 
@@ -109,7 +110,7 @@ impl<T: NamedUnit> UniversalArcHolder<(), T> {
             // TODO grow??
             unreachable!()
         } else {
-            self.size.fetch_add(1, Ordering::Relaxed);
+            self.elements.fetch_add(1, Ordering::Relaxed);
         }
     }
 }
@@ -132,21 +133,32 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
     }
 
     pub fn remove_by_name_opt(&self, name: &str) -> Option<Arc<T>> {
-        let result = self.data.iter().find_map(|slot| {
-            let guard = slot.load();
-            match &*guard {
-                Some(value) if &*value.name() == name => {
-                    return slot
-                        .compare_and_swap(&*guard, None)
-                        .as_ref()
-                        .filter(|v| &*v.name() == name)
-                        .map(Arc::clone);
+        let elements = self.elements.load(Ordering::Relaxed);
+        let seen_elements = Cell::new(0_u32);
+        let result = self
+            .data
+            .iter()
+            .take_while(|_| seen_elements.get() < elements)
+            .find_map(|slot| {
+                let guard = slot.load();
+                match &*guard {
+                    Some(value) if &*value.name() == name => {
+                        return slot
+                            .compare_and_swap(&*guard, None)
+                            .as_ref()
+                            .filter(|v| &*v.name() == name)
+                            .map(Arc::clone);
+                    }
+                    Some(_) => {
+                        // count every hit
+                        seen_elements.set(seen_elements.get() + 1);
+                        None
+                    }
+                    _ => None,
                 }
-                _ => None,
-            }
-        });
+            });
         if result.is_some() {
-            self.size.fetch_sub(1, Ordering::Relaxed);
+            self.elements.fetch_sub(1, Ordering::Relaxed);
         }
         result
     }
@@ -158,13 +170,23 @@ impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
     }
 
     pub fn get_by_name_opt(&self, name: &str) -> Option<Arc<T>> {
-        self.data.iter().find_map(|slot| {
-            let guard = slot.load();
-            match &*guard {
-                Some(value) if &*value.name() == name => Some(value.to_owned()),
-                _ => None,
-            }
-        })
+        let elements = self.elements.load(Ordering::Relaxed);
+        let seen_elements = Cell::new(0_u32);
+        self.data
+            .iter()
+            .take_while(|_| seen_elements.get() < elements)
+            .find_map(|slot| {
+                let guard = slot.load();
+                match &*guard {
+                    Some(value) if &*value.name() == name => Some(value.to_owned()),
+                    Some(_) => {
+                        // count every hit
+                        seen_elements.set(seen_elements.get() + 1);
+                        None
+                    }
+                    _ => None,
+                }
+            })
     }
 }
 

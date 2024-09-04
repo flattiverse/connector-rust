@@ -25,7 +25,7 @@ pub enum InvalidArgumentKind {
     /// The specified name is already taken.
     NameInUse = 0xFC,
     /// The arguments value did contain a Not a Number value.
-    ConstrainedNaN = 0xFD,
+    ContainedNaN = 0xFD,
     /// The argument contains an infinite value.
     ConstrainedInfinity = 0xFE,
 
