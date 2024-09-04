@@ -132,6 +132,19 @@ impl Connection {
                 ControllableInfoId(reader.read_byte()),
                 PlayerUnitDestroyedReason::from_primitive(reader.read_byte()),
             ),
+            0x23 => galaxy.controllable_info_dead_by_neutral_collision(
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                UnitKind::from_primitive(reader.read_byte()),
+                reader.read_string(),
+            ),
+            0x24 => galaxy.controllable_info_dead_by_player_unit(
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                PlayerUnitDestroyedReason::from_primitive(reader.read_byte()),
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+            ),
             0x2F => galaxy.controllable_info_removed(
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),

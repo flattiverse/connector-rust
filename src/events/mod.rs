@@ -170,24 +170,6 @@ impl Display for FlattiverseEvent {
                         controllable.kind()
                     );
                 }
-                FlattiverseEventKind::NeutralDestroyedControllableInfo {
-                    player,
-                    controllable,
-                    reason: _,
-                    colliders_kind,
-                    colliders_name,
-                } => {
-                    return write!(
-                        f,
-                        "Player {:?} of Team {:?} controllable {:?} of type {:?} collided with a {:?} named {:?}.",
-                        player.name(),
-                        &*player.team().name(),
-                        controllable.name(),
-                        controllable.kind(),
-                        colliders_kind,
-                        colliders_name,
-                    );
-                }
                 FlattiverseEventKind::ControllableInfoDestroyed {
                     player,
                     controllable,
@@ -207,6 +189,98 @@ impl Display for FlattiverseEvent {
                             _ => "got destroyed",
                         }
                     );
+                }
+                FlattiverseEventKind::ControllableInfoDestroyedByNeutralCollision {
+                    player,
+                    controllable,
+                    reason: _,
+                    colliders_kind,
+                    colliders_name,
+                } => {
+                    return write!(
+                        f,
+                        "Player {:?} of Team {:?} controllable {:?} of type {:?} collided with a {:?} named {:?}.",
+                        player.name(),
+                        &*player.team().name(),
+                        controllable.name(),
+                        controllable.kind(),
+                        colliders_kind,
+                        colliders_name,
+                    );
+                }
+                FlattiverseEventKind::ControllableInfoDestroyedByPlayerUnit {
+                    player,
+                    controllable,
+                    reason,
+                    destroyed_unit,
+                    destroyer_player,
+                } => {
+                    return match reason {
+                        PlayerUnitDestroyedReason::CollidedWithEnemyPlayerUnit => {
+                            write!(
+                                f,
+                                "Player {:?} of Team {:?}, controllable {:?} of type {:?}, got destroyed by colliding with enemy player {:?} of Team {:?}, unit {:?} of type {:?}.",
+                                player.name(),
+                                &*player.team().name(),
+                                controllable.name(),
+                                controllable.kind(),
+                                destroyer_player.name(),
+                                &*destroyer_player.team().name(),
+                                destroyed_unit.name(),
+                                destroyed_unit.kind()
+                            )
+                        }
+                        PlayerUnitDestroyedReason::CollidedWithFriendlyPlayerUnit => {
+                            write!(
+                                f,
+                                "Player {:?} of Team {:?}, controllable {:?} of type {:?}, got destroyed by colliding with friendly player {:?}, unit {:?} of type {:?}.",
+                                player.name(),
+                                &*player.team().name(),
+                                controllable.name(),
+                                controllable.kind(),
+                                destroyer_player.name(),
+                                destroyed_unit.name(),
+                                destroyed_unit.kind()
+                            )
+                        }
+                        PlayerUnitDestroyedReason::ShotByEnemyPlayerUnit => {
+                            write!(
+                                f,
+                                "Player {:?} of Team {:?}, controllable {:?} of type {:?}, wa shot by enemy player {:?} of Team {:?}, unit {:?} of type {:?}.",
+                                player.name(),
+                                &*player.team().name(),
+                                controllable.name(),
+                                controllable.kind(),
+                                destroyer_player.name(),
+                                &*destroyer_player.team().name(),
+                                destroyed_unit.name(),
+                                destroyed_unit.kind()
+                            )
+                        }
+                        PlayerUnitDestroyedReason::ShotByFriendlyPlayerUnit => {
+                            write!(
+                                f,
+                                "Player {:?} of Team {:?}, controllable {:?} of type {:?}, wa shot by enemy player {:?}, unit {:?} of type {:?}.",
+                                player.name(),
+                                &*player.team().name(),
+                                controllable.name(),
+                                controllable.kind(),
+                                destroyer_player.name(),
+                                destroyed_unit.name(),
+                                destroyed_unit.kind()
+                            )
+                        }
+                        _ => {
+                            write!(
+                                f,
+                                "Player {:?} of Team {:?}, controllable {:?} of type {:?} got destroyed.",
+                                player.name(),
+                                &*player.team().name(),
+                                controllable.name(),
+                                controllable.kind(),
+                            )
+                        }
+                    };
                 }
                 FlattiverseEventKind::ControllableInfoClosed {
                     player,
@@ -301,18 +375,6 @@ pub enum FlattiverseEventKind {
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
     },
-    /// A PlayerUnit got destroyed by collision with a neutral unit.
-    NeutralDestroyedControllableInfo {
-        /// The player this event handles.
-        player: Arc<Player>,
-        /// The corresponding PlayerUnit the ControllableInfo informs about.
-        controllable: Arc<ControllableInfo>,
-        reason: PlayerUnitDestroyedReason,
-        /// The UnitKind of the unit the PlayerUnit collided with.
-        colliders_kind: UnitKind,
-        /// The name of the unit hte PlayerUnit collided with.
-        colliders_name: String,
-    },
     /// A PlayerUnit was destroyed.
     ControllableInfoDestroyed {
         /// The player this event handles.
@@ -320,6 +382,30 @@ pub enum FlattiverseEventKind {
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         reason: PlayerUnitDestroyedReason,
+    },
+    /// A PlayerUnit got destroyed by collision with a neutral unit.
+    ControllableInfoDestroyedByNeutralCollision {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+        reason: PlayerUnitDestroyedReason,
+        /// The UnitKind of the unit the PlayerUnit collided with.
+        colliders_kind: UnitKind,
+        /// The name of the unit the PlayerUnit collided with.
+        colliders_name: String,
+    },
+    /// A PlayerUnit got destroyed by collision with a neutral unit.
+    ControllableInfoDestroyedByPlayerUnit {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+        reason: PlayerUnitDestroyedReason,
+        /// The PlayerUnit which destroyed the PlayerUnit in question.
+        destroyed_unit: Arc<ControllableInfo>,
+        /// The Player of the unit which destroyed the PlayerUnit in question.
+        destroyer_player: Arc<Player>,
     },
     /// A PlayerUnit was unregistered.
     ControllableInfoClosed {

@@ -443,7 +443,7 @@ impl Galaxy {
         id: ControllableInfoId,
         reason: PlayerUnitDestroyedReason,
     ) -> EventResult {
-        debug!("Updating ControllableInfo for {player:?} with {id:?}");
+        debug!("Death of ControllableInfo for {player:?} with {id:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         let controllable = player.get_controllable_info(id);
@@ -452,6 +452,54 @@ impl Galaxy {
             player,
             controllable,
             reason,
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_dead_by_neutral_collision(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+        colliders_kind: UnitKind,
+        colliders_name: String,
+    ) -> EventResult {
+        debug!("Death of ControllableInfo for {player:?} with {id:?} (neutral collision)");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player.get_controllable_info(id);
+        controllable.set_dead();
+        event_result!(ControllableInfoDestroyedByNeutralCollision {
+            player,
+            controllable,
+            reason: PlayerUnitDestroyedReason::CollidedWithNeutralUnit,
+            colliders_kind,
+            colliders_name
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_dead_by_player_unit(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+        reason: PlayerUnitDestroyedReason,
+        causer: PlayerId,
+        causer_controllable_info: ControllableInfoId,
+    ) -> EventResult {
+        debug!("Death of ControllableInfo for {player:?} with {id:?} (player collision)");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player.get_controllable_info(id);
+        controllable.set_dead();
+        debug_assert!(self.players.has(causer), "{causer:?} does not exist");
+        let destroyer = self.players.get(causer);
+        let destroyer_unit = destroyer.get_controllable_info(causer_controllable_info);
+        event_result!(ControllableInfoDestroyedByPlayerUnit {
+            player,
+            controllable,
+            reason,
+            destroyer_player: destroyer,
+            destroyed_unit: destroyer_unit,
         })
     }
 
@@ -511,7 +559,11 @@ impl Galaxy {
         reader: &mut dyn PacketReader,
     ) -> EventResult {
         debug!("Updating Controllable with {id:?}");
-        self.controllables.get(id).update(reader);
+        if let Some(controllable) = self.controllables.get_opt(id) {
+            controllable.update(reader);
+        } else {
+            error!("There is no Controllable for {id:?}");
+        }
         Ok(None)
     }
 
