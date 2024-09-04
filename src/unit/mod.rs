@@ -96,25 +96,25 @@ impl Unit {
     /// The direction the unit is looking into.
     #[inline]
     pub fn angle(&self) -> f32 {
-        dbg!(f32::default())
+        f32::default()
     }
 
     /// If true, other unis can hide behind this unit.
     #[inline]
     pub fn is_masking(&self) -> bool {
-        dbg!(true)
+        true
     }
 
     /// If true, a crash with this unit is lethal.
     #[inline]
     pub fn is_solid(&self) -> bool {
-        dbg!(true)
+        true
     }
 
     /// If true, the unit can be edited via map editor calls.
     #[inline]
     pub fn can_be_edited(&self) -> bool {
-        dbg!(false)
+        false
     }
 
     /// The gravity of this unit. This is how much this unit pulls others towards it.
