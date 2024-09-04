@@ -192,8 +192,6 @@ impl Display for FlattiverseEvent {
                     player,
                     controllable,
                     reason,
-                    destroyed_unit: _,
-                    destroyed_player: _,
                 } => {
                     return write!(
                         f,
@@ -322,10 +320,6 @@ pub enum FlattiverseEventKind {
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         reason: PlayerUnitDestroyedReason,
-        /// The PlayerUnit which destroyed the PlayerUnit in question.
-        destroyed_unit: Arc<ControllableInfo>,
-        /// The Player of the unit which destroyed the PlayerUnit.
-        destroyed_player: Arc<Player>,
     },
     /// A PlayerUnit was unregistered.
     ControllableInfoClosed {

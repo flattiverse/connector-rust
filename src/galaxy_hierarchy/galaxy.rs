@@ -5,7 +5,9 @@ use crate::galaxy_hierarchy::{
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::runtime::Atomic;
 use crate::unit::{Unit, UnitKind};
-use crate::{FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind};
+use crate::{
+    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, PlayerUnitDestroyedReason,
+};
 use async_channel::{Receiver, TryRecvError};
 use std::sync::{Arc, RwLock};
 use tracing::instrument;
@@ -181,6 +183,7 @@ impl Galaxy {
         Ok(this)
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn setup_self(&self, id: u8) {
         debug_assert!(id < 193, "Id out of bounds.");
 
@@ -417,6 +420,42 @@ impl Galaxy {
     }
 
     #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_alive(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+    ) -> EventResult {
+        debug!("Updating ControllableInfo for {player:?} with {id:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player.get_controllable_info(id);
+        controllable.set_alive();
+        event_result!(ControllableInfoContinued {
+            player,
+            controllable,
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_dead_by_reason(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+        reason: PlayerUnitDestroyedReason,
+    ) -> EventResult {
+        debug!("Updating ControllableInfo for {player:?} with {id:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player.get_controllable_info(id);
+        controllable.set_dead();
+        event_result!(ControllableInfoDestroyed {
+            player,
+            controllable,
+            reason,
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn controllable_info_removed(
         self: &Arc<Self>,
         player: PlayerId,
@@ -457,6 +496,25 @@ impl Galaxy {
         Ok(None)
     }
 
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_deceased(self: &Arc<Self>, id: ControllableId) -> EventResult {
+        debug!("{id:?} deceased");
+        self.controllables.get(id).deceased();
+        self.controllables.remove(id);
+        Ok(None)
+    }
+
+    #[instrument(level = "trace", skip(self, reader))]
+    pub(crate) fn controllable_updated(
+        self: &Arc<Self>,
+        id: ControllableId,
+        reader: &mut dyn PacketReader,
+    ) -> EventResult {
+        debug!("Updating Controllable with {id:?}");
+        self.controllables.get(id).update(reader);
+        Ok(None)
+    }
+
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn unit_new(
         &self,
@@ -480,6 +538,35 @@ impl Galaxy {
         cluster.add_unit(Arc::clone(&unit));
 
         event_result!(NewUnit { unit })
+    }
+
+    #[instrument(level = "trace", skip(self, reader))]
+    pub(crate) fn unit_updated_movement(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        reader: &mut dyn PacketReader,
+    ) -> EventResult {
+        debug!("Updating unit {name:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+
+        let cluster = self.clusters.get(cluster);
+        let unit = cluster.get_unit(&name);
+
+        unit.update_movement(reader);
+
+        event_result!(UpdatedUnit { unit })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn unit_removed(&self, cluster: ClusterId, name: String) -> EventResult {
+        debug!("Removing unit {name:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+
+        let cluster = self.clusters.get(cluster);
+        let unit = cluster.remove_unit(&name);
+
+        event_result!(RemovedUnit { unit })
     }
 
     #[instrument(level = "trace", skip(self))]

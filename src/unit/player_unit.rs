@@ -47,4 +47,9 @@ impl PlayerUnit {
     pub fn movement(&self) -> Vector {
         self.movement.load()
     }
+
+    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
+        self.position.read(reader);
+        self.movement.read(reader);
+    }
 }

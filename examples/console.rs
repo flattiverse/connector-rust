@@ -22,16 +22,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Connected to galaxy: {:?}", galaxy.name());
     info!("    {:?}", galaxy.description());
-    info!("Myself: {:?}", galaxy.player().name);
+    info!("Myself: {:?}", galaxy.player().name());
 
     galaxy.chat("Was geht in der Galaxie!?").await.unwrap();
     galaxy
         .player()
-        .team
+        .team()
         .chat("Was geht im Team!?")
         .await
         .unwrap();
     galaxy.player().chat("Was geht bei mir!?").await.unwrap();
+
+    let ship = galaxy.create_classic_ship("yummy").await.unwrap();
+    eprintln!("{ship:?}");
 
     let mut log_tick_tack = false;
     while let Ok(event) = galaxy.next_event().await {

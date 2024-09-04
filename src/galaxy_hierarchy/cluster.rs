@@ -51,6 +51,17 @@ impl Cluster {
         self.units.remove_by_name(name)
     }
 
+    #[inline]
+    pub fn get_unit(&self, unit: &str) -> Arc<Unit> {
+        self.units.get_by_name(unit)
+    }
+
+    #[inline]
+    pub fn get_unit_opt(&self, unit: &str) -> Option<Arc<Unit>> {
+        self.units.get_by_name_opt(unit)
+    }
+
+    #[inline]
     pub fn units(&self) -> impl Iterator<Item = Arc<Unit>> + '_ {
         self.units.iter()
     }

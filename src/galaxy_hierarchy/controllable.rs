@@ -97,6 +97,18 @@ impl Controllable {
         self.base().active()
     }
 
+    pub(crate) fn deceased(&self) {
+        match self {
+            Controllable::Classic { base, .. } => base.deceased(),
+        }
+    }
+
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        match self {
+            Controllable::Classic { base, .. } => base.update(reader),
+        }
+    }
+
     pub fn base(&self) -> &ControllableBase {
         match self {
             Controllable::Classic { base, .. } => base,

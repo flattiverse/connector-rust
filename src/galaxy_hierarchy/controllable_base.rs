@@ -84,4 +84,15 @@ impl ControllableBase {
     pub fn active(&self) -> bool {
         self.active.load()
     }
+
+    pub(crate) fn deceased(&self) {
+        self.alive.store(false);
+        self.position.store(Default::default());
+        self.movement.store(Default::default());
+    }
+
+    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+        self.position.read(reader);
+        self.movement.read(reader);
+    }
 }

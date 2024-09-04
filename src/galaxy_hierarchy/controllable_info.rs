@@ -62,6 +62,14 @@ impl ControllableInfo {
         self.base().deactivate();
     }
 
+    pub(crate) fn set_alive(&self) {
+        self.base().set_alive();
+    }
+
+    pub(crate) fn set_dead(&self) {
+        self.base().set_dead();
+    }
+
     pub fn base(&self) -> &ControllableInfoBase {
         match self {
             ControllableInfo::Classic { base, .. } => base,

@@ -80,4 +80,12 @@ impl ControllableInfoBase {
         self.active.store(false);
         self.alive.store(false);
     }
+
+    pub(crate) fn set_alive(&self) {
+        self.alive.store(true);
+    }
+
+    pub(crate) fn set_dead(&self) {
+        self.alive.store(false);
+    }
 }

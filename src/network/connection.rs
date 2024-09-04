@@ -4,7 +4,7 @@ use crate::galaxy_hierarchy::{
 use crate::game_error::GameError;
 use crate::network::{ConnectionHandle, Packet, SessionId};
 use crate::unit::UnitKind;
-use crate::{FlattiverseEvent, FlattiverseEventKind, GameErrorKind};
+use crate::{FlattiverseEvent, FlattiverseEventKind, GameErrorKind, PlayerUnitDestroyedReason};
 use async_channel::Sender;
 use num_enum::FromPrimitive;
 use std::sync::{Arc, Weak};
@@ -123,6 +123,15 @@ impl Connection {
                 reader.read_string(),
                 reader.read_boolean(),
             ),
+            0x21 => galaxy.controllable_info_alive(
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+            ),
+            0x22 => galaxy.controllable_info_dead_by_reason(
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                PlayerUnitDestroyedReason::from_primitive(reader.read_byte()),
+            ),
             0x2F => galaxy.controllable_info_removed(
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
@@ -133,12 +142,20 @@ impl Connection {
                 reader.read_string(),
                 reader,
             ),
+            0x81 => galaxy.controllable_deceased(ControllableId(reader.read_byte())),
+            0x82 => galaxy.controllable_updated(ControllableId(reader.read_byte()), reader),
             0x30 => galaxy.unit_new(
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
                 UnitKind::from_primitive(reader.read_byte()),
                 reader,
             ),
+            0x31 => galaxy.unit_updated_movement(
+                ClusterId(reader.read_byte()),
+                reader.read_string(),
+                reader,
+            ),
+            0x3F => galaxy.unit_removed(ClusterId(reader.read_byte()), reader.read_string()),
             0xc0 => galaxy.universe_tick(reader.read_int32()),
             0xC4 => galaxy.chat_galaxy(PlayerId(reader.read_byte()), reader.read_string()),
             0xC5 => galaxy.chat_team(PlayerId(reader.read_byte()), reader.read_string()),
