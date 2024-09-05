@@ -67,14 +67,23 @@ impl Packet {
     pub fn read<T>(&mut self, f: impl FnOnce(&mut dyn PacketReader) -> T) -> T {
         let response = f(&mut self.payload);
         if !self.payload.is_empty() {
-            warn!(
-                "[0x{:02x}] There are still {} bytes remaining: {:?}",
-                self.header.command(),
-                self.payload.len(),
-                self.header
-            );
+            self.print_warning_reader_not_exhausted()
         }
         response
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn print_warning_reader_not_exhausted(&self) {
+        warn!(
+            "[{:#02x}] ({:#02x}) There are still {} bytes remaining: {:?}",
+            self.header.command(),
+            self.header.session(),
+            self.payload.len(),
+            self.header
+        );
+        let backtrace = std::backtrace::Backtrace::force_capture();
+        warn!("{backtrace}");
     }
 
     #[inline]
