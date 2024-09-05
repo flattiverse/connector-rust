@@ -548,7 +548,6 @@ impl Galaxy {
     pub(crate) fn controllable_deceased(self: &Arc<Self>, id: ControllableId) -> EventResult {
         debug!("{id:?} deceased");
         self.controllables.get(id).deceased();
-        self.controllables.remove(id);
         Ok(None)
     }
 
