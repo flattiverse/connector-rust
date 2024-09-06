@@ -242,6 +242,116 @@ impl ConnectionHandle {
         }
     }
 
+    /// Shoots a shot into the specified direction and with the specified parameters. Please note
+    /// that you can only shoot one shot per tick.
+    ///
+    /// * `relative_movement` - The direction in which the shot will fly (value range `[0.1f; 3f]`).
+    /// * `ticks` - The ticks how long the shot will fly (value range `[3; 140]`).
+    /// * `load` - The explosion size when the ticks reach 0 (value range `[3; 25]`).
+    /// * `damage` - The damage the shot should inflict (value range `[0.1f; 3f]`).
+    #[inline]
+    pub async fn classic_controllable_shoot(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        self.classic_controllable_shoot_split(controllable, relative_movement, ticks, load, damage)
+            .await?
+            .await
+    }
+
+    /// Shoots a shot into the specified direction and with the specified parameters. Please note
+    /// that you can only shoot one shot per tick.
+    ///
+    /// * `relative_movement` - The direction in which the shot will fly (value range `[0.1f; 3f]`).
+    /// * `ticks` - The ticks how long the shot will fly (value range `[3; 140]`).
+    /// * `load` - The explosion size when the ticks reach 0 (value range `[3; 25]`).
+    /// * `damage` - The damage the shot should inflict (value range `[0.1f; 3f]`).
+    pub async fn classic_controllable_shoot_split(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        if relative_movement.is_damaged() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::ConstrainedInfinity,
+                parameter: "relativeMovement".to_string(),
+            }
+            .into())
+        } else if relative_movement.length() > 3.001 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooLarge,
+                parameter: "relativeMovement".to_string(),
+            }
+            .into())
+        } else if relative_movement.length() > 0.099 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooSmall,
+                parameter: "relativeMovement".to_string(),
+            }
+            .into())
+        } else if ticks < 3 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooSmall,
+                parameter: "ticks".to_string(),
+            }
+            .into())
+        } else if ticks > 140 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooLarge,
+                parameter: "ticks".to_string(),
+            }
+            .into())
+        } else if load < 3.0 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooSmall,
+                parameter: "load".to_string(),
+            }
+            .into())
+        } else if load > 25.0 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooLarge,
+                parameter: "load".to_string(),
+            }
+            .into())
+        } else if damage < 0.099 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooSmall,
+                parameter: "damage".to_string(),
+            }
+            .into())
+        } else if damage > 3.001 {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::TooLarge,
+                parameter: "damage".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x88);
+            packet.write(|writer| {
+                writer.write_byte(controllable.0);
+                relative_movement.write(writer);
+                writer.write_uint16(ticks);
+                writer.write_f32(load);
+                writer.write_f32(damage);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |_| Ok(()))
+            })
+        }
+    }
+
     /// Create a classic style ship.
     #[inline]
     pub async fn create_classic_style_ship(

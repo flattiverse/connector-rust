@@ -13,6 +13,12 @@ pub use mobility::*;
 mod player_unit;
 pub use player_unit::*;
 
+mod explosion;
+pub use explosion::*;
+
+mod shot;
+pub use shot::*;
+
 use crate::galaxy_hierarchy::{Cluster, NamedUnit, Team};
 use crate::network::PacketReader;
 use crate::runtime::Readable;
@@ -33,6 +39,8 @@ pub enum Unit {
         base: UnitBase,
         player_unit: PlayerUnit,
     },
+    Shot(Shot),
+    Explosion(Explosion),
 }
 
 impl Unit {
@@ -51,6 +59,7 @@ impl Unit {
             }),
             UnitKind::Moon => None,
             UnitKind::Meteoroid => None,
+            UnitKind::Shot => Some(Unit::Shot(Shot::read(cluster, name, reader))),
             UnitKind::ClassicShipPlayerUnit => {
                 let galaxy = cluster.upgrade().unwrap().galaxy();
                 Some(Unit::ClassicShipPlayerUnit {
@@ -59,6 +68,7 @@ impl Unit {
                 })
             }
             UnitKind::NewShipPlayerUnit => None,
+            UnitKind::Explosion => Some(Unit::Explosion(Explosion::read(cluster, name, reader))),
             UnitKind::Unknown(_) => None,
         }
     }
@@ -74,6 +84,8 @@ impl Unit {
         match self {
             Unit::Planet { steady, .. } => steady.radius(),
             Unit::ClassicShipPlayerUnit { .. } => 14f32,
+            Unit::Shot(shot) => shot.radius(),
+            Unit::Explosion(explosion) => explosion.radius(),
         }
     }
 
@@ -82,6 +94,8 @@ impl Unit {
         match self {
             Unit::Planet { steady, .. } => steady.position(),
             Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.position(),
+            Unit::Shot(shot) => shot.position(),
+            Unit::Explosion(explosion) => explosion.position(),
         }
     }
 
@@ -90,39 +104,51 @@ impl Unit {
         match self {
             Unit::Planet { .. } => Vector::default(),
             Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.movement(),
+            Unit::Shot(shot) => shot.movement(),
+            Unit::Explosion(_) => Vector::default(),
         }
     }
 
     /// The direction the unit is looking into.
-    #[inline]
     pub fn angle(&self) -> f32 {
-        f32::default()
+        match self {
+            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.angle(),
+            Unit::Shot(shot) => shot.angle(),
+            _ => f32::default(),
+        }
     }
 
     /// If true, other unis can hide behind this unit.
-    #[inline]
     pub fn is_masking(&self) -> bool {
-        true
+        match self {
+            Unit::Explosion(e) => e.is_masking(),
+            _ => true,
+        }
     }
 
     /// If true, a crash with this unit is lethal.
-    #[inline]
     pub fn is_solid(&self) -> bool {
-        true
+        match self {
+            Unit::Explosion(e) => e.is_solid(),
+            _ => true,
+        }
     }
 
     /// If true, the unit can be edited via map editor calls.
-    #[inline]
+
     pub fn can_be_edited(&self) -> bool {
-        false
+        match self {
+            _ => false,
+        }
     }
 
     /// The gravity of this unit. This is how much this unit pulls others towards it.
-    #[inline]
     pub fn gravity(&self) -> f32 {
         match self {
             Unit::Planet { steady, .. } => steady.gravity(),
             Unit::ClassicShipPlayerUnit { .. } => 0.0012f32,
+            Unit::Explosion(e) => e.gravity(),
+            _ => 0.0,
         }
     }
 
@@ -130,8 +156,9 @@ impl Unit {
     #[inline]
     pub fn mobility(&self) -> Mobility {
         match self {
-            Unit::Planet { .. } => Mobility::Still,
-            Unit::ClassicShipPlayerUnit { .. } => Mobility::Mobile,
+            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.mobility(),
+            Unit::Shot(shot) => shot.mobility(),
+            _ => Mobility::Still,
         }
     }
 
@@ -141,6 +168,8 @@ impl Unit {
         match self {
             Unit::Planet { .. } => UnitKind::Planet,
             Unit::ClassicShipPlayerUnit { .. } => UnitKind::ClassicShipPlayerUnit,
+            Unit::Shot(_) => UnitKind::Shot,
+            Unit::Explosion(_) => UnitKind::Explosion,
         }
     }
 
@@ -151,11 +180,14 @@ impl Unit {
     }
 
     /// The team of the unit.
-    #[inline]
-    pub fn team(&self) -> Option<Arc<Team>> {
+    pub fn team(&self) -> Weak<Team> {
         match self {
-            Unit::Planet { .. } => None,
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => Some(player_unit.player().team()),
+            Unit::Planet { .. } => Weak::default(),
+            Unit::ClassicShipPlayerUnit { player_unit, .. } => {
+                Arc::downgrade(&player_unit.player().team())
+            }
+            Unit::Shot(shot) => shot.team(),
+            Unit::Explosion(explosion) => explosion.team(),
         }
     }
 
@@ -163,6 +195,8 @@ impl Unit {
         match self {
             Unit::Planet { .. } => unreachable!(),
             Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.update_movement(reader),
+            Unit::Shot(shot) => shot.update_movement(reader),
+            Unit::Explosion(explosion) => explosion.update_movement(reader),
         }
     }
 
@@ -170,20 +204,38 @@ impl Unit {
         match self {
             Unit::Planet { base, .. } => base,
             Unit::ClassicShipPlayerUnit { base, .. } => &base,
+            Unit::Shot(shot) => shot.base(),
+            Unit::Explosion(explosion) => explosion.base(),
         }
     }
 
-    pub fn steady(&self) -> Option<&SteadyUnit> {
+    pub fn as_steady_unit(&self) -> Option<&SteadyUnit> {
         match self {
             Unit::Planet { steady, .. } => Some(steady),
-            Unit::ClassicShipPlayerUnit { .. } => None,
+            _ => None,
         }
     }
 
-    pub fn player_unit(&self) -> Option<&PlayerUnit> {
+    pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
         match self {
-            Unit::Planet { .. } => None,
             Unit::ClassicShipPlayerUnit { player_unit, .. } => Some(player_unit),
+            _ => None,
+        }
+    }
+
+    pub fn as_shot(&self) -> Option<&Shot> {
+        if let Self::Shot(shot) = self {
+            Some(shot)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_explosion(&self) -> Option<&Explosion> {
+        if let Self::Explosion(explosion) = self {
+            Some(explosion)
+        } else {
+            None
         }
     }
 }

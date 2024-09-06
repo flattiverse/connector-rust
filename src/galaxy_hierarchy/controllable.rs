@@ -65,6 +65,22 @@ impl Controllable {
         self.base().alive()
     }
 
+    /// The gravity this controllable has.
+    #[inline]
+    pub fn gravity(&self) -> f32 {
+        match self {
+            Controllable::Classic(classic) => classic.gravity(),
+        }
+    }
+
+    /// The size (radius) of the controllable.
+    #[inline]
+    pub fn size(&self) -> f32 {
+        match self {
+            Controllable::Classic(classic) => classic.size(),
+        }
+    }
+
     /// Call this to continue the game with this unit after you are dead or when you hve created the
     /// unit.
     pub async fn r#continue(&self) -> Result<(), GameError> {
@@ -130,6 +146,18 @@ pub struct ClassicControls {
 }
 
 impl ClassicControls {
+    /// The gravity this controllable has.
+    #[inline]
+    pub fn gravity(&self) -> f32 {
+        0.0012f32
+    }
+
+    /// The size (radius) of the controllable.
+    #[inline]
+    pub fn size(&self) -> f32 {
+        14f32
+    }
+
     pub(crate) fn deceased(&self) {
         self.base.deceased();
     }
@@ -157,6 +185,40 @@ impl ClassicControls {
                 .galaxy()
                 .connection()
                 .classic_controllable_move(self.base.id(), movement)
+                .await
+        }
+    }
+
+    /// Shoots a shot into the specified direction and with the specified parameters. Please note
+    /// that you can only shoot one shot per tick.
+    ///
+    /// * `relative_movement` - The direction in which the shot will fly (value range `[0.1f; 3f]`).
+    /// * `ticks` - The ticks how long the shot will fly (value range `[3; 140]`).
+    /// * `load` - The explosion size when the ticks reach 0 (value range `[3; 25]`).
+    /// * `damage` - The damage the shot should inflict (value range `[0.1f; 3f]`).
+    pub async fn shoot(
+        &self,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        if !self.base.active() {
+            Err(GameErrorKind::SpecifiedElementNotFound.into())
+        } else if !self.base.alive() {
+            Err(GameErrorKind::YouNeedToContinueFirst.into())
+        } else if relative_movement.x.is_nan() || relative_movement.y.is_nan() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::ContainedNaN,
+                parameter: "relativeMovement".to_string(),
+            }
+            .into())
+        } else {
+            self.base
+                .cluster()
+                .galaxy()
+                .connection()
+                .classic_controllable_shoot(self.base.id(), relative_movement, ticks, load, damage)
                 .await
         }
     }

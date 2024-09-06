@@ -303,7 +303,7 @@ impl Display for FlattiverseEvent {
                     let position = unit.position();
                     let radius = unit.radius();
                     let gravity = unit.gravity();
-                    return match unit.team() {
+                    return match unit.team().upgrade() {
                         None => write!(f, "New Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
                         Some(team) => {
                             let team = &*team.name();
@@ -319,7 +319,7 @@ impl Display for FlattiverseEvent {
                     let position = unit.position();
                     let radius = unit.radius();
                     let gravity = unit.gravity();
-                    return match unit.team() {
+                    return match unit.team().upgrade() {
                         None => write!(f, "Updated Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
                         Some(team) => {
                             let team = &*team.name();
@@ -335,7 +335,7 @@ impl Display for FlattiverseEvent {
                     let position = unit.position();
                     let radius = unit.radius();
                     let gravity = unit.gravity();
-                    return match unit.team() {
+                    return match unit.team().upgrade() {
                         None => write!(f, "Removed Unit in cluster {cluster:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}."),
                         Some(team) => {
                             let team = &*team.name();

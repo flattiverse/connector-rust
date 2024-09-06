@@ -22,12 +22,16 @@ pub enum UnitKind {
     Moon = 0x09,
     /// Represents a meteoroid.
     Meteoroid = 0x0A,
+    /// Represents a shot.
+    Shot = 0xE0,
     /// Represents a classical player ship.
     ClassicShipPlayerUnit = 0xF0,
     /// Represents a new style player ship.
     NewShipPlayerUnit = 0xF1,
     #[num_enum(catch_all)]
     Unknown(u8),
+    /// Represents an explosion.
+    Explosion = 0xFF,
 }
 
 impl UnitKind {

@@ -1,6 +1,7 @@
 use crate::galaxy_hierarchy::{ControllableInfo, ControllableInfoId, Galaxy, Player, PlayerId};
 use crate::network::PacketReader;
 use crate::runtime::Atomic;
+use crate::unit::Mobility;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
@@ -28,11 +29,13 @@ impl PlayerUnit {
         }
     }
 
+    /// Represents the player which controls the PlayerUnit.
     #[inline]
     pub fn player(&self) -> Arc<Player> {
         self.player.upgrade().unwrap()
     }
 
+    /// Represents the ControllableInfo of this PlayerUnit.
     #[inline]
     pub fn controllable_info(&self) -> Arc<ControllableInfo> {
         self.controllable_info.upgrade().unwrap()
@@ -46,6 +49,16 @@ impl PlayerUnit {
     #[inline]
     pub fn movement(&self) -> Vector {
         self.movement.load()
+    }
+
+    #[inline]
+    pub fn angle(&self) -> f32 {
+        self.movement().angle()
+    }
+
+    #[inline]
+    pub fn mobility(&self) -> Mobility {
+        Mobility::Mobile
     }
 
     pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
