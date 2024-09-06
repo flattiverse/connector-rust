@@ -31,11 +31,11 @@ impl Explosion {
 
         let player = Some(player_id)
             .filter(|id| id.0 < 192)
-            .map(|id| galaxy.get_player(id));
+            .and_then(|id| galaxy.get_player_opt(id));
 
         let controllable_info = player
             .as_ref()
-            .map(|p| p.get_controllable_info(controllable_id));
+            .and_then(|p| p.get_controllable_info_opt(controllable_id));
 
         Self {
             base: UnitBase::new(cluster, name),
@@ -97,7 +97,7 @@ impl Explosion {
     /// The gravity of this unit. This is how much this unit pulls others towards it.
     pub fn gravity(&self) -> f32 {
         if self.second_phase.load() {
-            -3.0
+            -0.5
         } else {
             0.0
         }

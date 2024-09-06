@@ -86,6 +86,8 @@ pub enum GameErrorKind {
     YouNeedToDieFirst,
     /// Thrown, if a call to `continue()` fails, because there is no space for you.
     AllStartLocationsAreOvercrowded,
+    /// Thrown, if you try to shoo too often.
+    CanOnlyShootOncePerTick,
 
     // TODO local only
     InvalidPrimitiveValue {
@@ -142,6 +144,7 @@ impl Display for GameErrorKind {
             GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
+            GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] You tried to register too much units of a specific kind.",
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
     }
@@ -172,6 +175,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x20 => GameErrorKind::YouNeedToContinueFirst,
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
+            0x30 => GameErrorKind::CanOnlyShootOncePerTick,
             code => GameErrorKind::Unknown(code),
         }
     }

@@ -290,7 +290,7 @@ impl ConnectionHandle {
                 parameter: "relativeMovement".to_string(),
             }
             .into())
-        } else if relative_movement.length() > 0.099 {
+        } else if relative_movement.length() < 0.099 {
             Err(GameErrorKind::InvalidArgument {
                 reason: InvalidArgumentKind::TooSmall,
                 parameter: "relativeMovement".to_string(),
