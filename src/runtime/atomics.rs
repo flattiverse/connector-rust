@@ -256,27 +256,43 @@ impl_atomar_for_id!(u8, PlayerId, TeamId);
 
 /// This implementation is quite the lie...
 impl Atomar for Vector {
-    type Container = (Atomic<f32>, Atomic<f32>, Atomic<f32>);
+    type Container = (Atomic<u64>, Atomic<f32>);
 
     fn into_container(self) -> Self::Container {
         (
-            Atomic::from(self.x),
-            Atomic::from(self.y),
+            Atomic::from({
+                let bits_x = self.x.to_le_bytes();
+                let bits_y = self.y.to_le_bytes();
+                u64::from_le_bytes([
+                    bits_x[0], bits_x[1], bits_x[2], bits_x[3], bits_y[0], bits_y[1], bits_y[2],
+                    bits_y[3],
+                ])
+            }),
             Atomic::from(self.last_angle),
         )
     }
 
     fn store(self, container: &Self::Container, ordering: Ordering) {
-        container.0.store_with(self.x, ordering);
-        container.1.store_with(self.y, ordering);
-        container.2.store_with(self.last_angle, ordering);
+        container.0.store_with(
+            {
+                let bits_x = self.x.to_le_bytes();
+                let bits_y = self.y.to_le_bytes();
+                u64::from_le_bytes([
+                    bits_x[0], bits_x[1], bits_x[2], bits_x[3], bits_y[0], bits_y[1], bits_y[2],
+                    bits_y[3],
+                ])
+            },
+            ordering,
+        );
+        container.1.store_with(self.last_angle, ordering);
     }
 
     fn load(container: &Self::Container, ordering: Ordering) -> Self {
+        let bytes = container.0.load_with(ordering).to_le_bytes();
         Vector {
-            x: container.0.load_with(ordering),
-            y: container.1.load_with(ordering),
-            last_angle: container.2.load_with(ordering),
+            x: f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]),
+            y: f32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]),
+            last_angle: container.1.load_with(ordering),
         }
     }
 }
