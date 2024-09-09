@@ -13,7 +13,8 @@ struct Inner {
 }
 
 #[repr(transparent)]
-pub struct FlattiverseEvent(Box<Inner>);
+#[derive(Clone)]
+pub struct FlattiverseEvent(Arc<Inner>);
 
 impl FlattiverseEvent {
     #[inline]
@@ -39,7 +40,7 @@ impl Debug for FlattiverseEvent {
 impl From<FlattiverseEventKind> for FlattiverseEvent {
     #[inline]
     fn from(kind: FlattiverseEventKind) -> Self {
-        Self(Box::new(Inner {
+        Self(Arc::new(Inner {
             stamp: crate::runtime::now(),
             kind,
         }))
