@@ -20,8 +20,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // spectator
     let galaxy = Galaxy::connect(0, None, None).await.unwrap();
 
-    info!("Connected to galaxy: {:?}", galaxy.name());
-    info!("    {:?}", galaxy.description());
+    info!("Connected to galaxy: {:?}", &*galaxy.name());
+    info!("    {:?}", &*galaxy.description());
     info!("Myself: {:?}", galaxy.player().name());
 
     galaxy.chat("Was geht in der Galaxie!?").await.unwrap();

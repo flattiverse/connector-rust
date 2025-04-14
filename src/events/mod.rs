@@ -69,7 +69,7 @@ impl Display for FlattiverseEvent {
                     return write!(f, "Responded to Ping measurement: {challenge:?}");
                 }
                 FlattiverseEventKind::UpdatedGalaxy { galaxy } => {
-                    return write!(f, "Updated galaxy: {:?}", galaxy.name());
+                    return write!(f, "Updated galaxy: {:?}", &*galaxy.name());
                 }
                 FlattiverseEventKind::UpdatedTeam { team } => {
                     return write!(f, "Updated team: {:?}", &*team.name());

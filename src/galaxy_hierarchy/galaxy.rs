@@ -5,11 +5,14 @@ use crate::galaxy_hierarchy::{
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::runtime::Atomic;
 use crate::unit::{Unit, UnitKind};
+use crate::utils::GuardedArcStringDeref;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, PlayerUnitDestroyedReason,
 };
+use arc_swap::ArcSwap;
 use async_channel::{Receiver, TryRecvError};
-use std::sync::{Arc, RwLock};
+use std::ops::Deref;
+use std::sync::Arc;
 use tracing::instrument;
 
 type EventResult = Result<Option<FlattiverseEvent>, GameError>;
@@ -22,10 +25,10 @@ macro_rules! event_result {
 
 #[derive(Debug)]
 pub struct Galaxy {
-    name: RwLock<String>,
+    name: ArcSwap<String>,
 
     game_mode: Atomic<GameMode>,
-    description: RwLock<String>,
+    description: ArcSwap<String>,
 
     max_players: Atomic<u8>,
     max_spectators: Atomic<u16>,
@@ -123,9 +126,9 @@ impl Galaxy {
                         .expect("Failed to get initial session"),
                 );
                 let this = Arc::new(Self {
-                    name: RwLock::default(),
+                    name: ArcSwap::default(),
                     game_mode: Atomic::from(GameMode::Mission),
-                    description: RwLock::default(),
+                    description: ArcSwap::default(),
                     max_players: Atomic::from(0),
                     max_spectators: Atomic::from(0),
                     galaxy_max_total_ships: Atomic::from(0),
@@ -240,8 +243,8 @@ impl Galaxy {
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating galaxy");
         self.game_mode.store(game_mode);
-        *self.name.write().unwrap() = name;
-        *self.description.write().unwrap() = description;
+        self.name.store(Arc::new(name));
+        self.description.store(Arc::new(description));
         self.max_players.store(max_players);
         self.max_spectators.store(max_spectators);
         self.galaxy_max_total_ships.store(galaxy_max_total_ships);
@@ -667,13 +670,15 @@ impl Galaxy {
     }
 
     /// The name of the galaxy.
-    pub fn name(&self) -> String {
-        self.name.read().unwrap().clone()
+    #[inline]
+    pub fn name(&self) -> impl Deref<Target = str> {
+        GuardedArcStringDeref(self.name.load())
     }
 
     /// The description of the galaxy.
-    pub fn description(&self) -> String {
-        self.description.read().unwrap().clone()
+    #[inline]
+    pub fn description(&self) -> impl Deref<Target = str> {
+        GuardedArcStringDeref(self.description.load())
     }
 
     /// The game mode in effect of the galaxy.

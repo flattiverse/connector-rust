@@ -1,8 +1,10 @@
 use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
 use crate::runtime::Atomic;
+use crate::utils::GuardedArcStringDeref;
 use crate::GameError;
+use arc_swap::ArcSwap;
 use std::ops::Deref;
-use std::sync::{RwLock, Weak};
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub(crate) u8);
@@ -21,7 +23,7 @@ pub struct Team {
     /// The id of the team
     pub id: TeamId,
     /// The name of the team.
-    name: RwLock<String>,
+    name: ArcSwap<String>,
     red: Atomic<u8>,
     green: Atomic<u8>,
     blue: Atomic<u8>,
@@ -40,7 +42,7 @@ impl Team {
         Self {
             galaxy,
             id,
-            name: RwLock::new(name.into()),
+            name: ArcSwap::new(Arc::new(name.into())),
             red: Atomic::from(red),
             green: Atomic::from(green),
             blue: Atomic::from(blue),
@@ -60,7 +62,7 @@ impl Team {
     }
 
     pub fn update(&self, name: String, red: u8, green: u8, blue: u8) {
-        *self.name.write().unwrap() = name;
+        self.name.store(Arc::new(name));
         self.red.store(red);
         self.green.store(green);
         self.blue.store(blue);
@@ -103,7 +105,8 @@ impl Identifiable<TeamId> for Team {
 }
 
 impl NamedUnit for Team {
+    #[inline]
     fn name(&self) -> impl Deref<Target = str> {
-        self.name.read().unwrap().clone()
+        GuardedArcStringDeref(self.name.load())
     }
 }

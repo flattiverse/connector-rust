@@ -1,6 +1,9 @@
 use crate::network::InvalidArgumentKind;
 use crate::{GameError, GameErrorKind};
 
+mod arc_deref;
+pub use arc_deref::*;
+
 #[inline]
 pub fn check_name_or_err_32<S: AsRef<str>>(name: S) -> Result<S, GameError> {
     check_name_or_err(name, 32)

@@ -1,8 +1,10 @@
 use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
 use crate::runtime::Atomic;
 use crate::unit::Unit;
+use crate::utils::GuardedArcStringDeref;
+use arc_swap::ArcSwap;
 use std::ops::Deref;
-use std::sync::{Arc, RwLock, Weak};
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -19,7 +21,7 @@ impl Indexer for ClusterId {
 pub struct Cluster {
     id: ClusterId,
     galaxy: Weak<Galaxy>,
-    name: RwLock<String>,
+    name: ArcSwap<String>,
     active: Atomic<bool>,
     units: UniversalArcHolder<(), Unit>,
 }
@@ -29,14 +31,14 @@ impl Cluster {
         Self {
             galaxy,
             id,
-            name: RwLock::new(name.into()),
+            name: ArcSwap::new(Arc::new(name.into())),
             active: Atomic::from(true),
             units: UniversalArcHolder::with_capacity(1024 * 1024),
         }
     }
 
     pub(crate) fn update(&self, name: String) {
-        *self.name.write().unwrap() = name;
+        self.name.store(Arc::new(name));
     }
 
     pub(crate) fn deactivate(&self) {
@@ -98,7 +100,8 @@ impl Identifiable<ClusterId> for Cluster {
 }
 
 impl NamedUnit for Cluster {
+    #[inline]
     fn name(&self) -> impl Deref<Target = str> + '_ {
-        self.name.read().unwrap().clone()
+        GuardedArcStringDeref(self.name.load())
     }
 }
