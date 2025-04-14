@@ -21,7 +21,7 @@ pub use shot::*;
 
 use crate::galaxy_hierarchy::{Cluster, NamedUnit, Team};
 use crate::network::PacketReader;
-use crate::runtime::Readable;
+use crate::utils::Readable;
 use crate::Vector;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};

@@ -1,6 +1,9 @@
 use crate::network::InvalidArgumentKind;
 use crate::{GameError, GameErrorKind};
 
+mod atomics;
+pub use atomics::*;
+
 mod arc_deref;
 pub use arc_deref::*;
 

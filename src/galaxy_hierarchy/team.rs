@@ -1,5 +1,5 @@
 use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
-use crate::runtime::Atomic;
+use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::GameError;
 use arc_swap::ArcSwap;

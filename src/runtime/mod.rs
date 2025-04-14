@@ -1,6 +1,3 @@
-mod atomics;
-pub use atomics::*;
-
 use std::future::Future;
 use std::time::SystemTime;
 

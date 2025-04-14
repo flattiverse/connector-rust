@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{ControllableInfo, ControllableInfoId, Galaxy, Player, PlayerId};
 use crate::network::PacketReader;
-use crate::runtime::Atomic;
 use crate::unit::Mobility;
+use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 

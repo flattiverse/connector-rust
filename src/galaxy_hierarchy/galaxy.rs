@@ -3,8 +3,8 @@ use crate::galaxy_hierarchy::{
     GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
-use crate::runtime::Atomic;
 use crate::unit::{Unit, UnitKind};
+use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, PlayerUnitDestroyedReason,

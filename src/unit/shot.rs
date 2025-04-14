@@ -2,8 +2,8 @@ use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::runtime::Atomic;
 use crate::unit::{Mobility, UnitBase};
+use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 

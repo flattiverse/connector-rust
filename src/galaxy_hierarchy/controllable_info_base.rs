@@ -1,5 +1,5 @@
 use crate::galaxy_hierarchy::{Galaxy, Indexer, Player};
-use crate::runtime::Atomic;
+use crate::utils::Atomic;
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]

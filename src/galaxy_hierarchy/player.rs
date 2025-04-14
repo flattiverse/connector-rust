@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, NamedUnit, Team,
     UniversalArcHolder,
 };
-use crate::runtime::Atomic;
+use crate::utils::Atomic;
 use crate::GameError;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};

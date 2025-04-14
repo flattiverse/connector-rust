@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit, UniversalArcHolder};
-use crate::runtime::Atomic;
 use crate::unit::Unit;
+use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use arc_swap::ArcSwap;
 use std::ops::Deref;

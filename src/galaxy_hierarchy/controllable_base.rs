@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{Cluster, Indexer};
 use crate::network::PacketReader;
-use crate::runtime::Atomic;
+use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 

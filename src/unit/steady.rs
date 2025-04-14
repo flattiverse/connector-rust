@@ -1,5 +1,5 @@
 use crate::network::PacketReader;
-use crate::runtime::{Atomic, Readable};
+use crate::utils::{Atomic, Readable};
 use crate::Vector;
 
 #[derive(Debug)]
