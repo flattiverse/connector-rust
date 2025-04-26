@@ -186,7 +186,7 @@ impl ConnectionReceiver {
                     return Err(ReceiveError::UnexpectedData(format!("{b:?}")));
                 }
                 Message::Binary(bin) => {
-                    // TODo sad copy
+                    // TODO sad copy
                     let mut packet = MultiPacketBuffer::from(BytesMut::from(&bin[..]));
                     while let Some(packet) = packet.next_packet() {
                         if let Err(e) = self.connection.handle(packet) {
