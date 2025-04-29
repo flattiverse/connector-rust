@@ -1,5 +1,5 @@
 use crate::network::{PacketReader, PacketWriter};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Vector {
@@ -123,12 +123,26 @@ impl Add for Vector {
     }
 }
 
+impl AddAssign for Vector {
+    #[inline]
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Add::add(*self, rhs)
+    }
+}
+
 impl Sub for Vector {
     type Output = Vector;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         Vector::from_xy(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl SubAssign for Vector {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = Sub::sub(*self, rhs)
     }
 }
 
