@@ -310,3 +310,29 @@ impl Writable for Vector {
         Vector::write(self, writer);
     }
 }
+
+impl Atomic<bool> {
+    /// See [`AtomicBool::fetch_and`].
+    #[inline]
+    pub fn and_assign(&self, rhs: bool) {
+        self.0.fetch_and(rhs, Ordering::Relaxed);
+    }
+
+    /// See [`AtomicBool::fetch_nand`].
+    #[inline]
+    pub fn nand_assign(&self, rhs: bool) {
+        self.0.fetch_nand(rhs, Ordering::Relaxed);
+    }
+
+    /// See [`AtomicBool::fetch_or`].
+    #[inline]
+    pub fn or_assign(&self, rhs: bool) {
+        self.0.fetch_or(rhs, Ordering::Relaxed);
+    }
+
+    /// See [`AtomicBool::fetch_xor`].
+    #[inline]
+    pub fn xor_assign(&self, rhs: bool) {
+        self.0.fetch_xor(rhs, Ordering::Relaxed);
+    }
+}
