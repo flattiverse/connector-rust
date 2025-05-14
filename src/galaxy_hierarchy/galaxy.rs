@@ -620,9 +620,12 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        let unit = cluster.remove_unit(&name);
-
-        event_result!(RemovedUnit { unit })
+        if let Some(unit) = cluster.remove_unit(name.clone()) {
+            event_result!(RemovedUnit { unit })
+        } else {
+            error!("Failed to remove unit with name {name:?}");
+            Ok(None)
+        }
     }
 
     #[instrument(level = "trace", skip(self))]

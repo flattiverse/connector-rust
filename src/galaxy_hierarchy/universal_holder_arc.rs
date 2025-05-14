@@ -1,7 +1,6 @@
-use crate::galaxy_hierarchy::{Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Identifiable, Indexer};
 use arc_swap::ArcSwapOption;
 use std::any::type_name;
-use std::cell::Cell;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -92,101 +91,6 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
     #[inline]
     pub fn get_opt(&self, index: I) -> Option<Arc<T>> {
         self.data[index.index()].load_full()
-    }
-}
-
-impl<T: NamedUnit> UniversalArcHolder<(), T> {
-    pub fn push(&self, value: impl Into<Arc<T>>) {
-        let value = value.into();
-        if self
-            .data
-            .iter()
-            .find(|slot| {
-                slot.compare_and_swap(&None::<Arc<T>>, Some(Arc::clone(&value)))
-                    .is_none()
-            })
-            .is_none()
-        {
-            // TODO grow??
-            unreachable!()
-        } else {
-            self.elements.fetch_add(1, Ordering::Relaxed);
-        }
-    }
-}
-
-impl<I, T: NamedUnit> UniversalArcHolder<I, T> {
-    pub fn has_with_name(&self, name: &str) -> bool {
-        self.data
-            .iter()
-            .find_map(|s| {
-                let guard = s.load();
-                guard.as_ref().map(|u| &*u.name() == name)
-            })
-            .is_some()
-    }
-
-    #[inline]
-    pub fn remove_by_name(&self, name: &str) -> Arc<T> {
-        self.remove_by_name_opt(name)
-            .unwrap_or_else(|| unreachable!("There is no entry for the given name={name:?}"))
-    }
-
-    pub fn remove_by_name_opt(&self, name: &str) -> Option<Arc<T>> {
-        let elements = self.elements.load(Ordering::Relaxed);
-        let seen_elements = Cell::new(0_u32);
-        let result = self
-            .data
-            .iter()
-            .take_while(|_| seen_elements.get() < elements)
-            .find_map(|slot| {
-                let guard = slot.load();
-                match &*guard {
-                    Some(value) if &*value.name() == name => {
-                        return slot
-                            .compare_and_swap(&*guard, None)
-                            .as_ref()
-                            .filter(|v| &*v.name() == name)
-                            .map(Arc::clone);
-                    }
-                    Some(_) => {
-                        // count every hit
-                        seen_elements.set(seen_elements.get() + 1);
-                        None
-                    }
-                    _ => None,
-                }
-            });
-        if result.is_some() {
-            self.elements.fetch_sub(1, Ordering::Relaxed);
-        }
-        result
-    }
-
-    #[inline]
-    pub fn get_by_name(&self, name: &str) -> Arc<T> {
-        self.get_by_name_opt(name)
-            .unwrap_or_else(|| unreachable!("There is no entry for the given name={name:?}"))
-    }
-
-    pub fn get_by_name_opt(&self, name: &str) -> Option<Arc<T>> {
-        let elements = self.elements.load(Ordering::Relaxed);
-        let seen_elements = Cell::new(0_u32);
-        self.data
-            .iter()
-            .take_while(|_| seen_elements.get() < elements)
-            .find_map(|slot| {
-                let guard = slot.load();
-                match &*guard {
-                    Some(value) if &*value.name() == name => Some(value.to_owned()),
-                    Some(_) => {
-                        // count every hit
-                        seen_elements.set(seen_elements.get() + 1);
-                        None
-                    }
-                    _ => None,
-                }
-            })
     }
 }
 
