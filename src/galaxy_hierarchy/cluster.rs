@@ -3,8 +3,9 @@ use crate::unit::Unit;
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use arc_swap::ArcSwap;
-use flashmap::{ReadHandle, WriteHandle};
+use evmap::handles::{ReadHandle, WriteHandle};
 use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, Weak};
 
@@ -49,7 +50,8 @@ impl Cluster {
             name: ArcSwap::new(Arc::new(name.into())),
             active: Atomic::from(true),
             units: {
-                let (write, read) = flashmap::new();
+                let (mut write, read) = unsafe { evmap::new_assert_stable() };
+                write.publish();
                 (Mutex::new(write), read)
             },
         }
@@ -64,17 +66,18 @@ impl Cluster {
     }
 
     pub(crate) fn add_unit(&self, unit: Arc<Unit>) {
-        let mut lock = self.units.0.lock().unwrap();
-        let mut guard = lock.guard();
+        let mut guard = self.units.0.lock().unwrap();
         guard.insert(unit.name().to_string(), unit);
         guard.publish();
     }
 
     pub(crate) fn remove_unit(&self, name: String) -> Option<Arc<Unit>> {
-        let mut lock = self.units.0.lock().unwrap();
-        let mut guard = lock.guard();
-        let removed = guard.remove(name).map(|e| Arc::clone(e.deref()));
-        guard.publish();
+        let mut guard = self.units.0.lock().unwrap();
+        let removed = guard.get_one(&name).map(|v| Arc::clone(&*v));
+        if removed.is_some() {
+            guard.remove_entry(name);
+            guard.publish();
+        }
         removed
     }
 
@@ -85,12 +88,19 @@ impl Cluster {
 
     #[inline]
     pub fn get_unit_opt(&self, unit: &str) -> Option<Arc<Unit>> {
-        self.units.1.guard().get(unit).map(Arc::clone)
+        self.units.1.get_one(unit).map(|v| Arc::clone(&*v))
     }
 
     #[inline]
     pub fn get_units(&self) -> Vec<Arc<Unit>> {
-        self.units.1.guard().values().cloned().collect()
+        self.units
+            .1
+            .enter()
+            .unwrap()
+            .values()
+            .flatten()
+            .cloned()
+            .collect()
     }
 
     /// The id within the galaxy of the cluster.
@@ -130,3 +140,21 @@ impl NamedUnit for Cluster {
         GuardedArcStringDeref(self.name.load())
     }
 }
+
+impl Hash for Unit {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name().hash(state)
+    }
+}
+
+impl Eq for Unit {}
+
+impl PartialEq<Self> for Unit {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.name().eq(other.name())
+    }
+}
+
+unsafe impl Sync for Cluster {}
