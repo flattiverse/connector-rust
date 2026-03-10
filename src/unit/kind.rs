@@ -22,6 +22,8 @@ pub enum UnitKind {
     Moon = 0x09,
     /// Represents a meteoroid.
     Meteoroid = 0x0A,
+    /// Represents a buoy.
+    Buoy = 0x10,
     /// Represents a shot.
     Shot = 0xE0,
     /// Represents a classical player ship.

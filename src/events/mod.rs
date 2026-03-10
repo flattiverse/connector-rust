@@ -460,7 +460,7 @@ pub enum FlattiverseEventKind {
     },
     /// A tick happened.
     GalaxyTick {
-        tick: i32,
+        tick: u32,
     },
 
     // ---------- local events below

@@ -7,8 +7,15 @@ use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, AtomicU8, O
 /// Everything that shall be read and written to with an immutable reference. Might lie to you to
 /// enable that (see the implementation for [`Vector`] for example). In the use case of Flattiverse
 /// this is considered fine or at least good enough.
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Default)]
 pub struct Atomic<T: Atomar>(T::Container);
+
+impl<T: Atomar> Clone for Atomic<T> {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self::from(self.load())
+    }
+}
 
 impl<T: Atomar> From<T> for Atomic<T> {
     #[inline]

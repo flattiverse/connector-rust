@@ -7,7 +7,8 @@ use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
-#[derive(Debug)]
+/// Represents an explosion.
+#[derive(Debug, Clone)]
 pub struct Explosion {
     base: UnitBase,
     player: Weak<Player>,
@@ -49,11 +50,6 @@ impl Explosion {
             position: Vector::default().with_read(reader),
             second_phase: Atomic::from(false),
         }
-    }
-
-    #[inline]
-    pub fn base(&self) -> &UnitBase {
-        &self.base
     }
 
     /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
@@ -130,5 +126,12 @@ impl Explosion {
     pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
         self.second_phase.store(true);
         let _ = reader;
+    }
+}
+
+impl AsRef<UnitBase> for Explosion {
+    #[inline]
+    fn as_ref(&self) -> &UnitBase {
+        &self.base
     }
 }

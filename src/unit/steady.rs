@@ -2,7 +2,7 @@ use crate::network::PacketReader;
 use crate::utils::{Atomic, Readable};
 use crate::Vector;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SteadyUnit {
     gravity: Atomic<f32>,
     radius: Atomic<f32>,

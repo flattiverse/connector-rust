@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::Cluster;
 use std::sync::{Arc, Weak};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnitBase {
     name: String,
     cluster: Weak<Cluster>,

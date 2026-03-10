@@ -10,8 +10,20 @@ pub use steady::*;
 mod mobility;
 pub use mobility::*;
 
+mod sun;
+pub use sun::*;
+
+mod black_hole;
+pub use black_hole::*;
+
+mod planet;
+pub use planet::*;
+
 mod player_unit;
 pub use player_unit::*;
+
+mod classic_ship_player_unit;
+pub use classic_ship_player_unit::*;
 
 mod explosion;
 pub use explosion::*;
@@ -19,26 +31,20 @@ pub use explosion::*;
 mod shot;
 pub use shot::*;
 
-use crate::galaxy_hierarchy::{Cluster, NamedUnit, Team};
+use crate::galaxy_hierarchy::{AsPlayerUnit, AsSteadyUnit, AsUnitBase, Cluster, Team};
 use crate::network::PacketReader;
-use crate::utils::Readable;
 use crate::Vector;
-use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 /// Represents a unit in Flattiverse. Each unit in a Cluster derives from this class. This enum
 /// has properties and methods which most units have in common. Specialized properties and methods
-/// are store in the relevant variant or added via interfaces.
-#[derive(Debug)]
+/// are stored in the relevant variant or added via interfaces.
+#[derive(Debug, Clone)]
 pub enum Unit {
-    Planet {
-        base: UnitBase,
-        steady: SteadyUnit,
-    },
-    ClassicShipPlayerUnit {
-        base: UnitBase,
-        player_unit: PlayerUnit,
-    },
+    Sun(Sun),
+    BlackHole(BlackHole),
+    Planet(Planet),
+    ClassicShipPlayerUnit(ClassicShipPlayerUnit),
     Shot(Shot),
     Explosion(Explosion),
 }
@@ -51,22 +57,16 @@ impl Unit {
         reader: &mut dyn PacketReader,
     ) -> Option<Self> {
         match kind {
-            UnitKind::Sun => None,
-            UnitKind::BlackHole => None,
-            UnitKind::Planet => Some(Unit::Planet {
-                base: UnitBase::new(cluster, name),
-                steady: SteadyUnit::read(reader),
-            }),
-            UnitKind::Moon => None,
-            UnitKind::Meteoroid => None,
+            UnitKind::Sun => Some(Unit::Sun(Sun::read(cluster, name, reader))),
+            UnitKind::BlackHole => Some(Unit::BlackHole(BlackHole::read(cluster, name, reader))),
+            UnitKind::Moon => None,      // TODO
+            UnitKind::Meteoroid => None, // TODO
+            UnitKind::Buoy => None,      // TODO
+            UnitKind::Planet => Some(Unit::Planet(Planet::read(cluster, name, reader))),
             UnitKind::Shot => Some(Unit::Shot(Shot::read(cluster, name, reader))),
-            UnitKind::ClassicShipPlayerUnit => {
-                let galaxy = cluster.upgrade().unwrap().galaxy();
-                Some(Unit::ClassicShipPlayerUnit {
-                    base: UnitBase::new(cluster, name),
-                    player_unit: PlayerUnit::read(&*galaxy, reader),
-                })
-            }
+            UnitKind::ClassicShipPlayerUnit => Some(Unit::ClassicShipPlayerUnit(
+                ClassicShipPlayerUnit::read(cluster, name, reader),
+            )),
             UnitKind::NewShipPlayerUnit => None,
             UnitKind::Explosion => Some(Unit::Explosion(Explosion::read(cluster, name, reader))),
             UnitKind::Unknown(_) => None,
@@ -82,8 +82,10 @@ impl Unit {
     /// The radius of the unit.
     pub fn radius(&self) -> f32 {
         match self {
-            Unit::Planet { steady, .. } => steady.radius(),
-            Unit::ClassicShipPlayerUnit { .. } => 14f32,
+            Unit::Sun(sun) => sun.as_steady_unit().radius(),
+            Unit::BlackHole(bh) => bh.as_steady_unit().radius(),
+            Unit::Planet(planet) => planet.as_steady_unit().radius(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.radius(),
             Unit::Shot(shot) => shot.radius(),
             Unit::Explosion(explosion) => explosion.radius(),
         }
@@ -92,8 +94,10 @@ impl Unit {
     /// The position of the unit.
     pub fn position(&self) -> Vector {
         match self {
-            Unit::Planet { steady, .. } => steady.position(),
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.position(),
+            Unit::Sun(sun) => sun.as_steady_unit().position(),
+            Unit::BlackHole(bh) => bh.as_steady_unit().position(),
+            Unit::Planet(planet) => planet.as_steady_unit().position(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().position(),
             Unit::Shot(shot) => shot.position(),
             Unit::Explosion(explosion) => explosion.position(),
         }
@@ -102,17 +106,16 @@ impl Unit {
     /// The movement of the unit.
     pub fn movement(&self) -> Vector {
         match self {
-            Unit::Planet { .. } => Vector::default(),
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.movement(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().movement(),
             Unit::Shot(shot) => shot.movement(),
-            Unit::Explosion(_) => Vector::default(),
+            _ => Vector::default(),
         }
     }
 
     /// The direction the unit is looking into.
     pub fn angle(&self) -> f32 {
         match self {
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.angle(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().angle(),
             Unit::Shot(shot) => shot.angle(),
             _ => f32::default(),
         }
@@ -145,10 +148,15 @@ impl Unit {
     /// The gravity of this unit. This is how much this unit pulls others towards it.
     pub fn gravity(&self) -> f32 {
         match self {
-            Unit::Planet { steady, .. } => steady.gravity(),
-            Unit::ClassicShipPlayerUnit { .. } => 0.0012f32,
+            Unit::ClassicShipPlayerUnit(cs) => cs.gravity(),
             Unit::Explosion(e) => e.gravity(),
-            _ => 0.0,
+            _ => {
+                if let Some(steady) = self.as_steady_unit() {
+                    steady.gravity()
+                } else {
+                    0.0
+                }
+            }
         }
     }
 
@@ -156,7 +164,7 @@ impl Unit {
     #[inline]
     pub fn mobility(&self) -> Mobility {
         match self {
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.mobility(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().mobility(),
             Unit::Shot(shot) => shot.mobility(),
             _ => Mobility::Still,
         }
@@ -166,8 +174,10 @@ impl Unit {
     #[inline]
     pub fn kind(&self) -> UnitKind {
         match self {
-            Unit::Planet { .. } => UnitKind::Planet,
-            Unit::ClassicShipPlayerUnit { .. } => UnitKind::ClassicShipPlayerUnit,
+            Unit::Sun(_) => UnitKind::Sun,
+            Unit::BlackHole(_) => UnitKind::BlackHole,
+            Unit::Planet(_) => UnitKind::Planet,
+            Unit::ClassicShipPlayerUnit(_) => UnitKind::ClassicShipPlayerUnit,
             Unit::Shot(_) => UnitKind::Shot,
             Unit::Explosion(_) => UnitKind::Explosion,
         }
@@ -182,10 +192,10 @@ impl Unit {
     /// The team of the unit.
     pub fn team(&self) -> Weak<Team> {
         match self {
-            Unit::Planet { .. } => Weak::default(),
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => {
-                Arc::downgrade(&player_unit.player().team())
-            }
+            Unit::Sun(_) => Weak::default(),
+            Unit::BlackHole(_) => Weak::default(),
+            Unit::Planet(_) => Weak::default(),
+            Unit::ClassicShipPlayerUnit(cs) => Arc::downgrade(&cs.as_player_unit().player().team()),
             Unit::Shot(shot) => shot.team(),
             Unit::Explosion(explosion) => explosion.team(),
         }
@@ -193,8 +203,10 @@ impl Unit {
 
     pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
         match self {
-            Unit::Planet { .. } => unreachable!(),
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => player_unit.update_movement(reader),
+            Unit::Sun(_) => unreachable!(),
+            Unit::BlackHole(_) => unreachable!(),
+            Unit::Planet(_) => unreachable!(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().update_movement(reader),
             Unit::Shot(shot) => shot.update_movement(reader),
             Unit::Explosion(explosion) => explosion.update_movement(reader),
         }
@@ -202,24 +214,62 @@ impl Unit {
 
     pub fn base(&self) -> &UnitBase {
         match self {
-            Unit::Planet { base, .. } => base,
-            Unit::ClassicShipPlayerUnit { base, .. } => &base,
-            Unit::Shot(shot) => shot.base(),
-            Unit::Explosion(explosion) => explosion.base(),
+            Unit::Sun(sun) => sun.as_unit_base(),
+            Unit::BlackHole(bh) => bh.as_unit_base(),
+            Unit::Planet(planet) => planet.as_unit_base(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_unit_base(),
+            Unit::Shot(shot) => shot.as_unit_base(),
+            Unit::Explosion(explosion) => explosion.as_unit_base(),
         }
     }
 
     pub fn as_steady_unit(&self) -> Option<&SteadyUnit> {
         match self {
-            Unit::Planet { steady, .. } => Some(steady),
-            _ => None,
+            Unit::Sun(sun) => Some(sun.as_steady_unit()),
+            Unit::BlackHole(bh) => Some(bh.as_steady_unit()),
+            Unit::Planet(planet) => Some(planet.as_steady_unit()),
+            Unit::ClassicShipPlayerUnit(_) => None,
+            Unit::Shot(_) => None,
+            Unit::Explosion(_) => None,
+        }
+    }
+
+    pub fn as_sun(&self) -> Option<&Sun> {
+        if let Self::Sun(sun) = self {
+            Some(sun)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_black_hole(&self) -> Option<&BlackHole> {
+        if let Self::BlackHole(bh) = self {
+            Some(bh)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_planet(&self) -> Option<&Planet> {
+        if let Self::Planet(planet) = self {
+            Some(planet)
+        } else {
+            None
         }
     }
 
     pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
         match self {
-            Unit::ClassicShipPlayerUnit { player_unit, .. } => Some(player_unit),
+            Unit::ClassicShipPlayerUnit(cs) => Some(cs.as_player_unit()),
             _ => None,
+        }
+    }
+
+    pub fn as_classic_ship_player_unit(&self) -> Option<&ClassicShipPlayerUnit> {
+        if let Self::ClassicShipPlayerUnit(cs) = self {
+            Some(cs)
+        } else {
+            None
         }
     }
 
@@ -240,9 +290,9 @@ impl Unit {
     }
 }
 
-impl NamedUnit for Unit {
+impl AsRef<UnitBase> for Unit {
     #[inline]
-    fn name(&self) -> impl Deref<Target = str> + '_ {
-        self.base().name()
+    fn as_ref(&self) -> &UnitBase {
+        self.base()
     }
 }

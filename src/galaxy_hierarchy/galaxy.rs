@@ -623,7 +623,7 @@ impl Galaxy {
     }
 
     #[instrument(level = "trace", skip(self))]
-    pub(crate) fn universe_tick(&self, number: i32) -> EventResult {
+    pub(crate) fn universe_tick(&self, number: u32) -> EventResult {
         debug!("Universe tick with #{number}");
         event_result!(GalaxyTick { tick: number })
     }

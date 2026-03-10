@@ -1,11 +1,14 @@
-use crate::galaxy_hierarchy::{ControllableInfo, ControllableInfoId, Galaxy, Player, PlayerId};
+use crate::galaxy_hierarchy::{
+    ControllableInfo, ControllableInfoId, Galaxy, Player, PlayerId, Team,
+};
 use crate::network::PacketReader;
 use crate::unit::Mobility;
 use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
-#[derive(Debug)]
+/// Represents a player unit.
+#[derive(Debug, Clone)]
 pub struct PlayerUnit {
     player: Weak<Player>,
     controllable_info: Weak<ControllableInfo>,
@@ -59,6 +62,11 @@ impl PlayerUnit {
     #[inline]
     pub fn mobility(&self) -> Mobility {
         Mobility::Mobile
+    }
+
+    #[inline]
+    pub fn team(&self) -> Arc<Team> {
+        self.player().team()
     }
 
     pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {

@@ -7,7 +7,8 @@ use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
-#[derive(Debug)]
+/// Represents a shot.
+#[derive(Debug, Clone)]
 pub struct Shot {
     base: UnitBase,
     player: Weak<Player>,
@@ -51,11 +52,6 @@ impl Shot {
             position: Atomic::from_reader(reader),
             movement: Atomic::from_reader(reader),
         }
-    }
-
-    #[inline]
-    pub fn base(&self) -> &UnitBase {
-        &self.base
     }
 
     /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
@@ -130,5 +126,12 @@ impl Shot {
         self.ticks.store(reader.read_uint16());
         self.position.read(reader);
         self.movement.read(reader);
+    }
+}
+
+impl AsRef<UnitBase> for Shot {
+    #[inline]
+    fn as_ref(&self) -> &UnitBase {
+        &self.base
     }
 }

@@ -169,7 +169,7 @@ impl Connection {
                 reader,
             ),
             0x3F => galaxy.unit_removed(ClusterId(reader.read_byte()), reader.read_string()),
-            0xc0 => galaxy.universe_tick(reader.read_int32()),
+            0xc0 => galaxy.universe_tick(reader.read_uint32()),
             0xC4 => galaxy.chat_galaxy(PlayerId(reader.read_byte()), reader.read_string()),
             0xC5 => galaxy.chat_team(PlayerId(reader.read_byte()), reader.read_string()),
             0xC6 => galaxy.chat_player(PlayerId(reader.read_byte()), reader.read_string()),

@@ -66,6 +66,7 @@ pub enum GameErrorKind {
     InvalidOrMissingTeam,
     ServerFullOfPlayerKind(Option<PlayerKind>),
     SessionsExhausted,
+    InvalidData,
     ConnectionTerminated,
     SpecifiedElementNotFound,
     CantCallThisConcurrent,
@@ -121,6 +122,7 @@ impl Display for GameErrorKind {
                 PlayerKind::Unknown(id) => return write!(f, "[0x08] Server is full of things with code {:#02x}.", id)
             },
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
+            GameErrorKind::InvalidData => "[0x0D] Invalid data received, protocol mismatch: Terminating connection.",
             GameErrorKind::ConnectionTerminated => "[0x0F] Connection has been terminated for unknown reason.",
             GameErrorKind::SpecifiedElementNotFound => "[0x10] Specified element not found.",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
@@ -144,7 +146,7 @@ impl Display for GameErrorKind {
             GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
-            GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] You tried to register too much units of a specific kind.",
+            GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] Please, only shoot once a tick with the same unit.",
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
     }
@@ -164,6 +166,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
                 reader.opt_read_byte().map(PlayerKind::from_primitive),
             ),
             0x0C => GameErrorKind::SessionsExhausted,
+            0x0D => GameErrorKind::InvalidData,
             0x0F => GameErrorKind::ConnectionTerminated,
             0x10 => GameErrorKind::SpecifiedElementNotFound,
             0x11 => GameErrorKind::CantCallThisConcurrent,
