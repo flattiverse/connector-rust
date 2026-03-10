@@ -78,7 +78,7 @@ impl Galaxy {
         galaxy: u16,
         auth: impl Into<Option<&str>>,
         team: impl Into<Option<&str>>,
-    ) -> Result<Arc<Self>, GameError> {
+    ) -> Result<Arc<Self>, ConnectError> {
         #[cfg(not(feature = "dev-environment"))]
         {
             Self::connect_to(
@@ -112,7 +112,7 @@ impl Galaxy {
         uri: &str,
         auth: impl Into<Option<&str>>,
         team: impl Into<Option<&str>>,
-    ) -> Result<Arc<Self>, GameError> {
+    ) -> Result<Arc<Self>, ConnectError> {
         let mut session = None;
         let this = crate::network::connect(
             uri,
@@ -166,19 +166,13 @@ impl Galaxy {
                 this
             },
         )
-        .await
-        .map_err(|e| match e {
-            ConnectError::GameError(e) => e,
-            e => {
-                debug!("Cannot connect to the flattiverse server: {e:?}");
-                GameError::from(GameErrorKind::CantConnect)
-            }
-        })?;
+        .await?;
 
         session
             .expect("Failed to get initial session")
             .response()
-            .await?
+            .await
+            .map_err(|e| ConnectError::GameError(e.into()))?
             .read(|reader| {
                 this.setup_self(reader.read_byte());
             });

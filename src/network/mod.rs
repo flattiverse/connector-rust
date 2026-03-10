@@ -40,6 +40,7 @@ use crate::galaxy_hierarchy::Galaxy;
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
 use async_channel::Receiver;
+use reqwest::StatusCode;
 use std::sync::Arc;
 
 #[instrument(level = "trace", skip(f))]
@@ -117,15 +118,22 @@ pub enum ConnectError {
 }
 
 impl ConnectError {
-    pub fn game_error_from_http_status_code(code: u16) -> GameError {
+    pub fn game_error_from_http_status_code(code: StatusCode) -> ConnectError {
         debug!("Trying to map HTTP status code {code} to GameErrorKind");
-        match code {
-            400 | 502 | 504 => GameErrorKind::CantConnect,
-            401 => GameErrorKind::AuthFailed,
-            409 => GameErrorKind::InvalidProtocolVersion,
-            _ => GameErrorKind::CantConnect,
+        match code.as_u16() {
+            400 | 502 | 504 => ConnectError::from(GameErrorKind::CantConnect),
+            401 => ConnectError::from(GameErrorKind::AuthFailed),
+            409 => ConnectError::from(GameErrorKind::InvalidProtocolVersion),
+            _ => ConnectError::Unknown(format!("Unexpected StatusCode {code:?}")),
         }
         .into()
+    }
+}
+
+impl From<GameErrorKind> for ConnectError {
+    #[inline]
+    fn from(kind: GameErrorKind) -> Self {
+        Self::GameError(GameError::from(kind))
     }
 }
 
@@ -133,9 +141,7 @@ impl ConnectError {
 impl From<tokio_tungstenite::tungstenite::Error> for ConnectError {
     fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
         if let tokio_tungstenite::tungstenite::Error::Http(response) = value {
-            Self::GameError(Self::game_error_from_http_status_code(
-                response.status().as_u16(),
-            ))
+            Self::game_error_from_http_status_code(response.status())
         } else {
             Self::IoError(value)
         }
