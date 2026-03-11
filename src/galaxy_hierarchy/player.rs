@@ -1,10 +1,8 @@
 use crate::galaxy_hierarchy::{
-    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, NamedUnit, Team,
-    UniversalArcHolder,
+    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, Team, UniversalArcHolder,
 };
 use crate::utils::Atomic;
 use crate::GameError;
-use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -69,6 +67,12 @@ impl Player {
         self.team.upgrade().unwrap()
     }
 
+    /// The team the player belongs to but weak.
+    #[inline]
+    pub(crate) fn team_weak(&self) -> Weak<Team> {
+        self.team.clone()
+    }
+
     /// The account name.
     #[inline]
     pub fn name(&self) -> &str {
@@ -128,13 +132,6 @@ impl Identifiable<PlayerId> for Player {
     #[inline]
     fn id(&self) -> PlayerId {
         self.id
-    }
-}
-
-impl NamedUnit for Player {
-    #[inline]
-    fn name(&self) -> impl Deref<Target = str> {
-        self.name.as_str()
     }
 }
 

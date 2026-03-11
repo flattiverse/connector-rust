@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{PlayerUnit, UnitBase};
+use crate::unit::{PlayerUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use std::sync::Weak;
 
 /// A classic ship for noobs.
@@ -46,5 +46,30 @@ impl AsRef<PlayerUnit> for ClassicShipPlayerUnit {
     #[inline]
     fn as_ref(&self) -> &PlayerUnit {
         &self.player_unit
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
+    type Parent = (&'a UnitBase, &'a PlayerUnit);
+
+    fn parent(self) -> (&'a UnitBase, &'a PlayerUnit) {
+        (&self.base, &self.player_unit)
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a ClassicShipPlayerUnit {
+    #[inline]
+    fn radius(self) -> f32 {
+        14.0
+    }
+
+    #[inline]
+    fn gravity(self) -> f32 {
+        0.0012
+    }
+
+    #[inline]
+    fn kind(self) -> UnitKind {
+        UnitKind::ClassicShipPlayerUnit
     }
 }

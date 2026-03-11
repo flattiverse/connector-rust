@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer};
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::GameError;
@@ -9,7 +9,7 @@ use std::sync::{Arc, Weak};
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct TeamId(pub(crate) u8);
 
-impl Indexer for crate::galaxy_hierarchy::TeamId {
+impl Indexer for TeamId {
     #[inline]
     fn index(&self) -> usize {
         usize::from(self.0)
@@ -72,6 +72,11 @@ impl Team {
         self.active.store(false);
     }
 
+    #[inline]
+    pub fn name(&self) -> impl Deref<Target = str> {
+        GuardedArcStringDeref(self.name.load())
+    }
+
     /// The red part of the team color.
     #[inline]
     pub fn red(&self) -> u8 {
@@ -101,12 +106,5 @@ impl Identifiable<TeamId> for Team {
     #[inline]
     fn id(&self) -> TeamId {
         self.id
-    }
-}
-
-impl NamedUnit for Team {
-    #[inline]
-    fn name(&self) -> impl Deref<Target = str> {
-        GuardedArcStringDeref(self.name.load())
     }
 }

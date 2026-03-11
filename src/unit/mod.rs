@@ -85,148 +85,6 @@ impl Unit {
         }
     }
 
-    /// This is the name of the unit. A unit can't change her name after it has been set up.
-    #[inline]
-    pub fn name(&self) -> &str {
-        self.base().name()
-    }
-
-    /// The radius of the unit.
-    pub fn radius(&self) -> f32 {
-        match self {
-            Unit::Sun(sun) => sun.as_steady_unit().radius(),
-            Unit::BlackHole(bh) => bh.as_steady_unit().radius(),
-            Unit::Moon(moon) => moon.as_steady_unit().radius(),
-            Unit::Meteoroid(meteoroid) => meteoroid.as_steady_unit().radius(),
-            Unit::Buoy(buoy) => buoy.as_steady_unit().radius(),
-            Unit::Planet(planet) => planet.as_steady_unit().radius(),
-            Unit::ClassicShipPlayerUnit(cs) => cs.radius(),
-            Unit::Shot(shot) => shot.radius(),
-            Unit::Explosion(explosion) => explosion.radius(),
-        }
-    }
-
-    /// The position of the unit.
-    pub fn position(&self) -> Vector {
-        match self {
-            Unit::Sun(sun) => sun.as_steady_unit().position(),
-            Unit::BlackHole(bh) => bh.as_steady_unit().position(),
-            Unit::Moon(moon) => moon.as_steady_unit().position(),
-            Unit::Meteoroid(meteoroid) => meteoroid.as_steady_unit().position(),
-            Unit::Buoy(buoy) => buoy.as_steady_unit().position(),
-            Unit::Planet(planet) => planet.as_steady_unit().position(),
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().position(),
-            Unit::Shot(shot) => shot.position(),
-            Unit::Explosion(explosion) => explosion.position(),
-        }
-    }
-
-    /// The movement of the unit.
-    pub fn movement(&self) -> Vector {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().movement(),
-            Unit::Shot(shot) => shot.movement(),
-            _ => Vector::default(),
-        }
-    }
-
-    /// The direction the unit is looking into.
-    pub fn angle(&self) -> f32 {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().angle(),
-            Unit::Shot(shot) => shot.angle(),
-            _ => f32::default(),
-        }
-    }
-
-    /// If true, other unis can hide behind this unit.
-    pub fn is_masking(&self) -> bool {
-        match self {
-            Unit::Explosion(e) => e.is_masking(),
-            Unit::Buoy(_) => false,
-            _ => true,
-        }
-    }
-
-    /// If true, a crash with this unit is lethal.
-    pub fn is_solid(&self) -> bool {
-        match self {
-            Unit::Explosion(e) => e.is_solid(),
-            Unit::Buoy(_) => false,
-            _ => true,
-        }
-    }
-
-    /// If true, the unit can be edited via map editor calls.
-
-    pub fn can_be_edited(&self) -> bool {
-        match self {
-            _ => false,
-        }
-    }
-
-    /// The gravity of this unit. This is how much this unit pulls others towards it.
-    pub fn gravity(&self) -> f32 {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => cs.gravity(),
-            Unit::Explosion(e) => e.gravity(),
-            _ => {
-                if let Some(steady) = self.as_steady_unit() {
-                    steady.gravity()
-                } else {
-                    0.0
-                }
-            }
-        }
-    }
-
-    /// The mobility of this unit.
-    #[inline]
-    pub fn mobility(&self) -> Mobility {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().mobility(),
-            Unit::Shot(shot) => shot.mobility(),
-            _ => Mobility::Still,
-        }
-    }
-
-    /// The kind of the unit for a better match() experience.
-    #[inline]
-    pub fn kind(&self) -> UnitKind {
-        match self {
-            Unit::Sun(_) => UnitKind::Sun,
-            Unit::BlackHole(_) => UnitKind::BlackHole,
-            Unit::Moon(_) => UnitKind::Moon,
-            Unit::Meteoroid(_) => UnitKind::Meteoroid,
-            Unit::Buoy(_) => UnitKind::Buoy,
-            Unit::Planet(_) => UnitKind::Planet,
-            Unit::ClassicShipPlayerUnit(_) => UnitKind::ClassicShipPlayerUnit,
-            Unit::Shot(_) => UnitKind::Shot,
-            Unit::Explosion(_) => UnitKind::Explosion,
-        }
-    }
-
-    /// The cluster the unit is in.
-    #[inline]
-    pub fn cluster(&self) -> Arc<Cluster> {
-        self.base().cluster()
-    }
-
-    /// The team of the unit.
-    pub fn team(&self) -> Weak<Team> {
-        match self {
-            Unit::Sun(_) => Weak::default(),
-            Unit::BlackHole(_) => Weak::default(),
-            Unit::Moon(_) => Weak::default(),
-            Unit::Meteoroid(_) => Weak::default(),
-            Unit::Buoy(_) => Weak::default(),
-            Unit::Planet(_) => Weak::default(),
-            Unit::ClassicShipPlayerUnit(cs) => Arc::downgrade(&cs.as_player_unit().player().team()),
-            Unit::Shot(shot) => shot.team(),
-            Unit::Explosion(explosion) => explosion.team(),
-        }
-    }
-
     pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
         match self {
             Unit::Sun(_) => unreachable!(),
@@ -360,5 +218,329 @@ impl AsRef<UnitBase> for Unit {
     #[inline]
     fn as_ref(&self) -> &UnitBase {
         self.base()
+    }
+}
+
+pub(crate) trait UnitExtSealed<'a>
+where
+    Self: 'a,
+{
+    type Parent: UnitExt<'a>;
+
+    fn parent(self) -> Self::Parent;
+}
+
+#[allow(private_bounds)]
+pub trait UnitExt<'a>: UnitExtSealed<'a>
+where
+    Self: 'a,
+{
+    /// This is the name of the unit. A unit can't change her name after it has been set up.
+    fn name(self) -> &'a str
+    where
+        Self: Sized,
+    {
+        self.parent().name()
+    }
+
+    /// The radius of the unit.
+    #[inline]
+    fn radius(self) -> f32
+    where
+        Self: Sized,
+    {
+        self.parent().radius()
+    }
+
+    /// The position of the unit.
+    #[inline]
+    fn position(self) -> Vector
+    where
+        Self: Sized,
+    {
+        self.parent().position()
+    }
+
+    /// The movement of the unit
+    #[inline]
+    fn movement(self) -> Vector
+    where
+        Self: Sized,
+    {
+        self.parent().movement()
+    }
+
+    /// The direction the unit is looking into.
+    #[inline]
+    fn angle(self) -> f32
+    where
+        Self: Sized,
+    {
+        self.parent().angle()
+    }
+
+    /// If true, other units can hide behind this unit.
+    #[inline]
+    fn is_masking(self) -> bool
+    where
+        Self: Sized,
+    {
+        self.parent().is_masking()
+    }
+
+    /// If true, a crash with this unit is lethal.
+    #[inline]
+    fn is_solid(self) -> bool
+    where
+        Self: Sized,
+    {
+        self.parent().is_solid()
+    }
+
+    /// If true, the unit can be edited via map editor calls.
+    #[inline]
+    fn can_be_edited(self) -> bool
+    where
+        Self: Sized,
+    {
+        self.parent().can_be_edited()
+    }
+
+    /// The gravity of this unit. This is how much this unit pulls others towards it.
+    #[inline]
+    fn gravity(self) -> f32
+    where
+        Self: Sized,
+    {
+        self.parent().gravity()
+    }
+
+    /// The mobility of the unit.
+    #[inline]
+    fn mobility(self) -> Mobility
+    where
+        Self: Sized,
+    {
+        self.parent().mobility()
+    }
+
+    /// The kind of the unit for a better match experience.
+    #[inline]
+    fn kind(self) -> UnitKind
+    where
+        Self: Sized,
+    {
+        self.parent().kind()
+    }
+
+    /// The cluster the unit is in.
+    #[inline]
+    fn cluster(self) -> Arc<Cluster>
+    where
+        Self: Sized,
+    {
+        self.parent().cluster()
+    }
+
+    /// The team of the unit.
+    #[inline]
+    fn team(self) -> Weak<Team>
+    where
+        Self: Sized,
+    {
+        self.parent().team()
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a Unit {
+    type Parent = &'a Unit;
+
+    #[inline]
+    fn parent(self) -> Self::Parent {
+        unreachable!()
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a Unit {
+    fn name(self) -> &'a str {
+        match self {
+            Unit::Sun(u) => u.name(),
+            Unit::BlackHole(u) => u.name(),
+            Unit::Moon(u) => u.name(),
+            Unit::Meteoroid(u) => u.name(),
+            Unit::Buoy(u) => u.name(),
+            Unit::Planet(u) => u.name(),
+            Unit::ClassicShipPlayerUnit(u) => u.name(),
+            Unit::Shot(u) => u.name(),
+            Unit::Explosion(u) => u.name(),
+        }
+    }
+
+    fn radius(self) -> f32 {
+        match self {
+            Unit::Sun(u) => u.radius(),
+            Unit::BlackHole(u) => u.radius(),
+            Unit::Moon(u) => u.radius(),
+            Unit::Meteoroid(u) => u.radius(),
+            Unit::Buoy(u) => u.radius(),
+            Unit::Planet(u) => u.radius(),
+            Unit::ClassicShipPlayerUnit(u) => u.radius(),
+            Unit::Shot(u) => u.radius(),
+            Unit::Explosion(u) => u.radius(),
+        }
+    }
+
+    fn position(self) -> Vector {
+        match self {
+            Unit::Sun(u) => u.position(),
+            Unit::BlackHole(u) => u.position(),
+            Unit::Moon(u) => u.position(),
+            Unit::Meteoroid(u) => u.position(),
+            Unit::Buoy(u) => u.position(),
+            Unit::Planet(u) => u.position(),
+            Unit::ClassicShipPlayerUnit(u) => u.position(),
+            Unit::Shot(u) => u.position(),
+            Unit::Explosion(u) => u.position(),
+        }
+    }
+
+    fn movement(self) -> Vector {
+        match self {
+            Unit::Sun(u) => u.movement(),
+            Unit::BlackHole(u) => u.movement(),
+            Unit::Moon(u) => u.movement(),
+            Unit::Meteoroid(u) => u.movement(),
+            Unit::Buoy(u) => u.movement(),
+            Unit::Planet(u) => u.movement(),
+            Unit::ClassicShipPlayerUnit(u) => u.movement(),
+            Unit::Shot(u) => u.movement(),
+            Unit::Explosion(u) => u.movement(),
+        }
+    }
+
+    fn angle(self) -> f32 {
+        match self {
+            Unit::Sun(u) => u.angle(),
+            Unit::BlackHole(u) => u.angle(),
+            Unit::Moon(u) => u.angle(),
+            Unit::Meteoroid(u) => u.angle(),
+            Unit::Buoy(u) => u.angle(),
+            Unit::Planet(u) => u.angle(),
+            Unit::ClassicShipPlayerUnit(u) => u.angle(),
+            Unit::Shot(u) => u.angle(),
+            Unit::Explosion(u) => u.angle(),
+        }
+    }
+
+    fn is_masking(self) -> bool {
+        match self {
+            Unit::Sun(u) => u.is_masking(),
+            Unit::BlackHole(u) => u.is_masking(),
+            Unit::Moon(u) => u.is_masking(),
+            Unit::Meteoroid(u) => u.is_masking(),
+            Unit::Buoy(u) => u.is_masking(),
+            Unit::Planet(u) => u.is_masking(),
+            Unit::ClassicShipPlayerUnit(u) => u.is_masking(),
+            Unit::Shot(u) => u.is_masking(),
+            Unit::Explosion(u) => u.is_masking(),
+        }
+    }
+
+    fn is_solid(self) -> bool {
+        match self {
+            Unit::Sun(u) => u.is_solid(),
+            Unit::BlackHole(u) => u.is_solid(),
+            Unit::Moon(u) => u.is_solid(),
+            Unit::Meteoroid(u) => u.is_solid(),
+            Unit::Buoy(u) => u.is_solid(),
+            Unit::Planet(u) => u.is_solid(),
+            Unit::ClassicShipPlayerUnit(u) => u.is_solid(),
+            Unit::Shot(u) => u.is_solid(),
+            Unit::Explosion(u) => u.is_solid(),
+        }
+    }
+
+    fn can_be_edited(self) -> bool {
+        match self {
+            Unit::Sun(u) => u.can_be_edited(),
+            Unit::BlackHole(u) => u.can_be_edited(),
+            Unit::Moon(u) => u.can_be_edited(),
+            Unit::Meteoroid(u) => u.can_be_edited(),
+            Unit::Buoy(u) => u.can_be_edited(),
+            Unit::Planet(u) => u.can_be_edited(),
+            Unit::ClassicShipPlayerUnit(u) => u.can_be_edited(),
+            Unit::Shot(u) => u.can_be_edited(),
+            Unit::Explosion(u) => u.can_be_edited(),
+        }
+    }
+
+    fn gravity(self) -> f32 {
+        match self {
+            Unit::Sun(u) => u.gravity(),
+            Unit::BlackHole(u) => u.gravity(),
+            Unit::Moon(u) => u.gravity(),
+            Unit::Meteoroid(u) => u.gravity(),
+            Unit::Buoy(u) => u.gravity(),
+            Unit::Planet(u) => u.gravity(),
+            Unit::ClassicShipPlayerUnit(u) => u.gravity(),
+            Unit::Shot(u) => u.gravity(),
+            Unit::Explosion(u) => u.gravity(),
+        }
+    }
+
+    fn mobility(self) -> Mobility {
+        match self {
+            Unit::Sun(u) => u.mobility(),
+            Unit::BlackHole(u) => u.mobility(),
+            Unit::Moon(u) => u.mobility(),
+            Unit::Meteoroid(u) => u.mobility(),
+            Unit::Buoy(u) => u.mobility(),
+            Unit::Planet(u) => u.mobility(),
+            Unit::ClassicShipPlayerUnit(u) => u.mobility(),
+            Unit::Shot(u) => u.mobility(),
+            Unit::Explosion(u) => u.mobility(),
+        }
+    }
+
+    fn kind(self) -> UnitKind {
+        match self {
+            Unit::Sun(u) => u.kind(),
+            Unit::BlackHole(u) => u.kind(),
+            Unit::Moon(u) => u.kind(),
+            Unit::Meteoroid(u) => u.kind(),
+            Unit::Buoy(u) => u.kind(),
+            Unit::Planet(u) => u.kind(),
+            Unit::ClassicShipPlayerUnit(u) => u.kind(),
+            Unit::Shot(u) => u.kind(),
+            Unit::Explosion(u) => u.kind(),
+        }
+    }
+
+    fn cluster(self) -> Arc<Cluster> {
+        match self {
+            Unit::Sun(u) => u.cluster(),
+            Unit::BlackHole(u) => u.cluster(),
+            Unit::Moon(u) => u.cluster(),
+            Unit::Meteoroid(u) => u.cluster(),
+            Unit::Buoy(u) => u.cluster(),
+            Unit::Planet(u) => u.cluster(),
+            Unit::ClassicShipPlayerUnit(u) => u.cluster(),
+            Unit::Shot(u) => u.cluster(),
+            Unit::Explosion(u) => u.cluster(),
+        }
+    }
+
+    fn team(self) -> Weak<Team> {
+        match self {
+            Unit::Sun(u) => u.team(),
+            Unit::BlackHole(u) => u.team(),
+            Unit::Moon(u) => u.team(),
+            Unit::Meteoroid(u) => u.team(),
+            Unit::Buoy(u) => u.team(),
+            Unit::Planet(u) => u.team(),
+            Unit::ClassicShipPlayerUnit(u) => u.team(),
+            Unit::Shot(u) => u.team(),
+            Unit::Explosion(u) => u.team(),
+        }
     }
 }

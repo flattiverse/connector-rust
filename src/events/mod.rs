@@ -10,10 +10,8 @@ pub use cluster_snapshot::*;
 mod galaxy_settings_snapshot;
 pub use galaxy_settings_snapshot::*;
 
-use crate::galaxy_hierarchy::{
-    Cluster, ControllableInfo, Galaxy, Identifiable, NamedUnit, Player, Team,
-};
-use crate::unit::{Unit, UnitKind};
+use crate::galaxy_hierarchy::{Cluster, ControllableInfo, Galaxy, Identifiable, Player, Team};
+use crate::unit::{Unit, UnitExt, UnitKind};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};

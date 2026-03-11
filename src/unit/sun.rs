@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, UnitBase};
+use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use crate::utils::Readable;
 use std::sync::Weak;
 
@@ -75,5 +75,20 @@ impl AsRef<SteadyUnit> for Sun {
     #[inline]
     fn as_ref(&self) -> &SteadyUnit {
         &self.steady
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a Sun {
+    type Parent = (&'a UnitBase, &'a SteadyUnit);
+
+    fn parent(self) -> Self::Parent {
+        (&self.base, &self.steady)
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a Sun {
+    #[inline]
+    fn kind(self) -> UnitKind {
+        UnitKind::Sun
     }
 }

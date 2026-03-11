@@ -59,7 +59,8 @@ impl Cluster {
     }
 
     pub(crate) fn add_unit(&self, unit: Arc<Unit>) {
-        self.units.insert(unit.name().to_string(), unit);
+        let name = NamedUnit::name(&*unit).to_string();
+        self.units.insert(name, unit);
     }
 
     pub(crate) fn remove_unit(&self, name: &str) -> Option<Arc<Unit>> {
@@ -117,7 +118,7 @@ impl NamedUnit for Cluster {
 impl Hash for Unit {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name().hash(state)
+        NamedUnit::name(self).hash(state)
     }
 }
 
@@ -126,7 +127,7 @@ impl Eq for Unit {}
 impl PartialEq<Self> for Unit {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.name().eq(other.name())
+        *NamedUnit::name(self) == *NamedUnit::name(other)
     }
 }
 

@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     ControllableInfo, ControllableInfoId, Galaxy, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::unit::Mobility;
+use crate::unit::{Mobility, UnitBase, UnitExt, UnitExtSealed};
 use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
@@ -44,33 +44,47 @@ impl PlayerUnit {
         self.controllable_info.upgrade().unwrap()
     }
 
+    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
+        self.position.read(reader);
+        self.movement.read(reader);
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for (&'a UnitBase, &'a PlayerUnit)
+where
+    Self: 'a,
+{
+    type Parent = &'a UnitBase;
+
     #[inline]
-    pub fn position(&self) -> Vector {
-        self.position.load()
+    fn parent(self) -> Self::Parent {
+        self.0
+    }
+}
+
+impl<'b> UnitExt<'b> for (&'b UnitBase, &'b PlayerUnit) {
+    #[inline]
+    fn position(self) -> Vector {
+        self.1.position.load()
     }
 
     #[inline]
-    pub fn movement(&self) -> Vector {
-        self.movement.load()
+    fn movement(self) -> Vector {
+        self.1.movement.load()
     }
 
     #[inline]
-    pub fn angle(&self) -> f32 {
-        self.movement().angle()
+    fn angle(self) -> f32 {
+        self.1.movement.load().angle()
     }
 
     #[inline]
-    pub fn mobility(&self) -> Mobility {
+    fn mobility(self) -> Mobility {
         Mobility::Mobile
     }
 
     #[inline]
-    pub fn team(&self) -> Arc<Team> {
-        self.player().team()
-    }
-
-    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
-        self.position.read(reader);
-        self.movement.read(reader);
+    fn team(self) -> Weak<Team> {
+        self.1.player().team_weak()
     }
 }

@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{NamedUnit, Team, TeamId};
+use crate::galaxy_hierarchy::{Team, TeamId};
 
 /// Snapshot of a team state relevant for events.
 #[derive(Debug, Clone)]

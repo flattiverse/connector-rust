@@ -1,4 +1,5 @@
 use crate::network::PacketReader;
+use crate::unit::{UnitBase, UnitExt, UnitExtSealed};
 use crate::utils::{Atomic, Readable};
 use crate::Vector;
 
@@ -9,23 +10,6 @@ pub struct SteadyUnit {
     position: Atomic<Vector>,
 }
 
-impl SteadyUnit {
-    #[inline]
-    pub fn gravity(&self) -> f32 {
-        self.gravity.load()
-    }
-
-    #[inline]
-    pub fn radius(&self) -> f32 {
-        self.radius.load()
-    }
-
-    #[inline]
-    pub fn position(&self) -> Vector {
-        self.position.load()
-    }
-}
-
 impl Readable for SteadyUnit {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
@@ -33,5 +17,34 @@ impl Readable for SteadyUnit {
             radius: Atomic::from_reader(reader),
             gravity: Atomic::from_reader(reader),
         }
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for (&'a UnitBase, &'a SteadyUnit)
+where
+    Self: 'a,
+{
+    type Parent = &'a UnitBase;
+
+    #[inline]
+    fn parent(self) -> Self::Parent {
+        self.0
+    }
+}
+
+impl<'b> UnitExt<'b> for (&'b UnitBase, &'b SteadyUnit) {
+    #[inline]
+    fn radius(self) -> f32 {
+        self.1.radius.load()
+    }
+
+    #[inline]
+    fn position(self) -> Vector {
+        self.1.position.load()
+    }
+
+    #[inline]
+    fn gravity(self) -> f32 {
+        self.1.gravity.load()
     }
 }

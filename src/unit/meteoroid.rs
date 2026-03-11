@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, UnitBase};
+use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use crate::utils::Readable;
 use num_enum::FromPrimitive;
 use std::sync::Weak;
@@ -76,6 +76,21 @@ impl AsRef<SteadyUnit> for Meteoroid {
     #[inline]
     fn as_ref(&self) -> &SteadyUnit {
         &self.steady
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a Meteoroid {
+    type Parent = (&'a UnitBase, &'a SteadyUnit);
+
+    fn parent(self) -> Self::Parent {
+        (&self.base, &self.steady)
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a Meteoroid {
+    #[inline]
+    fn kind(self) -> UnitKind {
+        UnitKind::Meteoroid
     }
 }
 

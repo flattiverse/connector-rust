@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::unit::UnitBase;
+use crate::unit::{UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
@@ -66,47 +66,6 @@ impl Explosion {
         &self.controllable_info
     }
 
-    /// The position of the unit.
-    #[inline]
-    pub fn position(&self) -> Vector {
-        self.position
-    }
-
-    /// The radius of the unit.
-    #[inline]
-    pub fn radius(&self) -> f32 {
-        self.size
-    }
-
-    /// If true, other unis can hide behind this unit.
-    #[inline]
-    pub fn is_masking(&self) -> bool {
-        false
-    }
-
-    /// If true, a crash with this unit is lethal.
-    #[inline]
-    pub fn is_solid(&self) -> bool {
-        false
-    }
-
-    /// The gravity of this unit. This is how much this unit pulls others towards it.
-    pub fn gravity(&self) -> f32 {
-        if self.second_phase.load() {
-            -0.5
-        } else {
-            0.0
-        }
-    }
-
-    /// The team of the unit.
-    pub fn team(&self) -> Weak<Team> {
-        self.player
-            .upgrade()
-            .map(|p| Arc::downgrade(&p.team()))
-            .unwrap_or_default()
-    }
-
     /// Defines whether this explosion is in the damage phase or not.
     pub fn is_damage_phase(&self) -> bool {
         !self.second_phase.load()
@@ -133,5 +92,53 @@ impl AsRef<UnitBase> for Explosion {
     #[inline]
     fn as_ref(&self) -> &UnitBase {
         &self.base
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a Explosion {
+    type Parent = &'a UnitBase;
+
+    fn parent(self) -> Self::Parent {
+        &self.base
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a Explosion {
+    fn radius(self) -> f32 {
+        self.size
+    }
+
+    fn position(self) -> Vector {
+        self.position
+    }
+
+    #[inline]
+    fn is_masking(self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn is_solid(self) -> bool {
+        false
+    }
+
+    fn gravity(self) -> f32 {
+        if self.second_phase.load() {
+            -0.5
+        } else {
+            0.0
+        }
+    }
+
+    #[inline]
+    fn kind(self) -> UnitKind {
+        UnitKind::Explosion
+    }
+
+    #[inline]
+    fn team(self) -> Weak<Team> {
+        self.player
+            .upgrade()
+            .map_or_else(Weak::default, |p| p.team_weak())
     }
 }

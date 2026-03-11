@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::unit::{Mobility, UnitBase};
+use crate::unit::{Mobility, UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
@@ -68,44 +68,6 @@ impl Shot {
         &self.controllable_info
     }
 
-    /// The position of the unit.
-    #[inline]
-    pub fn position(&self) -> Vector {
-        self.position.load()
-    }
-
-    /// The movement of the unit.
-    #[inline]
-    pub fn movement(&self) -> Vector {
-        self.movement.load()
-    }
-
-    /// The direction the unit is looking into.
-    #[inline]
-    pub fn angle(&self) -> f32 {
-        self.movement().angle()
-    }
-
-    /// The radius of the unit.
-    #[inline]
-    pub fn radius(&self) -> f32 {
-        1.0
-    }
-
-    /// The mobility of this unit.
-    #[inline]
-    pub fn mobility(&self) -> Mobility {
-        Mobility::Mobile
-    }
-
-    /// The team of the unit.
-    pub fn team(&self) -> Weak<Team> {
-        self.player
-            .upgrade()
-            .map(|p| Arc::downgrade(&p.team()))
-            .unwrap_or_default()
-    }
-
     /// The countdown of when the shot explodes.
     #[inline]
     pub fn ticks(&self) -> u16 {
@@ -133,5 +95,57 @@ impl AsRef<UnitBase> for Shot {
     #[inline]
     fn as_ref(&self) -> &UnitBase {
         &self.base
+    }
+}
+
+impl<'a> UnitExtSealed<'a> for &'a Shot {
+    type Parent = &'a UnitBase;
+
+    fn parent(self) -> Self::Parent {
+        &self.base
+    }
+}
+
+impl<'a> UnitExt<'a> for &'a Shot {
+    #[inline]
+    fn radius(self) -> f32 {
+        1.0
+    }
+
+    #[inline]
+    fn position(self) -> Vector {
+        self.position.load()
+    }
+
+    #[inline]
+    fn movement(self) -> Vector {
+        self.movement.load()
+    }
+
+    #[inline]
+    fn angle(self) -> f32 {
+        self.movement().angle()
+    }
+
+    #[inline]
+    fn is_masking(self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn mobility(self) -> Mobility {
+        Mobility::Mobile
+    }
+
+    #[inline]
+    fn kind(self) -> UnitKind {
+        UnitKind::Shot
+    }
+
+    #[inline]
+    fn team(self) -> Weak<Team> {
+        self.player
+            .upgrade()
+            .map_or_else(Weak::default, |p| p.team_weak())
     }
 }

@@ -1,10 +1,9 @@
 use crate::galaxy_hierarchy::{
-    ControllableInfoBase, ControllableInfoId, Galaxy, Identifiable, NamedUnit, Player,
+    ControllableInfoBase, ControllableInfoId, Galaxy, Identifiable, Player,
 };
 use crate::network::InvalidArgumentKind;
 use crate::unit::UnitKind;
 use crate::{GameError, GameErrorKind};
-use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
 #[derive(Debug)]
@@ -102,12 +101,5 @@ impl Identifiable<ControllableInfoId> for ControllableInfo {
     #[inline]
     fn id(&self) -> ControllableInfoId {
         self.base().id()
-    }
-}
-
-impl NamedUnit for ControllableInfo {
-    #[inline]
-    fn name(&self) -> impl Deref<Target = str> + '_ {
-        self.base().name()
     }
 }
