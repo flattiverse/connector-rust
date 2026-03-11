@@ -283,6 +283,30 @@ impl Unit {
         }
     }
 
+    pub fn as_moon(&self) -> Option<&Moon> {
+        if let Self::Moon(moon) = self {
+            Some(moon)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_meteoroid(&self) -> Option<&Meteoroid> {
+        if let Self::Meteoroid(meteoroid) = self {
+            Some(meteoroid)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_buoy(&self) -> Option<&Buoy> {
+        if let Self::Buoy(buoy) = self {
+            Some(buoy)
+        } else {
+            None
+        }
+    }
+
     pub fn as_planet(&self) -> Option<&Planet> {
         if let Self::Planet(planet) = self {
             Some(planet)
