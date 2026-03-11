@@ -315,21 +315,6 @@ impl Unit {
         }
     }
 
-    pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => Some(cs.as_player_unit()),
-            _ => None,
-        }
-    }
-
-    pub fn as_classic_ship_player_unit(&self) -> Option<&ClassicShipPlayerUnit> {
-        if let Self::ClassicShipPlayerUnit(cs) = self {
-            Some(cs)
-        } else {
-            None
-        }
-    }
-
     pub fn as_shot(&self) -> Option<&Shot> {
         if let Self::Shot(shot) = self {
             Some(shot)
@@ -343,6 +328,21 @@ impl Unit {
             Some(explosion)
         } else {
             None
+        }
+    }
+
+    pub fn as_classic_ship_player_unit(&self) -> Option<&ClassicShipPlayerUnit> {
+        if let Self::ClassicShipPlayerUnit(cs) = self {
+            Some(cs)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
+        match self {
+            Unit::ClassicShipPlayerUnit(cs) => Some(cs.as_player_unit()),
+            _ => None,
         }
     }
 }
