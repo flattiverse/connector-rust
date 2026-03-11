@@ -7,8 +7,8 @@ use crate::unit::{Unit, UnitKind};
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::{
-    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, PlayerUnitDestroyedReason,
-    TeamSnapshot,
+    ClusterSnapshot, FlattiverseEvent, FlattiverseEventKind, GalaxySettingsSnapshot, GameError,
+    GameErrorKind, PlayerUnitDestroyedReason, TeamSnapshot,
 };
 use arc_swap::ArcSwap;
 use async_channel::{Receiver, TryRecvError};
@@ -51,6 +51,7 @@ pub struct Galaxy {
 
     maintenance: Atomic<bool>,
     active: Atomic<bool>,
+    received_galaxy_settings: Atomic<bool>,
 
     teams: UniversalArcHolder<TeamId, Team>,
     clusters: UniversalArcHolder<ClusterId, Cluster>,
@@ -146,6 +147,7 @@ impl Galaxy {
                     player_max_bases: Atomic::from(0),
                     maintenance: Atomic::from(false),
                     active: Atomic::from(true),
+                    received_galaxy_settings: Atomic::from(false),
                     teams: UniversalArcHolder::with_capacity(33),
                     clusters: UniversalArcHolder::with_capacity(64),
                     players: UniversalArcHolder::with_capacity(193),
@@ -237,6 +239,12 @@ impl Galaxy {
         player_max_bases: u8,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating galaxy");
+        let before = if self.received_galaxy_settings.load() {
+            Some(GalaxySettingsSnapshot::from(&**self))
+        } else {
+            None
+        };
+
         self.game_mode.store(game_mode);
         self.name.store(Arc::new(name));
         self.description.store(Arc::new(description));
@@ -257,8 +265,11 @@ impl Galaxy {
         self.player_max_new_ships.store(player_max_new_ships);
         self.player_max_bases.store(player_max_bases);
 
-        event_result!(UpdatedGalaxy {
+        self.received_galaxy_settings.store(true);
+
+        event_result!(GalaxySettingsUpdated {
             galaxy: Arc::clone(self),
+            before,
         })
     }
 
@@ -279,17 +290,16 @@ impl Galaxy {
                 team.update(name, red, green, blue);
                 event_result!(TeamUpdated { team, before })
             }
-            None => {
-                let team = self.teams.populate(Team::new(
+            None => event_result!(TeamCreated {
+                team: self.teams.populate(Team::new(
                     Arc::downgrade(self),
                     id,
                     name,
                     red,
                     green,
                     blue,
-                ));
-                event_result!(TeamCreated { team })
-            }
+                ))
+            }),
         }
     }
 
@@ -316,17 +326,18 @@ impl Galaxy {
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating cluster with {id:?}");
         debug_assert!(id.0 < 64, "Invalid {id:?}");
-        event_result!(UpdatedCluster {
-            cluster: match self.clusters.get_opt(id) {
-                Some(cluster) => {
-                    cluster.update(name);
-                    cluster
-                }
-                None => self
+        match self.clusters.get_opt(id) {
+            Some(cluster) => {
+                let before = ClusterSnapshot::from(&*cluster);
+                cluster.update(name);
+                event_result!(ClusterUpdated { cluster, before })
+            }
+            None => event_result!(ClusterCreated {
+                cluster: self
                     .clusters
-                    .populate(Cluster::new(Arc::downgrade(self), id, name)),
-            },
-        })
+                    .populate(Cluster::new(Arc::downgrade(self), id, name))
+            }),
+        }
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -336,7 +347,7 @@ impl Galaxy {
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Deactivating cluster with {id:?}");
         debug_assert!(id.0 < 64, "Invalid {id:?}");
-        event_result!(DeactivatedCluster {
+        event_result!(ClusterRemoved {
             cluster: {
                 self.clusters.get(id).deactivate();
                 self.clusters.remove(id)

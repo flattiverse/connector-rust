@@ -4,6 +4,12 @@ pub use player_unit_destroyed_reason::*;
 mod team_snapshot;
 pub use team_snapshot::*;
 
+mod cluster_snapshot;
+pub use cluster_snapshot::*;
+
+mod galaxy_settings_snapshot;
+pub use galaxy_settings_snapshot::*;
+
 use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, Galaxy, Identifiable, NamedUnit, Player, Team,
 };
@@ -68,6 +74,7 @@ impl Display for FlattiverseEvent {
                 f,
                 "Ping measured: {ping:?}"
             ),
+
             FlattiverseEventKind::TeamCreated { team } => write!(
                 f,
                 "Team created: {:?}, name={:?}, red={}, green={}, blue={}",
@@ -126,21 +133,100 @@ impl Display for FlattiverseEvent {
                 team.blue()
             ),
 
+            FlattiverseEventKind::ClusterCreated { cluster } => write!(
+                f,
+                "Cluster created: {:?}, name={:?}, active={}",
+                cluster.id(),
+                &*cluster.name(),
+                cluster.active(),
+            ),
+            FlattiverseEventKind::ClusterUpdated { cluster, before } => {
+                write!(f, "Cluster updated: id={:?}", cluster.id())?;
+                let mut appended_at_least_one_change = false;
+
+                if *cluster.name() != before.name {
+                    write!(f, "name={:?}->{:?}", before.name, &*cluster.name())?;
+                    appended_at_least_one_change = true;
+                }
+
+                if cluster.active() != before.active {
+                    if appended_at_least_one_change {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "active={}->{}", before.active, cluster.active())?;
+                    appended_at_least_one_change = true;
+                }
+
+                if !appended_at_least_one_change {
+                    write!(f, ", without effective field changes.")?;
+                }
+
+                Ok(())
+            }
+            FlattiverseEventKind::ClusterRemoved { cluster } => write!(
+                f,
+                "Cluster removed: {:?}, name={:?}, active={}",
+                cluster.id(),
+                &*cluster.name(),
+                cluster.active(),
+            ),
+
+            FlattiverseEventKind::GalaxySettingsUpdated { galaxy, before } => {
+                if let Some(before) = before {
+                    write!(f, "Galaxy settings updated: ")?;
+                    let mut appended_at_least_one_change = false;
+
+                    if before.game_mode != galaxy.game_mode() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "game_mode={:?}->{:?}", before.game_mode, galaxy.game_mode())?; appended_at_least_one_change = true;  }
+                    if before.name != &*galaxy.name() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "name={:?}->{:?}", before.name, &*galaxy.name())?; appended_at_least_one_change = true; }
+                    if before.description != &*galaxy.description() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "description={:?}->{:?}", before.description, &*galaxy.description())?; appended_at_least_one_change = true; }
+                    if before.max_players != galaxy.max_players() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "max_players={:?}->{:?}", before.max_players, galaxy.max_players())?; appended_at_least_one_change = true; }
+                    if before.max_spectators != galaxy.max_spectators() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "max_spectators={:?}->{:?}", before.max_spectators, galaxy.max_spectators())?; appended_at_least_one_change = true; }
+                    if before.galaxy_max_total_ships != galaxy.galaxy_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_total_ships={:?}->{:?}", before.galaxy_max_total_ships, galaxy.galaxy_max_total_ships())?; appended_at_least_one_change = true; }
+                    if before.galaxy_max_classic_ships != galaxy.galaxy_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_classic_ships={:?}->{:?}", before.galaxy_max_classic_ships, galaxy.galaxy_max_classic_ships())?; appended_at_least_one_change = true; }
+                    if before.galaxy_max_new_ships != galaxy.galaxy_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_new_ships={:?}->{:?}", before.galaxy_max_new_ships, galaxy.galaxy_max_new_ships())?; appended_at_least_one_change = true; }
+                    if before.galaxy_max_bases != galaxy.galaxy_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_bases={:?}->{:?}", before.galaxy_max_bases, galaxy.galaxy_max_bases())?; appended_at_least_one_change = true; }
+                    if before.team_max_total_ships != galaxy.team_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_total_ships={:?}->{:?}", before.team_max_total_ships, galaxy.team_max_total_ships())?; appended_at_least_one_change = true; }
+                    if before.team_max_classic_ships != galaxy.team_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_classic_ships={:?}->{:?}", before.team_max_classic_ships, galaxy.team_max_classic_ships())?; appended_at_least_one_change = true; }
+                    if before.team_max_new_ships != galaxy.team_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_new_ships={:?}->{:?}", before.team_max_new_ships, galaxy.team_max_new_ships())?; appended_at_least_one_change = true; }
+                    if before.team_max_bases != galaxy.team_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_bases={:?}->{:?}", before.team_max_bases, galaxy.team_max_bases())?; appended_at_least_one_change = true; }
+                    if before.player_max_total_ships != galaxy.player_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_total_ships={:?}->{:?}", before.player_max_total_ships, galaxy.player_max_total_ships())?; appended_at_least_one_change = true; }
+                    if before.player_max_classic_ships != galaxy.player_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_classic_ships={:?}->{:?}", before.player_max_classic_ships, galaxy.player_max_classic_ships())?; appended_at_least_one_change = true; }
+                    if before.player_max_new_ships != galaxy.player_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_new_ships={:?}->{:?}", before.player_max_new_ships, galaxy.player_max_new_ships())?; appended_at_least_one_change = true; }
+                    if before.player_max_bases != galaxy.player_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_bases={:?}->{:?}", before.player_max_bases, galaxy.player_max_bases())?; appended_at_least_one_change = true; }
+
+                    if !appended_at_least_one_change {
+                        write!(f, ", without effective field changes.")?;
+                    }
+                } else {
+                    write!(
+                        f,
+                        "Galaxy settings initialized: game_mode={:?} name={:?},  description={:?},  max_players={:?},  max_spectators={:?},  galaxy_max_total_ships={:?},  galaxy_max_classic_ships={:?},  galaxy_max_new_ships={:?},  galaxy_max_bases={:?},  team_max_total_ships={:?},  team_max_classic_ships={:?},  team_max_new_ships={:?},  team_max_bases={:?},  player_max_total_ships={:?},  player_max_classic_ships={:?},  player_max_new_ships={:?},  player_max_bases={:?}",
+                        galaxy.game_mode(),
+                        &*galaxy.name(),
+                        &*galaxy.description(),
+                        galaxy.max_players(),
+                        galaxy.max_spectators(),
+                        galaxy.galaxy_max_total_ships(),
+                        galaxy.galaxy_max_classic_ships(),
+                        galaxy.galaxy_max_new_ships(),
+                        galaxy.galaxy_max_bases(),
+                        galaxy.team_max_total_ships(),
+                        galaxy.team_max_classic_ships(),
+                        galaxy.team_max_new_ships(),
+                        galaxy.team_max_bases(),
+                        galaxy.player_max_total_ships(),
+                        galaxy.player_max_classic_ships(),
+                        galaxy.player_max_new_ships(),
+                        galaxy.player_max_bases(),
+                    )?;
+                }
+
+                Ok(())
+            }
+
             FlattiverseEventKind::RespondedToPingMeasurement { challenge } => write!(
                 f,
                 "Responded to Ping measurement: {challenge:?}"
-            ),
-            FlattiverseEventKind::UpdatedGalaxy { galaxy } => write!(
-                f,
-                "Updated galaxy: {:?}", &*galaxy.name()
-            ),
-            FlattiverseEventKind::UpdatedCluster { cluster } => write!(
-                f,
-                "Updated cluster: {:?}", &*cluster.name()
-            ),
-            FlattiverseEventKind::DeactivatedCluster { cluster } => write!(
-                f,
-                "Deactivated cluster: {:?}", &*cluster.name()
             ),
             FlattiverseEventKind::UpdatedPlayer { player } => write!(
                 f,
@@ -336,7 +422,7 @@ impl Display for FlattiverseEvent {
                     Some(team) => {
                         let team = &*team.name();
                         write!(f, "New Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
-                    },
+                    }
                 }
             }
             FlattiverseEventKind::UpdatedUnit { unit } => {
@@ -352,7 +438,7 @@ impl Display for FlattiverseEvent {
                     Some(team) => {
                         let team = &*team.name();
                         write!(f, "Updated Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
-                    },
+                    }
                 }
             }
             FlattiverseEventKind::RemovedUnit { unit } => {
@@ -368,7 +454,7 @@ impl Display for FlattiverseEvent {
                     Some(team) => {
                         let team = &*team.name();
                         write!(f, "Removed Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
-                    },
+                    }
                 }
             }
         }
@@ -507,19 +593,32 @@ pub enum FlattiverseEventKind {
         team: Arc<Team>,
     },
 
+    /// Is raised when a cluster has been created.
+    ClusterCreated {
+        /// The new [Cluster].
+        cluster: Arc<Cluster>,
+    },
+    ClusterUpdated {
+        /// The updated [Cluster].
+        cluster: Arc<Cluster>,
+        /// Cluster snapshot before the update.
+        before: ClusterSnapshot,
+    },
+    ClusterRemoved {
+        /// The removed [Cluster].
+        cluster: Arc<Cluster>,
+    },
+
+    GalaxySettingsUpdated {
+        /// The updated [Galaxy].
+        galaxy: Arc<Galaxy>,
+        before: Option<GalaxySettingsSnapshot>,
+    },
+
     // ---------- local events below
     PingMeasured(Duration),
     RespondedToPingMeasurement {
         challenge: u16,
-    },
-    UpdatedGalaxy {
-        galaxy: Arc<Galaxy>,
-    },
-    UpdatedCluster {
-        cluster: Arc<Cluster>,
-    },
-    DeactivatedCluster {
-        cluster: Arc<Cluster>,
     },
     UpdatedPlayer {
         player: Arc<Player>,
