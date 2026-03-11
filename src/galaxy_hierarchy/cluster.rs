@@ -3,11 +3,11 @@ use crate::unit::Unit;
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use arc_swap::ArcSwap;
-use evmap::handles::{ReadHandle, WriteHandle};
+use crossbeam_skiplist::SkipMap;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub struct ClusterId(pub(crate) u8);
@@ -25,10 +25,7 @@ pub struct Cluster {
     galaxy: Weak<Galaxy>,
     name: ArcSwap<String>,
     active: Atomic<bool>,
-    units: (
-        Mutex<WriteHandle<String, Arc<Unit>>>,
-        ReadHandle<String, Arc<Unit>>,
-    ),
+    units: SkipMap<String, Arc<Unit>>,
 }
 
 impl Debug for Cluster {
@@ -49,11 +46,7 @@ impl Cluster {
             id,
             name: ArcSwap::new(Arc::new(name.into())),
             active: Atomic::from(true),
-            units: {
-                let (mut write, read) = unsafe { evmap::new_assert_stable() };
-                write.publish();
-                (Mutex::new(write), read)
-            },
+            units: SkipMap::new(),
         }
     }
 
@@ -66,41 +59,21 @@ impl Cluster {
     }
 
     pub(crate) fn add_unit(&self, unit: Arc<Unit>) {
-        let mut guard = self.units.0.lock().unwrap();
-        guard.insert(unit.name().to_string(), unit);
-        guard.publish();
+        self.units.insert(unit.name().to_string(), unit);
     }
 
-    pub(crate) fn remove_unit(&self, name: String) -> Option<Arc<Unit>> {
-        let mut guard = self.units.0.lock().unwrap();
-        let removed = guard.get_one(&name).map(|v| Arc::clone(&*v));
-        if removed.is_some() {
-            guard.remove_entry(name);
-            guard.publish();
-        }
-        removed
+    pub(crate) fn remove_unit(&self, name: &str) -> Option<Arc<Unit>> {
+        self.units.remove(name).map(|e| Arc::clone(e.value()))
     }
 
     #[inline]
-    pub fn get_unit(&self, unit: &str) -> Arc<Unit> {
-        self.get_unit_opt(unit).unwrap()
+    pub fn get_unit(&self, unit: &str) -> Option<Arc<Unit>> {
+        self.units.get(unit).map(|e| Arc::clone(e.value()))
     }
 
     #[inline]
-    pub fn get_unit_opt(&self, unit: &str) -> Option<Arc<Unit>> {
-        self.units.1.get_one(unit).map(|v| Arc::clone(&*v))
-    }
-
-    #[inline]
-    pub fn get_units(&self) -> Vec<Arc<Unit>> {
-        self.units
-            .1
-            .enter()
-            .unwrap()
-            .values()
-            .flatten()
-            .cloned()
-            .collect()
+    pub fn iter_units(&self) -> impl Iterator<Item = Arc<Unit>> + '_ {
+        self.units.iter().map(|e| Arc::clone(e.value()))
     }
 
     /// The id within the galaxy of the cluster.

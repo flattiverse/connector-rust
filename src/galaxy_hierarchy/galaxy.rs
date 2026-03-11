@@ -599,7 +599,7 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        if let Some(unit) = cluster.get_unit_opt(&name) {
+        if let Some(unit) = cluster.get_unit(&name) {
             unit.update_movement(reader);
             event_result!(UpdatedUnit { unit })
         } else {
@@ -614,7 +614,7 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        if let Some(unit) = cluster.remove_unit(name.clone()) {
+        if let Some(unit) = cluster.remove_unit(&name) {
             event_result!(RemovedUnit { unit })
         } else {
             error!("Failed to remove unit with name {name:?}");
