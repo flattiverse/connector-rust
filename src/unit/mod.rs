@@ -331,18 +331,25 @@ impl Unit {
         }
     }
 
+    pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
+        match self {
+            Unit::Sun(_) => None,
+            Unit::BlackHole(_) => None,
+            Unit::Moon(_) => None,
+            Unit::Meteoroid(_) => None,
+            Unit::Buoy(_) => None,
+            Unit::Planet(_) => None,
+            Unit::Shot(_) => None,
+            Unit::Explosion(_) => None,
+            Unit::ClassicShipPlayerUnit(cs) => Some(cs.as_player_unit()),
+        }
+    }
+
     pub fn as_classic_ship_player_unit(&self) -> Option<&ClassicShipPlayerUnit> {
         if let Self::ClassicShipPlayerUnit(cs) = self {
             Some(cs)
         } else {
             None
-        }
-    }
-
-    pub fn as_player_unit(&self) -> Option<&PlayerUnit> {
-        match self {
-            Unit::ClassicShipPlayerUnit(cs) => Some(cs.as_player_unit()),
-            _ => None,
         }
     }
 }
