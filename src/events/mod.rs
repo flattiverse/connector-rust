@@ -575,44 +575,47 @@ pub enum FlattiverseEventKind {
         tick: u32,
     },
 
-    /// Is raised when a team has been created.
+    /// The galaxy settings have been updated.
+    GalaxySettingsUpdated {
+        /// The updated [Galaxy].
+        galaxy: Arc<Galaxy>,
+        before: Option<GalaxySettingsSnapshot>,
+    },
+
+    /// A team has been created.
     TeamCreated {
         /// The new [Team].
         team: Arc<Team>,
     },
-    /// Is raised when a team has been updated.
+    /// A team has been updated.
     TeamUpdated {
         /// The updated [Team].
         team: Arc<Team>,
         /// Team snapshot before the update.
         before: TeamSnapshot,
     },
-    /// Is raised when a team has been removed.
+    /// A team has been removed.
     TeamRemoved {
         /// The removed [Team].
         team: Arc<Team>,
     },
 
-    /// Is raised when a cluster has been created.
+    /// A cluster has been created.
     ClusterCreated {
         /// The new [Cluster].
         cluster: Arc<Cluster>,
     },
+    /// A cluster has been updated.
     ClusterUpdated {
         /// The updated [Cluster].
         cluster: Arc<Cluster>,
         /// Cluster snapshot before the update.
         before: ClusterSnapshot,
     },
+    /// A cluster has been removed.
     ClusterRemoved {
         /// The removed [Cluster].
         cluster: Arc<Cluster>,
-    },
-
-    GalaxySettingsUpdated {
-        /// The updated [Galaxy].
-        galaxy: Arc<Galaxy>,
-        before: Option<GalaxySettingsSnapshot>,
     },
 
     // ---------- local events below
