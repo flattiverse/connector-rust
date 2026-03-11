@@ -19,6 +19,12 @@ pub use black_hole::*;
 mod moon;
 pub use moon::*;
 
+mod meteoroid;
+pub use meteoroid::*;
+
+mod buoy;
+pub use buoy::*;
+
 mod planet;
 pub use planet::*;
 
@@ -47,6 +53,8 @@ pub enum Unit {
     Sun(Sun),
     BlackHole(BlackHole),
     Moon(Moon),
+    Meteoroid(Meteoroid),
+    Buoy(Buoy),
     Planet(Planet),
     ClassicShipPlayerUnit(ClassicShipPlayerUnit),
     Shot(Shot),
@@ -64,8 +72,8 @@ impl Unit {
             UnitKind::Sun => Some(Unit::Sun(Sun::read(cluster, name, reader))),
             UnitKind::BlackHole => Some(Unit::BlackHole(BlackHole::read(cluster, name, reader))),
             UnitKind::Moon => Some(Unit::Moon(Moon::read(cluster, name, reader))),
-            UnitKind::Meteoroid => None, // TODO
-            UnitKind::Buoy => None,      // TODO
+            UnitKind::Meteoroid => Some(Unit::Meteoroid(Meteoroid::read(cluster, name, reader))),
+            UnitKind::Buoy => Some(Unit::Buoy(Buoy::read(cluster, name, reader))),
             UnitKind::Planet => Some(Unit::Planet(Planet::read(cluster, name, reader))),
             UnitKind::Shot => Some(Unit::Shot(Shot::read(cluster, name, reader))),
             UnitKind::ClassicShipPlayerUnit => Some(Unit::ClassicShipPlayerUnit(
@@ -89,6 +97,8 @@ impl Unit {
             Unit::Sun(sun) => sun.as_steady_unit().radius(),
             Unit::BlackHole(bh) => bh.as_steady_unit().radius(),
             Unit::Moon(moon) => moon.as_steady_unit().radius(),
+            Unit::Meteoroid(meteoroid) => meteoroid.as_steady_unit().radius(),
+            Unit::Buoy(buoy) => buoy.as_steady_unit().radius(),
             Unit::Planet(planet) => planet.as_steady_unit().radius(),
             Unit::ClassicShipPlayerUnit(cs) => cs.radius(),
             Unit::Shot(shot) => shot.radius(),
@@ -102,6 +112,8 @@ impl Unit {
             Unit::Sun(sun) => sun.as_steady_unit().position(),
             Unit::BlackHole(bh) => bh.as_steady_unit().position(),
             Unit::Moon(moon) => moon.as_steady_unit().position(),
+            Unit::Meteoroid(meteoroid) => meteoroid.as_steady_unit().position(),
+            Unit::Buoy(buoy) => buoy.as_steady_unit().position(),
             Unit::Planet(planet) => planet.as_steady_unit().position(),
             Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().position(),
             Unit::Shot(shot) => shot.position(),
@@ -183,6 +195,8 @@ impl Unit {
             Unit::Sun(_) => UnitKind::Sun,
             Unit::BlackHole(_) => UnitKind::BlackHole,
             Unit::Moon(_) => UnitKind::Moon,
+            Unit::Meteoroid(_) => UnitKind::Meteoroid,
+            Unit::Buoy(_) => UnitKind::Buoy,
             Unit::Planet(_) => UnitKind::Planet,
             Unit::ClassicShipPlayerUnit(_) => UnitKind::ClassicShipPlayerUnit,
             Unit::Shot(_) => UnitKind::Shot,
@@ -202,6 +216,8 @@ impl Unit {
             Unit::Sun(_) => Weak::default(),
             Unit::BlackHole(_) => Weak::default(),
             Unit::Moon(_) => Weak::default(),
+            Unit::Meteoroid(_) => Weak::default(),
+            Unit::Buoy(_) => Weak::default(),
             Unit::Planet(_) => Weak::default(),
             Unit::ClassicShipPlayerUnit(cs) => Arc::downgrade(&cs.as_player_unit().player().team()),
             Unit::Shot(shot) => shot.team(),
@@ -214,6 +230,8 @@ impl Unit {
             Unit::Sun(_) => unreachable!(),
             Unit::BlackHole(_) => unreachable!(),
             Unit::Moon(_) => unreachable!(),
+            Unit::Meteoroid(_) => unreachable!(),
+            Unit::Buoy(_) => unreachable!(),
             Unit::Planet(_) => unreachable!(),
             Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().update_movement(reader),
             Unit::Shot(shot) => shot.update_movement(reader),
@@ -226,6 +244,8 @@ impl Unit {
             Unit::Sun(sun) => sun.as_unit_base(),
             Unit::BlackHole(bh) => bh.as_unit_base(),
             Unit::Moon(moon) => moon.as_unit_base(),
+            Unit::Meteoroid(meteoroid) => meteoroid.as_unit_base(),
+            Unit::Buoy(buoy) => buoy.as_unit_base(),
             Unit::Planet(planet) => planet.as_unit_base(),
             Unit::ClassicShipPlayerUnit(cs) => cs.as_unit_base(),
             Unit::Shot(shot) => shot.as_unit_base(),
@@ -238,6 +258,8 @@ impl Unit {
             Unit::Sun(sun) => Some(sun.as_steady_unit()),
             Unit::BlackHole(bh) => Some(bh.as_steady_unit()),
             Unit::Moon(moon) => Some(moon.as_steady_unit()),
+            Unit::Meteoroid(meteoroid) => Some(meteoroid.as_steady_unit()),
+            Unit::Buoy(buoy) => Some(buoy.as_steady_unit()),
             Unit::Planet(planet) => Some(planet.as_steady_unit()),
             Unit::ClassicShipPlayerUnit(_) => None,
             Unit::Shot(_) => None,
