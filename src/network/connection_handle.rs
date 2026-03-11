@@ -382,9 +382,10 @@ impl ConnectionHandle {
         })
     }
 
-    // TODO functionality goes here
+    #[inline]
     pub(crate) fn respond_to_ping(&self, challenge: u16) -> Result<(), GameError> {
         let mut packet = Packet::default();
+        packet.header_mut().set_command(0x00);
         packet.write(|writer| writer.write_uint16(challenge));
         self.send_packet_directly(packet)
     }

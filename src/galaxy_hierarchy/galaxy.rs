@@ -8,6 +8,7 @@ use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, PlayerUnitDestroyedReason,
+    TeamSnapshot,
 };
 use arc_swap::ArcSwap;
 use async_channel::{Receiver, TryRecvError};
@@ -272,17 +273,24 @@ impl Galaxy {
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating team with {id:?}");
         debug_assert!(id.0 < 32, "Invalid {id:?}");
-        event_result!(UpdatedTeam {
-            team: match self.teams.get_opt(id) {
-                Some(team) => {
-                    team.update(name, red, green, blue);
-                    team
-                }
-                None =>
-                    self.teams
-                        .populate(Team::new(Arc::downgrade(self), id, name, red, green, blue)),
-            },
-        })
+        match self.teams.get_opt(id) {
+            Some(team) => {
+                let before = TeamSnapshot::from(&*team);
+                team.update(name, red, green, blue);
+                event_result!(TeamUpdated { team, before })
+            }
+            None => {
+                let team = self.teams.populate(Team::new(
+                    Arc::downgrade(self),
+                    id,
+                    name,
+                    red,
+                    green,
+                    blue,
+                ));
+                event_result!(TeamCreated { team })
+            }
+        }
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -292,7 +300,7 @@ impl Galaxy {
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Deactivating team with {id:?}");
         debug_assert!(id.0 < 32, "Invalid {id:?}");
-        event_result!(DeactivatedTeam {
+        event_result!(TeamRemoved {
             team: {
                 self.teams.get(id).deactivate();
                 self.teams.remove(id)
