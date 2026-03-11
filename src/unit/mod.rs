@@ -143,6 +143,7 @@ impl Unit {
     pub fn is_masking(&self) -> bool {
         match self {
             Unit::Explosion(e) => e.is_masking(),
+            Unit::Buoy(_) => false,
             _ => true,
         }
     }
@@ -151,6 +152,7 @@ impl Unit {
     pub fn is_solid(&self) -> bool {
         match self {
             Unit::Explosion(e) => e.is_solid(),
+            Unit::Buoy(_) => false,
             _ => true,
         }
     }

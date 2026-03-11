@@ -9,6 +9,7 @@ use std::sync::Weak;
 pub struct Buoy {
     base: UnitBase,
     steady: SteadyUnit,
+    message: Option<String>,
 }
 
 impl Buoy {
@@ -20,7 +21,21 @@ impl Buoy {
         Self {
             base: UnitBase::new(cluster, name),
             steady: SteadyUnit::read(reader),
+            message: {
+                let string = reader.read_string();
+                if string.is_empty() {
+                    None
+                } else {
+                    Some(string)
+                }
+            },
         }
+    }
+
+    /// Optional buoy message. [None] means no message.
+    #[inline]
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
     }
 }
 
