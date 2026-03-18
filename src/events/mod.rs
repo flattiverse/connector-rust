@@ -133,10 +133,12 @@ impl Display for FlattiverseEvent {
 
             FlattiverseEventKind::ClusterCreated { cluster } => write!(
                 f,
-                "Cluster created: {:?}, name={:?}, active={}",
+                "Cluster created: {:?}, name={:?}, active={}, start={}, respawn={}",
                 cluster.id(),
                 &*cluster.name(),
                 cluster.active(),
+                cluster.start(),
+                cluster.respawn(),
             ),
             FlattiverseEventKind::ClusterUpdated { cluster, before } => {
                 write!(f, "Cluster updated: id={:?}", cluster.id())?;
@@ -155,6 +157,22 @@ impl Display for FlattiverseEvent {
                     appended_at_least_one_change = true;
                 }
 
+                if cluster.start() != before.start {
+                    if appended_at_least_one_change {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "start={}->{}", before.start, cluster.start())?;
+                    appended_at_least_one_change = true;
+                }
+
+                if cluster.respawn() != before.respawn {
+                    if appended_at_least_one_change {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "respawn={}->{}", before.respawn, cluster.respawn())?;
+                    appended_at_least_one_change = true;
+                }
+
                 if !appended_at_least_one_change {
                     write!(f, ", without effective field changes.")?;
                 }
@@ -163,10 +181,12 @@ impl Display for FlattiverseEvent {
             }
             FlattiverseEventKind::ClusterRemoved { cluster } => write!(
                 f,
-                "Cluster removed: {:?}, name={:?}, active={}",
+                "Cluster removed: {:?}, name={:?}, active={}, start={}, respawn={}",
                 cluster.id(),
                 &*cluster.name(),
                 cluster.active(),
+                cluster.start(),
+                cluster.respawn(),
             ),
 
             FlattiverseEventKind::GalaxySettingsUpdated { galaxy, before } => {

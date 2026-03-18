@@ -105,7 +105,11 @@ impl Connection {
                 reader.read_string(),
             ),
             0x03 => galaxy.deactivate_team(TeamId(reader.read_byte())),
-            0x06 => galaxy.update_cluster(ClusterId(reader.read_byte()), reader.read_string()),
+            0x06 => galaxy.update_cluster(
+                ClusterId(reader.read_byte()),
+                reader.read_string(),
+                reader.read_byte(),
+            ),
             0x07 => galaxy.deactivate_cluster(ClusterId(reader.read_byte())),
             0x10 => galaxy.create_player(
                 PlayerId(reader.read_byte()),

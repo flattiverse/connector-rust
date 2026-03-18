@@ -24,6 +24,8 @@ pub struct Cluster {
     id: ClusterId,
     galaxy: Weak<Galaxy>,
     name: ArcSwap<String>,
+    start: Atomic<bool>,
+    respawn: Atomic<bool>,
     active: Atomic<bool>,
     units: SkipMap<String, Arc<Unit>>,
 }
@@ -40,18 +42,29 @@ impl Debug for Cluster {
 }
 
 impl Cluster {
-    pub fn new(galaxy: Weak<Galaxy>, id: ClusterId, name: impl Into<String>) -> Self {
+    pub fn new(
+        galaxy: Weak<Galaxy>,
+        id: ClusterId,
+        name: impl Into<String>,
+        start: bool,
+        respawn: bool,
+    ) -> Self {
         Self {
             galaxy,
             id,
             name: ArcSwap::new(Arc::new(name.into())),
+            start: Atomic::from(start),
+            respawn: Atomic::from(respawn),
             active: Atomic::from(true),
             units: SkipMap::new(),
         }
     }
 
-    pub(crate) fn update(&self, name: String) {
+    pub(crate) fn update(&self, name: String, start: bool, respawn: bool) {
         self.name.store(Arc::new(name));
+        self.start.store(start);
+        self.respawn.store(respawn);
+        self.active.store(true);
     }
 
     pub(crate) fn deactivate(&self) {
@@ -87,6 +100,20 @@ impl Cluster {
     #[inline]
     pub fn name(&self) -> impl Deref<Target = str> + '_ {
         NamedUnit::name(self)
+    }
+
+    /// If true, freshly registered ships spawn in this cluster.
+    #[inline]
+    pub fn start(&self) -> bool {
+        self.start.load()
+    }
+
+    /// If true, [`Controllable::r#continue`] spawns in this cluster.
+    ///
+    /// [`Controllable::r#continue`]: crate::galaxy_hierarchy::Controllable::r#continue
+    #[inline]
+    pub fn respawn(&self) -> bool {
+        self.respawn.load()
     }
 
     /// If false, you have been disconnected or the cluster has been removed and therefore disabled.

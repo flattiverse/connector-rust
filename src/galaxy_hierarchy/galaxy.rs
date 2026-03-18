@@ -323,19 +323,26 @@ impl Galaxy {
         self: &Arc<Galaxy>,
         id: ClusterId,
         name: String,
+        flags: u8,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating cluster with {id:?}");
         debug_assert!(id.0 < 64, "Invalid {id:?}");
+        let start = (flags & 0x01) != 0;
+        let respawn = (flags & 0x02) != 0;
         match self.clusters.get_opt(id) {
             Some(cluster) => {
                 let before = ClusterSnapshot::from(&*cluster);
-                cluster.update(name);
+                cluster.update(name, start, respawn);
                 event_result!(ClusterUpdated { cluster, before })
             }
             None => event_result!(ClusterCreated {
-                cluster: self
-                    .clusters
-                    .populate(Cluster::new(Arc::downgrade(self), id, name))
+                cluster: self.clusters.populate(Cluster::new(
+                    Arc::downgrade(self),
+                    id,
+                    name,
+                    start,
+                    respawn,
+                ))
             }),
         }
     }

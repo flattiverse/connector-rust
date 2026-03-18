@@ -9,6 +9,10 @@ pub struct ClusterSnapshot {
     pub name: String,
     /// Cluster activity flag.
     pub active: bool,
+    /// Start-cluster flag.
+    pub start: bool,
+    /// Respawn-cluster flag.
+    pub respawn: bool,
 }
 
 impl From<&Cluster> for ClusterSnapshot {
@@ -17,6 +21,8 @@ impl From<&Cluster> for ClusterSnapshot {
             id: cluster.id(),
             name: cluster.name().to_string(),
             active: cluster.active(),
+            start: cluster.start(),
+            respawn: cluster.respawn(),
         }
     }
 }
