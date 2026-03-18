@@ -75,6 +75,10 @@ impl Galaxy {
     #[cfg(feature = "dev-environment")]
     pub const URI_GALAXY_DEFAULT: &'static str = "ws://localhost:5000";
 
+    pub const SPECTATORS_TEAM_ID: TeamId = TeamId(12);
+    pub const TEAM_CAPACITY: usize = 13;
+    pub const CLUSTER_CAPACITY: usize = 24;
+
     #[inline]
     pub async fn connect(
         galaxy: u16,
@@ -148,8 +152,8 @@ impl Galaxy {
                     maintenance: Atomic::from(false),
                     active: Atomic::from(true),
                     received_galaxy_settings: Atomic::from(false),
-                    teams: UniversalArcHolder::with_capacity(33),
-                    clusters: UniversalArcHolder::with_capacity(64),
+                    teams: UniversalArcHolder::with_capacity(Self::TEAM_CAPACITY),
+                    clusters: UniversalArcHolder::with_capacity(Self::CLUSTER_CAPACITY),
                     players: UniversalArcHolder::with_capacity(193),
                     controllables: UniversalArcHolder::with_capacity(192),
                     connection: handle,
@@ -159,7 +163,7 @@ impl Galaxy {
 
                 this.teams.populate(Team::new(
                     Arc::downgrade(&this),
-                    TeamId(32),
+                    Self::SPECTATORS_TEAM_ID,
                     "Spectators",
                     128,
                     128,
@@ -237,6 +241,7 @@ impl Galaxy {
         player_max_classic_ships: u8,
         player_max_new_ships: u8,
         player_max_bases: u8,
+        maintenance: u8,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating galaxy");
         let before = if self.received_galaxy_settings.load() {
@@ -264,6 +269,7 @@ impl Galaxy {
             .store(player_max_classic_ships);
         self.player_max_new_ships.store(player_max_new_ships);
         self.player_max_bases.store(player_max_bases);
+        self.maintenance.store(maintenance != 0);
 
         self.received_galaxy_settings.store(true);
 
@@ -283,7 +289,7 @@ impl Galaxy {
         name: String,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating team with {id:?}");
-        debug_assert!(id.0 < 32, "Invalid {id:?}");
+        debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
         match self.teams.get_opt(id) {
             Some(team) => {
                 let before = TeamSnapshot::from(&*team);
@@ -309,7 +315,7 @@ impl Galaxy {
         id: TeamId,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Deactivating team with {id:?}");
-        debug_assert!(id.0 < 32, "Invalid {id:?}");
+        debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
         event_result!(TeamRemoved {
             team: {
                 self.teams.get(id).deactivate();
@@ -326,7 +332,7 @@ impl Galaxy {
         flags: u8,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating cluster with {id:?}");
-        debug_assert!(id.0 < 64, "Invalid {id:?}");
+        debug_assert!(usize::from(id.0) < Self::CLUSTER_CAPACITY, "Invalid {id:?}");
         let start = (flags & 0x01) != 0;
         let respawn = (flags & 0x02) != 0;
         match self.clusters.get_opt(id) {
@@ -353,7 +359,7 @@ impl Galaxy {
         id: ClusterId,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Deactivating cluster with {id:?}");
-        debug_assert!(id.0 < 64, "Invalid {id:?}");
+        debug_assert!(usize::from(id.0) < Self::CLUSTER_CAPACITY, "Invalid {id:?}");
         event_result!(ClusterRemoved {
             cluster: {
                 self.clusters.get(id).deactivate();

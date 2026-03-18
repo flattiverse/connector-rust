@@ -37,6 +37,8 @@ pub struct GalaxySettingsSnapshot {
     pub player_max_new_ships: u8,
     /// Maximum bases per player.
     pub player_max_bases: u8,
+    /// Maintenance mode flag.
+    pub maintenance: bool,
 }
 
 impl From<&Galaxy> for GalaxySettingsSnapshot {
@@ -59,6 +61,7 @@ impl From<&Galaxy> for GalaxySettingsSnapshot {
             player_max_classic_ships: galaxy.player_max_classic_ships(),
             player_max_new_ships: galaxy.player_max_new_ships(),
             player_max_bases: galaxy.player_max_bases(),
+            maintenance: galaxy.maintenance(),
         }
     }
 }

@@ -96,6 +96,7 @@ impl Connection {
                 reader.read_byte(),
                 reader.read_byte(),
                 reader.read_byte(),
+                reader.read_byte(),
             ),
             0x02 => galaxy.update_team(
                 TeamId(reader.read_byte()),

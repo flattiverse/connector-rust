@@ -58,6 +58,43 @@ impl From<FlattiverseEventKind> for FlattiverseEvent {
 
 impl Display for FlattiverseEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        macro_rules! log_change {
+            ($append_state:expr, $current:ident, $before:ident, $name:ident) => {
+                log_change!(
+                    $append_state,
+                    { $current.$name() },
+                    { $before.$name },
+                    $name
+                );
+            };
+            ($append_state:expr, $current:expr, $before:expr, $name:ident) => {
+                if $current != $before {
+                    if $append_state {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}={}->{}", stringify!($name), $before, $current)?;
+                    $append_state = true;
+                }
+            };
+            ($append_state:expr, $current:ident, $before:ident, debug $name:ident) => {
+                log_change!(
+                    $append_state,
+                    { $current.$name() },
+                    { $before.$name },
+                    debug $name
+                );
+            };
+            ($append_state:expr, $current:expr, $before:expr, debug $name:ident) => {
+                if $current != $before {
+                    if $append_state {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}={:?}->{:?}", stringify!($name), $before, $current)?;
+                    $append_state = true;
+                }
+            };
+        }
+
         write!(f, "{} ", crate::runtime::format_date_time(self.0.stamp))?;
         match &self.0.kind {
             FlattiverseEventKind::ConnectionTerminated { message } => match message.as_ref() {
@@ -86,34 +123,10 @@ impl Display for FlattiverseEvent {
                 write!(f, "Team updated: id={:?}", team.id)?;
                 let mut appended_at_least_one_change = false;
 
-                if *team.name() != before.name {
-                    write!(f, "name={:?}->{:?}", before.name, &*team.name())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if team.red() != before.red {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "red={}->{}", before.red, team.red())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if team.green() != before.green {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "green={}->{}", before.green, team.green())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if team.blue() != before.blue {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "blue={}->{}", before.blue, team.blue())?;
-                    appended_at_least_one_change = true;
-                }
+                log_change!(appended_at_least_one_change, &*team.name(), before.name, name);
+                log_change!(appended_at_least_one_change, team, before, red);
+                log_change!(appended_at_least_one_change, team, before, green);
+                log_change!(appended_at_least_one_change, team, before, blue);
 
                 if !appended_at_least_one_change {
                     write!(f, ", without effective field changes.")?;
@@ -144,34 +157,10 @@ impl Display for FlattiverseEvent {
                 write!(f, "Cluster updated: id={:?}", cluster.id())?;
                 let mut appended_at_least_one_change = false;
 
-                if *cluster.name() != before.name {
-                    write!(f, "name={:?}->{:?}", before.name, &*cluster.name())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if cluster.active() != before.active {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "active={}->{}", before.active, cluster.active())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if cluster.start() != before.start {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "start={}->{}", before.start, cluster.start())?;
-                    appended_at_least_one_change = true;
-                }
-
-                if cluster.respawn() != before.respawn {
-                    if appended_at_least_one_change {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "respawn={}->{}", before.respawn, cluster.respawn())?;
-                    appended_at_least_one_change = true;
-                }
+                log_change!(appended_at_least_one_change, &*cluster.name(), before.name, name);
+                log_change!(appended_at_least_one_change, cluster, before, active);
+                log_change!(appended_at_least_one_change, cluster, before, start);
+                log_change!(appended_at_least_one_change, cluster, before, respawn);
 
                 if !appended_at_least_one_change {
                     write!(f, ", without effective field changes.")?;
@@ -194,23 +183,24 @@ impl Display for FlattiverseEvent {
                     write!(f, "Galaxy settings updated: ")?;
                     let mut appended_at_least_one_change = false;
 
-                    if before.game_mode != galaxy.game_mode() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "game_mode={:?}->{:?}", before.game_mode, galaxy.game_mode())?; appended_at_least_one_change = true;  }
-                    if before.name != &*galaxy.name() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "name={:?}->{:?}", before.name, &*galaxy.name())?; appended_at_least_one_change = true; }
-                    if before.description != &*galaxy.description() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "description={:?}->{:?}", before.description, &*galaxy.description())?; appended_at_least_one_change = true; }
-                    if before.max_players != galaxy.max_players() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "max_players={:?}->{:?}", before.max_players, galaxy.max_players())?; appended_at_least_one_change = true; }
-                    if before.max_spectators != galaxy.max_spectators() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "max_spectators={:?}->{:?}", before.max_spectators, galaxy.max_spectators())?; appended_at_least_one_change = true; }
-                    if before.galaxy_max_total_ships != galaxy.galaxy_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_total_ships={:?}->{:?}", before.galaxy_max_total_ships, galaxy.galaxy_max_total_ships())?; appended_at_least_one_change = true; }
-                    if before.galaxy_max_classic_ships != galaxy.galaxy_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_classic_ships={:?}->{:?}", before.galaxy_max_classic_ships, galaxy.galaxy_max_classic_ships())?; appended_at_least_one_change = true; }
-                    if before.galaxy_max_new_ships != galaxy.galaxy_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_new_ships={:?}->{:?}", before.galaxy_max_new_ships, galaxy.galaxy_max_new_ships())?; appended_at_least_one_change = true; }
-                    if before.galaxy_max_bases != galaxy.galaxy_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "galaxy_max_bases={:?}->{:?}", before.galaxy_max_bases, galaxy.galaxy_max_bases())?; appended_at_least_one_change = true; }
-                    if before.team_max_total_ships != galaxy.team_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_total_ships={:?}->{:?}", before.team_max_total_ships, galaxy.team_max_total_ships())?; appended_at_least_one_change = true; }
-                    if before.team_max_classic_ships != galaxy.team_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_classic_ships={:?}->{:?}", before.team_max_classic_ships, galaxy.team_max_classic_ships())?; appended_at_least_one_change = true; }
-                    if before.team_max_new_ships != galaxy.team_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_new_ships={:?}->{:?}", before.team_max_new_ships, galaxy.team_max_new_ships())?; appended_at_least_one_change = true; }
-                    if before.team_max_bases != galaxy.team_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "team_max_bases={:?}->{:?}", before.team_max_bases, galaxy.team_max_bases())?; appended_at_least_one_change = true; }
-                    if before.player_max_total_ships != galaxy.player_max_total_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_total_ships={:?}->{:?}", before.player_max_total_ships, galaxy.player_max_total_ships())?; appended_at_least_one_change = true; }
-                    if before.player_max_classic_ships != galaxy.player_max_classic_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_classic_ships={:?}->{:?}", before.player_max_classic_ships, galaxy.player_max_classic_ships())?; appended_at_least_one_change = true; }
-                    if before.player_max_new_ships != galaxy.player_max_new_ships() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_new_ships={:?}->{:?}", before.player_max_new_ships, galaxy.player_max_new_ships())?; appended_at_least_one_change = true; }
-                    if before.player_max_bases != galaxy.player_max_bases() { if appended_at_least_one_change { write!(f, ", ")?; } write!(f, "player_max_bases={:?}->{:?}", before.player_max_bases, galaxy.player_max_bases())?; appended_at_least_one_change = true; }
+                    log_change!(appended_at_least_one_change, galaxy, before, debug game_mode);
+                    log_change!(appended_at_least_one_change, &*galaxy.name(), before.name, name);
+                    log_change!(appended_at_least_one_change, &*galaxy.description(), before.description, description);
+                    log_change!(appended_at_least_one_change, galaxy, before, max_players);
+                    log_change!(appended_at_least_one_change, galaxy, before, max_spectators);
+                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_total_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_classic_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_new_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, team_max_total_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, team_max_classic_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, team_max_new_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, team_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, player_max_total_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, player_max_classic_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, player_max_new_ships);
+                    log_change!(appended_at_least_one_change, galaxy, before, player_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, maintenance);
 
                     if !appended_at_least_one_change {
                         write!(f, ", without effective field changes.")?;
