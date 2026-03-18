@@ -47,7 +47,7 @@ impl Explosion {
                 .unwrap_or_default(),
             size: reader.read_f32(),
             damage: reader.read_f32(),
-            position: Vector::default().with_read(reader),
+            position: Vector::from_read(reader),
             second_phase: Atomic::from(false),
         }
     }

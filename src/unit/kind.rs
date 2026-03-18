@@ -24,6 +24,8 @@ pub enum UnitKind {
     Meteoroid = 0x0A,
     /// Represents a buoy.
     Buoy = 0x10,
+    /// Represents a mission target with configurable waypoint vectors.
+    MissionTarget = 0x11,
     /// Represents a shot.
     Shot = 0xE0,
     /// Represents a classical player ship.

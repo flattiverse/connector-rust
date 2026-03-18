@@ -307,7 +307,7 @@ impl Atomar for Vector {
 impl Readable for Vector {
     #[inline]
     fn read(reader: &mut dyn PacketReader) -> Self {
-        Self::default().with_read(reader)
+        Self::from_read(reader)
     }
 }
 

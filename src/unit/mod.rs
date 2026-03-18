@@ -25,6 +25,9 @@ pub use meteoroid::*;
 mod buoy;
 pub use buoy::*;
 
+mod mission_target;
+pub use mission_target::*;
+
 mod planet;
 pub use planet::*;
 
@@ -55,6 +58,7 @@ pub enum Unit {
     Moon(Moon),
     Meteoroid(Meteoroid),
     Buoy(Buoy),
+    MissionTarget(MissionTarget),
     Planet(Planet),
     ClassicShipPlayerUnit(ClassicShipPlayerUnit),
     Shot(Shot),
@@ -74,6 +78,9 @@ impl Unit {
             UnitKind::Moon => Some(Unit::Moon(Moon::read(cluster, name, reader))),
             UnitKind::Meteoroid => Some(Unit::Meteoroid(Meteoroid::read(cluster, name, reader))),
             UnitKind::Buoy => Some(Unit::Buoy(Buoy::read(cluster, name, reader))),
+            UnitKind::MissionTarget => Some(Unit::MissionTarget(MissionTarget::read(
+                cluster, name, reader,
+            ))),
             UnitKind::Planet => Some(Unit::Planet(Planet::read(cluster, name, reader))),
             UnitKind::Shot => Some(Unit::Shot(Shot::read(cluster, name, reader))),
             UnitKind::ClassicShipPlayerUnit => Some(Unit::ClassicShipPlayerUnit(
@@ -92,6 +99,7 @@ impl Unit {
             Unit::Moon(_) => unreachable!(),
             Unit::Meteoroid(_) => unreachable!(),
             Unit::Buoy(_) => unreachable!(),
+            Unit::MissionTarget(_) => unreachable!(),
             Unit::Planet(_) => unreachable!(),
             Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().update_movement(reader),
             Unit::Shot(shot) => shot.update_movement(reader),
@@ -106,6 +114,7 @@ impl Unit {
             Unit::Moon(moon) => moon.as_unit_base(),
             Unit::Meteoroid(meteoroid) => meteoroid.as_unit_base(),
             Unit::Buoy(buoy) => buoy.as_unit_base(),
+            Unit::MissionTarget(mt) => mt.as_unit_base(),
             Unit::Planet(planet) => planet.as_unit_base(),
             Unit::ClassicShipPlayerUnit(cs) => cs.as_unit_base(),
             Unit::Shot(shot) => shot.as_unit_base(),
@@ -120,6 +129,7 @@ impl Unit {
             Unit::Moon(moon) => Some(moon.as_steady_unit()),
             Unit::Meteoroid(meteoroid) => Some(meteoroid.as_steady_unit()),
             Unit::Buoy(buoy) => Some(buoy.as_steady_unit()),
+            Unit::MissionTarget(mt) => Some(mt.as_steady_unit()),
             Unit::Planet(planet) => Some(planet.as_steady_unit()),
             Unit::ClassicShipPlayerUnit(_) => None,
             Unit::Shot(_) => None,
@@ -167,6 +177,14 @@ impl Unit {
         }
     }
 
+    pub fn as_mission_target(&self) -> Option<&MissionTarget> {
+        if let Self::MissionTarget(mt) = self {
+            Some(mt)
+        } else {
+            None
+        }
+    }
+
     pub fn as_planet(&self) -> Option<&Planet> {
         if let Self::Planet(planet) = self {
             Some(planet)
@@ -198,6 +216,7 @@ impl Unit {
             Unit::Moon(_) => None,
             Unit::Meteoroid(_) => None,
             Unit::Buoy(_) => None,
+            Unit::MissionTarget(_) => None,
             Unit::Planet(_) => None,
             Unit::Shot(_) => None,
             Unit::Explosion(_) => None,
@@ -369,6 +388,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.name(),
             Unit::Meteoroid(u) => u.name(),
             Unit::Buoy(u) => u.name(),
+            Unit::MissionTarget(u) => u.name(),
             Unit::Planet(u) => u.name(),
             Unit::ClassicShipPlayerUnit(u) => u.name(),
             Unit::Shot(u) => u.name(),
@@ -383,6 +403,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.radius(),
             Unit::Meteoroid(u) => u.radius(),
             Unit::Buoy(u) => u.radius(),
+            Unit::MissionTarget(u) => u.radius(),
             Unit::Planet(u) => u.radius(),
             Unit::ClassicShipPlayerUnit(u) => u.radius(),
             Unit::Shot(u) => u.radius(),
@@ -397,6 +418,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.position(),
             Unit::Meteoroid(u) => u.position(),
             Unit::Buoy(u) => u.position(),
+            Unit::MissionTarget(u) => u.position(),
             Unit::Planet(u) => u.position(),
             Unit::ClassicShipPlayerUnit(u) => u.position(),
             Unit::Shot(u) => u.position(),
@@ -411,6 +433,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.movement(),
             Unit::Meteoroid(u) => u.movement(),
             Unit::Buoy(u) => u.movement(),
+            Unit::MissionTarget(u) => u.movement(),
             Unit::Planet(u) => u.movement(),
             Unit::ClassicShipPlayerUnit(u) => u.movement(),
             Unit::Shot(u) => u.movement(),
@@ -425,6 +448,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.angle(),
             Unit::Meteoroid(u) => u.angle(),
             Unit::Buoy(u) => u.angle(),
+            Unit::MissionTarget(u) => u.angle(),
             Unit::Planet(u) => u.angle(),
             Unit::ClassicShipPlayerUnit(u) => u.angle(),
             Unit::Shot(u) => u.angle(),
@@ -439,6 +463,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.is_masking(),
             Unit::Meteoroid(u) => u.is_masking(),
             Unit::Buoy(u) => u.is_masking(),
+            Unit::MissionTarget(u) => u.is_masking(),
             Unit::Planet(u) => u.is_masking(),
             Unit::ClassicShipPlayerUnit(u) => u.is_masking(),
             Unit::Shot(u) => u.is_masking(),
@@ -453,6 +478,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.is_solid(),
             Unit::Meteoroid(u) => u.is_solid(),
             Unit::Buoy(u) => u.is_solid(),
+            Unit::MissionTarget(u) => u.is_solid(),
             Unit::Planet(u) => u.is_solid(),
             Unit::ClassicShipPlayerUnit(u) => u.is_solid(),
             Unit::Shot(u) => u.is_solid(),
@@ -467,6 +493,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.can_be_edited(),
             Unit::Meteoroid(u) => u.can_be_edited(),
             Unit::Buoy(u) => u.can_be_edited(),
+            Unit::MissionTarget(u) => u.can_be_edited(),
             Unit::Planet(u) => u.can_be_edited(),
             Unit::ClassicShipPlayerUnit(u) => u.can_be_edited(),
             Unit::Shot(u) => u.can_be_edited(),
@@ -481,6 +508,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.gravity(),
             Unit::Meteoroid(u) => u.gravity(),
             Unit::Buoy(u) => u.gravity(),
+            Unit::MissionTarget(u) => u.gravity(),
             Unit::Planet(u) => u.gravity(),
             Unit::ClassicShipPlayerUnit(u) => u.gravity(),
             Unit::Shot(u) => u.gravity(),
@@ -495,6 +523,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.mobility(),
             Unit::Meteoroid(u) => u.mobility(),
             Unit::Buoy(u) => u.mobility(),
+            Unit::MissionTarget(u) => u.mobility(),
             Unit::Planet(u) => u.mobility(),
             Unit::ClassicShipPlayerUnit(u) => u.mobility(),
             Unit::Shot(u) => u.mobility(),
@@ -509,6 +538,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.kind(),
             Unit::Meteoroid(u) => u.kind(),
             Unit::Buoy(u) => u.kind(),
+            Unit::MissionTarget(u) => u.kind(),
             Unit::Planet(u) => u.kind(),
             Unit::ClassicShipPlayerUnit(u) => u.kind(),
             Unit::Shot(u) => u.kind(),
@@ -523,6 +553,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.cluster(),
             Unit::Meteoroid(u) => u.cluster(),
             Unit::Buoy(u) => u.cluster(),
+            Unit::MissionTarget(u) => u.cluster(),
             Unit::Planet(u) => u.cluster(),
             Unit::ClassicShipPlayerUnit(u) => u.cluster(),
             Unit::Shot(u) => u.cluster(),
@@ -537,6 +568,7 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::Moon(u) => u.team(),
             Unit::Meteoroid(u) => u.team(),
             Unit::Buoy(u) => u.team(),
+            Unit::MissionTarget(u) => u.team(),
             Unit::Planet(u) => u.team(),
             Unit::ClassicShipPlayerUnit(u) => u.team(),
             Unit::Shot(u) => u.team(),
