@@ -17,6 +17,8 @@ pub enum PlayerUnitDestroyedReason {
     ByRules = 0x00,
     /// The player called kill().
     Suicided = 0x10,
+    /// The PlayerUnit got destroyed because its cluster was removed.
+    ByClusterRemoval = 0x01,
     /// The PlayerUnit collided with a neutral unit.
     CollidedWithNeutralUnit = 0x20,
     /// The PlayerUnit collided with an enemy PlayerUnit.

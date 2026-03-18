@@ -315,6 +315,7 @@ impl Display for FlattiverseEvent {
                 match reason {
                     PlayerUnitDestroyedReason::ByRules => "got destroyed due to applied rules",
                     PlayerUnitDestroyedReason::Suicided => "suicided",
+                    PlayerUnitDestroyedReason::ByClusterRemoval => "got destroyed because its cluster was removed",
                     _ => "got destroyed",
                 }
             ),
