@@ -40,14 +40,14 @@ impl Default for Packet {
     fn default() -> Self {
         let mut bytes = BytesMut::with_capacity(SERVER_DEFAULT_PACKET_SIZE);
         bytes.put_bytes(0, PacketHeader::SIZE);
-        let header_btytes = bytes.split_to(PacketHeader::SIZE);
-        Self::new(PacketHeader::from(header_btytes), bytes)
+        let header_bytes = bytes.split_to(PacketHeader::SIZE);
+        Self::new(PacketHeader::from(header_bytes), bytes)
     }
 }
 
 impl Packet {
-    /// For performance reason, the [`ByteMut`] of the [`PacketHeader`] and the [`BytesMut`] of the
-    /// `payload` should originate from an contiguous [`ByesMut`]. See [`BytesMut::unsplit`].
+    /// For performance reason, the [`BytesMut`] of the [`PacketHeader`] and the [`BytesMut`] of the
+    /// `payload` should originate from a contiguous [`BytesMut`]. See [`BytesMut::unsplit`].
     #[inline]
     pub fn new(header: PacketHeader, payload: BytesMut) -> Self {
         Self { header, payload }
