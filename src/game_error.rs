@@ -80,6 +80,15 @@ pub enum GameErrorKind {
     FloodcontrolTriggered,
     /// Thrown, if you try to register too many units.
     UnitConstraintViolation,
+    /// Thrown, if a specific XML node or attribute has an invalid value.
+    InvalidXmlNodeValue {
+        /// Validation reason that caused the error.
+        reason: InvalidArgumentKind,
+        /// XML node/attribute path, for example: Galaxy>Team.ColorR.
+        node_path: String,
+        /// Human-readable hin in English.
+        hint: String,
+    },
     /// Thrown, if the controllable you want to control is dead.
     YouNeedToContinueFirst,
     /// Thrown, if you try to do something which requires that your controllable is dead, like
@@ -129,6 +138,7 @@ impl Display for GameErrorKind {
             GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
             GameErrorKind::FloodcontrolTriggered => "[0x14] You probably type too fast: Don't flood the chat.",
             GameErrorKind::UnitConstraintViolation => "[0x15] You tried to register too much units of a specific kind.",
+            GameErrorKind::InvalidXmlNodeValue { reason, node_path, hint } => return write!(f, "[0x16] XML node {node_path:?} is invalid ({reason:?}): {hint}."),
             GameErrorKind::InvalidArgument {
                 reason,
                 parameter
@@ -175,6 +185,13 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
                 parameter: reader.read_string(),
             },
             0x13 => GameErrorKind::PermissionFailed,
+            0x14 => GameErrorKind::FloodcontrolTriggered,
+            0x15 => GameErrorKind::UnitConstraintViolation,
+            0x16 => GameErrorKind::InvalidXmlNodeValue {
+                reason: InvalidArgumentKind::from_primitive(reader.read_byte()),
+                node_path: reader.read_string(),
+                hint: reader.read_string(),
+            },
             0x20 => GameErrorKind::YouNeedToContinueFirst,
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
