@@ -78,7 +78,7 @@ pub async fn connect(
                         msg.code()
                     );
 
-                    connection.on_close();
+                    connection.on_close(Some(Arc::from(msg.reason())));
                     let _ = data_sender.try_send(SenderData::Close);
                     let _ = websocket.close();
                 }
@@ -93,13 +93,15 @@ pub async fn connect(
                     match data_receiver.recv().await {
                         Some(SenderData::Close) => {
                             warn!("WebSocket Sender received close request");
-                            connection.on_close();
+                            connection.on_close(Some(Arc::from(
+                                "WebSocket Sender received close request",
+                            )));
                             break;
                         }
                         Some(SenderData::Packet(packet)) => {
                             if let Err(e) = websocket.send_with_u8_array(&packet.into_buf()[..]) {
                                 error!("Failed to send Packet: {e:?}");
-                                connection.on_close();
+                                connection.on_close(Some(Arc::from("Failed to send Packet")));
                                 break;
                             }
                         }

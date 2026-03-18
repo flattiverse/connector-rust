@@ -3,6 +3,7 @@ use crate::galaxy_hierarchy::PlayerKind;
 use crate::network::{InvalidArgumentKind, Packet, PacketReader};
 use num_enum::{FromPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error)]
 pub struct GameError {
@@ -67,7 +68,9 @@ pub enum GameErrorKind {
     ServerFullOfPlayerKind(Option<PlayerKind>),
     SessionsExhausted,
     InvalidData,
-    ConnectionTerminated,
+    ConnectionTerminated {
+        reason: Option<Arc<str>>,
+    },
     SpecifiedElementNotFound,
     CantCallThisConcurrent,
     InvalidArgument {
@@ -132,7 +135,11 @@ impl Display for GameErrorKind {
             },
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
             GameErrorKind::InvalidData => "[0x0D] Invalid data received, protocol mismatch: Terminating connection.",
-            GameErrorKind::ConnectionTerminated => "[0x0F] Connection has been terminated for unknown reason.",
+            GameErrorKind::ConnectionTerminated { reason } => if let Some(reason) = reason {
+                return write!(f, "[0x0E] Connection has been terminated with reason: {reason}.");
+            } else {
+                "[0x0F] Connection has been terminated for unknown reason."
+            },
             GameErrorKind::SpecifiedElementNotFound => "[0x10] Specified element not found.",
             GameErrorKind::CantCallThisConcurrent => "[0x11] This method cannot be called concurrently.",
             GameErrorKind::PermissionFailed => "[0x13] Permission denied. Did you try to call a command where you don't have access to?",
@@ -178,7 +185,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             ),
             0x0C => GameErrorKind::SessionsExhausted,
             0x0D => GameErrorKind::InvalidData,
-            0x0F => GameErrorKind::ConnectionTerminated,
+            0x0F => GameErrorKind::ConnectionTerminated { reason: None },
             0x10 => GameErrorKind::SpecifiedElementNotFound,
             0x11 => GameErrorKind::CantCallThisConcurrent,
             0x12 => GameErrorKind::InvalidArgument {

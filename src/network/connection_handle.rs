@@ -394,7 +394,12 @@ impl ConnectionHandle {
     fn send_packet_directly(&self, packet: Packet) -> Result<(), GameError> {
         self.sender
             .try_send(SenderData::Packet(packet))
-            .map_err(|_| GameErrorKind::ConnectionTerminated.into())
+            .map_err(|_| {
+                GameErrorKind::ConnectionTerminated {
+                    reason: Some(Arc::from("Packet-Sender gone")),
+                }
+                .into()
+            })
     }
 
     #[inline]
@@ -423,7 +428,10 @@ impl From<RecvError> for GameError {
     #[inline]
     fn from(e: RecvError) -> Self {
         debug!("Connection Terminated: {e:?}");
-        GameErrorKind::ConnectionTerminated.into()
+        GameErrorKind::ConnectionTerminated {
+            reason: Some(Arc::from("Receiver gone")),
+        }
+        .into()
     }
 }
 
@@ -431,7 +439,10 @@ impl<T> From<SendError<T>> for GameError {
     #[inline]
     fn from(e: SendError<T>) -> Self {
         debug!("Connection Terminated: {e:?}");
-        GameErrorKind::ConnectionTerminated.into()
+        GameErrorKind::ConnectionTerminated {
+            reason: Some(Arc::from("Sender gone")),
+        }
+        .into()
     }
 }
 
@@ -439,6 +450,9 @@ impl From<async_channel::RecvError> for GameError {
     #[inline]
     fn from(e: async_channel::RecvError) -> Self {
         debug!("Connection Terminated: {e:?}");
-        GameErrorKind::ConnectionTerminated.into()
+        GameErrorKind::ConnectionTerminated {
+            reason: Some(Arc::from("Receiver gone")),
+        }
+        .into()
     }
 }

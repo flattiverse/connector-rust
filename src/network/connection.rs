@@ -18,8 +18,9 @@ pub struct Connection {
 
 impl Connection {
     #[inline]
-    pub(crate) fn on_close(&self) {
+    pub(crate) fn on_close(&self, reason: Option<Arc<str>>) {
         self.sender.close();
+        self.handle.sessions.close_all(reason);
     }
 
     #[cfg_attr(
@@ -32,7 +33,11 @@ impl Connection {
     pub(crate) fn on_ping_measured(&self, duration: Duration) -> Result<(), GameError> {
         self.sender
             .try_send(FlattiverseEventKind::PingMeasured(duration).into())
-            .map_err(|_| GameError::from(GameErrorKind::ConnectionTerminated))
+            .map_err(|_| {
+                GameError::from(GameErrorKind::ConnectionTerminated {
+                    reason: Some(Arc::from("Failed to send ping")),
+                })
+            })
     }
 
     pub(crate) fn handle(&self, packet: Packet) -> Result<(), GameError> {
@@ -48,7 +53,10 @@ impl Connection {
                     Ok(Some(event)) => {
                         if self.sender.try_send(event).is_err() {
                             error!("Event-Receiver gone, shutting down connection!");
-                            Err(GameErrorKind::ConnectionTerminated.into())
+                            Err(GameErrorKind::ConnectionTerminated {
+                                reason: Some(Arc::from("Event-Receiver gone")),
+                            }
+                            .into())
                         } else {
                             Ok(())
                         }
@@ -61,7 +69,10 @@ impl Connection {
             }
         } else {
             error!("Galaxy gone, shutting down connection!");
-            Err(GameErrorKind::ConnectionTerminated.into())
+            Err(GameErrorKind::ConnectionTerminated {
+                reason: Some(Arc::from("Galaxy gone")),
+            }
+            .into())
         }
     }
 

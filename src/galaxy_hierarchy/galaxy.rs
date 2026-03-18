@@ -800,10 +800,12 @@ impl Galaxy {
 
     /// Awaits the next [`FlattiverseEvent`]
     pub async fn next_event(&self) -> Result<FlattiverseEvent, GameError> {
-        self.events
-            .recv()
-            .await
-            .map_err(|_| GameErrorKind::ConnectionTerminated.into())
+        self.events.recv().await.map_err(|_| {
+            GameErrorKind::ConnectionTerminated {
+                reason: Some(Arc::from("Event-Receiver gone")),
+            }
+            .into()
+        })
     }
 
     /// Returns the next [`FlattiverseEvent`], if available.
@@ -811,7 +813,10 @@ impl Galaxy {
         match self.events.try_recv() {
             Ok(event) => Ok(Some(event)),
             Err(TryRecvError::Empty) => Ok(None),
-            Err(TryRecvError::Closed) => Err(GameErrorKind::ConnectionTerminated.into()),
+            Err(TryRecvError::Closed) => Err(GameErrorKind::ConnectionTerminated {
+                reason: Some(Arc::from("Event-Receiver gone")),
+            }
+            .into()),
         }
     }
 

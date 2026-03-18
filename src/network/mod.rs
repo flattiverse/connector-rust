@@ -40,7 +40,6 @@ use crate::galaxy_hierarchy::Galaxy;
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
 use async_channel::Receiver;
-use reqwest::StatusCode;
 use std::sync::Arc;
 
 #[instrument(level = "trace", skip(f))]
@@ -118,13 +117,35 @@ pub enum ConnectError {
 }
 
 impl ConnectError {
-    pub fn game_error_from_http_status_code(code: StatusCode) -> ConnectError {
+    pub fn game_error_from_http_status_code(code: u16) -> ConnectError {
         debug!("Trying to map HTTP status code {code} to GameErrorKind");
-        match code.as_u16() {
+        match code {
             400 | 502 | 504 => ConnectError::from(GameErrorKind::CantConnect),
             401 => ConnectError::from(GameErrorKind::AuthFailed),
             409 => ConnectError::from(GameErrorKind::InvalidProtocolVersion),
-            _ => ConnectError::Unknown(format!("Unexpected StatusCode {code:?}")),
+            _ => {
+                #[cfg(all(
+                    any(target_arch = "wasm32", target_arch = "wasm64"),
+                    target_os = "unknown"
+                ))]
+                {
+                    ConnectError::Unknown(format!("Unexpected StatusCode {code:?}"))
+                }
+                #[cfg(not(all(
+                    any(target_arch = "wasm32", target_arch = "wasm64"),
+                    target_os = "unknown"
+                )))]
+                {
+                    let status_code = reqwest::StatusCode::from_u16(code);
+                    ConnectError::Unknown(format!(
+                        "Unexpected StatusCode {:?}",
+                        match &status_code {
+                            Ok(code) => code as &dyn std::fmt::Debug,
+                            Err(_) => &code as &dyn std::fmt::Debug,
+                        }
+                    ))
+                }
+            }
         }
         .into()
     }
@@ -141,7 +162,7 @@ impl From<GameErrorKind> for ConnectError {
 impl From<tokio_tungstenite::tungstenite::Error> for ConnectError {
     fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
         if let tokio_tungstenite::tungstenite::Error::Http(response) = value {
-            Self::game_error_from_http_status_code(response.status())
+            Self::game_error_from_http_status_code(response.status().as_u16())
         } else {
             Self::IoError(value)
         }

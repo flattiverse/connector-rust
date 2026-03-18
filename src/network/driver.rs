@@ -224,7 +224,8 @@ impl ConnectionReceiver {
                         msg.as_ref().map(|m| m.reason.as_ref()).unwrap_or_default()
                     );
                     let _ = sender.try_send(SenderData::Close);
-                    self.connection.on_close();
+                    self.connection
+                        .on_close(msg.map(|m| Arc::from(m.reason.as_ref())));
                     return Ok(());
                 }
             }
