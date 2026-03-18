@@ -147,6 +147,7 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::TooLarge => "is wrong due to an too large value.",
                 InvalidArgumentKind::NameConstraint => "doesn't match the name constraint.",
                 InvalidArgumentKind::ChatConstraint => "doesn't match the chat constraint.",
+                InvalidArgumentKind::AmbiguousXmlData => "contains ambiguous XML data.",
                 InvalidArgumentKind::EntityNotFound => "doesn't point to an existing entity.",
                 InvalidArgumentKind::NameInUse => "references a name which is already in use.",
                 InvalidArgumentKind::ContainedNaN => "contained a \"Not a Number\" value.",

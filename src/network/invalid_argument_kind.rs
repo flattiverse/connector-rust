@@ -20,6 +20,8 @@ pub enum InvalidArgumentKind {
     NameConstraint = 0x03,
     /// The arguments value doesn't match the chat message constraints
     ChatConstraint = 0x04,
+    /// The supplied XML data is empty, unreadable, or malformed
+    AmbiguousXmlData = 0x05,
     /// The specified entity has not been found.
     EntityNotFound = 0xFB,
     /// The specified name is already taken.
