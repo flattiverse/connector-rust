@@ -19,6 +19,9 @@ pub struct Connection {
 impl Connection {
     #[inline]
     pub(crate) fn on_close(&self, reason: Option<Arc<str>>) {
+        if let Some(reason) = &reason {
+            warn!("Closing connection: {reason}");
+        }
         self.sender.close();
         self.handle.sessions.close_all(reason);
     }
