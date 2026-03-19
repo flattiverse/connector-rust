@@ -20,6 +20,7 @@ pub trait PacketReader {
     fn peek_string(&self) -> String;
     fn jump_over_string(&mut self);
 
+    fn opt_read_string(&mut self) -> Option<String>;
     fn opt_read_sbyte(&mut self) -> Option<i8>;
     fn opt_read_byte(&mut self) -> Option<u8>;
     fn opt_read_int16(&mut self) -> Option<i16>;
@@ -101,16 +102,7 @@ impl PacketReader for BytesMut {
     }
 
     fn read_string(&mut self) -> String {
-        let length = self.read_byte();
-        let length = if length == 0xFF {
-            self.read_uint16() as usize
-        } else {
-            length as usize
-        };
-
-        let string = String::from_utf8(self[..length].to_vec());
-        self.advance(length);
-        string.expect("Invalid UTF-8 received")
+        self.opt_read_string().unwrap_or_default()
     }
 
     fn read_nullable_byte(&mut self) -> Option<u8> {
@@ -139,6 +131,24 @@ impl PacketReader for BytesMut {
         let length = self.read_byte();
         let length = usize::from(length);
         self.advance(length);
+    }
+
+    #[inline]
+    fn opt_read_string(&mut self) -> Option<String> {
+        let length = self.read_byte();
+        let length = if length == 0xFF {
+            self.read_uint16() as usize
+        } else {
+            length as usize
+        };
+
+        if length == 0 {
+            None
+        } else {
+            let string = String::from_utf8(self[..length].to_vec());
+            self.advance(length);
+            Some(string.expect("Invalid UTF-8 received"))
+        }
     }
 
     fn opt_read_sbyte(&mut self) -> Option<i8> {

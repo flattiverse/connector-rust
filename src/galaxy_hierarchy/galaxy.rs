@@ -646,7 +646,7 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        if let Some(unit) = cluster.remove_unit(&name) {
+        if let Some(unit) = cluster.remove_unit_(&name) {
             event_result!(RemovedUnit { unit })
         } else {
             error!("Failed to remove unit with name {name:?}");

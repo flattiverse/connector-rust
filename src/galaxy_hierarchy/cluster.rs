@@ -2,8 +2,10 @@ use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
 use crate::unit::Unit;
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
+use crate::GameError;
 use arc_swap::ArcSwap;
 use crossbeam_skiplist::SkipMap;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
@@ -76,7 +78,7 @@ impl Cluster {
         self.units.insert(name, unit);
     }
 
-    pub(crate) fn remove_unit(&self, name: &str) -> Option<Arc<Unit>> {
+    pub(crate) fn remove_unit_(&self, name: &str) -> Option<Arc<Unit>> {
         self.units.remove(name).map(|e| Arc::clone(e.value()))
     }
 
@@ -126,6 +128,70 @@ impl Cluster {
     pub fn galaxy(&self) -> Arc<Galaxy> {
         self.galaxy.upgrade().unwrap()
     }
+
+    /// Creates or updates a region within this cluster:
+    ///
+    /// ```xml
+    /// <Region Id="66" Name="Spawn A" Left="-150" Top="-300" Right="150" Bottom="0">
+    ///   <Team Id="0" />
+    /// </Region>
+    /// ```
+    #[inline]
+    pub async fn set_region(&self, xml: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .set_cluster_region(self.id, xml)
+            .await
+    }
+
+    /// Removes a region by id from this cluster.
+    #[inline]
+    pub async fn remove_region(&self, region: u8) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .remove_cluster_region(self.id, region)
+            .await
+    }
+
+    /// Queries all regions of this cluster as XML.
+    #[inline]
+    pub async fn query_regions(&self) -> Result<String, GameError> {
+        self.galaxy()
+            .connection()
+            .query_cluster_regions(self.id)
+            .await
+    }
+
+    /// Creates or updates a single editable map unit in this cluster.
+    /// Root node must be the unit type itself, for example `<Sun />`.
+    /// For `<Buoy />` an optional message attribute is supported (max 384 characters).
+    /// For `<MissionTarget />` the team is required and child nodes `<Vector X="..." Y="..." />`
+    /// are supported.
+    #[inline]
+    pub async fn set_unit(&self, xml: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .set_cluster_unit(self.id, xml)
+            .await
+    }
+
+    /// Removes a single editable map unit by name.
+    #[inline]
+    pub async fn remove_unit(&self, name: impl AsRef<str>) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .remove_cluster_unit(self.id, name)
+            .await
+    }
+
+    /// Queries the XML of one specific editable map unit by name.
+    #[inline]
+    pub async fn query_unit_xml(&self, name: impl AsRef<str>) -> Result<String, GameError> {
+        self.galaxy()
+            .connection()
+            .query_cluster_unit_xml(self.id, name)
+            .await
+    }
 }
 
 impl Identifiable<ClusterId> for Cluster {
@@ -158,4 +224,23 @@ impl PartialEq<Self> for Unit {
     }
 }
 
-unsafe impl Sync for Cluster {}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Regions(pub Vec<Region>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct Region {
+    pub id: u8,
+    pub name: Option<String>,
+    pub left: f32,
+    pub top: f32,
+    pub right: f32,
+    pub bottom: f32,
+    pub teams: Vec<RegionTeam>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct RegionTeam {
+    pub id: u8,
+}

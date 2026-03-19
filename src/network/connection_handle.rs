@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{ControllableId, PlayerId, TeamId};
+use crate::galaxy_hierarchy::{
+    ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, TeamId,
+};
 use crate::network::{InvalidArgumentKind, Packet, Session, SessionHandler};
 use crate::utils::check_name_or_err_32;
 use crate::{GameError, GameErrorKind, Vector};
@@ -380,6 +382,279 @@ impl ConnectionHandle {
                 Ok(packet.read(|reader| ControllableId(reader.read_byte())))
             })
         })
+    }
+
+    /// Creates or updates a region within the cluster:
+    ///
+    /// ```xml
+    /// <Region Id="66" Name="Spawn A" Left="-150" Top="-300" Right="150" Bottom="0">
+    ///   <Team Id="0" />
+    /// </Region>
+    /// ```
+    #[inline]
+    pub async fn set_cluster_region(
+        &self,
+        cluster: ClusterId,
+        xml: impl AsRef<str>,
+    ) -> Result<(), GameError> {
+        self.set_cluster_region_split(cluster, xml).await?.await
+    }
+
+    /// Creates or updates a region within the cluster:
+    ///
+    /// ```xml
+    /// <Region Id="66" Name="Spawn A" Left="-150" Top="-300" Right="150" Bottom="0">
+    ///   <Team Id="0" />
+    /// </Region>
+    /// ```
+    pub async fn set_cluster_region_split(
+        &self,
+        cluster: ClusterId,
+        xml: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let xml = xml.as_ref();
+        if xml.is_empty() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::AmbiguousXmlData,
+                parameter: "xml".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x24);
+            packet.write(|writer| {
+                writer.write_byte(cluster.0);
+                writer.write_string_with_len_prefix(&xml);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |_| Ok(()))
+            })
+        }
+    }
+
+    /// Removes a region by id from the cluster.
+    #[inline]
+    pub async fn remove_cluster_region(
+        &self,
+        cluster: ClusterId,
+        region: u8,
+    ) -> Result<(), GameError> {
+        self.remove_cluster_region_split(cluster, region)
+            .await?
+            .await
+    }
+
+    /// Removes a region by id from the cluster.
+    pub async fn remove_cluster_region_split(
+        &self,
+        cluster: ClusterId,
+        region: u8,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x25);
+        packet.write(|writer| {
+            writer.write_byte(cluster.0);
+            writer.write_byte(region);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Queries all regions of the cluster as XML.
+    #[inline]
+    pub async fn query_cluster_regions(&self, cluster: ClusterId) -> Result<String, GameError> {
+        self.query_cluster_regions_split(cluster).await?.await
+    }
+
+    /// Queries all regions of the cluster as XML.
+    pub async fn query_cluster_regions_split(
+        &self,
+        cluster: ClusterId,
+    ) -> Result<impl Future<Output = Result<String, GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x26);
+        packet.write(|writer| writer.write_byte(cluster.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut response| {
+                response.read(|reader| {
+                    let region_count = reader.read_uint16();
+                    let mut regions = Regions(Vec::with_capacity(region_count as usize));
+
+                    for _ in 0..region_count {
+                        regions.0.push(Region {
+                            id: reader.read_byte(),
+                            name: reader.opt_read_string(),
+                            left: reader.read_f32(),
+                            top: reader.read_f32(),
+                            right: reader.read_f32(),
+                            bottom: reader.read_f32(),
+                            teams: {
+                                let start_location_teams = reader.read_uint32();
+                                let mut teams =
+                                    Vec::with_capacity(start_location_teams.count_ones() as usize);
+
+                                for team_id in 0..32u8 {
+                                    let team_mask = 1u32 << team_id;
+                                    if (start_location_teams & team_mask) != 0 && team_id != 12 {
+                                        teams.push(RegionTeam { id: team_id })
+                                    }
+                                }
+
+                                teams
+                            },
+                        })
+                    }
+
+                    Ok(serde_xml_rs::to_string(&regions).unwrap())
+                })
+            })
+        })
+    }
+
+    /// Creates or updates a single editable map unit in the cluster.
+    /// Root node must be the unit type itself, for example `<Sun />`.
+    /// For `<Buoy />` an optional message attribute is supported (max 384 characters).
+    /// For `<MissionTarget />` the team is required and child nodes `<Vector X="..." Y="..." />`
+    /// are supported.
+    #[inline]
+    pub async fn set_cluster_unit(
+        &self,
+        cluster: ClusterId,
+        xml: impl AsRef<str>,
+    ) -> Result<(), GameError> {
+        self.set_cluster_unit_split(cluster, xml).await?.await
+    }
+
+    /// Creates or updates a single editable map unit in the cluster.
+    /// Root node must be the unit type itself, for example `<Sun />`.
+    /// For `<Buoy />` an optional message attribute is supported (max 384 characters).
+    /// For `<MissionTarget />` the team is required and child nodes `<Vector X="..." Y="..." />`
+    /// are supported.
+    #[inline]
+    pub async fn set_cluster_unit_split(
+        &self,
+        cluster: ClusterId,
+        xml: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let xml = xml.as_ref();
+        if xml.is_empty() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::AmbiguousXmlData,
+                parameter: "xml".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x28);
+            packet.write(|writer| {
+                writer.write_byte(cluster.0);
+                writer.write_string_with_len_prefix(&xml);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |_| Ok(()))
+            })
+        }
+    }
+
+    /// Removes a single editable map unit by name.
+    #[inline]
+    pub async fn remove_cluster_unit(
+        &self,
+        cluster: ClusterId,
+        name: impl AsRef<str>,
+    ) -> Result<(), GameError> {
+        self.remove_cluster_unit_split(cluster, name).await?.await
+    }
+
+    /// Removes a single editable map unit by name.
+    pub async fn remove_cluster_unit_split(
+        &self,
+        cluster: ClusterId,
+        name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let name = name.as_ref();
+        if name.is_empty() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::AmbiguousXmlData,
+                parameter: "xml".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x29);
+            packet.write(|writer| {
+                writer.write_byte(cluster.0);
+                writer.write_string_with_len_prefix(name);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |_| Ok(()))
+            })
+        }
+    }
+
+    /// Queries the XML of one specific editable map unit by name.
+    #[inline]
+    pub async fn query_cluster_unit_xml(
+        &self,
+        cluster: ClusterId,
+        name: impl AsRef<str>,
+    ) -> Result<String, GameError> {
+        self.query_cluster_unit_xml_split(cluster, name)
+            .await?
+            .await
+    }
+
+    /// Queries the XML of one specific editable map unit by name.
+    pub async fn query_cluster_unit_xml_split(
+        &self,
+        cluster: ClusterId,
+        name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<String, GameError>>, GameError> {
+        let name = name.as_ref();
+        if name.is_empty() {
+            Err(GameErrorKind::InvalidArgument {
+                reason: InvalidArgumentKind::AmbiguousXmlData,
+                parameter: "name".to_string(),
+            }
+            .into())
+        } else {
+            let mut packet = Packet::default();
+            packet.header_mut().set_command(0x2A);
+            packet.write(|writer| {
+                writer.write_byte(cluster.0);
+                writer.write_string_with_len_prefix(name);
+            });
+
+            let session = self.send_packet_on_new_session(packet).await?;
+
+            Ok(async move {
+                let response = session.response().await?;
+                GameError::check(response, |mut response| {
+                    Ok(response.read(|reader| reader.read_string()))
+                })
+            })
+        }
     }
 
     #[inline]
