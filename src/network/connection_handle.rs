@@ -657,6 +657,65 @@ impl ConnectionHandle {
         }
     }
 
+    /// Configures galaxy metadata, teams and clusters from an XML document.
+    /// Missing attributes keep old values for the referenced element.
+    /// Team/Cluster elements define the final set: missing ids are removed.
+    /// Unknown attributes and unknown child nodes are rejected by the server.
+    ///
+    /// ```xml
+    /// <Galaxy Name="New Name">
+    ///   <Team Id="0" />
+    ///   <Team Id="1" Name="Green" ColorR="64" ColorG="255" ColorB="64" />
+    ///   <Cluster Id="0" Name="Playground" Start="true" Respawn="false" />
+    /// </Galaxy>
+    /// ```
+    ///
+    /// Team id 12 (Spectators) must not be included.
+    /// Team names must be unique.
+    /// Removing a team fails if any remaining cluster still has regions referencing that team.
+    /// Galaxy/Team/Cluster names must be non-empty and at most 32 characters.
+    /// Description must be at most 4096 characters.
+    /// At least one cluster must end up with `Start="true"`.
+    #[inline]
+    pub async fn configure_galaxy(&self, xml: impl AsRef<str>) -> Result<(), GameError> {
+        self.configure_galaxy_split(xml).await?.await
+    }
+
+    /// Configures galaxy metadata, teams and clusters from an XML document.
+    /// Missing attributes keep old values for the referenced element.
+    /// Team/Cluster elements define the final set: missing ids are removed.
+    /// Unknown attributes and unknown child nodes are rejected by the server.
+    ///
+    /// ```xml
+    /// <Galaxy Name="New Name">
+    ///   <Team Id="0" />
+    ///   <Team Id="1" Name="Green" ColorR="64" ColorG="255" ColorB="64" />
+    ///   <Cluster Id="0" Name="Playground" Start="true" Respawn="false" />
+    /// </Galaxy>
+    /// ```
+    ///
+    /// Team id 12 (Spectators) must not be included.
+    /// Team names must be unique.
+    /// Removing a team fails if any remaining cluster still has regions referencing that team.
+    /// Galaxy/Team/Cluster names must be non-empty and at most 32 characters.
+    /// Description must be at most 4096 characters.
+    /// At least one cluster must end up with `Start="true"`.
+    pub async fn configure_galaxy_split(
+        &self,
+        xml: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x04);
+        packet.write(|writer| writer.write_string_with_len_prefix(xml.as_ref()));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
     #[inline]
     pub(crate) fn respond_to_ping(&self, challenge: u16) -> Result<(), GameError> {
         let mut packet = Packet::default();
