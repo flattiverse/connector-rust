@@ -41,6 +41,14 @@ impl<T: Atomar> Atomic<T> {
         self.store_with(value, Ordering::Relaxed)
     }
 
+    #[inline]
+    pub fn store_default(&self)
+    where
+        T: Default,
+    {
+        self.store_with(T::default(), Ordering::Relaxed);
+    }
+
     #[inline(always)]
     pub fn store_with(&self, value: T, ordering: Ordering) {
         value.store(&self.0, ordering)
