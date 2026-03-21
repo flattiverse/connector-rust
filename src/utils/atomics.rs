@@ -2,7 +2,10 @@ use crate::galaxy_hierarchy::{GameMode, PlayerId, TeamId};
 use crate::network::{PacketReader, PacketWriter};
 use crate::Vector;
 use std::fmt::{Debug, Display, Formatter};
-use std::sync::atomic::{AtomicBool, AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
+use std::sync::atomic::{
+    AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicU16, AtomicU32, AtomicU64,
+    AtomicU8, Ordering,
+};
 
 /// Everything that shall be read and written to with an immutable reference. Might lie to you to
 /// enable that (see the implementation for [`Vector`] for example). In the use case of Flattiverse
@@ -127,9 +130,13 @@ macro_rules! impl_atomar_for_std {
 
 impl_atomar_for_std!(bool, AtomicBool);
 impl_atomar_for_std!(u8, AtomicU8);
+impl_atomar_for_std!(i8, AtomicI8);
 impl_atomar_for_std!(u16, AtomicU16);
+impl_atomar_for_std!(i16, AtomicI16);
 impl_atomar_for_std!(u32, AtomicU32);
+impl_atomar_for_std!(i32, AtomicI32);
 impl_atomar_for_std!(u64, AtomicU64);
+impl_atomar_for_std!(i64, AtomicI64);
 
 macro_rules! impl_atomar_for_bits {
     ($primitive:ty, $base:ty) => {
@@ -176,7 +183,9 @@ macro_rules! impl_read_write_for_atomar {
 }
 
 impl_read_write_for_atomar!(u16, read_uint16, write_uint16);
+impl_read_write_for_atomar!(i16, read_int16, write_int16);
 impl_read_write_for_atomar!(u32, read_uint32, write_uint32);
+impl_read_write_for_atomar!(i32, read_int32, write_int32);
 impl_read_write_for_atomar!(f32, read_f32, write_f32);
 
 // macro_rules! impl_atomar_for_try_primitive {

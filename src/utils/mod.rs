@@ -91,3 +91,23 @@ pub fn check_message(message: &str) -> bool {
         })
     }
 }
+
+pub trait Also {
+    fn also(self, f: impl FnOnce(&mut Self)) -> Self
+    where
+        Self: Sized;
+}
+
+impl<T> Also for T
+where
+    T: Sized,
+{
+    #[inline]
+    fn also(mut self, f: impl FnOnce(&mut Self)) -> Self
+    where
+        Self: Sized,
+    {
+        f(&mut self);
+        self
+    }
+}

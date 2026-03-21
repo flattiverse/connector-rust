@@ -1,4 +1,4 @@
-use crate::unit::{PlayerUnit, SteadyUnit, UnitBase};
+use crate::unit::{PlayerUnit, SteadyUnit, TargetUnit, UnitBase};
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
@@ -170,6 +170,18 @@ pub trait AsPlayerUnit {
 impl<T: AsRef<PlayerUnit>> AsPlayerUnit for T {
     #[inline]
     fn as_player_unit(&self) -> &PlayerUnit {
+        self.as_ref()
+    }
+}
+
+/// Just as shorthand for `AsRef::<TargetUnit>::as_ref(self)`
+pub trait AsTargetUnit {
+    fn as_target_unit(&self) -> &TargetUnit;
+}
+
+impl<T: AsRef<TargetUnit>> AsTargetUnit for T {
+    #[inline]
+    fn as_target_unit(&self) -> &TargetUnit {
         self.as_ref()
     }
 }

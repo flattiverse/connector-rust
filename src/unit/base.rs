@@ -1,5 +1,7 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
+use crate::network::PacketReader;
 use crate::unit::{Mobility, UnitExt, UnitExtSealed, UnitKind};
+use crate::utils::Atomic;
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
@@ -7,11 +9,16 @@ use std::sync::{Arc, Weak};
 pub struct UnitBase {
     name: String,
     cluster: Weak<Cluster>,
+    full_state_known: Atomic<bool>,
 }
 
 impl UnitBase {
     pub(crate) fn new(cluster: Weak<Cluster>, name: String) -> Self {
-        Self { cluster, name }
+        Self {
+            cluster,
+            name,
+            full_state_known: Atomic::from(false),
+        }
     }
 
     /// The name of the unit. A unit can't change her name after it has been set up.
@@ -25,6 +32,11 @@ impl UnitBase {
     pub fn cluster(&self) -> Arc<Cluster> {
         self.cluster.upgrade().unwrap()
     }
+
+    #[inline]
+    pub(crate) fn mark_full_state_known(&self) {
+        self.full_state_known.store(true);
+    }
 }
 
 impl<'a> UnitExtSealed<'a> for &'a UnitBase {
@@ -33,6 +45,17 @@ impl<'a> UnitExtSealed<'a> for &'a UnitBase {
     #[inline]
     fn parent(self) -> Self::Parent {
         unreachable!()
+    }
+
+    #[inline]
+    fn update_movement(self, reader: &mut dyn PacketReader) {
+        let _ = reader; // no further parent to call
+    }
+
+    #[inline]
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        let _ = reader; // no further parent to call
+        self.mark_full_state_known();
     }
 }
 
@@ -100,5 +123,10 @@ impl<'a> UnitExt<'a> for &'a UnitBase {
     #[inline]
     fn team(self) -> Weak<Team> {
         Weak::default()
+    }
+
+    #[inline]
+    fn full_state_known(self) -> bool {
+        self.full_state_known.load()
     }
 }

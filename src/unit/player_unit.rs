@@ -43,11 +43,6 @@ impl PlayerUnit {
     pub fn controllable_info(&self) -> Arc<ControllableInfo> {
         self.controllable_info.upgrade().unwrap()
     }
-
-    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
-        self.position.read(reader);
-        self.movement.read(reader);
-    }
 }
 
 impl<'a> UnitExtSealed<'a> for (&'a UnitBase, &'a PlayerUnit)
@@ -59,6 +54,14 @@ where
     #[inline]
     fn parent(self) -> Self::Parent {
         self.0
+    }
+
+    #[inline]
+    fn update_movement(self, reader: &mut dyn PacketReader) {
+        self.parent().update_movement(reader);
+
+        self.1.position.read(reader);
+        self.1.movement.read(reader);
     }
 }
 

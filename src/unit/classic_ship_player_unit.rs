@@ -52,6 +52,7 @@ impl AsRef<PlayerUnit> for ClassicShipPlayerUnit {
 impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
     type Parent = (&'a UnitBase, &'a PlayerUnit);
 
+    #[inline]
     fn parent(self) -> (&'a UnitBase, &'a PlayerUnit) {
         (&self.base, &self.player_unit)
     }

@@ -3,7 +3,7 @@ use crate::galaxy_hierarchy::{
     GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
-use crate::unit::{Unit, UnitKind};
+use crate::unit::{Unit, UnitExtSealed, UnitKind};
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::{

@@ -3,7 +3,7 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::unit::{UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::Atomic;
+use crate::utils::{Also, Atomic};
 use crate::Vector;
 use std::sync::{Arc, Weak};
 
@@ -50,6 +50,9 @@ impl Explosion {
             position: Vector::from_read(reader),
             second_phase: Atomic::from(false),
         }
+        .also(|it| {
+            it.base.mark_full_state_known();
+        })
     }
 
     /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
@@ -81,11 +84,6 @@ impl Explosion {
     pub fn damage(&self) -> f32 {
         self.damage
     }
-
-    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
-        self.second_phase.store(true);
-        let _ = reader;
-    }
 }
 
 impl AsRef<UnitBase> for Explosion {
@@ -98,8 +96,15 @@ impl AsRef<UnitBase> for Explosion {
 impl<'a> UnitExtSealed<'a> for &'a Explosion {
     type Parent = &'a UnitBase;
 
+    #[inline]
     fn parent(self) -> Self::Parent {
         &self.base
+    }
+
+    fn update_movement(self, reader: &mut dyn PacketReader) {
+        self.parent().update_movement(reader);
+
+        self.second_phase.store(true);
     }
 }
 

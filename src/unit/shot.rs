@@ -16,8 +16,8 @@ pub struct Shot {
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
     ticks: Atomic<u16>,
-    load: f32,
-    damage: f32,
+    load: Atomic<f32>,
+    damage: Atomic<f32>,
 }
 
 impl Shot {
@@ -47,8 +47,8 @@ impl Shot {
                 .map(Arc::downgrade)
                 .unwrap_or_default(),
             ticks: Atomic::from(reader.read_uint16()),
-            load: reader.read_f32(),
-            damage: reader.read_f32(),
+            load: Atomic::default(),
+            damage: Atomic::default(),
             position: Atomic::from_reader(reader),
             movement: Atomic::from_reader(reader),
         }
@@ -76,18 +76,12 @@ impl Shot {
 
     #[inline]
     pub fn load(&self) -> f32 {
-        self.load
+        self.load.load()
     }
 
     #[inline]
     pub fn damage(&self) -> f32 {
-        self.damage
-    }
-
-    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
-        self.ticks.store(reader.read_uint16());
-        self.position.read(reader);
-        self.movement.read(reader);
+        self.damage.load()
     }
 }
 
@@ -101,8 +95,24 @@ impl AsRef<UnitBase> for Shot {
 impl<'a> UnitExtSealed<'a> for &'a Shot {
     type Parent = &'a UnitBase;
 
+    #[inline]
     fn parent(self) -> Self::Parent {
         &self.base
+    }
+
+    fn update_movement(self, reader: &mut dyn PacketReader) {
+        self.parent().update_movement(reader);
+
+        self.ticks.store(reader.read_uint16());
+        self.position.read(reader);
+        self.movement.read(reader);
+    }
+
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        self.parent().update_state(reader);
+
+        self.load.read(reader);
+        self.damage.read(reader);
     }
 }
 

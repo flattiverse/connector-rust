@@ -43,7 +43,12 @@ pub use explosion::*;
 mod shot;
 pub use shot::*;
 
-use crate::galaxy_hierarchy::{AsPlayerUnit, AsSteadyUnit, AsUnitBase, Cluster, Team};
+mod target;
+pub use target::*;
+
+use crate::galaxy_hierarchy::{
+    AsPlayerUnit, AsSteadyUnit, AsTargetUnit, AsUnitBase, Cluster, Team,
+};
 use crate::network::PacketReader;
 use crate::Vector;
 use std::sync::{Arc, Weak};
@@ -89,36 +94,6 @@ impl Unit {
             UnitKind::NewShipPlayerUnit => None,
             UnitKind::Explosion => Some(Unit::Explosion(Explosion::read(cluster, name, reader))),
             UnitKind::Unknown(_) => None,
-        }
-    }
-
-    pub(crate) fn update_movement(&self, reader: &mut dyn PacketReader) {
-        match self {
-            Unit::Sun(_) => unreachable!(),
-            Unit::BlackHole(_) => unreachable!(),
-            Unit::Moon(_) => unreachable!(),
-            Unit::Meteoroid(_) => unreachable!(),
-            Unit::Buoy(_) => unreachable!(),
-            Unit::MissionTarget(_) => unreachable!(),
-            Unit::Planet(_) => unreachable!(),
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_player_unit().update_movement(reader),
-            Unit::Shot(shot) => shot.update_movement(reader),
-            Unit::Explosion(explosion) => explosion.update_movement(reader),
-        }
-    }
-
-    pub fn base(&self) -> &UnitBase {
-        match self {
-            Unit::Sun(sun) => sun.as_unit_base(),
-            Unit::BlackHole(bh) => bh.as_unit_base(),
-            Unit::Moon(moon) => moon.as_unit_base(),
-            Unit::Meteoroid(meteoroid) => meteoroid.as_unit_base(),
-            Unit::Buoy(buoy) => buoy.as_unit_base(),
-            Unit::MissionTarget(mt) => mt.as_unit_base(),
-            Unit::Planet(planet) => planet.as_unit_base(),
-            Unit::ClassicShipPlayerUnit(cs) => cs.as_unit_base(),
-            Unit::Shot(shot) => shot.as_unit_base(),
-            Unit::Explosion(explosion) => explosion.as_unit_base(),
         }
     }
 
@@ -174,6 +149,21 @@ impl Unit {
             Some(buoy)
         } else {
             None
+        }
+    }
+
+    pub fn as_target_unit(&self) -> Option<&TargetUnit> {
+        match self {
+            Unit::Sun(_) => None,
+            Unit::BlackHole(_) => None,
+            Unit::Moon(_) => None,
+            Unit::Meteoroid(_) => None,
+            Unit::Buoy(_) => None,
+            Unit::MissionTarget(u) => Some(u.as_target_unit()),
+            Unit::Planet(_) => None,
+            Unit::ClassicShipPlayerUnit(_) => None,
+            Unit::Shot(_) => None,
+            Unit::Explosion(_) => None,
         }
     }
 
@@ -234,9 +224,19 @@ impl Unit {
 }
 
 impl AsRef<UnitBase> for Unit {
-    #[inline]
     fn as_ref(&self) -> &UnitBase {
-        self.base()
+        match self {
+            Unit::Sun(sun) => sun.as_unit_base(),
+            Unit::BlackHole(bh) => bh.as_unit_base(),
+            Unit::Moon(moon) => moon.as_unit_base(),
+            Unit::Meteoroid(meteoroid) => meteoroid.as_unit_base(),
+            Unit::Buoy(buoy) => buoy.as_unit_base(),
+            Unit::MissionTarget(mt) => mt.as_unit_base(),
+            Unit::Planet(planet) => planet.as_unit_base(),
+            Unit::ClassicShipPlayerUnit(cs) => cs.as_unit_base(),
+            Unit::Shot(shot) => shot.as_unit_base(),
+            Unit::Explosion(explosion) => explosion.as_unit_base(),
+        }
     }
 }
 
@@ -247,6 +247,22 @@ where
     type Parent: UnitExt<'a>;
 
     fn parent(self) -> Self::Parent;
+
+    #[inline]
+    fn update_movement(self, reader: &mut dyn PacketReader)
+    where
+        Self: Sized,
+    {
+        self.parent().update_movement(reader);
+    }
+
+    #[inline]
+    fn update_state(self, reader: &mut dyn PacketReader)
+    where
+        Self: Sized,
+    {
+        self.parent().update_state(reader);
+    }
 }
 
 #[allow(private_bounds)]
@@ -369,6 +385,15 @@ where
     {
         self.parent().team()
     }
+
+    /// Whether the connector has received the full state payload for this unit.
+    #[inline]
+    fn full_state_known(self) -> bool
+    where
+        Self: Sized,
+    {
+        self.parent().full_state_known()
+    }
 }
 
 impl<'a> UnitExtSealed<'a> for &'a Unit {
@@ -377,6 +402,36 @@ impl<'a> UnitExtSealed<'a> for &'a Unit {
     #[inline]
     fn parent(self) -> Self::Parent {
         unreachable!()
+    }
+
+    fn update_movement(self, reader: &mut dyn PacketReader) {
+        match self {
+            Unit::Sun(u) => u.update_movement(reader),
+            Unit::BlackHole(u) => u.update_movement(reader),
+            Unit::Moon(u) => u.update_movement(reader),
+            Unit::Meteoroid(u) => u.update_movement(reader),
+            Unit::Buoy(u) => u.update_movement(reader),
+            Unit::MissionTarget(u) => u.update_movement(reader),
+            Unit::Planet(u) => u.update_movement(reader),
+            Unit::ClassicShipPlayerUnit(u) => u.update_movement(reader),
+            Unit::Shot(u) => u.update_movement(reader),
+            Unit::Explosion(u) => u.update_movement(reader),
+        }
+    }
+
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        match self {
+            Unit::Sun(u) => u.update_state(reader),
+            Unit::BlackHole(u) => u.update_state(reader),
+            Unit::Moon(u) => u.update_state(reader),
+            Unit::Meteoroid(u) => u.update_state(reader),
+            Unit::Buoy(u) => u.update_state(reader),
+            Unit::MissionTarget(u) => u.update_state(reader),
+            Unit::Planet(u) => u.update_state(reader),
+            Unit::ClassicShipPlayerUnit(u) => u.update_state(reader),
+            Unit::Shot(u) => u.update_state(reader),
+            Unit::Explosion(u) => u.update_state(reader),
+        }
     }
 }
 
@@ -573,6 +628,21 @@ impl<'a> UnitExt<'a> for &'a Unit {
             Unit::ClassicShipPlayerUnit(u) => u.team(),
             Unit::Shot(u) => u.team(),
             Unit::Explosion(u) => u.team(),
+        }
+    }
+
+    fn full_state_known(self) -> bool {
+        match self {
+            Unit::Sun(u) => u.full_state_known(),
+            Unit::BlackHole(u) => u.full_state_known(),
+            Unit::Moon(u) => u.full_state_known(),
+            Unit::Meteoroid(u) => u.full_state_known(),
+            Unit::Buoy(u) => u.full_state_known(),
+            Unit::MissionTarget(u) => u.full_state_known(),
+            Unit::Planet(u) => u.full_state_known(),
+            Unit::ClassicShipPlayerUnit(u) => u.full_state_known(),
+            Unit::Shot(u) => u.full_state_known(),
+            Unit::Explosion(u) => u.full_state_known(),
         }
     }
 }

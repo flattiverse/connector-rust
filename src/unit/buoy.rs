@@ -2,14 +2,25 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
 use crate::utils::Readable;
-use std::sync::Weak;
+use arc_swap::{ArcSwapOption, Guard};
+use std::sync::{Arc, Weak};
 
 /// A buoy.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Buoy {
     base: UnitBase,
     steady: SteadyUnit,
-    message: Option<String>,
+    message: ArcSwapOption<String>,
+}
+
+impl Clone for Buoy {
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            steady: self.steady.clone(),
+            message: ArcSwapOption::new(self.message.load_full()),
+        }
+    }
 }
 
 impl Buoy {
@@ -21,21 +32,14 @@ impl Buoy {
         Self {
             base: UnitBase::new(cluster, name),
             steady: SteadyUnit::read(reader),
-            message: {
-                let string = reader.read_string();
-                if string.is_empty() {
-                    None
-                } else {
-                    Some(string)
-                }
-            },
+            message: ArcSwapOption::default(),
         }
     }
 
     /// Optional buoy message. [None] means no message.
     #[inline]
-    pub fn message(&self) -> Option<&str> {
-        self.message.as_deref()
+    pub fn message(&self) -> Guard<Option<Arc<String>>> {
+        self.message.load()
     }
 }
 
@@ -58,6 +62,12 @@ impl<'a> UnitExtSealed<'a> for &'a Buoy {
 
     fn parent(self) -> Self::Parent {
         (&self.base, &self.steady)
+    }
+
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        self.parent().update_state(reader);
+
+        self.message.store(reader.opt_read_string().map(Arc::new));
     }
 }
 

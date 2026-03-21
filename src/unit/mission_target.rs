@@ -1,17 +1,31 @@
-use crate::galaxy_hierarchy::{Cluster, Team, TeamId};
+use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::Readable;
+use crate::unit::{SteadyUnit, TargetUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
+use crate::utils::{Atomic, Readable};
 use crate::Vector;
+use arc_swap::{ArcSwap, Guard};
 use std::sync::{Arc, Weak};
 
-/// A mission target with configurable waypoint vectors.
-#[derive(Debug, Clone)]
+/// A mission target with a sequence number and configurable waypoint vectors.
+#[derive(Debug)]
 pub struct MissionTarget {
     base: UnitBase,
     steady: SteadyUnit,
-    team: Weak<Team>,
-    vectors: Vec<Vector>,
+    target: TargetUnit,
+    sequence_number: Atomic<i32>,
+    vectors: ArcSwap<Vec<Vector>>,
+}
+
+impl Clone for MissionTarget {
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            steady: self.steady.clone(),
+            target: self.target.clone(),
+            sequence_number: Atomic::default(),
+            vectors: ArcSwap::new(self.vectors.load_full()),
+        }
+    }
 }
 
 impl MissionTarget {
@@ -20,29 +34,25 @@ impl MissionTarget {
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Self {
-        let galaxy = cluster.upgrade().unwrap().galaxy();
-
         Self {
-            base: UnitBase::new(cluster, name),
+            base: UnitBase::new(cluster.clone(), name),
             steady: SteadyUnit::read(reader),
-            team: Arc::downgrade(&galaxy.get_team(TeamId(reader.read_byte()))),
-            vectors: {
-                let vector_count = reader.read_uint16() as usize;
-                let mut vectors = Vec::with_capacity(vector_count);
-
-                for _ in 0..vector_count {
-                    vectors.push(Vector::from_read(reader));
-                }
-
-                vectors
-            },
+            target: TargetUnit::read(&cluster, reader),
+            sequence_number: Atomic::default(),
+            vectors: ArcSwap::default(),
         }
+    }
+
+    /// Sequence number of this mission target.
+    #[inline]
+    pub fn sequence_number(&self) -> i32 {
+        self.sequence_number.load()
     }
 
     /// Returns all configured waypoint vectors.
     #[inline]
-    pub fn vectors(&self) -> &[Vector] {
-        &self.vectors
+    pub fn vectors(&self) -> Guard<Arc<Vec<Vector>>> {
+        self.vectors.load()
     }
 }
 
@@ -60,35 +70,40 @@ impl AsRef<SteadyUnit> for MissionTarget {
     }
 }
 
-impl<'a> UnitExtSealed<'a> for &'a MissionTarget {
-    type Parent = (&'a UnitBase, &'a SteadyUnit);
+impl AsRef<TargetUnit> for MissionTarget {
+    #[inline]
+    fn as_ref(&self) -> &TargetUnit {
+        &self.target
+    }
+}
 
+impl<'a> UnitExtSealed<'a> for &'a MissionTarget {
+    type Parent = (&'a UnitBase, &'a SteadyUnit, &'a TargetUnit);
+
+    #[inline]
     fn parent(self) -> Self::Parent {
-        (&self.base, &self.steady)
+        (&self.base, &self.steady, &self.target)
+    }
+
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        self.parent().update_state(reader);
+
+        self.sequence_number.read(reader);
+
+        let vector_count = reader.read_uint16() as usize;
+        let mut vectors = Vec::with_capacity(vector_count);
+
+        for _ in 0..vector_count {
+            vectors.push(Vector::from_read(reader));
+        }
+
+        self.vectors.store(Arc::new(vectors));
     }
 }
 
 impl<'a> UnitExt<'a> for &'a MissionTarget {
     #[inline]
-    fn is_masking(self) -> bool {
-        false
-    }
-
-    #[inline]
-    fn is_solid(self) -> bool {
-        false
-    }
-
-    #[inline]
     fn kind(self) -> UnitKind {
         UnitKind::MissionTarget
-    }
-
-    #[inline]
-    fn team(self) -> Weak<Team>
-    where
-        Self: Sized,
-    {
-        self.team.clone()
     }
 }

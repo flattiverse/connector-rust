@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::Readable;
+use crate::utils::{Atomic, Readable};
 use num_enum::FromPrimitive;
 use std::sync::Weak;
 
@@ -11,10 +11,10 @@ pub struct Moon {
     base: UnitBase,
     steady: SteadyUnit,
     r#type: MoonType,
-    metal: f32,
-    carbon: f32,
-    hydrogen: f32,
-    silicon: f32,
+    metal: Atomic<f32>,
+    carbon: Atomic<f32>,
+    hydrogen: Atomic<f32>,
+    silicon: Atomic<f32>,
 }
 
 impl Moon {
@@ -27,10 +27,10 @@ impl Moon {
             base: UnitBase::new(cluster, name),
             steady: SteadyUnit::read(reader),
             r#type: MoonType::from_primitive(reader.read_byte()),
-            metal: reader.read_f32(),
-            carbon: reader.read_f32(),
-            hydrogen: reader.read_f32(),
-            silicon: reader.read_f32(),
+            metal: Atomic::default(),
+            carbon: Atomic::default(),
+            hydrogen: Atomic::default(),
+            silicon: Atomic::default(),
         }
     }
 
@@ -43,25 +43,25 @@ impl Moon {
     /// Metal richness of this moon.
     #[inline]
     pub fn metal(&self) -> f32 {
-        self.metal
+        self.metal.load()
     }
 
     /// Carbon richness of this moon.
     #[inline]
     pub fn carbon(&self) -> f32 {
-        self.carbon
+        self.carbon.load()
     }
 
     /// Hydrogen richness of this moon.
     #[inline]
     pub fn hydrogen(&self) -> f32 {
-        self.hydrogen
+        self.hydrogen.load()
     }
 
     /// Silicon richness of this moon.
     #[inline]
     pub fn silicon(&self) -> f32 {
-        self.silicon
+        self.silicon.load()
     }
 }
 
@@ -82,8 +82,18 @@ impl AsRef<SteadyUnit> for Moon {
 impl<'a> UnitExtSealed<'a> for &'a Moon {
     type Parent = (&'a UnitBase, &'a SteadyUnit);
 
+    #[inline]
     fn parent(self) -> Self::Parent {
         (&self.base, &self.steady)
+    }
+
+    fn update_state(self, reader: &mut dyn PacketReader) {
+        self.parent().update_state(reader);
+
+        self.metal.read(reader);
+        self.carbon.read(reader);
+        self.hydrogen.read(reader);
+        self.silicon.read(reader);
     }
 }
 
