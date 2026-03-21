@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, Score};
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
 use crate::GameError;
@@ -27,6 +27,7 @@ pub struct Team {
     red: Atomic<u8>,
     green: Atomic<u8>,
     blue: Atomic<u8>,
+    score: Score,
     active: Atomic<bool>,
 }
 
@@ -46,6 +47,7 @@ impl Team {
             red: Atomic::from(red),
             green: Atomic::from(green),
             blue: Atomic::from(blue),
+            score: Score::default(),
             active: Atomic::from(true),
         }
     }
@@ -93,6 +95,12 @@ impl Team {
     #[inline]
     pub fn blue(&self) -> u8 {
         self.blue.load()
+    }
+
+    /// Current live team score.
+    #[inline]
+    pub fn score(&self) -> &Score {
+        &self.score
     }
 
     /// True as long as the team is active.

@@ -45,3 +45,6 @@ pub use energy_cell_subsystem::*;
 
 mod range_tolerance;
 pub use range_tolerance::*;
+
+mod score;
+pub use score::*;

@@ -1,5 +1,6 @@
 use crate::galaxy_hierarchy::{
-    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, Team, UniversalArcHolder,
+    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, Score, Team,
+    UniversalArcHolder,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -24,6 +25,7 @@ pub struct Player {
     team: Weak<Team>,
     name: String,
     ping: Atomic<f32>,
+    score: Score,
     active: Atomic<bool>,
     pub(crate) controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
 }
@@ -44,6 +46,7 @@ impl Player {
             team,
             name,
             ping: Atomic::from(ping),
+            score: Score::default(),
             active: Atomic::from(true),
             controllable_infos: UniversalArcHolder::with_capacity(256),
         }
@@ -94,6 +97,12 @@ impl Player {
     #[inline]
     pub fn ping(&self) -> f32 {
         self.ping.load()
+    }
+
+    /// Current live player score.
+    #[inline]
+    pub fn score(&self) -> &Score {
+        &self.score
     }
 
     pub(crate) fn update(&self, ping: f32) {
