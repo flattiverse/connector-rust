@@ -42,3 +42,6 @@ pub use battery_subsystem::*;
 
 mod energy_cell_subsystem;
 pub use energy_cell_subsystem::*;
+
+mod range_tolerance;
+pub use range_tolerance::*;
