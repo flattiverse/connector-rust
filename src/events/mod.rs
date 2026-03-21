@@ -10,8 +10,11 @@ pub use cluster_snapshot::*;
 mod galaxy_settings_snapshot;
 pub use galaxy_settings_snapshot::*;
 
-use crate::galaxy_hierarchy::{Cluster, ControllableInfo, Galaxy, Identifiable, Player, Team};
+use crate::galaxy_hierarchy::{
+    Cluster, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Team,
+};
 use crate::unit::{Unit, UnitExt, UnitKind};
+use crate::{SubsystemSlot, SubsystemStatus};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -465,6 +468,14 @@ impl Display for FlattiverseEvent {
                         write!(f, "Removed Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
                     }
                 }
+            },
+
+            FlattiverseEventKind::BatterySubsystem { controllable, slot, status, current, consumed_this_tick } => {
+                write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, consumed={consumed_this_tick:?}", controllable.name())
+            }
+
+            FlattiverseEventKind::EnergyCellSubsystem { controllable, slot, status, collected_this_tick} => {
+                write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, collected={collected_this_tick:?}", controllable.name())
             }
         }
     }
@@ -626,6 +637,31 @@ pub enum FlattiverseEventKind {
         /// The removed [Cluster].
         cluster: Arc<Cluster>,
     },
+
+    // ------------------- ControllableSubsystemEvents -------------------
+    BatterySubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server  tick.
+        status: SubsystemStatus,
+        /// The current stored amount
+        current: f32,
+        /// The amount consumed during the current server tick.
+        consumed_this_tick: f32,
+    },
+    EnergyCellSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server  tick.
+        status: SubsystemStatus,
+        /// The amount collected during the current server tick.
+        collected_this_tick: f32,
+    },
+    // ------------------- ControllableSubsystemEvents -------------------
 
     // ---------- local events below
     PingMeasured(Duration),

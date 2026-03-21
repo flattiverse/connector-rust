@@ -30,3 +30,15 @@ pub use controllable::*;
 
 mod controllable_base;
 pub use controllable_base::*;
+
+mod subsystem;
+pub use subsystem::*;
+
+mod subsystem_base;
+pub use subsystem_base::*;
+
+mod battery_subsystem;
+pub use battery_subsystem::*;
+
+mod energy_cell_subsystem;
+pub use energy_cell_subsystem::*;
