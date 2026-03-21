@@ -28,8 +28,17 @@ pub use controllable_info_base::*;
 mod controllable;
 pub use controllable::*;
 
-mod controllable_base;
-pub use controllable_base::*;
+mod classic_ship_controllable;
+pub use classic_ship_controllable::*;
+
+mod classic_ship_engine_subsystem;
+pub use classic_ship_engine_subsystem::*;
+
+mod shot_weapon_subsystem;
+pub use shot_weapon_subsystem::*;
+
+mod scanner_subsystem;
+pub use scanner_subsystem::*;
 
 mod subsystem;
 pub use subsystem::*;

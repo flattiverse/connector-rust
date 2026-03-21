@@ -60,11 +60,11 @@ impl<I: Indexer, T> UniversalArcHolder<I, T> {
     }
 
     #[inline]
-    pub fn populate(&self, value: impl Into<T>) -> Arc<T>
+    pub fn populate(&self, value: impl Into<Arc<T>>) -> Arc<T>
     where
         T: Identifiable<I>,
     {
-        let value = Arc::new(value.into());
+        let value = value.into();
         let index = value.id();
         self.set(index, Some(Arc::clone(&value)));
         self.elements.fetch_add(1, Ordering::Relaxed);

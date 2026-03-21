@@ -176,6 +176,7 @@ impl Connection {
             ),
             0x81 => galaxy.controllable_deceased(ControllableId(reader.read_byte())),
             0x82 => galaxy.controllable_updated(ControllableId(reader.read_byte()), reader),
+            0x8F => galaxy.controllable_removed(ControllableId(reader.read_byte())),
             0x30 => galaxy.unit_new(
                 ClusterId(reader.read_byte()),
                 reader.read_string(),

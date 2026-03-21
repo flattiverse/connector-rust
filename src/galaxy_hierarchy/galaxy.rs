@@ -586,7 +586,7 @@ impl Galaxy {
         reader: &mut dyn PacketReader,
     ) -> EventResult {
         debug!("New Controllable with {id:?} and name {name:?}");
-        let _controllable = self.controllables.populate(Controllable::from_packet(
+        self.controllables.populate(Controllable::from_packet(
             kind,
             Arc::downgrade(&self.clusters.get(ClusterId(0))), // TODO
             id,
@@ -616,6 +616,13 @@ impl Galaxy {
         } else {
             error!("There is no Controllable for {id:?}");
         }
+        Ok(None)
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_removed(self: &Arc<Self>, id: ControllableId) -> EventResult {
+        debug!("{id:?} removed");
+        self.controllables.remove(id).deactivate();
         Ok(None)
     }
 

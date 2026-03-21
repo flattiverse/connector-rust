@@ -14,7 +14,7 @@ use crate::galaxy_hierarchy::{
     Cluster, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Team,
 };
 use crate::unit::{Unit, UnitExt, UnitKind};
-use crate::{SubsystemSlot, SubsystemStatus};
+use crate::{SubsystemSlot, SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -472,10 +472,18 @@ impl Display for FlattiverseEvent {
 
             FlattiverseEventKind::BatterySubsystem { controllable, slot, status, current, consumed_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, consumed={consumed_this_tick:?}", controllable.name())
-            }
-
+            },
             FlattiverseEventKind::EnergyCellSubsystem { controllable, slot, status, collected_this_tick} => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, collected={collected_this_tick:?}", controllable.name())
+            },
+            FlattiverseEventKind::ClassicShipEngineSubsystem { controllable, slot, status, current, target, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, target={target:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            },
+            FlattiverseEventKind::ShotWeaponSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, , relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            }
+            FlattiverseEventKind::ScannerSubsystem { controllable, slot, status, active, current_width, current_length, current_angle, target_width, target_length, target_angle, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, active={active:?}, current_width={current_width:?}, current_length={current_length:?}, current_angle={current_angle:?}, target_width={target_width:?}, target_length={target_length:?}, target_angle={target_angle:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
         }
     }
@@ -644,7 +652,7 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status for the current server  tick.
+        /// The status for the current server tick.
         status: SubsystemStatus,
         /// The current stored amount
         current: f32,
@@ -656,10 +664,78 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status for the current server  tick.
+        /// The status for the current server tick.
         status: SubsystemStatus,
         /// The amount collected during the current server tick.
         collected_this_tick: f32,
+    },
+    ClassicShipEngineSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The current applied engine vector.
+        current: Vector,
+        /// The configured target engine vector.
+        target: Vector,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    ShotWeaponSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The shot movement processed for the current server tick.
+        relative_movement: Vector,
+        /// The shot lifetime processed for the current server tick.
+        ticks: u16,
+        /// The shot load processed for the current server tick.
+        load: f32,
+        /// The shot damage processed for the current server tick.
+        damage: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    ScannerSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// Whether the scanner is active.
+        active: bool,
+        /// The current scanner width.
+        current_width: f32,
+        /// The current scanner length.
+        current_length: f32,
+        /// The current scanner angle.
+        current_angle: f32,
+        /// The target scanner width.
+        target_width: f32,
+        /// The target scanner length.
+        target_length: f32,
+        /// The target scanner angle.
+        target_angle: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
 

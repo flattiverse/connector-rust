@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{Controllable, SubsystemBase, SubsystemExt};
 use crate::utils::{Also, Atomic};
-use crate::{FlattiverseEvent, FlattiverseEventKind, SubsystemSlot};
+use crate::{FlattiverseEvent, FlattiverseEventKind, SubsystemSlot, SubsystemStatus};
 use std::sync::Weak;
 
 /// Passive energy cell subsystem of a controllable
@@ -67,6 +67,11 @@ impl EnergyCellSubsystem {
     pub(crate) fn reset_runtime(&self) {
         self.collected_this_tick.store(0.0);
         self.base.reset_runtime_status();
+    }
+
+    pub(crate) fn update_runtime(&self, collected_this_tick: f32, status: SubsystemStatus) {
+        self.collected_this_tick.store(collected_this_tick);
+        self.base.update_runtime_status(status);
     }
 
     pub(crate) fn create_runtime_event(&self) -> Option<FlattiverseEvent> {

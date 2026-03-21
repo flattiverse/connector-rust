@@ -1,9 +1,10 @@
 use crate::galaxy_hierarchy::{
-    ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, TeamId,
+    ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId, TeamId,
 };
 use crate::network::{InvalidArgumentKind, Packet, Session, SessionHandler};
 use crate::utils::check_name_or_err_32;
-use crate::{GameError, GameErrorKind, Vector};
+use crate::{FlattiverseEvent, GameError, GameErrorKind, Vector};
+use async_channel::WeakSender;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use tokio::sync::oneshot::error::RecvError;
 pub struct ConnectionHandle {
     pub(crate) sender: Sender<SenderData>,
     pub(crate) sessions: Arc<SessionHandler>,
+    pub(crate) event_sender: WeakSender<FlattiverseEvent>,
 }
 
 impl Debug for ConnectionHandle {
@@ -24,16 +26,18 @@ impl Debug for ConnectionHandle {
     }
 }
 
-impl From<Sender<SenderData>> for ConnectionHandle {
-    fn from(sender: Sender<SenderData>) -> Self {
+impl ConnectionHandle {
+    pub(crate) fn new(
+        sender: Sender<SenderData>,
+        event_sender: WeakSender<FlattiverseEvent>,
+    ) -> Self {
         Self {
             sender,
-            sessions: Arc::new(SessionHandler::default()),
+            sessions: Arc::default(),
+            event_sender,
         }
     }
-}
 
-impl ConnectionHandle {
     /// Sends a chat message to the connected [`crate::galaxy_hierarchy::Player`].
     #[inline]
     pub async fn chat_player(
@@ -193,165 +197,6 @@ impl ConnectionHandle {
             let response = session.response().await?;
             GameError::check(response, |_| Ok(()))
         })
-    }
-
-    /// Call this to move your ship. This vector will be the impulse your ship gets every tick until
-    /// you specify a new vector. Length of 0 will turn off your engines.
-    #[inline]
-    pub async fn classic_controllable_move(
-        &self,
-        controllable: ControllableId,
-        movement: Vector,
-    ) -> Result<(), GameError> {
-        self.classic_controllable_move_split(controllable, movement)
-            .await?
-            .await
-    }
-
-    /// Call this to move your ship. This vector will be the impulse your ship gets every tick until
-    /// you specify a new vector. Length of 0 will turn off your engines.
-    pub async fn classic_controllable_move_split(
-        &self,
-        controllable: ControllableId,
-        movement: Vector,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        if movement.is_damaged() {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::ConstrainedInfinity,
-                parameter: "movement".to_string(),
-            }
-            .into())
-        } else if movement.length() > 0.101f32 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooLarge,
-                parameter: "movement".to_string(),
-            }
-            .into())
-        } else {
-            let mut packet = Packet::default();
-            packet.header_mut().set_command(0x87);
-            packet.write(|writer| {
-                writer.write_byte(controllable.0);
-                movement.write(writer);
-            });
-
-            let session = self.send_packet_on_new_session(packet).await?;
-
-            Ok(async move {
-                let response = session.response().await?;
-                GameError::check(response, |_| Ok(()))
-            })
-        }
-    }
-
-    /// Shoots a shot into the specified direction and with the specified parameters. Please note
-    /// that you can only shoot one shot per tick.
-    ///
-    /// * `relative_movement` - The direction in which the shot will fly (value range `[0.1f; 3f]`).
-    /// * `ticks` - The ticks how long the shot will fly (value range `[3; 140]`).
-    /// * `load` - The explosion size when the ticks reach 0 (value range `[3; 25]`).
-    /// * `damage` - The damage the shot should inflict (value range `[0.1f; 3f]`).
-    #[inline]
-    pub async fn classic_controllable_shoot(
-        &self,
-        controllable: ControllableId,
-        relative_movement: Vector,
-        ticks: u16,
-        load: f32,
-        damage: f32,
-    ) -> Result<(), GameError> {
-        self.classic_controllable_shoot_split(controllable, relative_movement, ticks, load, damage)
-            .await?
-            .await
-    }
-
-    /// Shoots a shot into the specified direction and with the specified parameters. Please note
-    /// that you can only shoot one shot per tick.
-    ///
-    /// * `relative_movement` - The direction in which the shot will fly (value range `[0.1f; 3f]`).
-    /// * `ticks` - The ticks how long the shot will fly (value range `[3; 140]`).
-    /// * `load` - The explosion size when the ticks reach 0 (value range `[3; 25]`).
-    /// * `damage` - The damage the shot should inflict (value range `[0.1f; 3f]`).
-    pub async fn classic_controllable_shoot_split(
-        &self,
-        controllable: ControllableId,
-        relative_movement: Vector,
-        ticks: u16,
-        load: f32,
-        damage: f32,
-    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        if relative_movement.is_damaged() {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::ConstrainedInfinity,
-                parameter: "relativeMovement".to_string(),
-            }
-            .into())
-        } else if relative_movement.length() > 3.001 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooLarge,
-                parameter: "relativeMovement".to_string(),
-            }
-            .into())
-        } else if relative_movement.length() < 0.099 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooSmall,
-                parameter: "relativeMovement".to_string(),
-            }
-            .into())
-        } else if ticks < 3 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooSmall,
-                parameter: "ticks".to_string(),
-            }
-            .into())
-        } else if ticks > 140 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooLarge,
-                parameter: "ticks".to_string(),
-            }
-            .into())
-        } else if load < 3.0 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooSmall,
-                parameter: "load".to_string(),
-            }
-            .into())
-        } else if load > 25.0 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooLarge,
-                parameter: "load".to_string(),
-            }
-            .into())
-        } else if damage < 0.099 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooSmall,
-                parameter: "damage".to_string(),
-            }
-            .into())
-        } else if damage > 3.001 {
-            Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::TooLarge,
-                parameter: "damage".to_string(),
-            }
-            .into())
-        } else {
-            let mut packet = Packet::default();
-            packet.header_mut().set_command(0x88);
-            packet.write(|writer| {
-                writer.write_byte(controllable.0);
-                relative_movement.write(writer);
-                writer.write_uint16(ticks);
-                writer.write_f32(load);
-                writer.write_f32(damage);
-            });
-
-            let session = self.send_packet_on_new_session(packet).await?;
-
-            Ok(async move {
-                let response = session.response().await?;
-                GameError::check(response, |_| Ok(()))
-            })
-        }
     }
 
     /// Create a classic style ship.
@@ -707,6 +552,191 @@ impl ConnectionHandle {
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x04);
         packet.write(|writer| writer.write_string_with_len_prefix(xml.as_ref()));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sets the target movement impulse on the server.
+    /// Values just above the maximum are clipped to the maximum before tey are sent.
+    #[inline]
+    pub async fn classic_ship_engine_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        movement: Vector,
+    ) -> Result<(), GameError> {
+        self.classic_ship_engine_subsystem_set_split(controllable, movement)
+            .await?
+            .await
+    }
+
+    /// Sets the target movement impulse on the server.
+    /// Values just above the maximum are clipped to the maximum before tey are sent.
+    pub async fn classic_ship_engine_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        movement: Vector,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x87);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            movement.write(writer);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Requests one shot for the next server tick.
+    #[inline]
+    pub async fn shot_weapon_subsystem_shoot(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        self.shot_weapon_subsystem_shoot_split(controllable, relative_movement, ticks, load, damage)
+            .await?
+            .await
+    }
+
+    /// Requests one shot for the next server tick.
+    pub async fn shot_weapon_subsystem_shoot_split(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x88);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            relative_movement.write(writer);
+            writer.write_uint16(ticks);
+            writer.write_f32(load);
+            writer.write_f32(damage);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Set the target scanner configuration on the server.
+    #[inline]
+    pub async fn scanner_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+        width: f32,
+        length: f32,
+        angle: f32,
+    ) -> Result<(), GameError> {
+        self.scanner_subsystem_set_split(controllable, scanner, width, length, angle)
+            .await?
+            .await
+    }
+
+    /// Set the target scanner configuration on the server.
+    pub async fn scanner_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+        width: f32,
+        length: f32,
+        angle: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x89);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_byte(scanner.0);
+            writer.write_f32(width);
+            writer.write_f32(length);
+            writer.write_f32(angle);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Turns the scanner on.
+    #[inline]
+    pub async fn scanner_subsystem_on(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+    ) -> Result<(), GameError> {
+        self.scanner_subsystem_on_split(controllable, scanner)
+            .await?
+            .await
+    }
+
+    /// Turns the scanner on.
+    pub async fn scanner_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x8A);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_byte(scanner.0);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Turns the scanner off.
+    #[inline]
+    pub async fn scanner_subsystem_off(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+    ) -> Result<(), GameError> {
+        self.scanner_subsystem_off_split(controllable, scanner)
+            .await?
+            .await
+    }
+
+    /// Turns the scanner off.
+    pub async fn scanner_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+        scanner: ScannerSubsystemId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x8B);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_byte(scanner.0);
+        });
 
         let session = self.send_packet_on_new_session(packet).await?;
 

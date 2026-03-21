@@ -63,7 +63,7 @@ pub async fn connect(
     let (data_sender, data_receiver) = tokio::sync::mpsc::channel(1024);
     let (event_sender, event_receiver) = async_channel::unbounded();
 
-    let handle = ConnectionHandle::from(data_sender.clone());
+    let handle = ConnectionHandle::new(data_sender.clone(), event_sender.downgrade());
     let galaxy = f(handle.clone(), event_receiver);
     let connection = Connection {
         handle,

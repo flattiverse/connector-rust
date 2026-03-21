@@ -1,12 +1,13 @@
 use crate::galaxy_hierarchy::{Controllable, SubsystemExt};
 use crate::utils::Atomic;
 use crate::{SubsystemSlot, SubsystemStatus};
+use arc_swap::ArcSwapWeak;
 use std::sync::{Arc, Weak};
 
 /// Base type for persistent controllable subsystems.
 #[derive(Debug)]
 pub struct SubsystemBase {
-    controllable: Weak<Controllable>,
+    pub(crate) controllable: ArcSwapWeak<Controllable>,
     name: String,
     exists: bool,
     slot: SubsystemSlot,
@@ -23,7 +24,7 @@ impl SubsystemBase {
         slot: SubsystemSlot,
     ) -> Self {
         Self {
-            controllable,
+            controllable: ArcSwapWeak::new(controllable),
             name,
             exists,
             slot,
@@ -89,7 +90,11 @@ impl<T: AsRef<SubsystemBase>> AsSubsystemBase for T {
 impl<T: AsSubsystemBase> SubsystemExt for T {
     #[inline]
     fn controllable(&self) -> Arc<Controllable> {
-        self.as_subsystem_base().controllable.upgrade().unwrap()
+        self.as_subsystem_base()
+            .controllable
+            .load()
+            .upgrade()
+            .unwrap()
     }
 
     #[inline]
