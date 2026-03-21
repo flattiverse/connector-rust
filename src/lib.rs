@@ -20,3 +20,9 @@ pub use events::*;
 
 mod vector;
 pub use vector::*;
+
+mod subsystem_status;
+pub use subsystem_status::*;
+
+mod subsystem_slot;
+pub use subsystem_slot::*;
