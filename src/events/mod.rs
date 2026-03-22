@@ -522,6 +522,7 @@ pub enum FlattiverseEventKind {
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
+        /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
     },
     /// A PlayerUnit got destroyed by collision with a neutral unit.
@@ -530,6 +531,7 @@ pub enum FlattiverseEventKind {
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
+        /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
         /// The UnitKind of the unit the PlayerUnit collided with.
         colliders_kind: UnitKind,
@@ -542,6 +544,7 @@ pub enum FlattiverseEventKind {
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
+        /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
         /// The PlayerUnit which destroyed the PlayerUnit in question.
         destroyed_unit: Arc<ControllableInfo>,
@@ -647,6 +650,7 @@ pub enum FlattiverseEventKind {
     },
 
     // ------------------- ControllableSubsystemEvents -------------------
+    /// Update of a battery subsystem on your own controllable.
     BatterySubsystem {
         /// The controllable whose subsystem emitted this runtime event.
         controllable: Arc<Controllable>,
@@ -659,6 +663,7 @@ pub enum FlattiverseEventKind {
         /// The amount consumed during the current server tick.
         consumed_this_tick: f32,
     },
+    /// Update of an energy-cell subsystem on your own controllable.
     EnergyCellSubsystem {
         /// The controllable whose subsystem emitted this runtime event.
         controllable: Arc<Controllable>,
@@ -669,46 +674,7 @@ pub enum FlattiverseEventKind {
         /// The amount collected during the current server tick.
         collected_this_tick: f32,
     },
-    ClassicShipEngineSubsystem {
-        /// The controllable whose subsystem emitted this runtime event.
-        controllable: Arc<Controllable>,
-        /// The concrete subsystem slot on the controllable.
-        slot: SubsystemSlot,
-        /// The status for the current server tick.
-        status: SubsystemStatus,
-        /// The current applied engine vector.
-        current: Vector,
-        /// The configured target engine vector.
-        target: Vector,
-        /// The energy consumed during the current server tick.
-        consumed_energy_this_tick: f32,
-        /// The ions consumed during the current server tick.
-        consumed_ions_this_tick: f32,
-        /// The neutrinos consumed during the current server tick.
-        consumed_neutrinos_this_tick: f32,
-    },
-    ShotWeaponSubsystem {
-        /// The controllable whose subsystem emitted this runtime event.
-        controllable: Arc<Controllable>,
-        /// The concrete subsystem slot on the controllable.
-        slot: SubsystemSlot,
-        /// The status for the current server tick.
-        status: SubsystemStatus,
-        /// The shot movement processed for the current server tick.
-        relative_movement: Vector,
-        /// The shot lifetime processed for the current server tick.
-        ticks: u16,
-        /// The shot load processed for the current server tick.
-        load: f32,
-        /// The shot damage processed for the current server tick.
-        damage: f32,
-        /// The energy consumed during the current server tick.
-        consumed_energy_this_tick: f32,
-        /// The ions consumed during the current server tick.
-        consumed_ions_this_tick: f32,
-        /// The neutrinos consumed during the current server tick.
-        consumed_neutrinos_this_tick: f32,
-    },
+    /// Update of a scanner subsystem on your own controllable.
     ScannerSubsystem {
         /// The controllable whose subsystem emitted this runtime event.
         controllable: Arc<Controllable>,
@@ -730,6 +696,48 @@ pub enum FlattiverseEventKind {
         target_length: f32,
         /// The target scanner angle.
         target_angle: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Update of an engine subsystem on your own controllable.
+    ClassicShipEngineSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The current applied engine vector.
+        current: Vector,
+        /// The configured target engine vector.
+        target: Vector,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Update of a shot launcher subsystem on your own controllable.
+    ShotWeaponSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The shot movement processed for the current server tick.
+        relative_movement: Vector,
+        /// The shot lifetime processed for the current server tick.
+        ticks: u16,
+        /// The shot load processed for the current server tick.
+        load: f32,
+        /// The shot damage processed for the current server tick.
+        damage: f32,
         /// The energy consumed during the current server tick.
         consumed_energy_this_tick: f32,
         /// The ions consumed during the current server tick.
