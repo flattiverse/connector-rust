@@ -4,8 +4,8 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::unit::{Unit, UnitExtSealed, UnitKind};
-use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
+use crate::utils::{Also, Atomic};
 use crate::{
     ClusterSnapshot, FlattiverseEvent, FlattiverseEventKind, GalaxySettingsSnapshot, GameError,
     GameErrorKind, PlayerUnitDestroyedReason, TeamSnapshot,
@@ -51,7 +51,10 @@ pub struct Galaxy {
 
     maintenance: Atomic<bool>,
     active: Atomic<bool>,
+    received_compiled_with: Atomic<bool>,
     received_galaxy_settings: Atomic<bool>,
+    compiled_with_max_players_supported: Atomic<u8>,
+    compiled_with_symbol: ArcSwap<String>,
 
     teams: UniversalArcHolder<TeamId, Team>,
     clusters: UniversalArcHolder<ClusterId, Cluster>,
@@ -131,7 +134,7 @@ impl Galaxy {
                         .get()
                         .expect("Failed to get initial session"),
                 );
-                let this = Arc::new(Self {
+                Arc::new(Self {
                     name: ArcSwap::default(),
                     game_mode: Atomic::from(GameMode::Mission),
                     description: ArcSwap::default(),
@@ -151,7 +154,10 @@ impl Galaxy {
                     player_max_bases: Atomic::from(0),
                     maintenance: Atomic::from(false),
                     active: Atomic::from(true),
+                    received_compiled_with: Atomic::from(false),
                     received_galaxy_settings: Atomic::from(false),
+                    compiled_with_max_players_supported: Atomic::default(),
+                    compiled_with_symbol: ArcSwap::default(),
                     teams: UniversalArcHolder::with_capacity(Self::TEAM_CAPACITY),
                     clusters: UniversalArcHolder::with_capacity(Self::CLUSTER_CAPACITY),
                     players: UniversalArcHolder::with_capacity(193),
@@ -159,18 +165,17 @@ impl Galaxy {
                     connection: handle,
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
-                });
-
-                this.teams.populate(Team::new(
-                    Arc::downgrade(&this),
-                    Self::SPECTATORS_TEAM_ID,
-                    "Spectators",
-                    128,
-                    128,
-                    128,
-                ));
-
-                this
+                })
+                .also(|galaxy| {
+                    galaxy.teams.populate(Team::new(
+                        Arc::downgrade(&galaxy),
+                        Self::SPECTATORS_TEAM_ID,
+                        "Spectators",
+                        128,
+                        128,
+                        128,
+                    ));
+                })
             },
         )
         .await?;
@@ -334,6 +339,23 @@ impl Galaxy {
     }
 
     #[instrument(level = "trace", skip(self))]
+    pub(crate) fn update_team_score(
+        &self,
+        id: TeamId,
+        kills: u16,
+        deaths: u16,
+        mission: u16,
+    ) -> Result<Option<FlattiverseEvent>, GameError> {
+        debug!("Updating Score for Team with {id:?}");
+        debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
+        debug_assert!(self.teams.has(id), "{id:?} does not exist.");
+        let team = self.teams.get(id);
+        let before = team.score().clone();
+        team.score().update(kills, deaths, mission);
+        event_result!(TeamScoreUpdated { team, before })
+    }
+
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn deactivate_team(
         &self,
         id: TeamId,
@@ -422,13 +444,30 @@ impl Galaxy {
         debug!("Updating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
-        event_result!(UpdatedPlayer {
+        event_result!(PlayerUpdated {
             player: {
                 let player = self.players.get(id);
                 player.update(ping);
                 player
             }
         })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn update_player_score(
+        &self,
+        id: PlayerId,
+        kills: u16,
+        deaths: u16,
+        mission: u16,
+    ) -> EventResult {
+        debug!("Updating Score for player with {id:?}");
+        debug_assert!(id.0 < 193, "Invalid {id:?}");
+        debug_assert!(self.players.has(id), "{id:?} does not exist.");
+        let player = self.players.get(id);
+        let before = player.score().clone();
+        player.score().update(kills, deaths, mission);
+        event_result!(PlayerScoreUpdated { player, before })
     }
 
     #[instrument(level = "trace", skip(self))]
@@ -671,6 +710,32 @@ impl Galaxy {
         }
     }
 
+    #[instrument(level = "trace", skip(self, reader))]
+    pub(crate) fn unit_updated_state(
+        &self,
+        cluster: ClusterId,
+        name: String,
+        reader: &mut dyn PacketReader,
+    ) -> EventResult {
+        debug!("Updating state of unit {name:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+
+        let cluster = self.clusters.get(cluster);
+        if let Some(unit) = cluster.get_unit(&name) {
+            unit.update_state(reader);
+            event_result!(UpdatedUnit { unit })
+        } else {
+            error!("Failed to find unit with name {name:?}");
+            Ok(None)
+        }
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn unit_updated_by_admin(&self, cluster: ClusterId, name: String) -> EventResult {
+        debug!("Admin has updated the unit {name:?}");
+        event_result!(UnitAlteredByAdmin { cluster, name })
+    }
+
     #[instrument(level = "trace", skip(self))]
     pub(crate) fn unit_removed(&self, cluster: ClusterId, name: String) -> EventResult {
         debug!("Removing unit {name:?}");
@@ -682,6 +747,28 @@ impl Galaxy {
         } else {
             error!("Failed to remove unit with name {name:?}");
             Ok(None)
+        }
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn compiled_with(&self, max_players_supported: u8, symbol: String) -> EventResult {
+        debug!("Compiled with message with max_players_supported={max_players_supported:?}, symbol={symbol:?}");
+
+        if self.received_compiled_with.load() {
+            warn!("Received compiled-with flags again, ignoring max_players_supported={max_players_supported:?}, symbol={symbol:?}");
+            Ok(None)
+        } else {
+            self.compiled_with_max_players_supported
+                .store(max_players_supported);
+            self.compiled_with_symbol.store(Arc::new(symbol));
+            self.received_compiled_with.store(true);
+
+            let symbol = self.compiled_with_symbol.load_full();
+            event_result!(CompiledWithMessage {
+                message: format!("The server has been compiled with support for up to {max_players_supported} players ({symbol})"),
+                max_players_supported,
+                symbol,
+            })
         }
     }
 
@@ -827,6 +914,16 @@ impl Galaxy {
     /// changed when maintenance mode is enabled, in order to maintain a consistent player state.
     pub fn maintenance(&self) -> bool {
         self.maintenance.load()
+    }
+
+    /// The maximum amount of players the server binary has been compiled to support.
+    pub fn compiled_with_may_players_supported(&self) -> u8 {
+        self.compiled_with_max_players_supported.load()
+    }
+
+    /// The compile symbol that selected the server binary's player-capacity profile.
+    pub fn compiled_with_symbol(&self) -> Arc<String> {
+        self.compiled_with_symbol.load_full()
     }
 
     /// Awaits the next [`FlattiverseEvent`]

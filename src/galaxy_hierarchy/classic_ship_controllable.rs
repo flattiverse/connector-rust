@@ -149,6 +149,7 @@ impl Controls<ClassicShipSpecialization> {
     pub fn as_classic_ship_specialization(&self) -> &ClassicShipSpecialization {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(specialization) => specialization,
+            #[allow(unreachable_patterns)]
             _ => unreachable!("This was previously proven"),
         }
     }

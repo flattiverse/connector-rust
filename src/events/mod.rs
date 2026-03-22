@@ -11,7 +11,7 @@ mod galaxy_settings_snapshot;
 pub use galaxy_settings_snapshot::*;
 
 use crate::galaxy_hierarchy::{
-    Cluster, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Team,
+    Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Score, Team,
 };
 use crate::unit::{Unit, UnitExt, UnitKind};
 use crate::{SubsystemSlot, SubsystemStatus, Vector};
@@ -137,6 +137,19 @@ impl Display for FlattiverseEvent {
 
                 Ok(())
             }
+            FlattiverseEventKind::TeamScoreUpdated { team, before } => {
+                write!(
+                    f,
+                    "Team score updated: {:?}, kills={}-{}, deaths={}-{}, mission={}-{}.",
+                    team.id(),
+                    before.kills(),
+                    team.score().kills(),
+                    before.deaths(),
+                    team.score().deaths(),
+                    before.mission(),
+                    team.score().mission(),
+                )
+            }
             FlattiverseEventKind::TeamRemoved { team } => write!(
                 f,
                 "Team removed: {:?}, name={:?}, red={}, green={}, blue={}",
@@ -239,7 +252,7 @@ impl Display for FlattiverseEvent {
                 f,
                 "Responded to Ping measurement: {challenge:?}"
             ),
-            FlattiverseEventKind::UpdatedPlayer { player } => write!(
+            FlattiverseEventKind::PlayerUpdated { player } => write!(
                 f,
                 "Updated player: {:?}", &*player.name()
             ),
@@ -468,23 +481,42 @@ impl Display for FlattiverseEvent {
                         write!(f, "Removed Unit in cluster {cluster:?} and with team {team:?} of Kind {kind:?} with name {name:?} on position {position:?} and with radius {radius} and gravity {gravity:.3}.")
                     }
                 }
-            },
+            }
+            FlattiverseEventKind::UnitAlteredByAdmin { cluster, name } => write!(f, "Unit altered by admin: {cluster:?}, name={name:?}"),
+
 
             FlattiverseEventKind::BatterySubsystem { controllable, slot, status, current, consumed_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, consumed={consumed_this_tick:?}", controllable.name())
-            },
-            FlattiverseEventKind::EnergyCellSubsystem { controllable, slot, status, collected_this_tick} => {
+            }
+            FlattiverseEventKind::EnergyCellSubsystem { controllable, slot, status, collected_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, collected={collected_this_tick:?}", controllable.name())
-            },
-            FlattiverseEventKind::ClassicShipEngineSubsystem { controllable, slot, status, current, target, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
-                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, target={target:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
-            },
-            FlattiverseEventKind::ShotWeaponSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
-                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, , relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
             FlattiverseEventKind::ScannerSubsystem { controllable, slot, status, active, current_width, current_length, current_angle, target_width, target_length, target_angle, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
                 write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, active={active:?}, current_width={current_width:?}, current_length={current_length:?}, current_angle={current_angle:?}, target_width={target_width:?}, target_length={target_length:?}, target_angle={target_angle:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
+            FlattiverseEventKind::ClassicShipEngineSubsystem { controllable, slot, status, current, target, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, target={target:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            }
+            FlattiverseEventKind::ShotWeaponSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, , relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            }
+
+            FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
+                write!(
+                    f,
+                    "Player score updated: {:?}, name={:?}, kills={}->{}, deaths={}->{}, mission={}->{}.",
+                    player.id(),
+                    player.name(),
+                    before.kills(),
+                    player.score().kills(),
+                    before.deaths(),
+                    player.score().deaths(),
+                    before.mission(),
+                    player.score().mission(),
+                )
+            }
+
+            FlattiverseEventKind::CompiledWithMessage { message, .. } => write!(f, "{message}"),
         }
     }
 }
@@ -570,6 +602,13 @@ pub enum FlattiverseEventKind {
     RemovedUnit {
         unit: Arc<Unit>,
     },
+    /// This event informs about a unit that has been altered by an admin through map editing.
+    UnitAlteredByAdmin {
+        /// The cluster id of the altered unit.
+        cluster: ClusterId,
+        /// The name of the altered unit.
+        name: String,
+    },
     /// You received a galaxy chat message.
     GalaxyChat {
         /// The player this event handles.
@@ -624,6 +663,10 @@ pub enum FlattiverseEventKind {
         team: Arc<Team>,
         /// Team snapshot before the update.
         before: TeamSnapshot,
+    },
+    TeamScoreUpdated {
+        team: Arc<Team>,
+        before: Score,
     },
     /// A team has been removed.
     TeamRemoved {
@@ -746,13 +789,27 @@ pub enum FlattiverseEventKind {
         consumed_neutrinos_this_tick: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
+    PlayerScoreUpdated {
+        player: Arc<Player>,
+        before: Score,
+    },
+
+    /// Is raised when the server announces the compile profile it was built with.
+    CompiledWithMessage {
+        /// The maximum amount of players supported by this server binary.
+        max_players_supported: u8,
+        /// The compile symbol that selected the server profile.
+        symbol: Arc<String>,
+        /// A user-facing message describing the compile profile.
+        message: String,
+    },
 
     // ---------- local events below
     PingMeasured(Duration),
     RespondedToPingMeasurement {
         challenge: u16,
     },
-    UpdatedPlayer {
+    PlayerUpdated {
         player: Arc<Player>,
     },
 }

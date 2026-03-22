@@ -120,6 +120,12 @@ impl Connection {
                 reader.read_string(),
             ),
             0x03 => galaxy.deactivate_team(TeamId(reader.read_byte())),
+            0x04 => galaxy.update_team_score(
+                TeamId(reader.read_byte()),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+            ),
             0x06 => galaxy.update_cluster(
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
@@ -134,6 +140,12 @@ impl Connection {
                 reader.read_f32(),
             ),
             0x11 => galaxy.update_player(PlayerId(reader.read_byte()), reader.read_f32()),
+            0x12 => galaxy.update_player_score(
+                PlayerId(reader.read_byte()),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+            ),
             0x1F => galaxy.deactivate_player(PlayerId(reader.read_byte())),
             0x20 => galaxy.controllable_info_new(
                 PlayerId(reader.read_byte()),
@@ -188,8 +200,17 @@ impl Connection {
                 reader.read_string(),
                 reader,
             ),
+            0x32 => galaxy.unit_updated_state(
+                ClusterId(reader.read_byte()),
+                reader.read_string(),
+                reader,
+            ),
+            0x3E => {
+                galaxy.unit_updated_by_admin(ClusterId(reader.read_byte()), reader.read_string())
+            }
             0x3F => galaxy.unit_removed(ClusterId(reader.read_byte()), reader.read_string()),
-            0xc0 => galaxy.universe_tick(reader.read_uint32()),
+            0x0B => galaxy.compiled_with(reader.read_byte(), reader.read_string()),
+            0xC0 => galaxy.universe_tick(reader.read_uint32()),
             0xC4 => galaxy.chat_galaxy(PlayerId(reader.read_byte()), reader.read_string()),
             0xC5 => galaxy.chat_team(PlayerId(reader.read_byte()), reader.read_string()),
             0xC6 => galaxy.chat_player(PlayerId(reader.read_byte()), reader.read_string()),
