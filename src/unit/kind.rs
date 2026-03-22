@@ -26,6 +26,8 @@ pub enum UnitKind {
     Buoy = 0x10,
     /// Represents a mission target with configurable waypoint vectors.
     MissionTarget = 0x11,
+    /// Represents a flag target.
+    Flag = 0x15,
     /// Represents a shot.
     Shot = 0xE0,
     /// Represents a classical player ship.
