@@ -4,6 +4,7 @@ use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed};
 use arc_swap::ArcSwapWeak;
 use std::sync::{Arc, Weak};
 
+/// Shared base class for team-bound target units.
 #[derive(Debug)]
 pub struct TargetUnit {
     team: ArcSwapWeak<Team>,

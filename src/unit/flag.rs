@@ -4,6 +4,7 @@ use crate::unit::{SteadyUnit, TargetUnit, UnitBase, UnitExt, UnitExtSealed, Unit
 use crate::utils::{Also, Readable};
 use std::sync::Weak;
 
+/// A flag target.
 #[derive(Debug, Clone)]
 pub struct Flag {
     base: UnitBase,

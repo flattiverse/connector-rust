@@ -28,6 +28,8 @@ pub enum UnitKind {
     MissionTarget = 0x11,
     /// Represents a flag target.
     Flag = 0x15,
+    /// Represents a domination point target.
+    DominationPoint = 0x16,
     /// Represents a shot.
     Shot = 0xE0,
     /// Represents a classical player ship.
