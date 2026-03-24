@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Galaxy, Indexer, Player};
+use crate::galaxy_hierarchy::{Galaxy, Indexer, Player, Score};
 use crate::utils::Atomic;
 use std::sync::{Arc, Weak};
 
@@ -20,6 +20,7 @@ pub struct ControllableInfoBase {
     name: String,
     alive: Atomic<bool>,
     active: Atomic<bool>,
+    score: Score,
 }
 
 impl ControllableInfoBase {
@@ -37,6 +38,7 @@ impl ControllableInfoBase {
             name,
             alive: Atomic::from(alive),
             active: Atomic::from(true),
+            score: Score::default(),
         }
     }
 
@@ -74,6 +76,12 @@ impl ControllableInfoBase {
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
+    }
+
+    /// Current live score of this controllable inside one galaxy session.
+    #[inline]
+    pub fn score(&self) -> &Score {
+        &self.score
     }
 
     pub(crate) fn deactivate(&self) {

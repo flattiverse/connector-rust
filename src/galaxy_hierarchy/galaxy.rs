@@ -51,6 +51,7 @@ pub struct Galaxy {
     player_max_bases: Atomic<u8>,
 
     maintenance: Atomic<bool>,
+    requires_self_disclosure: Atomic<bool>,
     active: Atomic<bool>,
     received_compiled_with: Atomic<bool>,
     received_galaxy_settings: Atomic<bool>,
@@ -164,6 +165,7 @@ impl Galaxy {
                     player_max_new_ships: Atomic::from(0),
                     player_max_bases: Atomic::from(0),
                     maintenance: Atomic::from(false),
+                    requires_self_disclosure: Atomic::from(false),
                     active: Atomic::from(true),
                     received_compiled_with: Atomic::from(false),
                     received_galaxy_settings: Atomic::from(false),
@@ -282,6 +284,7 @@ impl Galaxy {
         player_max_new_ships: u8,
         player_max_bases: u8,
         maintenance: u8,
+        requires_self_disclosure: u8,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating galaxy");
         let before = if self.received_galaxy_settings.load() {
@@ -310,6 +313,8 @@ impl Galaxy {
         self.player_max_new_ships.store(player_max_new_ships);
         self.player_max_bases.store(player_max_bases);
         self.maintenance.store(maintenance != 0);
+        self.requires_self_disclosure
+            .store(requires_self_disclosure != 0);
 
         self.received_galaxy_settings.store(true);
 
@@ -373,7 +378,7 @@ impl Galaxy {
             friendly_kills,
             friendly_deaths,
             npc_kills,
-            neutral_deaths,
+            npc_deaths,
             neutral_deaths,
             mission,
         );
@@ -439,7 +444,7 @@ impl Galaxy {
         })
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn create_player(
         self: &Arc<Self>,
         id: PlayerId,
@@ -447,11 +452,35 @@ impl Galaxy {
         team: TeamId,
         name: String,
         ping: f32,
+        admin: bool,
+        rank: i32,
+        player_kills: i64,
+        player_deaths: i64,
+        friendly_kills: i64,
+        friendly_deaths: i64,
+        npc_kills: i64,
+        npc_deaths: i64,
+        neutral_deaths: i64,
+        reader: &mut dyn PacketReader,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Creating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has_not(id), "{id:?} does already exist.");
         debug_assert!(self.teams.has(team), "{team:?} does not exist.");
+
+        let disclosure_flags = reader.read_byte();
+        let runtime_disclosure = if (disclosure_flags & 0x01) != 0 {
+            RuntimeDisclosure::try_read(reader)
+        } else {
+            None
+        };
+
+        let build_disclosure = if (disclosure_flags & 0x02) != 0 {
+            BuildDisclosure::try_read(reader)
+        } else {
+            None
+        };
+
         event_result!(PlayerJoined {
             player: self.players.populate(Player::new(
                 Arc::downgrade(self),
@@ -459,20 +488,55 @@ impl Galaxy {
                 kind,
                 Arc::downgrade(&self.teams.get(team)),
                 name,
-                ping
+                ping,
+                admin,
+                rank,
+                player_kills,
+                player_deaths,
+                friendly_kills,
+                friendly_deaths,
+                npc_kills,
+                npc_deaths,
+                neutral_deaths,
+                runtime_disclosure,
+                build_disclosure,
             )),
         })
     }
 
     #[instrument(level = "trace", skip(self))]
-    pub(crate) fn update_player(&self, id: PlayerId, ping: f32) -> EventResult {
+    pub(crate) fn update_player(
+        &self,
+        id: PlayerId,
+        ping: f32,
+        admin: bool,
+        rank: i32,
+        player_kills: i64,
+        player_deaths: i64,
+        friendly_kills: i64,
+        friendly_deaths: i64,
+        npc_kills: i64,
+        npc_deaths: i64,
+        neutral_deaths: i64,
+    ) -> EventResult {
         debug!("Updating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
         event_result!(PlayerUpdated {
             player: {
                 let player = self.players.get(id);
-                player.update(ping);
+                player.update(
+                    ping,
+                    admin,
+                    rank,
+                    player_kills,
+                    player_deaths,
+                    friendly_kills,
+                    friendly_deaths,
+                    npc_kills,
+                    npc_deaths,
+                    neutral_deaths,
+                );
                 player
             }
         })
@@ -631,6 +695,42 @@ impl Galaxy {
             reason,
             destroyer_player: destroyer,
             destroyed_unit: destroyer_unit,
+        })
+    }
+
+    #[instrument(level = "trace", skip(self))]
+    pub(crate) fn controllable_info_score_updated(
+        self: &Arc<Self>,
+        player: PlayerId,
+        id: ControllableInfoId,
+        player_kills: u16,
+        player_deaths: u16,
+        friendly_kills: u16,
+        friendly_deaths: u16,
+        npc_kills: u16,
+        npc_deaths: u16,
+        neutral_deaths: u16,
+        mission: u16,
+    ) -> EventResult {
+        debug!("Death of ControllableInfo for {player:?} with {id:?} (player collision)");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable = player.get_controllable_info(id);
+        let before = controllable.score().clone();
+        controllable.score().update(
+            player_kills,
+            player_deaths,
+            friendly_kills,
+            friendly_deaths,
+            npc_kills,
+            npc_deaths,
+            neutral_deaths,
+            mission,
+        );
+        event_result!(ControllableInfoScoreUpdated {
+            player,
+            controllable,
+            before,
         })
     }
 
@@ -953,6 +1053,11 @@ impl Galaxy {
     /// changed when maintenance mode is enabled, in order to maintain a consistent player state.
     pub fn maintenance(&self) -> bool {
         self.maintenance.load()
+    }
+
+    /// Whether this galaxy requires self-disclosure for regular player logins.
+    pub fn requires_self_disclosure(&self) -> bool {
+        self.requires_self_disclosure.load()
     }
 
     /// The maximum amount of players the server binary has been compiled to support.

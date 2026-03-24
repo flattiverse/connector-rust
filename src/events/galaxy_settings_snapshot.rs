@@ -39,6 +39,8 @@ pub struct GalaxySettingsSnapshot {
     pub player_max_bases: u8,
     /// Maintenance mode flag.
     pub maintenance: bool,
+    /// Requires self-disclosure from regular player logins.
+    pub requires_self_disclosure: bool,
 }
 
 impl From<&Galaxy> for GalaxySettingsSnapshot {
@@ -62,6 +64,7 @@ impl From<&Galaxy> for GalaxySettingsSnapshot {
             player_max_new_ships: galaxy.player_max_new_ships(),
             player_max_bases: galaxy.player_max_bases(),
             maintenance: galaxy.maintenance(),
+            requires_self_disclosure: galaxy.requires_self_disclosure(),
         }
     }
 }

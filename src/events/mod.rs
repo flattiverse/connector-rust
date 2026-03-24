@@ -219,6 +219,7 @@ impl Display for FlattiverseEvent {
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_new_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_bases);
                     log_change!(appended_at_least_one_change, galaxy, before, maintenance);
+                    log_change!(appended_at_least_one_change, galaxy, before, requires_self_disclosure);
 
                     if !appended_at_least_one_change {
                         write!(f, ", without effective field changes.")?;
@@ -425,6 +426,22 @@ impl Display for FlattiverseEvent {
                     controllable.kind(),
                 )
             }
+            FlattiverseEventKind::ControllableInfoScoreUpdated { player, controllable, before } => {
+                write!(
+                    f,
+                    "Controllable score updated: {:?}, {:?}, player_kills={}-{}, player_deaths={}-{}, friendly_kills={}-{}, friendly_deaths={}-{}, npc_kills={}-{}, npc_deaths={}-{}, neutral_deaths={}-{}, mission={}-{}.",
+                    player.id(),
+                    controllable.id(),
+                    before.player_kills(), controllable.score().player_kills(),
+                    before.player_deaths(), controllable.score().player_deaths(),
+                    before.friendly_kills(), controllable.score().friendly_kills(),
+                    before.friendly_deaths(), controllable.score().friendly_deaths(),
+                    before.npc_kills(), controllable.score().npc_kills(),
+                    before.npc_deaths(), controllable.score().npc_deaths(),
+                    before.neutral_deaths(), controllable.score().neutral_deaths(),
+                    before.mission(), controllable.score().mission(),
+                )
+            }
             FlattiverseEventKind::ControllableInfoClosed {
                 player,
                 controllable,
@@ -595,6 +612,15 @@ pub enum FlattiverseEventKind {
         destroyed_unit: Arc<ControllableInfo>,
         /// The Player of the unit which destroyed the PlayerUnit in question.
         destroyer_player: Arc<Player>,
+    },
+    /// Is raised when a controllable-info score has been updated.
+    ControllableInfoScoreUpdated {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        controllable: Arc<ControllableInfo>,
+        /// The corresponding PlayerUnit the ControllableInfo informs about.
+        before: Score,
     },
     /// Signals that the player has closed or disposed a controllable.
     ControllableInfoClosed {

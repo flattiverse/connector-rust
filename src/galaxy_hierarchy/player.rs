@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{
-    ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer, Score, Team,
-    UniversalArcHolder,
+    BuildDisclosure, ControllableInfo, ControllableInfoId, Galaxy, Identifiable, Indexer,
+    RuntimeDisclosure, Score, Team, UniversalArcHolder,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -27,6 +27,17 @@ pub struct Player {
     ping: Atomic<f32>,
     score: Score,
     active: Atomic<bool>,
+    admin: Atomic<bool>,
+    rank: Atomic<i32>,
+    player_kills: Atomic<i64>,
+    player_deaths: Atomic<i64>,
+    friendly_kills: Atomic<i64>,
+    friendly_deaths: Atomic<i64>,
+    npc_kills: Atomic<i64>,
+    npc_deaths: Atomic<i64>,
+    neutral_deaths: Atomic<i64>,
+    runtime_disclosure: Option<RuntimeDisclosure>,
+    build_disclosure: Option<BuildDisclosure>,
     pub(crate) controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
 }
 
@@ -38,6 +49,17 @@ impl Player {
         team: Weak<Team>,
         name: String,
         ping: f32,
+        admin: bool,
+        rank: i32,
+        player_kills: i64,
+        player_deaths: i64,
+        friendly_kills: i64,
+        friendly_deaths: i64,
+        npc_kills: i64,
+        npc_deaths: i64,
+        neutral_deaths: i64,
+        runtime_disclosure: Option<RuntimeDisclosure>,
+        build_disclosure: Option<BuildDisclosure>,
     ) -> Self {
         Self {
             galaxy,
@@ -48,6 +70,17 @@ impl Player {
             ping: Atomic::from(ping),
             score: Score::default(),
             active: Atomic::from(true),
+            admin: Atomic::from(admin),
+            rank: Atomic::from(rank),
+            player_kills: Atomic::from(player_kills),
+            player_deaths: Atomic::from(player_deaths),
+            friendly_kills: Atomic::from(friendly_kills),
+            friendly_deaths: Atomic::from(friendly_deaths),
+            npc_kills: Atomic::from(npc_kills),
+            npc_deaths: Atomic::from(npc_deaths),
+            neutral_deaths: Atomic::from(neutral_deaths),
+            runtime_disclosure,
+            build_disclosure,
             controllable_infos: UniversalArcHolder::with_capacity(256),
         }
     }
@@ -99,14 +132,101 @@ impl Player {
         self.ping.load()
     }
 
+    /// Whether the account has administrator privileges.
+    #[inline]
+    pub fn admin(&self) -> bool {
+        self.admin.load()
+    }
+
+    /// Global account rank.
+    #[inline]
+    pub fn rank(&self) -> i32 {
+        self.rank.load()
+    }
+
+    /// Total kills of other players.
+    #[inline]
+    pub fn player_kills(&self) -> i64 {
+        self.player_kills.load()
+    }
+
+    /// Total deaths caused by other players.
+    #[inline]
+    pub fn player_deaths(&self) -> i64 {
+        self.player_deaths.load()
+    }
+
+    /// Total kills of teammates.
+    #[inline]
+    pub fn friendly_kills(&self) -> i64 {
+        self.friendly_kills.load()
+    }
+
+    /// Total deaths caused by the same team, including self-inflicted deaths.
+    #[inline]
+    pub fn friendly_deaths(&self) -> i64 {
+        self.friendly_deaths.load()
+    }
+
+    /// Total kills of NPC enemies.
+    #[inline]
+    pub fn npc_kills(&self) -> i64 {
+        self.npc_kills.load()
+    }
+
+    /// Total deaths caused by NPC enemies.
+    #[inline]
+    pub fn npc_deaths(&self) -> i64 {
+        self.npc_deaths.load()
+    }
+
+    /// Total deaths caused by neutral units or the environment.
+    #[inline]
+    pub fn neutral_deaths(&self) -> i64 {
+        self.neutral_deaths.load()
+    }
+
+    /// Session-level runtime self-disclosure, if provided by the player.
+    #[inline]
+    pub fn runtime_disclosure(&self) -> Option<&RuntimeDisclosure> {
+        self.runtime_disclosure.as_ref()
+    }
+
+    /// Session-level build-assistance self-disclosure, if provided by the player.
+    #[inline]
+    pub fn build_disclosure(&self) -> Option<&BuildDisclosure> {
+        self.build_disclosure.as_ref()
+    }
+
     /// Current live player score.
     #[inline]
     pub fn score(&self) -> &Score {
         &self.score
     }
 
-    pub(crate) fn update(&self, ping: f32) {
+    pub(crate) fn update(
+        &self,
+        ping: f32,
+        admin: bool,
+        rank: i32,
+        player_kills: i64,
+        player_deaths: i64,
+        friendly_kills: i64,
+        friendly_deaths: i64,
+        npc_kills: i64,
+        npc_deaths: i64,
+        neutral_deaths: i64,
+    ) {
         self.ping.store(ping);
+        self.admin.store(admin);
+        self.rank.store(rank);
+        self.player_kills.store(player_kills);
+        self.player_deaths.store(player_deaths);
+        self.friendly_kills.store(friendly_kills);
+        self.friendly_deaths.store(friendly_deaths);
+        self.npc_kills.store(npc_kills);
+        self.npc_deaths.store(npc_deaths);
+        self.neutral_deaths.store(neutral_deaths);
     }
 
     pub(crate) fn deactivate(&self) {

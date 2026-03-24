@@ -1,5 +1,5 @@
 use crate::galaxy_hierarchy::{
-    ControllableInfoBase, ControllableInfoId, Galaxy, Identifiable, Player,
+    ControllableInfoBase, ControllableInfoId, Galaxy, Identifiable, Player, Score,
 };
 use crate::network::InvalidArgumentKind;
 use crate::unit::UnitKind;
@@ -47,6 +47,12 @@ impl ControllableInfo {
     #[inline]
     pub fn active(&self) -> bool {
         self.base().active()
+    }
+
+    /// Current live score of this controllable inside one galaxy session.
+    #[inline]
+    pub fn score(&self) -> &Score {
+        self.base().score()
     }
 
     /// Specifies the kind of the PlayerUnit.
