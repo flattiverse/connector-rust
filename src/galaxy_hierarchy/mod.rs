@@ -40,6 +40,9 @@ pub use shot_weapon_subsystem::*;
 mod scanner_subsystem;
 pub use scanner_subsystem::*;
 
+mod hull_subsystem;
+pub use hull_subsystem::*;
+
 mod subsystem;
 pub use subsystem::*;
 

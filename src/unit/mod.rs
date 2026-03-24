@@ -67,6 +67,9 @@ pub use scanner_subsystem_info::*;
 mod shot_weapon_subsystem_info;
 pub use shot_weapon_subsystem_info::*;
 
+mod hull_subsystem_info;
+pub use hull_subsystem_info::*;
+
 use crate::galaxy_hierarchy::{
     AsPlayerUnit, AsSteadyUnit, AsTargetUnit, AsUnitBase, Cluster, Team,
 };

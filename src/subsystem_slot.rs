@@ -24,6 +24,8 @@ pub enum SubsystemSlot {
     IonCell = 0x11,
     /// primary neutrino-cell slot.
     NeutrinoCell = 0x12,
+    /// Hull integrity slot.
+    Hull = 0x18,
     /// Primary scanner slot.
     PrimaryScanner = 0x20,
     /// Secondary scanner slot.

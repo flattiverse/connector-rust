@@ -498,7 +498,10 @@ impl Display for FlattiverseEvent {
                 write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, target={target:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
             FlattiverseEventKind::ShotWeaponSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
-                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, , relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            }
+            FlattiverseEventKind::HullSubsystem { controllable, slot, status, current } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
 
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
@@ -794,6 +797,17 @@ pub enum FlattiverseEventKind {
         consumed_ions_this_tick: f32,
         /// The neutrinos consumed during the current server tick.
         consumed_neutrinos_this_tick: f32,
+    },
+    /// Update of a hull subsystem on your own controllable
+    HullSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The current hull integrity.
+        current: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
     /// Is raised when the server announces the compile profile it was built with.

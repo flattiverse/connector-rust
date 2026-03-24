@@ -3,7 +3,8 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::unit::{
-    BatterySubsystemInfo, EnergyCellSubsystemInfo, Mobility, UnitBase, UnitExt, UnitExtSealed,
+    BatterySubsystemInfo, EnergyCellSubsystemInfo, HullSubsystemInfo, Mobility, UnitBase, UnitExt,
+    UnitExtSealed,
 };
 use crate::utils::{Atomic, Readable};
 use crate::{SubsystemStatus, Vector};
@@ -22,6 +23,7 @@ pub struct PlayerUnit {
     energy_cell: EnergyCellSubsystemInfo,
     ion_cell: EnergyCellSubsystemInfo,
     neutrino_cell: EnergyCellSubsystemInfo,
+    hull: HullSubsystemInfo,
 }
 
 impl PlayerUnit {
@@ -43,6 +45,7 @@ impl PlayerUnit {
             energy_cell: EnergyCellSubsystemInfo::default(),
             ion_cell: EnergyCellSubsystemInfo::default(),
             neutrino_cell: EnergyCellSubsystemInfo::default(),
+            hull: HullSubsystemInfo::default(),
         }
     }
 
@@ -92,6 +95,12 @@ impl PlayerUnit {
     #[inline]
     pub fn neutrino_cell(&self) -> &EnergyCellSubsystemInfo {
         &self.neutrino_cell
+    }
+
+    /// Visible snapshot of the hull subsystem.
+    #[inline]
+    pub fn hull(&self) -> &HullSubsystemInfo {
+        &self.hull
     }
 }
 
@@ -153,6 +162,13 @@ where
             SubsystemStatus::read(reader),
         );
         self.1.neutrino_cell.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        self.1.hull.update(
             reader.read_byte() != 0,
             reader.read_f32(),
             reader.read_f32(),

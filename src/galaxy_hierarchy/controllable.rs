@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{
     AsSubsystemBase, BatterySubsystem, ClassicShipControllable, Cluster, EnergyCellSubsystem,
-    Identifiable, Indexer, NamedUnit,
+    HullSubsystem, Identifiable, Indexer, NamedUnit,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -29,6 +29,7 @@ pub struct Controllable {
     alive: Atomic<bool>,
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
+    hull: HullSubsystem,
     energy_battery: BatterySubsystem,
     ion_battery: BatterySubsystem,
     neutrino_battery: BatterySubsystem,
@@ -55,6 +56,7 @@ impl Controllable {
                 alive: Atomic::from(false),
                 position: Atomic::from_reader(reader),
                 movement: Atomic::from_reader(reader),
+                hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
                 energy_battery: BatterySubsystem::create_classic_ship_energy_battery(
                     Weak::default(),
                 ),
@@ -86,6 +88,7 @@ impl Controllable {
             .also(|this| {
                 // finish the initialization of cross-references
                 for subsystem in [
+                    this.hull.as_subsystem_base(),
                     this.energy_battery.as_subsystem_base(),
                     this.ion_battery.as_subsystem_base(),
                     this.neutrino_battery.as_subsystem_base(),
@@ -136,6 +139,12 @@ impl Controllable {
     #[inline]
     pub fn movement(&self) -> Vector {
         self.movement.load()
+    }
+
+    /// The hull subsystem of the controllable.
+    #[inline]
+    pub fn hull(&self) -> &HullSubsystem {
+        &self.hull
     }
 
     /// The energy battery subsystem of the controllable.
@@ -270,6 +279,9 @@ impl Controllable {
         self.neutrino_cell
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
 
+        self.hull
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+
         self.read_runtime(reader);
         self.alive.store(true);
         self.emit_runtime_events();
@@ -282,6 +294,7 @@ impl Controllable {
         self.energy_cell.reset_runtime();
         self.ion_cell.reset_runtime();
         self.neutrino_cell.reset_runtime();
+        self.hull.reset_runtime();
 
         match self.specialization() {
             ControllableSpecialization::ClassicShip(s) => s.reset_runtime(),
@@ -303,6 +316,7 @@ impl Controllable {
                 self.energy_cell.create_runtime_event(),
                 self.ion_cell.create_runtime_event(),
                 self.neutrino_cell.create_runtime_event(),
+                self.hull.create_runtime_event(),
             ]
             .into_iter()
             .flatten(),
