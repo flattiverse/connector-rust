@@ -189,7 +189,7 @@ impl Controllable {
         self.alive.load()
     }
 
-    /// true, if this objet still can be used. If the unit has been disposed this is false.
+    /// true if this object still can be used. If the unit has been finally closed this is false.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
@@ -236,12 +236,13 @@ impl Controllable {
             .await
     }
 
-    /// Call this to close the unit.
-    pub async fn dispose(&self) -> Result<(), GameError> {
+    /// Call this to request closing the unit. The server may keep it alive for a grace period
+    /// before it is finally removed.
+    pub async fn request_close(&self) -> Result<(), GameError> {
         self.cluster()
             .galaxy()
             .connection()
-            .dispose_controllable(self.id())
+            .request_controllable_close(self.id())
             .await
     }
 

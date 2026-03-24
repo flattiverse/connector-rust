@@ -69,6 +69,59 @@ impl ConnectionHandle {
         })
     }
 
+    /// Downloads the player's cached small avatar image bytes.
+    #[inline]
+    pub async fn download_player_small_avatar(
+        &self,
+        player: PlayerId,
+    ) -> Result<Vec<u8>, GameError> {
+        self.download_player_small_avatar_split(player).await?.await
+    }
+
+    /// Downloads the player's cached small avatar image bytes.
+    pub async fn download_player_small_avatar_split(
+        &self,
+        player: PlayerId,
+    ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0xC7);
+        packet.write(|writer| writer.write_byte(player.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut response| {
+                Ok(response.read(|reader| reader.read_remaining_as_bytes()))
+            })
+        })
+    }
+
+    /// Downloads the player's cached big avatar image bytes.
+    #[inline]
+    pub async fn download_player_big_avatar(&self, player: PlayerId) -> Result<Vec<u8>, GameError> {
+        self.download_player_big_avatar_split(player).await?.await
+    }
+
+    /// Downloads the player's cached big avatar image bytes.
+    pub async fn download_player_big_avatar_split(
+        &self,
+        player: PlayerId,
+    ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0xC8);
+        packet.write(|writer| writer.write_byte(player.0));
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut response| {
+                Ok(response.read(|reader| reader.read_remaining_as_bytes()))
+            })
+        })
+    }
+
     /// Sends a chat message to the connected [`crate::galaxy_hierarchy::Team`].
     #[inline]
     pub async fn chat_team(&self, team: TeamId, message: impl AsRef<str>) -> Result<(), GameError> {
@@ -119,17 +172,21 @@ impl ConnectionHandle {
         })
     }
 
-    /// Call this to close a [`crate::galaxy_hierarchy::Controllable`].
+    /// Call this to request closing a [`crate::galaxy_hierarchy::Controllable`]. The server may
+    /// keep it alive for a grace period before it is finally removed.
     #[inline]
-    pub async fn dispose_controllable(
+    pub async fn request_controllable_close(
         &self,
         controllable: ControllableId,
     ) -> Result<(), GameError> {
-        self.dispose_controllable_split(controllable).await?.await
+        self.request_controllable_close_split(controllable)
+            .await?
+            .await
     }
 
-    /// Call this to close a [`crate::galaxy_hierarchy::Controllable`].
-    pub async fn dispose_controllable_split(
+    /// Call this to request closing a [`crate::galaxy_hierarchy::Controllable`]. The server may
+    /// keep it alive for a grace period before it is finally removed.
+    pub async fn request_controllable_close_split(
         &self,
         controllable: ControllableId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {

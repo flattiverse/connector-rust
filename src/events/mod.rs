@@ -622,7 +622,7 @@ pub enum FlattiverseEventKind {
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         before: Score,
     },
-    /// Signals that the player has closed or disposed a controllable.
+    /// Signals that the player has closed a controllable.
     ControllableInfoClosed {
         /// The player this event handles.
         player: Arc<Player>,

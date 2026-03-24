@@ -66,6 +66,8 @@ pub enum GameErrorKind {
     WrongAccountState(Option<AccountStatus>),
     TeamSelectionFailed,
     SelfDisclosureRequired,
+    /// Persistent storage is currently unavailable for this login attempt.
+    PersistenceUnavailable,
     ServerFullOfPlayerKind(Option<PlayerKind>),
     AccountAlreadyLoggedIn,
     SessionsExhausted,
@@ -94,6 +96,8 @@ pub enum GameErrorKind {
         /// Human-readable hin in English.
         hint: String,
     },
+    /// The requested continue action targets a controllable that is already closing.
+    ControllableIsClosing,
     /// Thrown, if the controllable you want to control is dead.
     YouNeedToContinueFirst,
     /// Thrown, if you try to do something which requires that your controllable is dead, like
@@ -129,6 +133,7 @@ impl Display for GameErrorKind {
             },
             GameErrorKind::TeamSelectionFailed => "[0x05] Invalid team specified or no team available for auto-selection.",
             GameErrorKind::SelfDisclosureRequired => "[0x06] Galaxy requires self-disclosure for this login.",
+            GameErrorKind::PersistenceUnavailable => "[0x07] Persistent storage is currently unavailable. Please try again later.",
             GameErrorKind::ServerFullOfPlayerKind(None) => "[0x08] Server is full of unknown things.",
             GameErrorKind::AccountAlreadyLoggedIn => "[0x09] Account already has an active galaxy session.",
             GameErrorKind::ServerFullOfPlayerKind(Some(kind)) => match kind {
@@ -165,6 +170,7 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::ConstrainedInfinity => "contained a \"Infinity\" value.",
                 InvalidArgumentKind::Unknown(..) => "is wrong due to an invalid value."
             }),
+            GameErrorKind::ControllableIsClosing => "[0x17] Can't continue a controllable that is already closing.",
             GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
@@ -185,6 +191,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             ),
             0x05 => GameErrorKind::TeamSelectionFailed,
             0x06 => GameErrorKind::SelfDisclosureRequired,
+            0x07 => GameErrorKind::PersistenceUnavailable,
             0x08 => GameErrorKind::ServerFullOfPlayerKind(
                 reader.opt_read_byte().map(PlayerKind::from_primitive),
             ),
@@ -206,6 +213,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
                 node_path: reader.read_string(),
                 hint: reader.read_string(),
             },
+            0x17 => GameErrorKind::ControllableIsClosing,
             0x20 => GameErrorKind::YouNeedToContinueFirst,
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,

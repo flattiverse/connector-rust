@@ -15,6 +15,7 @@ pub trait PacketReader {
     fn read_bytes(&mut self, amount: usize) -> Vec<u8>;
     fn read_string(&mut self) -> String;
     fn read_nullable_byte(&mut self) -> Option<u8>;
+    fn read_remaining_as_bytes(&mut self) -> Vec<u8>;
     fn read_remaining_as_string(&mut self) -> String;
 
     fn peek_string(&self) -> String;
@@ -111,6 +112,11 @@ impl PacketReader for BytesMut {
         } else {
             None
         }
+    }
+
+    fn read_remaining_as_bytes(&mut self) -> Vec<u8> {
+        let remaining = self.remaining();
+        self.read_bytes(remaining)
     }
 
     fn read_remaining_as_string(&mut self) -> String {

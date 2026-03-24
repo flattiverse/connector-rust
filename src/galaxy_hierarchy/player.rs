@@ -126,6 +126,28 @@ impl Player {
             .await
     }
 
+    /// Downloads the player's cached small avatar image bytes.
+    #[inline]
+    pub async fn download_small_avatar(&self) -> Result<Vec<u8>, GameError> {
+        self.galaxy
+            .upgrade()
+            .unwrap()
+            .connection()
+            .download_player_small_avatar(self.id)
+            .await
+    }
+
+    /// Downloads the player's cached big avatar image bytes.
+    #[inline]
+    pub async fn download_big_avatar(&self) -> Result<Vec<u8>, GameError> {
+        self.galaxy
+            .upgrade()
+            .unwrap()
+            .connection()
+            .download_player_big_avatar(self.id)
+            .await
+    }
+
     /// The ping in ms of the player.
     #[inline]
     pub fn ping(&self) -> f32 {
