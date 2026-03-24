@@ -358,14 +358,14 @@ impl Galaxy {
     pub(crate) fn update_team_score(
         &self,
         id: TeamId,
-        player_kills: u16,
-        player_deaths: u16,
-        friendly_kills: u16,
-        friendly_deaths: u16,
-        npc_kills: u16,
-        npc_deaths: u16,
-        neutral_deaths: u16,
-        mission: u16,
+        player_kills: u32,
+        player_deaths: u32,
+        friendly_kills: u32,
+        friendly_deaths: u32,
+        npc_kills: u32,
+        npc_deaths: u32,
+        neutral_deaths: u32,
+        mission: u32,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating Score for Team with {id:?}");
         debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
@@ -548,14 +548,14 @@ impl Galaxy {
     pub(crate) fn update_player_score(
         &self,
         id: PlayerId,
-        player_kills: u16,
-        player_deaths: u16,
-        friendly_kills: u16,
-        friendly_deaths: u16,
-        npc_kills: u16,
-        npc_deaths: u16,
-        neutral_deaths: u16,
-        mission: u16,
+        player_kills: u32,
+        player_deaths: u32,
+        friendly_kills: u32,
+        friendly_deaths: u32,
+        npc_kills: u32,
+        npc_deaths: u32,
+        neutral_deaths: u32,
+        mission: u32,
     ) -> EventResult {
         debug!("Updating Score for player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
@@ -705,16 +705,16 @@ impl Galaxy {
         self: &Arc<Self>,
         player: PlayerId,
         id: ControllableInfoId,
-        player_kills: u16,
-        player_deaths: u16,
-        friendly_kills: u16,
-        friendly_deaths: u16,
-        npc_kills: u16,
-        npc_deaths: u16,
-        neutral_deaths: u16,
-        mission: u16,
+        player_kills: u32,
+        player_deaths: u32,
+        friendly_kills: u32,
+        friendly_deaths: u32,
+        npc_kills: u32,
+        npc_deaths: u32,
+        neutral_deaths: u32,
+        mission: u32,
     ) -> EventResult {
-        debug!("Death of ControllableInfo for {player:?} with {id:?} (player collision)");
+        debug!("Updating Score for ControllableId with {id:?} of {player:?}.");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         let controllable = player.get_controllable_info(id);
