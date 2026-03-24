@@ -127,7 +127,7 @@ impl Display for GameErrorKind {
                 AccountStatus::Banned => "[0x04] Your account has been banned from using the game.",
                 AccountStatus::Deleted => "[0x04] Your account is deleted."
             },
-            GameErrorKind::TeamSelectionFailed => "[0x05] No or non-existent team specified.",
+            GameErrorKind::TeamSelectionFailed => "[0x05] Invalid team specified or no team available for auto-selection.",
             GameErrorKind::SelfDisclosureRequired => "[0x06] Galaxy requires self-disclosure for this login.",
             GameErrorKind::ServerFullOfPlayerKind(None) => "[0x08] Server is full of unknown things.",
             GameErrorKind::AccountAlreadyLoggedIn => "[0x09] Account already has an active galaxy session.",
