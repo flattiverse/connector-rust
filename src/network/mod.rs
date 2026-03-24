@@ -1,4 +1,4 @@
-pub const PROTOCOL_VERSION: &str = "1";
+pub const PROTOCOL_VERSION: &str = "7";
 
 #[cfg(all(
     any(target_arch = "wasm32", target_arch = "wasm64"),
@@ -36,10 +36,11 @@ pub use session::*;
 mod invalid_argument_kind;
 pub use invalid_argument_kind::*;
 
-use crate::galaxy_hierarchy::Galaxy;
+use crate::galaxy_hierarchy::{BuildDisclosure, Galaxy, RuntimeDisclosure};
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};
 use async_channel::Receiver;
+use std::fmt::Write;
 use std::sync::Arc;
 
 #[instrument(level = "trace", skip(f))]
@@ -47,25 +48,43 @@ pub(crate) async fn connect(
     uri: &str,
     auth: &str,
     team: Option<&str>,
+    runtime_disclosure: Option<RuntimeDisclosure>,
+    build_disclosure: Option<BuildDisclosure>,
     f: impl FnOnce(ConnectionHandle, Receiver<FlattiverseEvent>) -> Arc<Galaxy>,
 ) -> Result<Arc<Galaxy>, ConnectError> {
-    let url = format!(
-        "{uri}?auth={auth}&version={}{}{}&impl=rust&impl-version={}&impl-target={}&impl-arch={}&impl-family={}&impl-os={}",
-        PROTOCOL_VERSION,
-        team.map(|_| "&team=").unwrap_or_default(),
-        team.unwrap_or_default(),
-        env!("CARGO_PKG_VERSION"),
-        if cfg!(feature = "desktop") {
-            "desktop"
-        } else if cfg!(feature = "wasm") {
-            "wasm"
-        } else {
-            "unknown"
-        },
-        std::env::consts::ARCH,
-        std::env::consts::FAMILY,
-        std::env::consts::OS,
-    );
+    let url = {
+        let mut url = String::new();
+
+        write!(
+            &mut url,
+            "{uri}?auth={auth}&version={PROTOCOL_VERSION}&impl=rust&impl-version={}&impl-target={}&impl-arch={}&impl-family={}&impl-os={}",
+            env!("CARGO_PKG_VERSION"),
+            if cfg!(feature = "desktop") {
+                "desktop"
+            } else if cfg!(feature = "wasm") {
+                "wasm"
+            } else {
+                "unknown"
+            },
+            std::env::consts::ARCH,
+            std::env::consts::FAMILY,
+            std::env::consts::OS,
+        ).unwrap();
+
+        if let Some(team) = team {
+            write!(&mut url, "team={team}").unwrap();
+        }
+
+        if let Some(runtime_disclosure) = runtime_disclosure {
+            write!(&mut url, "&runtimeDisclosure={runtime_disclosure}").unwrap();
+        }
+
+        if let Some(build_disclosure) = build_disclosure {
+            write!(&mut url, "&buildDisclosure={build_disclosure}").unwrap();
+        }
+
+        url
+    };
 
     debug!("Connecting to {}", url);
 

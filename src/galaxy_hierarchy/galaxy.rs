@@ -1,6 +1,7 @@
 use crate::galaxy_hierarchy::{
-    Cluster, ClusterId, Controllable, ControllableId, ControllableInfo, ControllableInfoId,
-    GameMode, Player, PlayerId, PlayerKind, Team, TeamId, UniversalArcHolder,
+    BuildDisclosure, Cluster, ClusterId, Controllable, ControllableId, ControllableInfo,
+    ControllableInfoId, GameMode, Player, PlayerId, PlayerKind, RuntimeDisclosure, Team, TeamId,
+    UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::unit::{Unit, UnitExtSealed, UnitKind};
@@ -87,6 +88,8 @@ impl Galaxy {
         galaxy: u16,
         auth: impl Into<Option<&str>>,
         team: impl Into<Option<&str>>,
+        runtime_disclosure: Option<RuntimeDisclosure>,
+        build_disclosure: Option<BuildDisclosure>,
     ) -> Result<Arc<Self>, ConnectError> {
         #[cfg(not(feature = "dev-environment"))]
         {
@@ -98,6 +101,8 @@ impl Galaxy {
                 ),
                 auth,
                 team,
+                runtime_disclosure,
+                build_disclosure,
             )
             .await
         }
@@ -111,6 +116,8 @@ impl Galaxy {
                 ),
                 auth,
                 team,
+                runtime_disclosure,
+                build_disclosure,
             )
             .await
         }
@@ -121,12 +128,16 @@ impl Galaxy {
         uri: &str,
         auth: impl Into<Option<&str>>,
         team: impl Into<Option<&str>>,
+        runtime_disclosure: Option<RuntimeDisclosure>,
+        build_disclosure: Option<BuildDisclosure>,
     ) -> Result<Arc<Self>, ConnectError> {
         let mut session = None;
         let this = crate::network::connect(
             uri,
             auth.into().unwrap_or(Self::AUTH_ANONYMOUS),
             team.into(),
+            runtime_disclosure,
+            build_disclosure,
             |handle, event_receiver| {
                 session = Some(
                     handle
@@ -342,8 +353,13 @@ impl Galaxy {
     pub(crate) fn update_team_score(
         &self,
         id: TeamId,
-        kills: u16,
-        deaths: u16,
+        player_kills: u16,
+        player_deaths: u16,
+        friendly_kills: u16,
+        friendly_deaths: u16,
+        npc_kills: u16,
+        npc_deaths: u16,
+        neutral_deaths: u16,
         mission: u16,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Updating Score for Team with {id:?}");
@@ -351,7 +367,16 @@ impl Galaxy {
         debug_assert!(self.teams.has(id), "{id:?} does not exist.");
         let team = self.teams.get(id);
         let before = team.score().clone();
-        team.score().update(kills, deaths, mission);
+        team.score().update(
+            player_kills,
+            player_deaths,
+            friendly_kills,
+            friendly_deaths,
+            npc_kills,
+            neutral_deaths,
+            neutral_deaths,
+            mission,
+        );
         event_result!(TeamScoreUpdated { team, before })
     }
 
@@ -457,8 +482,13 @@ impl Galaxy {
     pub(crate) fn update_player_score(
         &self,
         id: PlayerId,
-        kills: u16,
-        deaths: u16,
+        player_kills: u16,
+        player_deaths: u16,
+        friendly_kills: u16,
+        friendly_deaths: u16,
+        npc_kills: u16,
+        npc_deaths: u16,
+        neutral_deaths: u16,
         mission: u16,
     ) -> EventResult {
         debug!("Updating Score for player with {id:?}");
@@ -466,7 +496,16 @@ impl Galaxy {
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
         let player = self.players.get(id);
         let before = player.score().clone();
-        player.score().update(kills, deaths, mission);
+        player.score().update(
+            player_kills,
+            player_deaths,
+            friendly_kills,
+            friendly_deaths,
+            npc_kills,
+            npc_deaths,
+            neutral_deaths,
+            mission,
+        );
         event_result!(PlayerScoreUpdated { player, before })
     }
 

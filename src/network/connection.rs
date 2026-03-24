@@ -125,6 +125,11 @@ impl Connection {
                 reader.read_uint16(),
                 reader.read_uint16(),
                 reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
             ),
             0x06 => galaxy.update_cluster(
                 ClusterId(reader.read_byte()),
@@ -142,6 +147,11 @@ impl Connection {
             0x11 => galaxy.update_player(PlayerId(reader.read_byte()), reader.read_f32()),
             0x12 => galaxy.update_player_score(
                 PlayerId(reader.read_byte()),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_uint16(),
                 reader.read_uint16(),
                 reader.read_uint16(),
                 reader.read_uint16(),

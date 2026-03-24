@@ -140,14 +140,16 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::TeamScoreUpdated { team, before } => {
                 write!(
                     f,
-                    "Team score updated: {:?}, kills={}-{}, deaths={}-{}, mission={}-{}.",
+                    "Team score updated: {:?}, player_kills={}-{}, player_deaths={}-{}, friendly_kills={}-{}, friendly_deaths={}-{}, npc_kills={}-{}, npc_deaths={}-{}, neutral_deaths={}-{}, mission={}-{}.",
                     team.id(),
-                    before.kills(),
-                    team.score().kills(),
-                    before.deaths(),
-                    team.score().deaths(),
-                    before.mission(),
-                    team.score().mission(),
+                    before.player_kills(), team.score().player_kills(),
+                    before.player_deaths(), team.score().player_deaths(),
+                    before.friendly_kills(), team.score().friendly_kills(),
+                    before.friendly_deaths(), team.score().friendly_deaths(),
+                    before.npc_kills(), team.score().npc_kills(),
+                    before.npc_deaths(), team.score().npc_deaths(),
+                    before.neutral_deaths(), team.score().neutral_deaths(),
+                    before.mission(), team.score().mission(),
                 )
             }
             FlattiverseEventKind::TeamRemoved { team } => write!(
@@ -507,15 +509,16 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
                 write!(
                     f,
-                    "Player score updated: {:?}, name={:?}, kills={}->{}, deaths={}->{}, mission={}->{}.",
+                    "Player score updated: {:?}, player_kills={}-{}, player_deaths={}-{}, friendly_kills={}-{}, friendly_deaths={}-{}, npc_kills={}-{}, npc_deaths={}-{}, neutral_deaths={}-{}, mission={}-{}.",
                     player.id(),
-                    player.name(),
-                    before.kills(),
-                    player.score().kills(),
-                    before.deaths(),
-                    player.score().deaths(),
-                    before.mission(),
-                    player.score().mission(),
+                    before.player_kills(), player.score().player_kills(),
+                    before.player_deaths(), player.score().player_deaths(),
+                    before.friendly_kills(), player.score().friendly_kills(),
+                    before.friendly_deaths(), player.score().friendly_deaths(),
+                    before.npc_kills(), player.score().npc_kills(),
+                    before.npc_deaths(), player.score().npc_deaths(),
+                    before.neutral_deaths(), player.score().neutral_deaths(),
+                    before.mission(), player.score().mission(),
                 )
             }
 
