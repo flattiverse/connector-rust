@@ -98,6 +98,8 @@ pub enum GameErrorKind {
     },
     /// The requested continue action targets a controllable that is already closing.
     ControllableIsClosing,
+    /// The requested player currently has no avatar available.
+    AvatarNotAvailable,
     /// Thrown, if the controllable you want to control is dead.
     YouNeedToContinueFirst,
     /// Thrown, if you try to do something which requires that your controllable is dead, like
@@ -171,6 +173,7 @@ impl Display for GameErrorKind {
                 InvalidArgumentKind::Unknown(..) => "is wrong due to an invalid value."
             }),
             GameErrorKind::ControllableIsClosing => "[0x17] Can't continue a controllable that is already closing.",
+            GameErrorKind::AvatarNotAvailable => "[0x18] This player has no avatar.",
             GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
@@ -214,6 +217,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
                 hint: reader.read_string(),
             },
             0x17 => GameErrorKind::ControllableIsClosing,
+            0x18 => GameErrorKind::AvatarNotAvailable,
             0x20 => GameErrorKind::YouNeedToContinueFirst,
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,

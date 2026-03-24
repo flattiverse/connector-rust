@@ -461,6 +461,7 @@ impl Galaxy {
         npc_kills: i64,
         npc_deaths: i64,
         neutral_deaths: i64,
+        has_avatar: bool,
         reader: &mut dyn PacketReader,
     ) -> Result<Option<FlattiverseEvent>, GameError> {
         debug!("Creating player with {id:?}");
@@ -498,6 +499,7 @@ impl Galaxy {
                 npc_kills,
                 npc_deaths,
                 neutral_deaths,
+                has_avatar,
                 runtime_disclosure,
                 build_disclosure,
             )),

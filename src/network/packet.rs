@@ -76,7 +76,7 @@ impl Packet {
     #[inline(never)]
     fn print_warning_reader_not_exhausted(&self) {
         warn!(
-            "[{:#02x}] ({:#02x}) There are still {} bytes remaining: {:?}",
+            "[{:#04x}] ({:#04x}) There are still {} bytes remaining: {:?}",
             self.header.command(),
             self.header.session(),
             self.payload.len(),

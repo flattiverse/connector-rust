@@ -3,7 +3,7 @@ use crate::galaxy_hierarchy::{
     RuntimeDisclosure, Score, Team, UniversalArcHolder,
 };
 use crate::utils::Atomic;
-use crate::GameError;
+use crate::{GameError, GameErrorKind};
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -36,6 +36,7 @@ pub struct Player {
     npc_kills: Atomic<i64>,
     npc_deaths: Atomic<i64>,
     neutral_deaths: Atomic<i64>,
+    has_avatar: bool,
     runtime_disclosure: Option<RuntimeDisclosure>,
     build_disclosure: Option<BuildDisclosure>,
     pub(crate) controllable_infos: UniversalArcHolder<ControllableInfoId, ControllableInfo>,
@@ -58,6 +59,7 @@ impl Player {
         npc_kills: i64,
         npc_deaths: i64,
         neutral_deaths: i64,
+        has_avatar: bool,
         runtime_disclosure: Option<RuntimeDisclosure>,
         build_disclosure: Option<BuildDisclosure>,
     ) -> Self {
@@ -79,6 +81,7 @@ impl Player {
             npc_kills: Atomic::from(npc_kills),
             npc_deaths: Atomic::from(npc_deaths),
             neutral_deaths: Atomic::from(neutral_deaths),
+            has_avatar,
             runtime_disclosure,
             build_disclosure,
             controllable_infos: UniversalArcHolder::with_capacity(256),
@@ -129,23 +132,31 @@ impl Player {
     /// Downloads the player's cached small avatar image bytes.
     #[inline]
     pub async fn download_small_avatar(&self) -> Result<Vec<u8>, GameError> {
-        self.galaxy
-            .upgrade()
-            .unwrap()
-            .connection()
-            .download_player_small_avatar(self.id)
-            .await
+        if !self.has_avatar {
+            Err(GameErrorKind::AvatarNotAvailable.into())
+        } else {
+            self.galaxy
+                .upgrade()
+                .unwrap()
+                .connection()
+                .download_player_small_avatar(self.id)
+                .await
+        }
     }
 
     /// Downloads the player's cached big avatar image bytes.
     #[inline]
     pub async fn download_big_avatar(&self) -> Result<Vec<u8>, GameError> {
-        self.galaxy
-            .upgrade()
-            .unwrap()
-            .connection()
-            .download_player_big_avatar(self.id)
-            .await
+        if !self.has_avatar {
+            Err(GameErrorKind::AvatarNotAvailable.into())
+        } else {
+            self.galaxy
+                .upgrade()
+                .unwrap()
+                .connection()
+                .download_player_big_avatar(self.id)
+                .await
+        }
     }
 
     /// The ping in ms of the player.
@@ -206,6 +217,12 @@ impl Player {
     #[inline]
     pub fn neutral_deaths(&self) -> i64 {
         self.neutral_deaths.load()
+    }
+
+    /// Whether this player currently has a cached avatar available on the server.
+    #[inline]
+    pub fn has_avatar(&self) -> bool {
+        self.has_avatar
     }
 
     /// Session-level runtime self-disclosure, if provided by the player.

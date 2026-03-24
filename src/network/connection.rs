@@ -153,6 +153,7 @@ impl Connection {
                 reader.read_int64(),
                 reader.read_int64(),
                 reader.read_int64(),
+                reader.read_byte() != 0,
                 reader,
             ),
             0x11 => galaxy.update_player(
