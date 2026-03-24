@@ -72,7 +72,7 @@ pub(crate) async fn connect(
         ).unwrap();
 
         if let Some(team) = team {
-            write!(&mut url, "team={team}").unwrap();
+            write!(&mut url, "&team={team}").unwrap();
         }
 
         if let Some(runtime_disclosure) = runtime_disclosure {

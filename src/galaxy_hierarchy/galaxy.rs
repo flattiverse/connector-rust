@@ -208,9 +208,11 @@ impl Galaxy {
     #[instrument(level = "trace", skip(self))]
     fn setup_self(&self, id: u8) {
         debug_assert!(id < 193, "Id out of bounds.");
-
         let id = PlayerId(id);
-        debug_assert!(self.players.has(id), "{id:?} not setup.");
+        debug_assert!(
+            self.players.has(id),
+            "Failed to set {id:?} as self, id unknown."
+        );
         self.player.store(id);
     }
 
