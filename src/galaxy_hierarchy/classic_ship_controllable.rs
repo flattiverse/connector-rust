@@ -8,14 +8,14 @@ use crate::{FlattiverseEvent, SubsystemSlot, SubsystemStatus, Vector};
 use std::sync::{Arc, Weak};
 
 #[derive(Debug)]
-pub struct ClassicShipSpecialization {
+pub struct ClassicShipControllable {
     pub(crate) engine: ClassicShipEngineSubsystem,
     pub(crate) weapon: ShotWeaponSubsystem,
     pub(crate) main_scanner: ScannerSubsystem,
     pub(crate) secondary_scanner: ScannerSubsystem,
 }
 
-impl ClassicShipSpecialization {
+impl ClassicShipControllable {
     pub(crate) fn new() -> Self {
         Self {
             engine: ClassicShipEngineSubsystem::new(Weak::default()),
@@ -132,21 +132,21 @@ impl ClassicShipSpecialization {
     }
 }
 
-impl TryFrom<Arc<Controllable>> for Controls<ClassicShipSpecialization> {
+impl TryFrom<Arc<Controllable>> for Controls<ClassicShipControllable> {
     type Error = Arc<Controllable>;
 
     fn try_from(controllable: Arc<Controllable>) -> Result<Self, Self::Error> {
         match controllable.specialization() {
             ControllableSpecialization::ClassicShip(p) => {
-                Ok(Controls::<ClassicShipSpecialization>::proven(&p).control(controllable))
+                Ok(Controls::<ClassicShipControllable>::proven(&p).control(controllable))
             }
         }
     }
 }
 
-impl Controls<ClassicShipSpecialization> {
+impl Controls<ClassicShipControllable> {
     #[inline]
-    pub fn as_classic_ship_specialization(&self) -> &ClassicShipSpecialization {
+    pub fn as_classic_ship_specialization(&self) -> &ClassicShipControllable {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(specialization) => specialization,
             #[allow(unreachable_patterns)]

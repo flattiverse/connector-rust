@@ -1,5 +1,5 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, BatterySubsystem, ClassicShipSpecialization, Cluster, EnergyCellSubsystem,
+    AsSubsystemBase, BatterySubsystem, ClassicShipControllable, Cluster, EnergyCellSubsystem,
     Identifiable, Indexer, NamedUnit,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
@@ -80,7 +80,7 @@ impl Controllable {
                     SubsystemSlot::NeutrinoCell,
                 ),
                 specialization: ControllableSpecialization::ClassicShip(
-                    ClassicShipSpecialization::new(),
+                    ClassicShipControllable::new(),
                 ),
             })
             .also(|this| {
@@ -345,7 +345,7 @@ impl Controllable {
 
 #[derive(Debug)]
 pub enum ControllableSpecialization {
-    ClassicShip(ClassicShipSpecialization),
+    ClassicShip(ClassicShipControllable),
 }
 
 pub(crate) struct Proven<T>(PhantomData<T>);
@@ -354,7 +354,7 @@ impl<T> Proven<T> {
     pub(crate) fn control(
         self,
         controllable: Arc<Controllable>,
-    ) -> Controls<ClassicShipSpecialization> {
+    ) -> Controls<ClassicShipControllable> {
         Controls {
             controllable,
             _specialization: PhantomData,

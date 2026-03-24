@@ -256,14 +256,14 @@ impl Display for FlattiverseEvent {
                 f,
                 "Updated player: {:?}", &*player.name()
             ),
-            FlattiverseEventKind::JoinedPlayer { player } => write!(
+            FlattiverseEventKind::PlayerJoined { player } => write!(
                 f,
                 "{:?} joined the galaxy with team {:?} as {:?}",
                 &*player.name(),
                 &*player.team().name(),
                 player.kind()
             ),
-            FlattiverseEventKind::PartedPlayer { player } => write!(
+            FlattiverseEventKind::PlayerParted { player } => write!(
                 f,
                 "{:?} parted the galaxy with team {:?} as {:?}",
                 &*player.name(),
@@ -434,7 +434,7 @@ impl Display for FlattiverseEvent {
                 controllable.name(),
                 controllable.kind()
             ),
-            FlattiverseEventKind::NewUnit { unit } => {
+            FlattiverseEventKind::UnitAdded { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -450,7 +450,7 @@ impl Display for FlattiverseEvent {
                     }
                 }
             }
-            FlattiverseEventKind::UpdatedUnit { unit } => {
+            FlattiverseEventKind::UnitUpdated { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -466,7 +466,7 @@ impl Display for FlattiverseEvent {
                     }
                 }
             }
-            FlattiverseEventKind::RemovedUnit { unit } => {
+            FlattiverseEventKind::UnitRemoved { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -525,12 +525,19 @@ impl Display for FlattiverseEvent {
 #[derive(Debug)]
 pub enum FlattiverseEventKind {
     /// A player has joined the galaxy
-    JoinedPlayer {
+    PlayerJoined {
         /// The player this event handles.
         player: Arc<Player>,
     },
+    /// Is raised when a player score has been updated.
+    PlayerScoreUpdated {
+        /// The player this event handles.
+        player: Arc<Player>,
+        /// The player score before the update.
+        before: Score,
+    },
     /// A player has parted the galaxy.
-    PartedPlayer {
+    PlayerParted {
         /// The player this event handles.
         player: Arc<Player>,
     },
@@ -583,7 +590,7 @@ pub enum FlattiverseEventKind {
         /// The Player of the unit which destroyed the PlayerUnit in question.
         destroyer_player: Arc<Player>,
     },
-    /// A PlayerUnit was unregistered.
+    /// Signals that the player has closed or disposed a controllable.
     ControllableInfoClosed {
         /// The player this event handles.
         player: Arc<Player>,
@@ -591,15 +598,15 @@ pub enum FlattiverseEventKind {
         controllable: Arc<ControllableInfo>,
     },
     /// You see a new unit.
-    NewUnit {
+    UnitAdded {
         unit: Arc<Unit>,
     },
     /// An existing unit has been updated.
-    UpdatedUnit {
+    UnitUpdated {
         unit: Arc<Unit>,
     },
     /// You don't see the unit anymore.
-    RemovedUnit {
+    UnitRemoved {
         unit: Arc<Unit>,
     },
     /// This event informs about a unit that has been altered by an admin through map editing.
@@ -789,11 +796,6 @@ pub enum FlattiverseEventKind {
         consumed_neutrinos_this_tick: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
-    PlayerScoreUpdated {
-        player: Arc<Player>,
-        before: Score,
-    },
-
     /// Is raised when the server announces the compile profile it was built with.
     CompiledWithMessage {
         /// The maximum amount of players supported by this server binary.

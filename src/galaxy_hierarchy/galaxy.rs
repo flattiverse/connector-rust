@@ -427,7 +427,7 @@ impl Galaxy {
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has_not(id), "{id:?} does already exist.");
         debug_assert!(self.teams.has(team), "{team:?} does not exist.");
-        event_result!(JoinedPlayer {
+        event_result!(PlayerJoined {
             player: self.players.populate(Player::new(
                 Arc::downgrade(self),
                 id,
@@ -475,7 +475,7 @@ impl Galaxy {
         debug!("Deactivating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
-        event_result!(PartedPlayer {
+        event_result!(PlayerParted {
             player: {
                 self.players.get(id).deactivate();
                 self.players.remove(id)
@@ -687,7 +687,7 @@ impl Galaxy {
 
         cluster.add_unit(Arc::clone(&unit));
 
-        event_result!(NewUnit { unit })
+        event_result!(UnitAdded { unit })
     }
 
     #[instrument(level = "trace", skip(self, reader))]
@@ -703,7 +703,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_movement(reader);
-            event_result!(UpdatedUnit { unit })
+            event_result!(UnitUpdated { unit })
         } else {
             error!("Failed to find unit with name {name:?}");
             Ok(None)
@@ -723,7 +723,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_state(reader);
-            event_result!(UpdatedUnit { unit })
+            event_result!(UnitUpdated { unit })
         } else {
             error!("Failed to find unit with name {name:?}");
             Ok(None)
@@ -743,7 +743,7 @@ impl Galaxy {
 
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.remove_unit_(&name) {
-            event_result!(RemovedUnit { unit })
+            event_result!(UnitRemoved { unit })
         } else {
             error!("Failed to remove unit with name {name:?}");
             Ok(None)
