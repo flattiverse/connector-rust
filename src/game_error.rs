@@ -64,8 +64,10 @@ pub enum GameErrorKind {
     InvalidProtocolVersion,
     AuthFailed,
     WrongAccountState(Option<AccountStatus>),
-    InvalidOrMissingTeam,
+    TeamSelectionFailed,
+    SelfDisclosureRequired,
     ServerFullOfPlayerKind(Option<PlayerKind>),
+    AccountAlreadyLoggedIn,
     SessionsExhausted,
     InvalidData,
     ConnectionTerminated {
@@ -125,8 +127,10 @@ impl Display for GameErrorKind {
                 AccountStatus::Banned => "[0x04] Your account has been banned from using the game.",
                 AccountStatus::Deleted => "[0x04] Your account is deleted."
             },
-            GameErrorKind::InvalidOrMissingTeam => "[0x05] No or non-existent team specified.",
+            GameErrorKind::TeamSelectionFailed => "[0x05] No or non-existent team specified.",
+            GameErrorKind::SelfDisclosureRequired => "[0x06] Galaxy requires self-disclosure for this login.",
             GameErrorKind::ServerFullOfPlayerKind(None) => "[0x08] Server is full of unknown things.",
+            GameErrorKind::AccountAlreadyLoggedIn => "[0x09] Account already has an active galaxy session.",
             GameErrorKind::ServerFullOfPlayerKind(Some(kind)) => match kind {
                 PlayerKind::Admin => "[0x08] Server is full of admins. (Too many admins connected to the galaxy server.)",
                 PlayerKind::Spectator => "[0x08] Server is full of spectators. (Too many spectators connected to the galaxy server.)",
@@ -179,10 +183,12 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x04 => GameErrorKind::WrongAccountState(
                 reader.opt_read_byte().map(AccountStatus::from_primitive),
             ),
-            0x05 => GameErrorKind::InvalidOrMissingTeam,
+            0x05 => GameErrorKind::TeamSelectionFailed,
+            0x06 => GameErrorKind::SelfDisclosureRequired,
             0x08 => GameErrorKind::ServerFullOfPlayerKind(
                 reader.opt_read_byte().map(PlayerKind::from_primitive),
             ),
+            0x09 => GameErrorKind::AccountAlreadyLoggedIn,
             0x0C => GameErrorKind::SessionsExhausted,
             0x0D => GameErrorKind::InvalidData,
             0x0F => GameErrorKind::ConnectionTerminated { reason: None },
