@@ -71,12 +71,12 @@ impl Explosion {
 
     /// Defines whether this explosion is in the damage phase or not.
     pub fn is_damage_phase(&self) -> bool {
-        !self.second_phase.load()
+        true
     }
 
     /// Defines whether this explosion is in the shockwave phase.
     pub fn is_shock_wave_phase(&self) -> bool {
-        self.second_phase.load()
+        false
     }
 
     /// The damage this explosion inflicts.
@@ -127,12 +127,9 @@ impl<'a> UnitExt<'a> for &'a Explosion {
         false
     }
 
+    #[inline]
     fn gravity(self) -> f32 {
-        if self.second_phase.load() {
-            -0.5
-        } else {
-            0.0
-        }
+        0.0
     }
 
     #[inline]

@@ -1,9 +1,9 @@
 use crate::utils::Atomic;
 use crate::SubsystemStatus;
 
-/// Visible snapshot of a scanner subsystem on a scanned player unit.
+/// Visible snapshot of a dynamic scanner subsystem on a scanned player unit.
 #[derive(Debug, Clone, Default)]
-pub struct ScannerSubsystemInfo {
+pub struct DynamicScannerSubsystemInfo {
     exists: Atomic<bool>,
     maximum_width: Atomic<f32>,
     maximum_length: Atomic<f32>,
@@ -23,7 +23,7 @@ pub struct ScannerSubsystemInfo {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl ScannerSubsystemInfo {
+impl DynamicScannerSubsystemInfo {
     /// Whether the subsystem exists on the scanned unit.
     #[inline]
     pub fn exists(&self) -> bool {
@@ -78,7 +78,7 @@ impl ScannerSubsystemInfo {
         self.current_length.load()
     }
 
-    /// Current reported scan center angle.
+    /// Current reported absolute scan center angle.
     #[inline]
     pub fn current_angle(&self) -> f32 {
         self.current_angle.load()
@@ -96,7 +96,7 @@ impl ScannerSubsystemInfo {
         self.target_length.load()
     }
 
-    /// Last reported target angle.
+    /// Last reported target absolute angle.
     #[inline]
     pub fn target_angle(&self) -> f32 {
         self.target_angle.load()

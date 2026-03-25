@@ -1,9 +1,9 @@
 use crate::utils::Atomic;
 use crate::{SubsystemStatus, Vector};
 
-/// Visible snapshot of a projectile weapon subsystem on a scanned player unit.
+/// Visible snapshot of a dynamic projectile launcher subsystem on a scanned player unit.
 #[derive(Debug, Clone, Default)]
-pub struct ShotWeaponSubsystemInfo {
+pub struct DynamicShotLauncherSubsystemInfo {
     exists: Atomic<bool>,
     minimum_relative_movement: Atomic<f32>,
     maximum_relative_movement: Atomic<f32>,
@@ -23,7 +23,7 @@ pub struct ShotWeaponSubsystemInfo {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl ShotWeaponSubsystemInfo {
+impl DynamicShotLauncherSubsystemInfo {
     /// Whether the subsystem exists.
     #[inline]
     pub fn exists(&self) -> bool {
@@ -102,25 +102,25 @@ impl ShotWeaponSubsystemInfo {
         self.damage.load()
     }
 
-    /// Status of the reported weapon system.
+    /// Status of the reported launcher subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
     }
 
-    /// Energy consumed by the shot during the tick.
+    /// Energy consumed by the launcher during the tick.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// Ions consumed by teh shot during the tick.
+    /// Ions consumed by the launcher during the tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// Neutrinos consumed by the shot during the tick.
+    /// Neutrinos consumed by the launcher during the tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()

@@ -28,6 +28,7 @@ pub struct Player {
     score: Score,
     active: Atomic<bool>,
     admin: Atomic<bool>,
+    disconnected: Atomic<bool>,
     rank: Atomic<i32>,
     player_kills: Atomic<i64>,
     player_deaths: Atomic<i64>,
@@ -51,6 +52,7 @@ impl Player {
         name: String,
         ping: f32,
         admin: bool,
+        disconnected: bool,
         rank: i32,
         player_kills: i64,
         player_deaths: i64,
@@ -73,6 +75,7 @@ impl Player {
             score: Score::default(),
             active: Atomic::from(true),
             admin: Atomic::from(admin),
+            disconnected: Atomic::from(disconnected),
             rank: Atomic::from(rank),
             player_kills: Atomic::from(player_kills),
             player_deaths: Atomic::from(player_deaths),
@@ -116,6 +119,18 @@ impl Player {
     #[inline]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// Whether the player is still represented in the current galaxy session.
+    #[inline]
+    pub fn active(&self) -> bool {
+        self.active.load()
+    }
+
+    /// Whether the player's connection has already disconnected and only cleanup remains.
+    #[inline]
+    pub fn disconnected(&self) -> bool {
+        self.disconnected.load()
     }
 
     /// Sends a chat message to this [`Player`].
@@ -247,6 +262,7 @@ impl Player {
         &self,
         ping: f32,
         admin: bool,
+        disconnected: bool,
         rank: i32,
         player_kills: i64,
         player_deaths: i64,
@@ -258,6 +274,7 @@ impl Player {
     ) {
         self.ping.store(ping);
         self.admin.store(admin);
+        self.disconnected.store(disconnected);
         self.rank.store(rank);
         self.player_kills.store(player_kills);
         self.player_deaths.store(player_deaths);
@@ -271,6 +288,7 @@ impl Player {
     pub(crate) fn deactivate(&self) {
         self.ping.store(-1.0);
         self.active.store(false);
+        self.disconnected.store(true);
 
         for controllable in self.controllable_infos.iter() {
             controllable.deactivate();

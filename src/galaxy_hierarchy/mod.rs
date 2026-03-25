@@ -78,3 +78,6 @@ pub use build_disclosure_aspect::*;
 
 mod build_disclosure_level;
 pub use build_disclosure_level::*;
+
+mod shield_subsystem;
+pub use shield_subsystem::*;

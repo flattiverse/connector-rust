@@ -1,8 +1,9 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    ClassicShipEngineSubsystemInfo, PlayerUnit, ScannerSubsystemInfo, ShotWeaponSubsystemInfo,
-    UnitBase, UnitExt, UnitExtSealed, UnitKind,
+    ClassicShipEngineSubsystemInfo, DynamicScannerSubsystemInfo,
+    DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo,
+    DynamicShotMagazineSubsystemInfo, PlayerUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind,
 };
 use crate::utils::Readable;
 use crate::{SubsystemStatus, Vector};
@@ -14,9 +15,11 @@ pub struct ClassicShipPlayerUnit {
     base: UnitBase,
     player_unit: PlayerUnit,
     engine: ClassicShipEngineSubsystemInfo,
-    weapon: ShotWeaponSubsystemInfo,
-    main_scanner: ScannerSubsystemInfo,
-    secondary_scanner: ScannerSubsystemInfo,
+    shot_launcher: DynamicShotLauncherSubsystemInfo,
+    shot_magazine: DynamicShotMagazineSubsystemInfo,
+    shot_fabricator: DynamicShotFabricatorSubsystemInfo,
+    main_scanner: DynamicScannerSubsystemInfo,
+    secondary_scanner: DynamicScannerSubsystemInfo,
 }
 
 impl ClassicShipPlayerUnit {
@@ -30,10 +33,12 @@ impl ClassicShipPlayerUnit {
         Self {
             base: UnitBase::new(cluster, name),
             player_unit: PlayerUnit::read(&*galaxy, reader),
-            engine: ClassicShipEngineSubsystemInfo::default(),
-            weapon: ShotWeaponSubsystemInfo::default(),
-            main_scanner: ScannerSubsystemInfo::default(),
-            secondary_scanner: ScannerSubsystemInfo::default(),
+            engine: Default::default(),
+            shot_launcher: Default::default(),
+            shot_magazine: Default::default(),
+            shot_fabricator: Default::default(),
+            main_scanner: Default::default(),
+            secondary_scanner: Default::default(),
         }
     }
 
@@ -53,21 +58,33 @@ impl ClassicShipPlayerUnit {
         &self.engine
     }
 
-    /// Visible snapshot of the weapon subsystem.
+    /// Visible snapshot of the shot fabricator subsystem.
     #[inline]
-    pub fn weapon(&self) -> &ShotWeaponSubsystemInfo {
-        &self.weapon
+    pub fn shot_launcher(&self) -> &DynamicShotLauncherSubsystemInfo {
+        &self.shot_launcher
+    }
+
+    /// Visible snapshot of the shot fabricator subsystem.
+    #[inline]
+    pub fn shot_magazine(&self) -> &DynamicShotMagazineSubsystemInfo {
+        &self.shot_magazine
+    }
+
+    /// Visible snapshot of the shot fabricator subsystem.
+    #[inline]
+    pub fn shot_fabricator(&self) -> &DynamicShotFabricatorSubsystemInfo {
+        &self.shot_fabricator
     }
 
     /// Visible snapshot of the primary scanner subsystem.
     #[inline]
-    pub fn main_scanner(&self) -> &ScannerSubsystemInfo {
+    pub fn main_scanner(&self) -> &DynamicScannerSubsystemInfo {
         &self.main_scanner
     }
 
     /// Visible snapshot of the secondary scanner subsystem.
     #[inline]
-    pub fn secondary_scanner(&self) -> &ScannerSubsystemInfo {
+    pub fn secondary_scanner(&self) -> &DynamicScannerSubsystemInfo {
         &self.secondary_scanner
     }
 }
@@ -146,7 +163,7 @@ impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
             reader.read_f32(),
             reader.read_f32(),
         );
-        self.weapon.update(
+        self.shot_launcher.update(
             reader.read_byte() != 0,
             reader.read_f32(),
             reader.read_f32(),
@@ -159,6 +176,23 @@ impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
             Vector::from_read(reader),
             reader.read_uint16(),
             reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+        self.shot_magazine.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+        self.shot_fabricator.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_byte() != 0,
             reader.read_f32(),
             SubsystemStatus::read(reader),
             reader.read_f32(),

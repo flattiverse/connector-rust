@@ -44,6 +44,7 @@ impl Connection {
     }
 
     pub(crate) fn handle(&self, packet: Packet) -> Result<(), GameError> {
+        let mut events = Vec::with_capacity(2);
         if let Some(galaxy) = self.galaxy.upgrade() {
             if packet.header().session() != 0 {
                 self.handle
@@ -51,18 +52,18 @@ impl Connection {
                     .resolve(SessionId(packet.header().session()), packet);
                 Ok(())
             } else {
-                match self.on_packet(packet, &galaxy) {
-                    Ok(None) => Ok(()),
-                    Ok(Some(event)) => {
-                        if self.sender.try_send(event).is_err() {
-                            error!("Event-Receiver gone, shutting down connection!");
-                            Err(GameErrorKind::ConnectionTerminated {
-                                reason: Some(Arc::from("Event-Receiver gone")),
+                match self.on_packet(packet, &galaxy, &mut events) {
+                    Ok(()) => {
+                        for event in events.drain(..) {
+                            if self.sender.try_send(event).is_err() {
+                                error!("Event-Receiver gone, shutting down connection!");
+                                return Err(GameErrorKind::ConnectionTerminated {
+                                    reason: Some(Arc::from("Event-Receiver gone")),
+                                }
+                                .into());
                             }
-                            .into())
-                        } else {
-                            Ok(())
                         }
+                        Ok(())
                     }
                     Err(e) => {
                         error!("Failed to process packet: {e:?}");
@@ -83,7 +84,8 @@ impl Connection {
         &self,
         mut packet: Packet,
         galaxy: &Arc<Galaxy>,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+        events: &mut Vec<FlattiverseEvent>,
+    ) -> Result<(), GameError> {
         debug!(
             "Processing packet with command=0x{:02x}",
             packet.header().command()
@@ -91,8 +93,9 @@ impl Connection {
 
         let command = packet.header().command();
         packet.read(|reader| match command {
-            0x00 => galaxy.ping_pong(reader.read_uint16()),
+            0x00 => galaxy.ping_pong(events, reader.read_uint16()),
             0x01 => galaxy.update_galaxy(
+                events,
                 GameMode::from_primitive(reader.read_byte()),
                 reader.read_string(),
                 reader.read_string(),
@@ -114,14 +117,16 @@ impl Connection {
                 reader.read_byte(),
             ),
             0x02 => galaxy.update_team(
+                events,
                 TeamId(reader.read_byte()),
                 reader.read_byte(),
                 reader.read_byte(),
                 reader.read_byte(),
                 reader.read_string(),
             ),
-            0x03 => galaxy.deactivate_team(TeamId(reader.read_byte())),
+            0x03 => galaxy.deactivate_team(events, TeamId(reader.read_byte())),
             0x04 => galaxy.update_team_score(
+                events,
                 TeamId(reader.read_byte()),
                 reader.read_uint32(),
                 reader.read_uint32(),
@@ -130,21 +135,24 @@ impl Connection {
                 reader.read_uint32(),
                 reader.read_uint32(),
                 reader.read_uint32(),
-                reader.read_uint32(),
+                reader.read_int32(),
             ),
             0x06 => galaxy.update_cluster(
+                events,
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
                 reader.read_byte(),
             ),
-            0x07 => galaxy.deactivate_cluster(ClusterId(reader.read_byte())),
+            0x07 => galaxy.deactivate_cluster(events, ClusterId(reader.read_byte())),
             0x10 => galaxy.create_player(
+                events,
                 PlayerId(reader.read_byte()),
                 PlayerKind::from_primitive(reader.read_byte()),
                 TeamId(reader.read_byte()),
                 reader.read_string(),
                 reader.read_f32(),
                 reader.read_byte() != 0,
+                reader.read_byte(),
                 reader.read_int32(),
                 reader.read_int64(),
                 reader.read_int64(),
@@ -157,9 +165,11 @@ impl Connection {
                 reader,
             ),
             0x11 => galaxy.update_player(
+                events,
                 PlayerId(reader.read_byte()),
                 reader.read_f32(),
                 reader.read_byte() != 0,
+                reader.read_byte(),
                 reader.read_int32(),
                 reader.read_int64(),
                 reader.read_int64(),
@@ -170,6 +180,7 @@ impl Connection {
                 reader.read_int64(),
             ),
             0x12 => galaxy.update_player_score(
+                events,
                 PlayerId(reader.read_byte()),
                 reader.read_uint32(),
                 reader.read_uint32(),
@@ -178,10 +189,11 @@ impl Connection {
                 reader.read_uint32(),
                 reader.read_uint32(),
                 reader.read_uint32(),
-                reader.read_uint32(),
+                reader.read_int32(),
             ),
-            0x1F => galaxy.deactivate_player(PlayerId(reader.read_byte())),
+            0x1F => galaxy.deactivate_player(events, PlayerId(reader.read_byte())),
             0x20 => galaxy.controllable_info_new(
+                events,
                 PlayerId(reader.read_byte()),
                 UnitKind::from_primitive(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
@@ -189,21 +201,25 @@ impl Connection {
                 reader.read_boolean(),
             ),
             0x21 => galaxy.controllable_info_alive(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
             ),
             0x22 => galaxy.controllable_info_dead_by_reason(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
                 PlayerUnitDestroyedReason::from_primitive(reader.read_byte()),
             ),
             0x23 => galaxy.controllable_info_dead_by_neutral_collision(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
                 UnitKind::from_primitive(reader.read_byte()),
                 reader.read_string(),
             ),
             0x24 => galaxy.controllable_info_dead_by_player_unit(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
                 PlayerUnitDestroyedReason::from_primitive(reader.read_byte()),
@@ -211,6 +227,7 @@ impl Connection {
                 ControllableInfoId(reader.read_byte()),
             ),
             0x25 => galaxy.controllable_info_score_updated(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
                 reader.read_uint32(),
@@ -220,49 +237,82 @@ impl Connection {
                 reader.read_uint32(),
                 reader.read_uint32(),
                 reader.read_uint32(),
-                reader.read_uint32(),
+                reader.read_int32(),
             ),
             0x2F => galaxy.controllable_info_removed(
+                events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
             ),
             0x80 => galaxy.controllable_new(
+                events,
                 UnitKind::from_primitive(reader.read_byte()),
                 ControllableId(reader.read_byte()),
                 reader.read_string(),
                 reader,
             ),
-            0x81 => galaxy.controllable_deceased(ControllableId(reader.read_byte())),
-            0x82 => galaxy.controllable_updated(ControllableId(reader.read_byte()), reader),
-            0x8F => galaxy.controllable_removed(ControllableId(reader.read_byte())),
+            0x81 => galaxy.controllable_deceased(events, ControllableId(reader.read_byte())),
+            0x82 => galaxy.controllable_updated(events, ControllableId(reader.read_byte()), reader),
+            0x8F => galaxy.controllable_removed(events, ControllableId(reader.read_byte())),
             0x30 => galaxy.unit_new(
+                events,
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
                 UnitKind::from_primitive(reader.read_byte()),
                 reader,
             ),
             0x31 => galaxy.unit_updated_movement(
+                events,
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
                 reader,
             ),
             0x32 => galaxy.unit_updated_state(
+                events,
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
                 reader,
             ),
-            0x3E => {
-                galaxy.unit_updated_by_admin(ClusterId(reader.read_byte()), reader.read_string())
+            0x3E => galaxy.unit_updated_by_admin(
+                events,
+                ClusterId(reader.read_byte()),
+                reader.read_string(),
+            ),
+            0x3F => {
+                galaxy.unit_removed(events, ClusterId(reader.read_byte()), reader.read_string())
             }
-            0x3F => galaxy.unit_removed(ClusterId(reader.read_byte()), reader.read_string()),
-            0x0B => galaxy.compiled_with(reader.read_byte(), reader.read_string()),
-            0xC0 => galaxy.universe_tick(reader.read_uint32()),
-            0xC4 => galaxy.chat_galaxy(PlayerId(reader.read_byte()), reader.read_string()),
-            0xC5 => galaxy.chat_team(PlayerId(reader.read_byte()), reader.read_string()),
-            0xC6 => galaxy.chat_player(PlayerId(reader.read_byte()), reader.read_string()),
+            0x0B => galaxy.compiled_with(events, reader.read_byte(), reader.read_string()),
+            0xC0 => galaxy.universe_tick(events, reader.read_uint32()),
+            0xC1 => galaxy.flag_scored_chat(
+                events,
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                TeamId(reader.read_byte()),
+                reader.read_string(),
+            ),
+            0xC2 => galaxy.domination_point_scored_chat(
+                events,
+                TeamId(reader.read_byte()),
+                reader.read_string(),
+            ),
+            0xC3 => galaxy.own_flag_hit(
+                events,
+                PlayerId(reader.read_byte()),
+                ControllableInfoId(reader.read_byte()),
+                TeamId(reader.read_byte()),
+                reader.read_string(),
+            ),
+            0xC4 => galaxy.chat_galaxy(events, PlayerId(reader.read_byte()), reader.read_string()),
+            0xC5 => galaxy.chat_team(events, PlayerId(reader.read_byte()), reader.read_string()),
+            0xC6 => galaxy.chat_player(events, PlayerId(reader.read_byte()), reader.read_string()),
+            0xC9 => galaxy.flag_reactivated_chat(
+                events,
+                TeamId(reader.read_byte()),
+                reader.read_string(),
+            ),
             _ => {
                 warn!("Received packet with unknown command={command:#02x}",);
-                Ok(None)
+                Ok(())
             }
         })
     }

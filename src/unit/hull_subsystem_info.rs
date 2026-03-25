@@ -29,7 +29,7 @@ impl HullSubsystemInfo {
         self.current.load()
     }
 
-    /// The status for the current server tick.
+    /// The status reported for the current server tick.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()

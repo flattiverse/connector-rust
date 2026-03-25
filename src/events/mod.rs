@@ -266,12 +266,44 @@ impl Display for FlattiverseEvent {
                 &*player.team().name(),
                 player.kind()
             ),
+            FlattiverseEventKind::PlayerDisconnected { player } => write!(
+                f,
+                "{:?} disconnected from the galaxy while cleanup is still pending team.",
+                &*player.name(),
+            ),
             FlattiverseEventKind::PlayerParted { player } => write!(
                 f,
                 "{:?} parted the galaxy with team {:?} as {:?}",
                 &*player.name(),
                 &*player.team().name(),
                 player.kind()
+            ),
+            FlattiverseEventKind::FlagScoredChat {
+                player, controllable_info, flag_team, flag_name
+            } => write!(
+                f,
+                "[SYSTEM] [{}] {} / {} scored flag {flag_name:?} of team {}.",
+                &*player.team().name(),
+                player.name(),
+                controllable_info.name(),
+                &*flag_team.name(),
+            ),
+            FlattiverseEventKind::DominationPointScoredChat {
+                team, domination_point_name
+            } => write!(
+                f,
+                "[SYSTEM] Team {} scored domination point {domination_point_name:?}.",
+                &*team.name(),
+            ),
+            FlattiverseEventKind::OwnFlagHitChat {
+                player, controllable_info, flag_team, flag_name
+            } => write!(
+                f,
+                "[SYSTEM] [{}] {} / {} hit the own flag {flag_name:?} of team {}. The other teams gladly take the free point.",
+                &*player.team().name(),
+                player.name(),
+                controllable_info.name(),
+                &*flag_team.name(),
             ),
             FlattiverseEventKind::GalaxyChat {
                 player,
@@ -307,6 +339,13 @@ impl Display for FlattiverseEvent {
                 player.name(),
                 destination.name(),
                 message
+            ),
+            FlattiverseEventKind::FlagReactivatedChat {
+                flag_team, flag_name
+            } => write!(
+                f,
+                "[SYSTEM] Flag {flag_name:?} of team {} is active again.",
+                &*flag_team.name(),
             ),
             FlattiverseEventKind::ControllableInfoRegistered {
                 player,
@@ -522,6 +561,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::HullSubsystem { controllable, slot, status, current } => {
                 write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
+            FlattiverseEventKind::ShieldSubsystem { controllable, slot, status, current, active, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
+                write!(f, "Engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current}, active={active}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            }
 
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
                 write!(
@@ -558,6 +600,12 @@ pub enum FlattiverseEventKind {
         player: Arc<Player>,
         /// The player score before the update.
         before: Score,
+    },
+    /// This event is raised when a player's connection has disconnected but the player is still
+    /// present for cleanup.
+    PlayerDisconnected {
+        /// The player this event handles.
+        player: Arc<Player>,
     },
     /// A player has parted the galaxy.
     PlayerParted {
@@ -648,6 +696,35 @@ pub enum FlattiverseEventKind {
         /// The name of the altered unit.
         name: String,
     },
+    /// Galaxy-wide system chat announcing that a flag has been scored.
+    FlagScoredChat {
+        /// Player who triggered the score.
+        player: Arc<Player>,
+        /// Controllable that triggered the score.
+        controllable_info: Arc<ControllableInfo>,
+        /// Team configured on the flag.
+        flag_team: Arc<Team>,
+        /// Name of the scored flag.
+        flag_name: String,
+    },
+    /// Galaxy-wide system chat announcing that a domination point has scored.
+    DominationPointScoredChat {
+        /// Team that scored the domination point.
+        team: Arc<Team>,
+        /// Name of the domination point.
+        domination_point_name: String,
+    },
+    /// Galaxy-wide system chat announcing that someone hit the own flag.
+    OwnFlagHitChat {
+        /// Player who triggered the own goal.
+        player: Arc<Player>,
+        /// Controllable that triggered the own goal.
+        controllable_info: Arc<ControllableInfo>,
+        /// Team configured on the flag.
+        flag_team: Arc<Team>,
+        /// Name of the flag.
+        flag_name: String,
+    },
     /// You received a galaxy chat message.
     GalaxyChat {
         /// The player this event handles.
@@ -674,6 +751,13 @@ pub enum FlattiverseEventKind {
         destination: Arc<Player>,
         /// The message of the chat.
         message: String,
+    },
+    /// Galaxy-wide system chat announcing that a flag became active again.
+    FlagReactivatedChat {
+        /// Team configured on the flag.
+        flag_team: Arc<Team>,
+        /// Name of the reactivated flag.
+        flag_name: String,
     },
     /// The connection has been terminated.
     ConnectionTerminated {
@@ -837,6 +921,27 @@ pub enum FlattiverseEventKind {
         status: SubsystemStatus,
         /// The current hull integrity.
         current: f32,
+    },
+    /// Update of a hull subsystem on your own controllable
+    ShieldSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status for the current server tick.
+        status: SubsystemStatus,
+        /// The current shield integrity.
+        current: f32,
+        /// Whether shield loading was active for the tick.
+        active: bool,
+        /// The configured shield load rate.
+        rate: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
     /// Is raised when the server announces the compile profile it was built with.

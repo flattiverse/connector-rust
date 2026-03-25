@@ -10,7 +10,7 @@ pub struct Score {
     npc_kills: Atomic<u32>,
     npc_deaths: Atomic<u32>,
     neutral_deaths: Atomic<u32>,
-    mission: Atomic<u32>,
+    mission: Atomic<i32>,
 }
 
 impl Score {
@@ -23,7 +23,7 @@ impl Score {
         npc_kills: u32,
         npc_deaths: u32,
         neutral_deaths: u32,
-        mission: u32,
+        mission: i32,
     ) {
         self.player_kills.store(player_kills);
         self.player_deaths.store(player_deaths);
@@ -80,7 +80,7 @@ impl Score {
 
     /// Number of mission points in the current galaxy runtime.
     #[inline]
-    pub fn mission(&self) -> u32 {
+    pub fn mission(&self) -> i32 {
         self.mission.load()
     }
 }

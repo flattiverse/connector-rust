@@ -61,14 +61,23 @@ pub use classic_ship_engine_subsystem_info::*;
 mod energy_cell_subsystem_info;
 pub use energy_cell_subsystem_info::*;
 
-mod scanner_subsystem_info;
-pub use scanner_subsystem_info::*;
+mod dynamic_scanner_subsystem_info;
+pub use dynamic_scanner_subsystem_info::*;
 
-mod shot_weapon_subsystem_info;
-pub use shot_weapon_subsystem_info::*;
+mod dynamic_shot_launcher_subsystem_info;
+pub use dynamic_shot_launcher_subsystem_info::*;
 
 mod hull_subsystem_info;
 pub use hull_subsystem_info::*;
+
+mod shield_subsystem_info;
+pub use shield_subsystem_info::*;
+
+mod dynamic_shot_magazine_subsystem_info;
+pub use dynamic_shot_magazine_subsystem_info::*;
+
+mod dynamic_shot_fabricator_subsystem_info;
+pub use dynamic_shot_fabricator_subsystem_info::*;
 
 use crate::galaxy_hierarchy::{
     AsPlayerUnit, AsSteadyUnit, AsTargetUnit, AsUnitBase, Cluster, Team,

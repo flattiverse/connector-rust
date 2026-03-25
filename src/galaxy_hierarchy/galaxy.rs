@@ -17,11 +17,11 @@ use std::ops::Deref;
 use std::sync::Arc;
 use tracing::instrument;
 
-type EventResult = Result<Option<FlattiverseEvent>, GameError>;
+pub type EventSink = Vec<FlattiverseEvent>;
 
-macro_rules! event_result {
-    ($kind:ident $content:tt) => {
-        Ok(Some({FlattiverseEventKind::$kind $content}.into()))
+macro_rules! event {
+    ($sink:expr, $kind:ident $content:tt) => {
+        $sink.push({FlattiverseEventKind::$kind $content}.into());
     };
 }
 
@@ -256,18 +256,22 @@ impl Galaxy {
         self.connection.configure_galaxy(xml).await
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn ping_pong(&self, challenge: u16) -> Result<Option<FlattiverseEvent>, GameError> {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn ping_pong(
+        &self,
+        events: &mut EventSink,
+        challenge: u16,
+    ) -> Result<(), GameError> {
         debug!("Responding to ping with challenge={challenge:#04x}");
         self.connection.respond_to_ping(challenge)?;
-        Ok(Some(
-            FlattiverseEventKind::RespondedToPingMeasurement { challenge }.into(),
-        ))
+        events.push(FlattiverseEventKind::RespondedToPingMeasurement { challenge }.into());
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_galaxy(
         self: &Arc<Self>,
+        events: &mut EventSink,
         game_mode: GameMode,
         name: String,
         description: String,
@@ -287,7 +291,7 @@ impl Galaxy {
         player_max_bases: u8,
         maintenance: u8,
         requires_self_disclosure: u8,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Updating galaxy");
         let before = if self.received_galaxy_settings.load() {
             Some(GalaxySettingsSnapshot::from(&**self))
@@ -320,45 +324,58 @@ impl Galaxy {
 
         self.received_galaxy_settings.store(true);
 
-        event_result!(GalaxySettingsUpdated {
-            galaxy: Arc::clone(self),
-            before,
-        })
+        event!(
+            events,
+            GalaxySettingsUpdated {
+                galaxy: Arc::clone(self),
+                before,
+            }
+        );
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_team(
         self: &Arc<Self>,
+        events: &mut EventSink,
         id: TeamId,
         red: u8,
         green: u8,
         blue: u8,
         name: String,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Updating team with {id:?}");
         debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
         match self.teams.get_opt(id) {
             Some(team) => {
                 let before = TeamSnapshot::from(&*team);
                 team.update(name, red, green, blue);
-                event_result!(TeamUpdated { team, before })
+                event!(events, TeamUpdated { team, before });
             }
-            None => event_result!(TeamCreated {
-                team: self.teams.populate(Team::new(
-                    Arc::downgrade(self),
-                    id,
-                    name,
-                    red,
-                    green,
-                    blue,
-                ))
-            }),
+            None => {
+                event!(
+                    events,
+                    TeamCreated {
+                        team: self.teams.populate(Team::new(
+                            Arc::downgrade(self),
+                            id,
+                            name,
+                            red,
+                            green,
+                            blue,
+                        ))
+                    }
+                );
+            }
         }
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_team_score(
         &self,
+        events: &mut EventSink,
         id: TeamId,
         player_kills: u32,
         player_deaths: u32,
@@ -367,8 +384,8 @@ impl Galaxy {
         npc_kills: u32,
         npc_deaths: u32,
         neutral_deaths: u32,
-        mission: u32,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+        mission: i32,
+    ) -> Result<(), GameError> {
         debug!("Updating Score for Team with {id:?}");
         debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
         debug_assert!(self.teams.has(id), "{id:?} does not exist.");
@@ -384,31 +401,38 @@ impl Galaxy {
             neutral_deaths,
             mission,
         );
-        event_result!(TeamScoreUpdated { team, before })
+        event!(events, TeamScoreUpdated { team, before });
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn deactivate_team(
         &self,
+        events: &mut EventSink,
         id: TeamId,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Deactivating team with {id:?}");
         debug_assert!(id.0 < Self::SPECTATORS_TEAM_ID.0, "Invalid {id:?}");
-        event_result!(TeamRemoved {
-            team: {
-                self.teams.get(id).deactivate();
-                self.teams.remove(id)
-            },
-        })
+        event!(
+            events,
+            TeamRemoved {
+                team: {
+                    self.teams.get(id).deactivate();
+                    self.teams.remove(id)
+                },
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_cluster(
         self: &Arc<Galaxy>,
+        events: &mut EventSink,
         id: ClusterId,
         name: String,
         flags: u8,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Updating cluster with {id:?}");
         debug_assert!(usize::from(id.0) < Self::CLUSTER_CAPACITY, "Invalid {id:?}");
         let start = (flags & 0x01) != 0;
@@ -417,44 +441,57 @@ impl Galaxy {
             Some(cluster) => {
                 let before = ClusterSnapshot::from(&*cluster);
                 cluster.update(name, start, respawn);
-                event_result!(ClusterUpdated { cluster, before })
+                event!(events, ClusterUpdated { cluster, before });
             }
-            None => event_result!(ClusterCreated {
-                cluster: self.clusters.populate(Cluster::new(
-                    Arc::downgrade(self),
-                    id,
-                    name,
-                    start,
-                    respawn,
-                ))
-            }),
+            None => {
+                event!(
+                    events,
+                    ClusterCreated {
+                        cluster: self.clusters.populate(Cluster::new(
+                            Arc::downgrade(self),
+                            id,
+                            name,
+                            start,
+                            respawn,
+                        ))
+                    }
+                );
+            }
         }
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn deactivate_cluster(
         &self,
+        events: &mut EventSink,
         id: ClusterId,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Deactivating cluster with {id:?}");
         debug_assert!(usize::from(id.0) < Self::CLUSTER_CAPACITY, "Invalid {id:?}");
-        event_result!(ClusterRemoved {
-            cluster: {
-                self.clusters.get(id).deactivate();
-                self.clusters.remove(id)
-            },
-        })
+        event!(
+            events,
+            ClusterRemoved {
+                cluster: {
+                    self.clusters.get(id).deactivate();
+                    self.clusters.remove(id)
+                },
+            }
+        );
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn create_player(
         self: &Arc<Self>,
+        events: &mut EventSink,
         id: PlayerId,
         kind: PlayerKind,
         team: TeamId,
         name: String,
         ping: f32,
         admin: bool,
+        state_flags: u8,
         rank: i32,
         player_kills: i64,
         player_deaths: i64,
@@ -465,7 +502,7 @@ impl Galaxy {
         neutral_deaths: i64,
         has_avatar: bool,
         reader: &mut dyn PacketReader,
-    ) -> Result<Option<FlattiverseEvent>, GameError> {
+    ) -> Result<(), GameError> {
         debug!("Creating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has_not(id), "{id:?} does already exist.");
@@ -484,36 +521,51 @@ impl Galaxy {
             None
         };
 
-        event_result!(PlayerJoined {
-            player: self.players.populate(Player::new(
-                Arc::downgrade(self),
-                id,
-                kind,
-                Arc::downgrade(&self.teams.get(team)),
-                name,
-                ping,
-                admin,
-                rank,
-                player_kills,
-                player_deaths,
-                friendly_kills,
-                friendly_deaths,
-                npc_kills,
-                npc_deaths,
-                neutral_deaths,
-                has_avatar,
-                runtime_disclosure,
-                build_disclosure,
-            )),
-        })
+        let disconnected = state_flags & 0x01 != 0;
+        let player = self.players.populate(Player::new(
+            Arc::downgrade(self),
+            id,
+            kind,
+            Arc::downgrade(&self.teams.get(team)),
+            name,
+            ping,
+            admin,
+            disconnected,
+            rank,
+            player_kills,
+            player_deaths,
+            friendly_kills,
+            friendly_deaths,
+            npc_kills,
+            npc_deaths,
+            neutral_deaths,
+            has_avatar,
+            runtime_disclosure,
+            build_disclosure,
+        ));
+
+        event!(
+            events,
+            PlayerJoined {
+                player: player.clone()
+            }
+        );
+
+        if player.disconnected() {
+            event!(events, PlayerDisconnected { player });
+        }
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_player(
         &self,
+        events: &mut EventSink,
         id: PlayerId,
         ping: f32,
         admin: bool,
+        state_flag: u8,
         rank: i32,
         player_kills: i64,
         player_deaths: i64,
@@ -522,33 +574,46 @@ impl Galaxy {
         npc_kills: i64,
         npc_deaths: i64,
         neutral_deaths: i64,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Updating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
-        event_result!(PlayerUpdated {
-            player: {
-                let player = self.players.get(id);
-                player.update(
-                    ping,
-                    admin,
-                    rank,
-                    player_kills,
-                    player_deaths,
-                    friendly_kills,
-                    friendly_deaths,
-                    npc_kills,
-                    npc_deaths,
-                    neutral_deaths,
-                );
-                player
+
+        let disconnected = state_flag & 0x01 != 0;
+        let player = self.players.get(id).also(|player| {
+            player.update(
+                ping,
+                admin,
+                disconnected,
+                rank,
+                player_kills,
+                player_deaths,
+                friendly_kills,
+                friendly_deaths,
+                npc_kills,
+                npc_deaths,
+                neutral_deaths,
+            );
+        });
+
+        event!(
+            events,
+            PlayerUpdated {
+                player: player.clone()
             }
-        })
+        );
+
+        if player.disconnected() {
+            event!(events, PlayerDisconnected { player });
+        }
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn update_player_score(
         &self,
+        events: &mut EventSink,
         id: PlayerId,
         player_kills: u32,
         player_deaths: u32,
@@ -557,8 +622,8 @@ impl Galaxy {
         npc_kills: u32,
         npc_deaths: u32,
         neutral_deaths: u32,
-        mission: u32,
-    ) -> EventResult {
+        mission: i32,
+    ) -> Result<(), GameError> {
         debug!("Updating Score for player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
@@ -574,31 +639,41 @@ impl Galaxy {
             neutral_deaths,
             mission,
         );
-        event_result!(PlayerScoreUpdated { player, before })
+        event!(events, PlayerScoreUpdated { player, before });
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn deactivate_player(&self, id: PlayerId) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn deactivate_player(
+        &self,
+        events: &mut EventSink,
+        id: PlayerId,
+    ) -> Result<(), GameError> {
         debug!("Deactivating player with {id:?}");
         debug_assert!(id.0 < 193, "Invalid {id:?}");
         debug_assert!(self.players.has(id), "{id:?} does not exist.");
-        event_result!(PlayerParted {
-            player: {
-                self.players.get(id).deactivate();
-                self.players.remove(id)
+        event!(
+            events,
+            PlayerParted {
+                player: {
+                    self.players.get(id).deactivate();
+                    self.players.remove(id)
+                }
             }
-        })
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_new(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         kind: UnitKind,
         id: ControllableInfoId,
         name: String,
         alive: bool,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("New ControllableInfo for {player:?} with {id:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
@@ -612,79 +687,99 @@ impl Galaxy {
                 name,
                 alive,
             )?);
-        event_result!(ControllableInfoRegistered {
-            player,
-            controllable,
-        })
+        event!(
+            events,
+            ControllableInfoRegistered {
+                player,
+                controllable,
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_alive(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Updating ControllableInfo for {player:?} with {id:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         let controllable = player.get_controllable_info(id);
         controllable.set_alive();
-        event_result!(ControllableInfoContinued {
-            player,
-            controllable,
-        })
+        event!(
+            events,
+            ControllableInfoContinued {
+                player,
+                controllable,
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_dead_by_reason(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
         reason: PlayerUnitDestroyedReason,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Death of ControllableInfo for {player:?} with {id:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         let controllable = player.get_controllable_info(id);
         controllable.set_dead();
-        event_result!(ControllableInfoDestroyed {
-            player,
-            controllable,
-            reason,
-        })
+        event!(
+            events,
+            ControllableInfoDestroyed {
+                player,
+                controllable,
+                reason,
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_dead_by_neutral_collision(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
         colliders_kind: UnitKind,
         colliders_name: String,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Death of ControllableInfo for {player:?} with {id:?} (neutral collision)");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         let controllable = player.get_controllable_info(id);
         controllable.set_dead();
-        event_result!(ControllableInfoDestroyedByNeutralCollision {
-            player,
-            controllable,
-            reason: PlayerUnitDestroyedReason::CollidedWithNeutralUnit,
-            colliders_kind,
-            colliders_name
-        })
+        event!(
+            events,
+            ControllableInfoDestroyedByNeutralCollision {
+                player,
+                controllable,
+                reason: PlayerUnitDestroyedReason::CollidedWithNeutralUnit,
+                colliders_kind,
+                colliders_name
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_dead_by_player_unit(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
         reason: PlayerUnitDestroyedReason,
         causer: PlayerId,
         causer_controllable_info: ControllableInfoId,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Death of ControllableInfo for {player:?} with {id:?} (player collision)");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
@@ -693,18 +788,23 @@ impl Galaxy {
         debug_assert!(self.players.has(causer), "{causer:?} does not exist");
         let destroyer = self.players.get(causer);
         let destroyer_unit = destroyer.get_controllable_info(causer_controllable_info);
-        event_result!(ControllableInfoDestroyedByPlayerUnit {
-            player,
-            controllable,
-            reason,
-            destroyer_player: destroyer,
-            destroyed_unit: destroyer_unit,
-        })
+        event!(
+            events,
+            ControllableInfoDestroyedByPlayerUnit {
+                player,
+                controllable,
+                reason,
+                destroyer_player: destroyer,
+                destroyed_unit: destroyer_unit,
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_score_updated(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
         player_kills: u32,
@@ -714,8 +814,8 @@ impl Galaxy {
         npc_kills: u32,
         npc_deaths: u32,
         neutral_deaths: u32,
-        mission: u32,
-    ) -> EventResult {
+        mission: i32,
+    ) -> Result<(), GameError> {
         debug!("Updating Score for ControllableId with {id:?} of {player:?}.");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
@@ -731,42 +831,54 @@ impl Galaxy {
             neutral_deaths,
             mission,
         );
-        event_result!(ControllableInfoScoreUpdated {
-            player,
-            controllable,
-            before,
-        })
+        event!(
+            events,
+            ControllableInfoScoreUpdated {
+                player,
+                controllable,
+                before,
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    #[instrument(level = "trace", skip(self, events))]
     pub(crate) fn controllable_info_removed(
         self: &Arc<Self>,
+        events: &mut EventSink,
         player: PlayerId,
         id: ControllableInfoId,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Removing ControllableInfo for {player:?} with {id:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
         let player = self.players.get(player);
         match player.controllable_infos.remove_opt(id) {
             None => {
                 error!("Failed to remove ControllableInfo. {id:?} does not exist for {player:?}.");
-                Ok(None)
             }
-            Some(controllable) => event_result!(ControllableInfoClosed {
-                player,
-                controllable,
-            }),
+            Some(controllable) => {
+                event!(
+                    events,
+                    ControllableInfoClosed {
+                        player,
+                        controllable,
+                    }
+                );
+            }
         }
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn controllable_new(
         self: &Arc<Self>,
+        events: &mut EventSink,
         kind: UnitKind,
         id: ControllableId,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
+        let _ = events;
         debug!("New Controllable with {id:?} and name {name:?}");
         self.controllables.populate(Controllable::from_packet(
             kind,
@@ -776,46 +888,59 @@ impl Galaxy {
             reader,
         )?);
 
-        Ok(None)
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn controllable_deceased(self: &Arc<Self>, id: ControllableId) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn controllable_deceased(
+        self: &Arc<Self>,
+        events: &mut EventSink,
+        id: ControllableId,
+    ) -> Result<(), GameError> {
+        let _ = events;
         debug!("{id:?} deceased");
         self.controllables.get(id).deceased();
-        Ok(None)
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn controllable_updated(
         self: &Arc<Self>,
+        events: &mut EventSink,
         id: ControllableId,
         reader: &mut dyn PacketReader,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
+        let _ = events;
         debug!("Updating Controllable with {id:?}");
         if let Some(controllable) = self.controllables.get_opt(id) {
             controllable.update(reader);
         } else {
             error!("There is no Controllable for {id:?}");
         }
-        Ok(None)
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn controllable_removed(self: &Arc<Self>, id: ControllableId) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn controllable_removed(
+        self: &Arc<Self>,
+        events: &mut EventSink,
+        id: ControllableId,
+    ) -> Result<(), GameError> {
+        let _ = events;
         debug!("{id:?} removed");
         self.controllables.remove(id).deactivate();
-        Ok(None)
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn unit_new(
         &self,
+        events: &mut EventSink,
         cluster: ClusterId,
         name: String,
         kind: UnitKind,
         reader: &mut dyn PacketReader,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Adding unit {name:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
@@ -823,83 +948,104 @@ impl Galaxy {
         let unit = match Unit::try_read(kind, Arc::downgrade(&cluster), name, reader) {
             None => {
                 error!("Unable to read Unit for UnitKind::{kind:?}");
-                return Ok(None);
+                return Ok(());
             }
             Some(unit) => Arc::new(unit),
         };
 
         cluster.add_unit(Arc::clone(&unit));
+        event!(events, UnitAdded { unit });
 
-        event_result!(UnitAdded { unit })
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn unit_updated_movement(
         &self,
+        events: &mut EventSink,
         cluster: ClusterId,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Updating unit {name:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_movement(reader);
-            event_result!(UnitUpdated { unit })
+            event!(events, UnitUpdated { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
-            Ok(None)
         }
+
+        Ok(())
     }
 
     #[instrument(level = "trace", skip(self, reader))]
     pub(crate) fn unit_updated_state(
         &self,
+        events: &mut EventSink,
         cluster: ClusterId,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> EventResult {
+    ) -> Result<(), GameError> {
         debug!("Updating state of unit {name:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_state(reader);
-            event_result!(UnitUpdated { unit })
+            event!(events, UnitUpdated { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
-            Ok(None)
         }
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn unit_updated_by_admin(&self, cluster: ClusterId, name: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn unit_updated_by_admin(
+        &self,
+        events: &mut EventSink,
+        cluster: ClusterId,
+        name: String,
+    ) -> Result<(), GameError> {
         debug!("Admin has updated the unit {name:?}");
-        event_result!(UnitAlteredByAdmin { cluster, name })
+        event!(events, UnitAlteredByAdmin { cluster, name });
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn unit_removed(&self, cluster: ClusterId, name: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn unit_removed(
+        &self,
+        events: &mut EventSink,
+        cluster: ClusterId,
+        name: String,
+    ) -> Result<(), GameError> {
         debug!("Removing unit {name:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.remove_unit_(&name) {
-            event_result!(UnitRemoved { unit })
+            event!(events, UnitRemoved { unit });
         } else {
             error!("Failed to remove unit with name {name:?}");
-            Ok(None)
         }
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn compiled_with(&self, max_players_supported: u8, symbol: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn compiled_with(
+        &self,
+        events: &mut EventSink,
+        max_players_supported: u8,
+        symbol: String,
+    ) -> Result<(), GameError> {
         debug!("Compiled with message with max_players_supported={max_players_supported:?}, symbol={symbol:?}");
 
         if self.received_compiled_with.load() {
             warn!("Received compiled-with flags again, ignoring max_players_supported={max_players_supported:?}, symbol={symbol:?}");
-            Ok(None)
         } else {
             self.compiled_with_max_players_supported
                 .store(max_players_supported);
@@ -907,51 +1053,175 @@ impl Galaxy {
             self.received_compiled_with.store(true);
 
             let symbol = self.compiled_with_symbol.load_full();
-            event_result!(CompiledWithMessage {
+            event!(events, CompiledWithMessage {
                 message: format!("The server has been compiled with support for up to {max_players_supported} players ({symbol})"),
                 max_players_supported,
                 symbol,
-            })
+            });
         }
+
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn universe_tick(&self, number: u32) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn universe_tick(
+        &self,
+        events: &mut EventSink,
+        number: u32,
+    ) -> Result<(), GameError> {
         debug!("Universe tick with #{number}");
-        event_result!(GalaxyTick { tick: number })
+        event!(events, GalaxyTick { tick: number });
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn chat_galaxy(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn flag_scored_chat(
+        &self,
+        events: &mut EventSink,
+        player: PlayerId,
+        controllable: ControllableInfoId,
+        flag_team: TeamId,
+        flag_name: String,
+    ) -> Result<(), GameError> {
+        debug!("Received flag scored chat message: {player:?}, {controllable:?}, {flag_team:?}, flag_name={flag_name:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        debug_assert!(self.teams.has(flag_team), "{flag_team:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable_info = player.get_controllable_info(controllable);
+        event!(
+            events,
+            FlagScoredChat {
+                player,
+                controllable_info,
+                flag_team: self.teams.get(flag_team),
+                flag_name,
+            }
+        );
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn domination_point_scored_chat(
+        &self,
+        events: &mut EventSink,
+        team: TeamId,
+        domination_point_name: String,
+    ) -> Result<(), GameError> {
+        debug!("Received flag scored chat message: {team:?}, domination_point_name={domination_point_name:?}");
+        debug_assert!(self.teams.has(team), "{team:?} does not exist.");
+        event!(
+            events,
+            DominationPointScoredChat {
+                team: self.teams.get(team),
+                domination_point_name
+            }
+        );
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn own_flag_hit(
+        &self,
+        events: &mut EventSink,
+        player: PlayerId,
+        controllable: ControllableInfoId,
+        flag_team: TeamId,
+        flag_name: String,
+    ) -> Result<(), GameError> {
+        debug!("Received own flag hit chat message: {player:?}, {controllable:?}, {flag_team:?}, flag_name={flag_name:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        debug_assert!(self.teams.has(flag_team), "{flag_team:?} does not exist.");
+        let player = self.players.get(player);
+        let controllable_info = player.get_controllable_info(controllable);
+        event!(
+            events,
+            OwnFlagHitChat {
+                player,
+                controllable_info,
+                flag_team: self.teams.get(flag_team),
+                flag_name,
+            }
+        );
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn chat_galaxy(
+        self: &Arc<Self>,
+        events: &mut EventSink,
+        player: PlayerId,
+        message: String,
+    ) -> Result<(), GameError> {
         debug!("Received galaxy chat message: {message:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
-        event_result!(GalaxyChat {
-            player: self.players.get(player),
-            destination: Arc::clone(self),
-            message
-        })
+        event!(
+            events,
+            GalaxyChat {
+                player: self.players.get(player),
+                destination: Arc::clone(self),
+                message
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn chat_team(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn chat_team(
+        self: &Arc<Self>,
+        events: &mut EventSink,
+        player: PlayerId,
+        message: String,
+    ) -> Result<(), GameError> {
         debug!("Received team chat message: {message:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
-        event_result!(TeamChat {
-            player: self.players.get(player),
-            destination: self.player(),
-            message
-        })
+        event!(
+            events,
+            TeamChat {
+                player: self.players.get(player),
+                destination: self.player(),
+                message
+            }
+        );
+        Ok(())
     }
 
-    #[instrument(level = "trace", skip(self))]
-    pub(crate) fn chat_player(self: &Arc<Self>, player: PlayerId, message: String) -> EventResult {
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn chat_player(
+        self: &Arc<Self>,
+        events: &mut EventSink,
+        player: PlayerId,
+        message: String,
+    ) -> Result<(), GameError> {
         debug!("Received player chat message: {message:?}");
         debug_assert!(self.players.has(player), "{player:?} does not exist.");
-        event_result!(PlayerChat {
-            player: self.players.get(player),
-            destination: self.player(),
-            message
-        })
+        event!(
+            events,
+            PlayerChat {
+                player: self.players.get(player),
+                destination: self.player(),
+                message
+            }
+        );
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events))]
+    pub(crate) fn flag_reactivated_chat(
+        &self,
+        events: &mut EventSink,
+        flag_team: TeamId,
+        flag_name: String,
+    ) -> Result<(), GameError> {
+        debug!("Received flag reactivated chat message: {flag_team:?}, flag_name={flag_name:?}");
+        debug_assert!(self.teams.has(flag_team), "{flag_team:?} does not exist.");
+        event!(
+            events,
+            FlagReactivatedChat {
+                flag_team: self.teams.get(flag_team),
+                flag_name,
+            }
+        );
+        Ok(())
     }
 
     /// Yourself.

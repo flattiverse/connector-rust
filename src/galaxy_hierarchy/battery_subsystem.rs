@@ -61,7 +61,7 @@ impl BatterySubsystem {
         self.current.load()
     }
 
-    /// The currently free battery capacity.
+    /// The status reported for the current server tick.
     #[inline]
     pub fn free(&self) -> f32 {
         self.maximum() - self.current()

@@ -84,7 +84,7 @@ impl ConnectionHandle {
         player: PlayerId,
     ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
         let mut packet = Packet::default();
-        packet.header_mut().set_command(0xC7);
+        packet.header_mut().set_command(0xF1);
         packet.write(|writer| writer.write_byte(player.0));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -109,7 +109,7 @@ impl ConnectionHandle {
         player: PlayerId,
     ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
         let mut packet = Packet::default();
-        packet.header_mut().set_command(0xC8);
+        packet.header_mut().set_command(0xF2);
         packet.write(|writer| writer.write_byte(player.0));
 
         let session = self.send_packet_on_new_session(packet).await?;
@@ -793,6 +793,92 @@ impl ConnectionHandle {
         packet.write(|writer| {
             writer.write_byte(controllable.0);
             writer.write_byte(scanner.0);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Sets the shield load rate on the server.
+    #[inline]
+    pub async fn shield_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.shield_subsystem_set_split(controllable, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the shield load rate on the server.
+    pub async fn shield_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x90);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_f32(rate);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Turns shield loading on.
+    #[inline]
+    pub async fn shield_subsystem_on(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.shield_subsystem_on_split(controllable).await?.await
+    }
+
+    /// Turns shield loading on.
+    pub async fn shield_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x91);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |_| Ok(()))
+        })
+    }
+
+    /// Turns shield loading off.
+    #[inline]
+    pub async fn shield_subsystem_off(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.shield_subsystem_off_split(controllable).await?.await
+    }
+
+    /// Turns shield loading off.
+    pub async fn shield_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x92);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
         });
 
         let session = self.send_packet_on_new_session(packet).await?;
