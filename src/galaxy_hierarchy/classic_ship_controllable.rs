@@ -1,6 +1,7 @@
 use crate::galaxy_hierarchy::{
     AsSubsystemBase, ClassicShipEngineSubsystem, Controllable, ControllableSpecialization,
-    Controls, ScannerSubsystem, ShotWeaponSubsystem, SubsystemBase,
+    Controls, DynamicScannerSubsystem, DynamicShotFabricatorSubsystem,
+    DynamicShotLauncherSubsystem, DynamicShotMagazineSubsystem, SubsystemBase,
 };
 use crate::network::PacketReader;
 use crate::utils::Readable;
@@ -10,23 +11,39 @@ use std::sync::{Arc, Weak};
 #[derive(Debug)]
 pub struct ClassicShipControllable {
     pub(crate) engine: ClassicShipEngineSubsystem,
-    pub(crate) weapon: ShotWeaponSubsystem,
-    pub(crate) main_scanner: ScannerSubsystem,
-    pub(crate) secondary_scanner: ScannerSubsystem,
+    pub(crate) shot_launcher: DynamicShotLauncherSubsystem,
+    pub(crate) shot_magazine: DynamicShotMagazineSubsystem,
+    pub(crate) shot_fabricator: DynamicShotFabricatorSubsystem,
+    pub(crate) main_scanner: DynamicScannerSubsystem,
+    pub(crate) secondary_scanner: DynamicScannerSubsystem,
 }
 
 impl ClassicShipControllable {
     pub(crate) fn new() -> Self {
         Self {
             engine: ClassicShipEngineSubsystem::new(Weak::default()),
-            weapon: ShotWeaponSubsystem::new(
+            shot_launcher: DynamicShotLauncherSubsystem::new(
                 Weak::default(),
-                "Weapon".to_string(),
+                "ShotLauncher".to_string(),
                 true,
-                SubsystemSlot::FrontShotLauncher,
+                SubsystemSlot::DynamicShotLauncher,
             ),
-            main_scanner: ScannerSubsystem::create_classic_ship_primary_scanner(Weak::default()),
-            secondary_scanner: ScannerSubsystem::create_classic_ship_secondary_scanner(
+            shot_magazine: DynamicShotMagazineSubsystem::new(
+                Weak::default(),
+                "ShotMagazine".to_string(),
+                true,
+                SubsystemSlot::DynamicShotMagazine,
+            ),
+            shot_fabricator: DynamicShotFabricatorSubsystem::new(
+                Weak::default(),
+                "ShotFabricator".to_string(),
+                true,
+                SubsystemSlot::DynamicShotFabricator,
+            ),
+            main_scanner: DynamicScannerSubsystem::create_classic_ship_primary_scanner(
+                Weak::default(),
+            ),
+            secondary_scanner: DynamicScannerSubsystem::create_classic_ship_secondary_scanner(
                 Weak::default(),
             ),
         }
@@ -38,27 +55,41 @@ impl ClassicShipControllable {
         &self.engine
     }
 
-    /// The weapon subsystem of the classic ship.
+    /// The shot launcher subsystem of the classic ship.
     #[inline]
-    pub fn weapon(&self) -> &ShotWeaponSubsystem {
-        &self.weapon
+    pub fn shot_launcher(&self) -> &DynamicShotLauncherSubsystem {
+        &self.shot_launcher
+    }
+
+    /// The shot magazine subsystem of the classic ship.
+    #[inline]
+    pub fn shot_magazine(&self) -> &DynamicShotMagazineSubsystem {
+        &self.shot_magazine
+    }
+
+    /// The shot fabricator subsystem of the classic ship.
+    #[inline]
+    pub fn shot_fabricator(&self) -> &DynamicShotFabricatorSubsystem {
+        &self.shot_fabricator
     }
 
     /// The primary scanner subsystem of the classic ship.
     #[inline]
-    pub fn main_scanner(&self) -> &ScannerSubsystem {
+    pub fn main_scanner(&self) -> &DynamicScannerSubsystem {
         &self.main_scanner
     }
 
     /// The secondary scanner subsystem of the classic ship.
     #[inline]
-    pub fn secondary_scanner(&self) -> &ScannerSubsystem {
+    pub fn secondary_scanner(&self) -> &DynamicScannerSubsystem {
         &self.secondary_scanner
     }
 
     pub(crate) fn reset_runtime(&self) {
         self.engine.reset_runtime();
-        self.weapon.reset_runtime();
+        self.shot_launcher.reset_runtime();
+        self.shot_magazine.reset_runtime();
+        self.shot_fabricator.reset_runtime();
         self.main_scanner.reset_runtime();
         self.secondary_scanner.reset_runtime();
     }
@@ -98,10 +129,20 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
-        self.weapon.update_runtime(
+        self.shot_launcher.update_runtime(
             Vector::from_read(reader),
             reader.read_uint16(),
             reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+        self.shot_magazine
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.shot_fabricator.update_runtime(
+            reader.read_byte() != 0,
             reader.read_f32(),
             SubsystemStatus::read(reader),
             reader.read_f32(),
@@ -113,7 +154,9 @@ impl ClassicShipControllable {
     pub(crate) fn iter_subsystem_bases(&self) -> impl Iterator<Item = &SubsystemBase> + '_ {
         [
             self.engine.as_subsystem_base(),
-            self.weapon.as_subsystem_base(),
+            self.shot_launcher.as_subsystem_base(),
+            self.shot_magazine.as_subsystem_base(),
+            self.shot_fabricator.as_subsystem_base(),
             self.main_scanner.as_subsystem_base(),
             self.secondary_scanner.as_subsystem_base(),
         ]
@@ -125,7 +168,9 @@ impl ClassicShipControllable {
             self.main_scanner.create_runtime_event(),
             self.secondary_scanner.create_runtime_event(),
             self.engine.create_runtime_event(),
-            self.weapon.create_runtime_event(),
+            self.shot_launcher.create_runtime_event(),
+            self.shot_magazine.create_runtime_event(),
+            self.shot_fabricator.create_runtime_event(),
         ]
         .into_iter()
         .flatten()

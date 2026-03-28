@@ -1,6 +1,6 @@
 use crate::account::AccountStatus;
 use crate::galaxy_hierarchy::PlayerKind;
-use crate::network::{InvalidArgumentKind, Packet, PacketReader};
+use crate::network::{InvalidArgumentKind, Packet, PacketReader, Session};
 use num_enum::{FromPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
@@ -16,6 +16,16 @@ impl GameError {
         &self.kind
     }
 
+    pub(crate) async fn check_response_ok(session: Session) -> Result<(), GameError> {
+        GameError::check_ok(session.response().await?)
+    }
+
+    #[inline]
+    pub(crate) fn check_ok(packet: Packet) -> Result<(), GameError> {
+        Self::check(packet, |_| Ok(()))
+    }
+
+    #[inline]
     pub(crate) fn check<T>(
         mut packet: Packet,
         f: impl FnOnce(Packet) -> Result<T, GameError>,

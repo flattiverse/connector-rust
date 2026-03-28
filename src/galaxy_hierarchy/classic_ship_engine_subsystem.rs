@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Controllable, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -76,20 +76,15 @@ impl ClassicShipEngineSubsystem {
     /// The current formular is `energy = 12_000 * movement.length()^3`.
     /// Returns `None` when the subsystem does not exist or the movement is outside the valid range.
     /// Values just above the maximum are clipped to the maximum before the cost is calculated.
-    pub fn calculate_cost(&self, movement: Vector) -> Option<MovementCost> {
-        let mut cost = MovementCost::default();
-
+    pub fn calculate_cost(&self, movement: Vector) -> Option<Cost> {
         if !self.exists() {
-            return None;
-        }
-
-        let clamped = RangeTolerance::clamped_maximum_vector(movement, self.maximum()).ok()?;
-        cost.energy = clamped.length() * clamped.length() * clamped.length() * 12_000_f32;
-
-        if cost.energy.is_nan() || cost.energy.is_infinite() {
             None
         } else {
-            Some(cost)
+            let clamped = RangeTolerance::clamped_maximum_vector(movement, self.maximum()).ok()?;
+
+            Cost::default()
+                .with_energy(clamped.length() * clamped.length() * clamped.length() * 12_000_f32)
+                .into_values_checked()
         }
     }
 
@@ -103,7 +98,7 @@ impl ClassicShipEngineSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let clamped = RangeTolerance::clamped_maximum_vector(movement, self.maximum())
+            let movement = RangeTolerance::clamped_maximum_vector(movement, self.maximum())
                 .map_err(|reason| GameErrorKind::InvalidArgument {
                     reason,
                     parameter: "movement".to_string(),
@@ -113,7 +108,7 @@ impl ClassicShipEngineSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .classic_ship_engine_subsystem_set(controllable.id(), clamped)
+                .classic_ship_engine_subsystem_set(controllable.id(), movement)
                 .await
         }
     }
@@ -177,11 +172,4 @@ impl AsRef<SubsystemBase> for ClassicShipEngineSubsystem {
     fn as_ref(&self) -> &SubsystemBase {
         &self.base
     }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct MovementCost {
-    pub energy: f32,
-    pub ions: f32,
-    pub neutrinos: f32,
 }

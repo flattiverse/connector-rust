@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Controllable, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
 use crate::utils::{Also, Atomic};
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -11,7 +11,7 @@ pub struct ScannerSubsystemId(pub(crate) u8);
 
 /// Represents a persistent scanner subsystem configuration.
 #[derive(Debug)]
-pub struct ScannerSubsystem {
+pub struct DynamicScannerSubsystem {
     base: SubsystemBase,
 
     id: ScannerSubsystemId,
@@ -35,8 +35,10 @@ pub struct ScannerSubsystem {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl ScannerSubsystem {
-    pub const ENERGY_SCALE: f32 = 0.000282943;
+impl DynamicScannerSubsystem {
+    const ENERGY_SCALE: f32 = 0.000282943;
+    const MINIMUM_WIDTH_VALUE: f32 = 5.0;
+    const MINIMUM_LENGTH_VALUE: f32 = 20.0;
 
     pub(crate) fn new(
         controllable: Weak<Controllable>,
@@ -102,6 +104,18 @@ impl ScannerSubsystem {
         )
     }
 
+    /// The minimum configurable scan width in degree.
+    #[inline]
+    pub fn minimum_width(&self) -> f32 {
+        Self::MINIMUM_WIDTH_VALUE
+    }
+
+    /// The minimum configurable scan length.
+    #[inline]
+    pub fn minimum_length(&self) -> f32 {
+        Self::MINIMUM_LENGTH_VALUE
+    }
+
     #[inline]
     pub fn id(&self) -> ScannerSubsystemId {
         self.id
@@ -149,7 +163,7 @@ impl ScannerSubsystem {
         self.current_length.load()
     }
 
-    /// The currently configured scan center angle in degree.
+    /// The currently configured absolute scan center angle in degree.
     #[inline]
     pub fn current_angle(&self) -> f32 {
         self.current_angle.load()
@@ -167,7 +181,7 @@ impl ScannerSubsystem {
         self.target_length.load()
     }
 
-    /// The target scan center angle in degree.
+    /// The target absolute scan center angle in degree.
     #[inline]
     pub fn target_angle(&self) -> f32 {
         self.target_angle.load()
@@ -199,30 +213,29 @@ impl ScannerSubsystem {
 
     /// Calculates the scanner tick costs. The current placeholder model scales with the scanner
     /// surface and is tuned so that a maximum scan of 90 x 300 costs about 20 energy per tick.
+    /// This also accepts smaller runtime dimensions that occur while the scanner ramps up after
+    /// activation.
     /// Returns `None` if the subsystem does not exist or the requested values are outside the valid
     /// range. Values just above the maximum width or length are clipped before the cost is
     /// calculated.
-    pub fn calculate_cost(&self, width: f32, length: f32) -> Option<ScanCost> {
-        let mut cost = ScanCost::default();
-
+    pub fn calculate_cost(&self, width: f32, length: f32) -> Option<Cost> {
         if !self.exists() {
-            return None;
-        }
-
-        let width = RangeTolerance::clamped_maximum(width, self.maximum_width).ok()?;
-        let length = RangeTolerance::clamped_maximum(length, self.maximum_length).ok()?;
-
-        cost.energy = std::f32::consts::PI * length * length * width / 360.0 * Self::ENERGY_SCALE;
-
-        if cost.energy.is_nan() || cost.energy.is_infinite() {
             None
         } else {
-            Some(cost)
+            let width = RangeTolerance::clamped_maximum(width, self.maximum_width).ok()?;
+            let length = RangeTolerance::clamped_maximum(length, self.maximum_length).ok()?;
+
+            Cost::default()
+                .with_energy(
+                    std::f32::consts::PI * length * length * width / 360.0 * Self::ENERGY_SCALE,
+                )
+                .into_values_checked()
         }
     }
 
     /// Set the target scanner configuration on the server.
-    /// Width and length values just above the maximum are clipped before they are sent.
+    /// Width and length values just outside the valid range are clipped before they are sent.
+    /// Scanner angles are absolute world angles.
     pub async fn set(&self, width: f32, length: f32, angle: f32) -> Result<(), GameError> {
         let controllable = self.base.controllable();
 
@@ -232,20 +245,21 @@ impl ScannerSubsystem {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
             let width =
-                RangeTolerance::clamped_maximum(width, self.maximum_width).map_err(|reason| {
-                    GameErrorKind::InvalidArgument {
+                RangeTolerance::clamped_range(width, Self::MINIMUM_WIDTH_VALUE, self.maximum_width)
+                    .map_err(|reason| GameErrorKind::InvalidArgument {
                         reason,
                         parameter: "width".to_string(),
-                    }
-                })?;
+                    })?;
 
-            let length =
-                RangeTolerance::clamped_maximum(length, self.maximum_length).map_err(|reason| {
-                    GameErrorKind::InvalidArgument {
-                        reason,
-                        parameter: "length".to_string(),
-                    }
-                })?;
+            let length = RangeTolerance::clamped_range(
+                length,
+                Self::MINIMUM_LENGTH_VALUE,
+                self.maximum_length,
+            )
+            .map_err(|reason| GameErrorKind::InvalidArgument {
+                reason,
+                parameter: "length".to_string(),
+            })?;
 
             let angle = RangeTolerance::validated_f32(angle).map_err(|reason| {
                 GameErrorKind::InvalidArgument {
@@ -258,7 +272,7 @@ impl ScannerSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .scanner_subsystem_set(controllable.id(), self.id, width, length, angle)
+                .dynamic_scanner_subsystem_set(controllable.id(), self.id, width, length, angle)
                 .await
         }
     }
@@ -276,7 +290,7 @@ impl ScannerSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .scanner_subsystem_on(controllable.id(), self.id)
+                .dynamic_scanner_subsystem_on(controllable.id(), self.id)
                 .await
         }
     }
@@ -294,7 +308,7 @@ impl ScannerSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .scanner_subsystem_off(controllable.id(), self.id)
+                .dynamic_scanner_subsystem_off(controllable.id(), self.id)
                 .await
         }
     }
@@ -347,7 +361,7 @@ impl ScannerSubsystem {
             None
         } else {
             Some(
-                FlattiverseEventKind::ScannerSubsystem {
+                FlattiverseEventKind::DynamicScannerSubsystem {
                     controllable: self.controllable(),
                     slot: self.slot(),
                     status: self.status(),
@@ -368,16 +382,9 @@ impl ScannerSubsystem {
     }
 }
 
-impl AsRef<SubsystemBase> for ScannerSubsystem {
+impl AsRef<SubsystemBase> for DynamicScannerSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         &self.base
     }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct ScanCost {
-    pub energy: f32,
-    pub ions: f32,
-    pub neutrinos: f32,
 }

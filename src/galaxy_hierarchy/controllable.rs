@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{
     AsSubsystemBase, BatterySubsystem, ClassicShipControllable, Cluster, EnergyCellSubsystem,
-    HullSubsystem, Identifiable, Indexer, NamedUnit,
+    HullSubsystem, Identifiable, Indexer, NamedUnit, ShieldSubsystem,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -30,6 +30,7 @@ pub struct Controllable {
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
     hull: HullSubsystem,
+    shield: ShieldSubsystem,
     energy_battery: BatterySubsystem,
     ion_battery: BatterySubsystem,
     neutrino_battery: BatterySubsystem,
@@ -57,6 +58,7 @@ impl Controllable {
                 position: Atomic::from_reader(reader),
                 movement: Atomic::from_reader(reader),
                 hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
+                shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
                 energy_battery: BatterySubsystem::create_classic_ship_energy_battery(
                     Weak::default(),
                 ),
@@ -89,6 +91,7 @@ impl Controllable {
                 // finish the initialization of cross-references
                 for subsystem in [
                     this.hull.as_subsystem_base(),
+                    this.shield.as_subsystem_base(),
                     this.energy_battery.as_subsystem_base(),
                     this.ion_battery.as_subsystem_base(),
                     this.neutrino_battery.as_subsystem_base(),
@@ -145,6 +148,12 @@ impl Controllable {
     #[inline]
     pub fn hull(&self) -> &HullSubsystem {
         &self.hull
+    }
+
+    /// The shield subsystem of the controllable.
+    #[inline]
+    pub fn shield(&self) -> &ShieldSubsystem {
+        &self.shield
     }
 
     /// The energy battery subsystem of the controllable.
@@ -282,6 +291,15 @@ impl Controllable {
 
         self.hull
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.shield.update_runtime(
+            reader.read_f32(),
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
 
         self.read_runtime(reader);
         self.alive.store(true);
@@ -296,6 +314,7 @@ impl Controllable {
         self.ion_cell.reset_runtime();
         self.neutrino_cell.reset_runtime();
         self.hull.reset_runtime();
+        self.shield.reset_runtime();
 
         match self.specialization() {
             ControllableSpecialization::ClassicShip(s) => s.reset_runtime(),
@@ -318,6 +337,7 @@ impl Controllable {
                 self.ion_cell.create_runtime_event(),
                 self.neutrino_cell.create_runtime_event(),
                 self.hull.create_runtime_event(),
+                self.shield.create_runtime_event(),
             ]
             .into_iter()
             .flatten(),

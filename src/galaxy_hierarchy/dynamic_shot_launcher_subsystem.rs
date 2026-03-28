@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Controllable, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
 use crate::network::InvalidArgumentKind;
 use crate::utils::Atomic;
 use crate::{
@@ -7,9 +7,9 @@ use crate::{
 };
 use std::sync::Weak;
 
-/// Projectile weapon subsystem of a controllable.
+/// Dynamic projectile launcher subsystem of a controllable.
 #[derive(Debug)]
-pub struct ShotWeaponSubsystem {
+pub struct DynamicShotLauncherSubsystem {
     base: SubsystemBase,
     relative_movement: Atomic<Vector>,
     ticks: Atomic<u16>,
@@ -20,7 +20,7 @@ pub struct ShotWeaponSubsystem {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl ShotWeaponSubsystem {
+impl DynamicShotLauncherSubsystem {
     const RELATIVE_MOVEMENT_MINIMUM: f32 = 0.1;
     const RELATIVE_MOVEMENT_MAXIMUM: f32 = 3.0;
     const TICKS_MINIMUM: u16 = 2;
@@ -120,51 +120,32 @@ impl ShotWeaponSubsystem {
         self.damage.load()
     }
 
-    /// The energy consumed by the weapon during the current server tick.
+    /// The energy consumed by the launcher during the current server tick.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// The ions consumed by the weapon during the current server tick.
+    /// The ions consumed by the launcher during the current server tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// The neutrinos consumed by the weapon during the current server tick.
+    /// The neutrinos consumed by the launcher during the current server tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()
     }
 
-    /// Calculates the current placeholder weapon energy costs for the requested shot.
-    /// The current formula is:
-    /// ```text
-    /// energy = 10
-    ///   + 250 * speed01^3
-    ///   + 240 * ticks01^2
-    ///   + 600 * load01^2
-    ///   + 700 * damage01^2
-    /// ```
-    /// with
-    /// `speed01=(speed-0.1)/2.9`,
-    /// `ticks01=(ticks-2)/138`,
-    /// `load01=(load-2.5)/22.5`,
-    /// `damage01=(damage-1)/19`.
-    ///
-    /// Returns `None` if the subsystem does not exist or the requested values are outside the
-    /// valid range. The vector length, load, and damage are clipped if they are only slightly
-    /// outside the configured range. The tick count is not clipped.
+    /// Calculates the resource costs for one dynamic shot request.
     pub fn calculate_cost(
         &self,
         relative_movement: Vector,
         ticks: u16,
         load: f32,
         damage: f32,
-    ) -> Option<ShotCost> {
-        let mut cost = ShotCost::default();
-
+    ) -> Option<Cost> {
         if !self.exists() {
             return None;
         }
@@ -195,17 +176,14 @@ impl ShotWeaponSubsystem {
         let damage01 =
             (damage - Self::DAMAGE_MINIMUM) / (Self::DAMAGE_MAXIMUM - Self::DAMAGE_MINIMUM);
 
-        cost.energy = 10.0
-            + 250.0 * speed01 * speed01 * speed01
-            + 240.0 * ticks01 * ticks01
-            + 600.0 * load01 * load01
-            + 700.0 * damage01 * damage01;
-
-        if cost.energy.is_nan() || cost.energy.is_infinite() {
-            None
-        } else {
-            Some(cost)
-        }
+        Cost::default()
+            .with_energy(
+                10.0 + 250.0 * speed01 * speed01 * speed01
+                    + 240.0 * ticks01 * ticks01
+                    + 600.0 * load01 * load01
+                    + 700.0 * damage01 * damage01,
+            )
+            .into_values_checked()
     }
 
     /// Requests one shot for the next server tick.
@@ -268,7 +246,7 @@ impl ShotWeaponSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .shot_weapon_subsystem_shoot(
+                .dynamic_shot_launcher_subsystem_shoot(
                     controllable.id(),
                     relative_movement,
                     ticks,
@@ -318,7 +296,7 @@ impl ShotWeaponSubsystem {
             None
         } else {
             Some(
-                FlattiverseEventKind::ShotWeaponSubsystem {
+                FlattiverseEventKind::DynamicShotLauncher {
                     controllable: self.controllable(),
                     slot: self.slot(),
                     status: self.status(),
@@ -336,16 +314,9 @@ impl ShotWeaponSubsystem {
     }
 }
 
-impl AsRef<SubsystemBase> for ShotWeaponSubsystem {
+impl AsRef<SubsystemBase> for DynamicShotLauncherSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         &self.base
     }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct ShotCost {
-    pub energy: f32,
-    pub ions: f32,
-    pub neutrinos: f32,
 }

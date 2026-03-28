@@ -34,11 +34,11 @@ pub use classic_ship_controllable::*;
 mod classic_ship_engine_subsystem;
 pub use classic_ship_engine_subsystem::*;
 
-mod shot_weapon_subsystem;
-pub use shot_weapon_subsystem::*;
+mod dynamic_shot_launcher_subsystem;
+pub use dynamic_shot_launcher_subsystem::*;
 
-mod scanner_subsystem;
-pub use scanner_subsystem::*;
+mod dynamic_scanner_subsystem;
+pub use dynamic_scanner_subsystem::*;
 
 mod hull_subsystem;
 pub use hull_subsystem::*;
@@ -81,3 +81,12 @@ pub use build_disclosure_level::*;
 
 mod shield_subsystem;
 pub use shield_subsystem::*;
+
+mod dynamic_shot_magazine_subsystem;
+pub use dynamic_shot_magazine_subsystem::*;
+
+mod dynamic_shot_fabricator_subsystem;
+pub use dynamic_shot_fabricator_subsystem::*;
+
+mod cost;
+pub use cost::*;

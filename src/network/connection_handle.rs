@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{
     ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId, TeamId,
 };
-use crate::network::{InvalidArgumentKind, Packet, Session, SessionHandler};
+use crate::network::{InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler};
 use crate::utils::check_name_or_err_32;
 use crate::{FlattiverseEvent, GameError, GameErrorKind, Vector};
 use async_channel::WeakSender;
@@ -65,7 +65,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -145,7 +145,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -168,7 +168,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -198,7 +198,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -226,7 +226,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -252,7 +252,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -333,7 +333,7 @@ impl ConnectionHandle {
 
             Ok(async move {
                 let response = session.response().await?;
-                GameError::check(response, |_| Ok(()))
+                GameError::check_ok(response)
             })
         }
     }
@@ -367,7 +367,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -470,7 +470,7 @@ impl ConnectionHandle {
 
             Ok(async move {
                 let response = session.response().await?;
-                GameError::check(response, |_| Ok(()))
+                GameError::check_ok(response)
             })
         }
     }
@@ -510,7 +510,7 @@ impl ConnectionHandle {
 
             Ok(async move {
                 let response = session.response().await?;
-                GameError::check(response, |_| Ok(()))
+                GameError::check_ok(response)
             })
         }
     }
@@ -614,7 +614,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -649,13 +649,13 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
     /// Requests one shot for the next server tick.
     #[inline]
-    pub async fn shot_weapon_subsystem_shoot(
+    pub async fn dynamic_shot_launcher_subsystem_shoot(
         &self,
         controllable: ControllableId,
         relative_movement: Vector,
@@ -663,13 +663,19 @@ impl ConnectionHandle {
         load: f32,
         damage: f32,
     ) -> Result<(), GameError> {
-        self.shot_weapon_subsystem_shoot_split(controllable, relative_movement, ticks, load, damage)
-            .await?
-            .await
+        self.dynamic_shot_launcher_subsystem_shoot_split(
+            controllable,
+            relative_movement,
+            ticks,
+            load,
+            damage,
+        )
+        .await?
+        .await
     }
 
     /// Requests one shot for the next server tick.
-    pub async fn shot_weapon_subsystem_shoot_split(
+    pub async fn dynamic_shot_launcher_subsystem_shoot_split(
         &self,
         controllable: ControllableId,
         relative_movement: Vector,
@@ -691,13 +697,13 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
     /// Set the target scanner configuration on the server.
     #[inline]
-    pub async fn scanner_subsystem_set(
+    pub async fn dynamic_scanner_subsystem_set(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
@@ -705,13 +711,13 @@ impl ConnectionHandle {
         length: f32,
         angle: f32,
     ) -> Result<(), GameError> {
-        self.scanner_subsystem_set_split(controllable, scanner, width, length, angle)
+        self.dynamic_scanner_subsystem_set_split(controllable, scanner, width, length, angle)
             .await?
             .await
     }
 
     /// Set the target scanner configuration on the server.
-    pub async fn scanner_subsystem_set_split(
+    pub async fn dynamic_scanner_subsystem_set_split(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
@@ -719,88 +725,67 @@ impl ConnectionHandle {
         length: f32,
         angle: f32,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0x89);
-        packet.write(|writer| {
+        self.send_command_with_payload(0x89, |writer| {
             writer.write_byte(controllable.0);
             writer.write_byte(scanner.0);
             writer.write_f32(width);
             writer.write_f32(length);
             writer.write_f32(angle);
-        });
-
-        let session = self.send_packet_on_new_session(packet).await?;
-
-        Ok(async move {
-            let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
         })
+        .await
+        .map(GameError::check_response_ok)
     }
 
     /// Turns the scanner on.
     #[inline]
-    pub async fn scanner_subsystem_on(
+    pub async fn dynamic_scanner_subsystem_on(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
     ) -> Result<(), GameError> {
-        self.scanner_subsystem_on_split(controllable, scanner)
+        self.dynamic_scanner_subsystem_on_split(controllable, scanner)
             .await?
             .await
     }
 
     /// Turns the scanner on.
-    pub async fn scanner_subsystem_on_split(
+    pub async fn dynamic_scanner_subsystem_on_split(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0x8A);
-        packet.write(|writer| {
+        self.send_command_with_payload(0x8A, |writer| {
             writer.write_byte(controllable.0);
             writer.write_byte(scanner.0);
-        });
-
-        let session = self.send_packet_on_new_session(packet).await?;
-
-        Ok(async move {
-            let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
         })
+        .await
+        .map(GameError::check_response_ok)
     }
 
     /// Turns the scanner off.
     #[inline]
-    pub async fn scanner_subsystem_off(
+    pub async fn dynamic_scanner_subsystem_off(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
     ) -> Result<(), GameError> {
-        self.scanner_subsystem_off_split(controllable, scanner)
+        self.dynamic_scanner_subsystem_off_split(controllable, scanner)
             .await?
             .await
     }
 
     /// Turns the scanner off.
-    pub async fn scanner_subsystem_off_split(
+    pub async fn dynamic_scanner_subsystem_off_split(
         &self,
         controllable: ControllableId,
         scanner: ScannerSubsystemId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0x8B);
-        packet.write(|writer| {
+        self.send_command_with_payload(0x8B, |writer| {
             writer.write_byte(controllable.0);
             writer.write_byte(scanner.0);
-        });
-
-        let session = self.send_packet_on_new_session(packet).await?;
-
-        Ok(async move {
-            let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
         })
+        .await
+        .map(GameError::check_response_ok)
     }
 
     /// Sets the shield load rate on the server.
@@ -832,7 +817,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -857,7 +842,7 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
         })
     }
 
@@ -885,7 +870,96 @@ impl ConnectionHandle {
 
         Ok(async move {
             let response = session.response().await?;
-            GameError::check(response, |_| Ok(()))
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Sets the shot fabrication rate on the server.
+    #[inline]
+    pub async fn dynamic_shot_fabricator_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.dynamic_shot_fabricator_subsystem_set_split(controllable, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the shot fabrication rate on the server.
+    pub async fn dynamic_shot_fabricator_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x8C);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_f32(rate);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the shot fabricator on.
+    #[inline]
+    pub async fn dynamic_shot_fabricator_subsystem_on(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.dynamic_shot_fabricator_subsystem_on_split(controllable)
+            .await?
+            .await
+    }
+
+    /// Turns the shot fabricator on.
+    pub async fn dynamic_shot_fabricator_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x8D, |writer| {
+                writer.write_byte(controllable.0);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the shot fabricator off.
+    #[inline]
+    pub async fn dynamic_shot_fabricator_subsystem_off(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.dynamic_shot_fabricator_subsystem_off_split(controllable)
+            .await?
+            .await
+    }
+
+    /// Turns the shot fabricator off.
+    pub async fn dynamic_shot_fabricator_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x8E, |writer| {
+                writer.write_byte(controllable.0);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
         })
     }
 
@@ -907,6 +981,19 @@ impl ConnectionHandle {
                 }
                 .into()
             })
+    }
+
+    #[inline]
+    async fn send_command_with_payload(
+        &self,
+        command: u8,
+        f: impl FnOnce(&mut dyn PacketWriter),
+    ) -> Result<Session, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(command);
+        packet.write(f);
+
+        self.send_packet_on_new_session(packet).await
     }
 
     #[inline]

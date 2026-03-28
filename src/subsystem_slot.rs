@@ -40,8 +40,12 @@ pub enum SubsystemSlot {
     SecondaryEnergy = 0x31,
     /// Tertiary energy slot.
     TertiaryEnergy = 0x32,
-    /// Front shot-launcher slot.
-    FrontShotLauncher = 0x40,
+    /// Dynamic shot launcher slot.
+    DynamicShotLauncher = 0x40,
+    /// Dynamic shot magazine slot.
+    DynamicShotMagazine = 0x41,
+    /// Dynamic shot fabricator slot.
+    DynamicShotFabricator = 0x42,
 
     /// The subsystem slot is unknown.
     #[num_enum(catch_all)]
