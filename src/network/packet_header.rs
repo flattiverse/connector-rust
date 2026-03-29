@@ -34,6 +34,11 @@ impl PacketHeader {
     pub fn command(&self) -> u8 {
         self.0[0]
     }
+
+    pub fn command_hex(&self) -> String {
+        format!("{:#02x}", self.command())
+    }
+
     #[inline]
     pub fn set_command(&mut self, command: u8) {
         self.0[0] = command;

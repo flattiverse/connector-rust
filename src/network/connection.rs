@@ -80,17 +80,13 @@ impl Connection {
         }
     }
 
+    #[instrument(level = "debug", skip_all, fields(command = packet.header().command_hex()))]
     pub(crate) fn on_packet(
         &self,
         mut packet: Packet,
         galaxy: &Arc<Galaxy>,
         events: &mut Vec<FlattiverseEvent>,
     ) -> Result<(), GameError> {
-        debug!(
-            "Processing packet with command=0x{:02x}",
-            packet.header().command()
-        );
-
         let command = packet.header().command();
         packet.read(|reader| match command {
             0x00 => galaxy.ping_pong(events, reader.read_uint16()),

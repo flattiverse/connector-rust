@@ -49,6 +49,7 @@ impl ConnectionHandle {
     }
 
     /// Sends a chat message to the connected [`crate::galaxy_hierarchy::Player`].
+    #[instrument(level = "debug", skip(self, message), fields(message = message.as_ref()), err(Display, level = "warn"))]
     pub async fn chat_player_split(
         &self,
         player: PlayerId,
@@ -79,6 +80,7 @@ impl ConnectionHandle {
     }
 
     /// Downloads the player's cached small avatar image bytes.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn download_player_small_avatar_split(
         &self,
         player: PlayerId,
@@ -99,20 +101,22 @@ impl ConnectionHandle {
 
     /// Downloads the player's cached big avatar image bytes.
     #[inline]
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn download_player_big_avatar(&self, player: PlayerId) -> Result<Vec<u8>, GameError> {
         self.download_player_big_avatar_split(player).await?.await
     }
 
     /// Downloads the player's cached big avatar image bytes.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn download_player_big_avatar_split(
         &self,
         player: PlayerId,
     ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0xF2);
-        packet.write(|writer| writer.write_byte(player.0));
-
-        let session = self.send_packet_on_new_session(packet).await?;
+        let session = self
+            .send_command_with_payload(0xF2, |writer| {
+                writer.write_byte(player.0);
+            })
+            .await?;
 
         Ok(async move {
             let response = session.response().await?;
@@ -129,6 +133,7 @@ impl ConnectionHandle {
     }
 
     /// Sends a chat message to the connected [`crate::galaxy_hierarchy::Team`].
+    #[instrument(level = "debug", skip(self, message), fields(message = message.as_ref()), err(Display, level = "warn"))]
     pub async fn chat_team_split(
         &self,
         team: TeamId,
@@ -156,6 +161,7 @@ impl ConnectionHandle {
     }
 
     /// Sends a chat message with to all players in the connected [`crate::galaxy_hierarchy::Galaxy`].
+    #[instrument(level = "debug", skip(self, message), fields(message = message.as_ref()), err(Display, level = "warn"))]
     pub async fn chat_galaxy_split(
         &self,
         message: impl AsRef<str>,
@@ -186,6 +192,7 @@ impl ConnectionHandle {
 
     /// Call this to request closing a [`crate::galaxy_hierarchy::Controllable`]. The server may
     /// keep it alive for a grace period before it is finally removed.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn request_controllable_close_split(
         &self,
         controllable: ControllableId,
@@ -214,6 +221,7 @@ impl ConnectionHandle {
 
     /// Call this to continue the game with the unit after you are dead or when you hve created the
     /// unit.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn continue_controllable_split(
         &self,
         controllable: ControllableId,
@@ -240,6 +248,7 @@ impl ConnectionHandle {
     }
 
     /// Call this to suicide (=self destroy).
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn suicide_controllable_split(
         &self,
         controllable: ControllableId,
@@ -266,6 +275,7 @@ impl ConnectionHandle {
     }
 
     /// Create a classic style ship.
+    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
     pub async fn create_classic_style_ship_split(
         &self,
         name: impl AsRef<str>,
@@ -309,6 +319,7 @@ impl ConnectionHandle {
     ///   <Team Id="0" />
     /// </Region>
     /// ```
+    #[instrument(level = "debug", skip(self, xml), fields(xml = xml.as_ref()), err(Display, level = "warn"))]
     pub async fn set_cluster_region_split(
         &self,
         cluster: ClusterId,
@@ -351,6 +362,7 @@ impl ConnectionHandle {
     }
 
     /// Removes a region by id from the cluster.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn remove_cluster_region_split(
         &self,
         cluster: ClusterId,
@@ -378,6 +390,7 @@ impl ConnectionHandle {
     }
 
     /// Queries all regions of the cluster as XML.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn query_cluster_regions_split(
         &self,
         cluster: ClusterId,
@@ -446,6 +459,7 @@ impl ConnectionHandle {
     /// For `<MissionTarget />` the team is required and child nodes `<Vector X="..." Y="..." />`
     /// are supported.
     #[inline]
+    #[instrument(level = "debug", skip(self, xml), fields(xml = xml.as_ref()), err(Display, level = "warn"))]
     pub async fn set_cluster_unit_split(
         &self,
         cluster: ClusterId,
@@ -486,6 +500,7 @@ impl ConnectionHandle {
     }
 
     /// Removes a single editable map unit by name.
+    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
     pub async fn remove_cluster_unit_split(
         &self,
         cluster: ClusterId,
@@ -528,6 +543,7 @@ impl ConnectionHandle {
     }
 
     /// Queries the XML of one specific editable map unit by name.
+    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
     pub async fn query_cluster_unit_xml_split(
         &self,
         cluster: ClusterId,
@@ -602,6 +618,7 @@ impl ConnectionHandle {
     /// Galaxy/Team/Cluster names must be non-empty and at most 32 characters.
     /// Description must be at most 4096 characters.
     /// At least one cluster must end up with `Start="true"`.
+    #[instrument(level = "debug", skip(self, xml), fields(xml = xml.as_ref()), err(Display, level = "warn"))]
     pub async fn configure_galaxy_split(
         &self,
         xml: impl AsRef<str>,
@@ -633,6 +650,7 @@ impl ConnectionHandle {
 
     /// Sets the target movement impulse on the server.
     /// Values just above the maximum are clipped to the maximum before tey are sent.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn classic_ship_engine_subsystem_set_split(
         &self,
         controllable: ControllableId,
@@ -675,6 +693,7 @@ impl ConnectionHandle {
     }
 
     /// Requests one shot for the next server tick.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_shot_launcher_subsystem_shoot_split(
         &self,
         controllable: ControllableId,
@@ -717,6 +736,7 @@ impl ConnectionHandle {
     }
 
     /// Set the target scanner configuration on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_scanner_subsystem_set_split(
         &self,
         controllable: ControllableId,
@@ -749,6 +769,7 @@ impl ConnectionHandle {
     }
 
     /// Turns the scanner on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_scanner_subsystem_on_split(
         &self,
         controllable: ControllableId,
@@ -775,6 +796,7 @@ impl ConnectionHandle {
     }
 
     /// Turns the scanner off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_scanner_subsystem_off_split(
         &self,
         controllable: ControllableId,
@@ -801,6 +823,7 @@ impl ConnectionHandle {
     }
 
     /// Sets the shield load rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn shield_subsystem_set_split(
         &self,
         controllable: ControllableId,
@@ -828,6 +851,7 @@ impl ConnectionHandle {
     }
 
     /// Turns shield loading on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn shield_subsystem_on_split(
         &self,
         controllable: ControllableId,
@@ -856,6 +880,7 @@ impl ConnectionHandle {
     }
 
     /// Turns shield loading off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn shield_subsystem_off_split(
         &self,
         controllable: ControllableId,
@@ -887,6 +912,7 @@ impl ConnectionHandle {
     }
 
     /// Sets the shot fabrication rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_shot_fabricator_subsystem_set_split(
         &self,
         controllable: ControllableId,
@@ -919,6 +945,7 @@ impl ConnectionHandle {
     }
 
     /// Turns the shot fabricator on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_shot_fabricator_subsystem_on_split(
         &self,
         controllable: ControllableId,
@@ -947,6 +974,7 @@ impl ConnectionHandle {
     }
 
     /// Turns the shot fabricator off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn dynamic_shot_fabricator_subsystem_off_split(
         &self,
         controllable: ControllableId,
