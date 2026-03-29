@@ -296,7 +296,7 @@ impl DynamicShotLauncherSubsystem {
             None
         } else {
             Some(
-                FlattiverseEventKind::DynamicShotLauncher {
+                FlattiverseEventKind::DynamicShotLauncherSubsystem {
                     controllable: self.controllable(),
                     slot: self.slot(),
                     status: self.status(),
