@@ -28,12 +28,24 @@ pub enum SubsystemSlot {
     Hull = 0x18,
     /// Shield integrity slot.
     Shield = 0x19,
+    /// Armor integrity slot.
+    Armor = 0x1A,
+    /// Hull repair slot.
+    Repair = 0x1B,
+    /// Cargo slot.
+    Cargo = 0x50,
+    /// Resource miner slot.
+    ResourceMiner = 0x51,
+    /// Nebula collector slot.
+    NebulaCollector = 0x52,
     /// Primary scanner slot.
     PrimaryScanner = 0x20,
     /// Secondary scanner slot.
     SecondaryScanner = 0x21,
     /// Tertiary scanner slot.
     TertiaryScanner = 0x22,
+    /// Jump-drive slot.
+    JumpDrive = 0x33,
     /// Primary energy slot.
     PrimaryEnergy = 0x30,
     /// Secondary energy slot.
@@ -46,6 +58,14 @@ pub enum SubsystemSlot {
     DynamicShotMagazine = 0x41,
     /// Dynamic shot fabricator slot.
     DynamicShotFabricator = 0x42,
+    /// Dynamic interceptor launcher slot.
+    DynamicInterceptorLauncher = 0x43,
+    /// Dynamic interceptor magazine slot.
+    DynamicInterceptorMagazine = 0x44,
+    /// Dynamic interceptor fabricator slot.
+    DynamicInterceptorFabricator = 0x45,
+    /// Railgun slot.
+    Railgun = 0x46,
 
     /// The subsystem slot is unknown.
     #[num_enum(catch_all)]
