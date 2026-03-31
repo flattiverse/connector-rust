@@ -120,6 +120,31 @@ pub enum GameErrorKind {
     /// Thrown, if you try to shoo too often.
     CanOnlyShootOncePerTick,
 
+    /// Thrown when a tournament-specific action is requested although no tournament is currently
+    /// configured.
+    TournamentNotConfigured,
+    /// Thrown when an admin tries to configure a tournament although one already exists.
+    TournamentAlreadyConfigured,
+    /// Thrown when a tournament lifecycle action is requested in a stage that does not permit it.
+    TournamentWrongStage,
+    /// Thrown when galaxy, region, or editable-unit map editing is attempted while any tournament
+    /// is configured.
+    TournamentMapEditingLocked,
+    /// Thrown when ship registration or respawn is attempted while the current tournament stage has
+    /// closed registration.
+    TournamentRegistrationClosed,
+    /// Thrown when a login, registration, or respawn requires tournament participation but the
+    /// current account is not part of the configured tournament lists.
+    TournamentParticipantRequired,
+    /// Thrown when a spectator login is attempted in a tournament stage that forbids spectating.
+    TournamentSpectatingForbidden,
+    /// Thrown when the chosen login or controllable team conflicts with the account's configured
+    /// tournament team.
+    TournamentTeamMismatch,
+    /// Thrown when tournament configuration is attempted in a galaxy game mode that does not allow
+    /// tournaments.
+    TournamentModeNotAllowed,
+
     // TODO local only
     InvalidPrimitiveValue {
         value: String,
@@ -188,6 +213,15 @@ impl Display for GameErrorKind {
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
             GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] Please, only shoot once a tick with the same unit.",
+            GameErrorKind::TournamentNotConfigured => "[0x31] No tournament is configured.",
+            GameErrorKind::TournamentAlreadyConfigured => "[0x32] A tournament is already configured.",
+            GameErrorKind::TournamentWrongStage => "[0x33] This tournament action is not allowed in the current stage.",
+            GameErrorKind::TournamentMapEditingLocked => "[0x34] Map editing is locked while a tournament exists.",
+            GameErrorKind::TournamentRegistrationClosed => "[0x35] Ship registration is closed in the current tournament stage.",
+            GameErrorKind::TournamentParticipantRequired => "[0x36] This account does not participate in the configured tournament.",
+            GameErrorKind::TournamentSpectatingForbidden => "[0x37] Spectating is forbidden in the current tournament stage.",
+            GameErrorKind::TournamentTeamMismatch => "[0x38] This account is assigned to a different tournament team.",
+            GameErrorKind::TournamentModeNotAllowed => "[0x39] Tournaments are not allowed for the current galaxy game mode.",
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
     }
@@ -232,6 +266,15 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
             0x30 => GameErrorKind::CanOnlyShootOncePerTick,
+            0x31 => GameErrorKind::TournamentNotConfigured,
+            0x32 => GameErrorKind::TournamentAlreadyConfigured,
+            0x33 => GameErrorKind::TournamentWrongStage,
+            0x34 => GameErrorKind::TournamentMapEditingLocked,
+            0x35 => GameErrorKind::TournamentRegistrationClosed,
+            0x36 => GameErrorKind::TournamentParticipantRequired,
+            0x37 => GameErrorKind::TournamentSpectatingForbidden,
+            0x38 => GameErrorKind::TournamentTeamMismatch,
+            0x39 => GameErrorKind::TournamentModeNotAllowed,
             code => GameErrorKind::Unknown(code),
         }
     }
