@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     error!("Failed to continue ma ship: {e:?}");
                 }
                 if let Some(controls) = ship.classic_controls() {
-                    let movement = Vector::from_xy(0.1, 0.0);
+                    let movement = Vector::new(0.1, 0.0);
                     if let Err(e) = controls.r#move(movement.normalized() * 0.1).await {
                         error!("Failed to move ma ship: {e:?}");
                     }
