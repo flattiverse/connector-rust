@@ -7,18 +7,9 @@ pub use atomics::*;
 mod arc_deref;
 pub use arc_deref::*;
 
-#[inline]
-pub fn check_name_or_err_32<S: AsRef<str>>(name: S) -> Result<S, GameError> {
-    check_name_or_err(name, 32)
-}
-
-#[inline]
-pub fn check_name_or_err_64<S: AsRef<str>>(name: S) -> Result<S, GameError> {
-    check_name_or_err(name, 64)
-}
-
-pub fn check_name_or_err<S: AsRef<str>>(name: S, max_len: usize) -> Result<S, GameError> {
-    if name.as_ref().len() <= max_len && check_name(name.as_ref()) {
+/// Validates a Flattiverse name against the connector's local name rules.
+pub fn check_name_or_err<S: AsRef<str>>(name: S) -> Result<S, GameError> {
+    if check_name(name.as_ref()) {
         Ok(name)
     } else {
         Err(GameErrorKind::InvalidArgument {
@@ -29,6 +20,7 @@ pub fn check_name_or_err<S: AsRef<str>>(name: S, max_len: usize) -> Result<S, Ga
     }
 }
 
+/// Validates a Flattiverse name against the connector's local name rules.
 pub fn check_name(name: &str) -> bool {
     if name.len() < 2 || name.len() > 32 {
         return false;

@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId, TeamId,
 };
 use crate::network::{InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler};
-use crate::utils::check_name_or_err_32;
+use crate::utils::check_name_or_err;
 use crate::{FlattiverseEvent, GameError, GameErrorKind, Vector};
 use async_channel::WeakSender;
 use std::fmt::{Debug, Formatter};
@@ -280,7 +280,7 @@ impl ConnectionHandle {
         &self,
         name: impl AsRef<str>,
     ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
-        check_name_or_err_32(name.as_ref())?;
+        check_name_or_err(name.as_ref())?;
 
         let mut packet = Packet::default();
         packet.header_mut().set_command(0x80);
