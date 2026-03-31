@@ -63,6 +63,12 @@ impl<T: Atomar> Atomic<T> {
     pub fn load_with(&self, ordering: Ordering) -> T {
         T::load(&self.0, ordering)
     }
+
+    /// For when you need to operate on the container-type directly.
+    #[inline(always)]
+    pub fn visit_container<R>(&self, f: impl FnOnce(&T::Container) -> R) -> R {
+        f(&self.0)
+    }
 }
 
 impl<T: Atomar> Atomic<T>

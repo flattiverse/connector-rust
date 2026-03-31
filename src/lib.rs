@@ -26,3 +26,6 @@ pub use subsystem_status::*;
 
 mod subsystem_slot;
 pub use subsystem_slot::*;
+
+mod progress_state;
+pub use progress_state::*;
