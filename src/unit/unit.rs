@@ -2,8 +2,8 @@ use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
     BlackHole, Buoy, ClassicShipPlayerUnit, DominationPoint, Explosion, Flag, Meteoroid,
-    MissionTarget, Mobility, Moon, Planet, PlayerUnit, Shot, SteadyUnit, Sun, Switch, TargetUnit,
-    UnitKind, WormHole,
+    MissionTarget, Mobility, Moon, Planet, PlayerUnit, PowerUp, Shot, SteadyUnit, Sun, Switch,
+    TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -45,6 +45,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_player_unit(&self) -> Option<&dyn PlayerUnit> {
         self.parent().as_player_unit()
+    }
+
+    #[inline]
+    fn as_power_up(&self) -> Option<&dyn PowerUp> {
+        self.parent().as_power_up()
     }
 
     #[inline]
@@ -261,6 +266,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_player_unit(&self) -> Option<&dyn PlayerUnit> {
+        None
+    }
+
+    #[inline]
+    fn as_power_up(&self) -> Option<&dyn PowerUp> {
         None
     }
 
