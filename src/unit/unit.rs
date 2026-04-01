@@ -3,7 +3,8 @@ use crate::network::PacketReader;
 use crate::unit::{
     BlackHole, Buoy, ClassicShipPlayerUnit, DominationPoint, Explosion, Flag, Meteoroid,
     MissionTarget, MobileUnit, Mobility, Moon, Planet, PlayerUnit, PowerUp, Shot, SteadyUnit,
-    StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
+    StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind,
+    WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -75,6 +76,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_storm_commencing_whirl(&self) -> Option<&StormCommencingWhirl> {
         self.parent().as_storm_commencing_whirl()
+    }
+
+    #[inline]
+    fn as_storm_active_whirl(&self) -> Option<&StormActiveWhirl> {
+        self.parent().as_storm_active_whirl()
     }
 
     #[inline]
@@ -312,6 +318,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_storm_commencing_whirl(&self) -> Option<&StormCommencingWhirl> {
+        None
+    }
+
+    #[inline]
+    fn as_storm_active_whirl(&self) -> Option<&StormActiveWhirl> {
         None
     }
 

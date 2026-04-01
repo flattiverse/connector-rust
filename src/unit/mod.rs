@@ -46,6 +46,9 @@ pub use storm_whirl::*;
 mod storm_commencing_whirl;
 pub use storm_commencing_whirl::*;
 
+mod storm_active_whirl;
+pub use storm_active_whirl::*;
+
 mod player_unit;
 pub use player_unit::*;
 
@@ -106,8 +109,8 @@ mod internal {
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
         BlackHole, Buoy, ClassicShipPlayerUnit, DominationPoint, Explosion, Flag, Meteoroid,
-        MissionTarget, Moon, Planet, Shot, StormCommencingWhirl, Sun, Switch, Unit, UnitKind,
-        WormHole,
+        MissionTarget, Moon, Planet, Shot, StormActiveWhirl, StormCommencingWhirl, Sun, Switch,
+        Unit, UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -122,6 +125,7 @@ mod internal {
             UnitKind::Sun => Sun::new(cluster, name, reader)?,
             UnitKind::BlackHole => BlackHole::new(cluster, name, reader)?,
             UnitKind::StormCommencingWhirl => StormCommencingWhirl::new(cluster, name, reader)?,
+            UnitKind::StormActiveWhirl => StormActiveWhirl::new(cluster, name, reader)?,
             UnitKind::Planet => Planet::new(cluster, name, reader)?,
             UnitKind::Moon => Moon::new(cluster, name, reader)?,
             UnitKind::Meteoroid => Meteoroid::new(cluster, name, reader)?,
