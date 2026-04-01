@@ -105,5 +105,11 @@ impl Unit for Sun {
     }
 }
 
-impl SteadyUnitInternal for Sun {}
+impl SteadyUnitInternal for Sun {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
+
 impl SteadyUnit for Sun {}

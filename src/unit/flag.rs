@@ -83,7 +83,12 @@ impl Unit for Flag {
     }
 }
 
-impl SteadyUnitInternal for Flag {}
+impl SteadyUnitInternal for Flag {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Flag {}
 

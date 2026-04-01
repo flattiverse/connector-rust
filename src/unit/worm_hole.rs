@@ -131,6 +131,11 @@ impl Unit for WormHole {
     }
 }
 
-impl SteadyUnitInternal for WormHole {}
+impl SteadyUnitInternal for WormHole {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for WormHole {}

@@ -88,7 +88,12 @@ impl Unit for AbstractTargetUnit {
     }
 }
 
-impl SteadyUnitInternal for AbstractTargetUnit {}
+impl SteadyUnitInternal for AbstractTargetUnit {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for AbstractTargetUnit {}
 

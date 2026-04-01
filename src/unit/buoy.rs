@@ -84,6 +84,11 @@ impl Unit for Buoy {
     }
 }
 
-impl SteadyUnitInternal for Buoy {}
+impl SteadyUnitInternal for Buoy {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Buoy {}

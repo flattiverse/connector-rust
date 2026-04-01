@@ -101,7 +101,12 @@ impl Unit for Planet {
     }
 }
 
-impl SteadyUnitInternal for Planet {}
+impl SteadyUnitInternal for Planet {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Planet {}
 

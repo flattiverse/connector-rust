@@ -101,7 +101,13 @@ impl Unit for Moon {
     }
 }
 
-impl SteadyUnitInternal for Moon {}
+impl SteadyUnitInternal for Moon {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
+
 impl SteadyUnit for Moon {}
 
 /// Describes the visual archetype of a moon.

@@ -74,6 +74,11 @@ impl Unit for BlackHole {
     }
 }
 
-impl SteadyUnitInternal for BlackHole {}
+impl SteadyUnitInternal for BlackHole {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for BlackHole {}

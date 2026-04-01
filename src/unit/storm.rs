@@ -178,6 +178,11 @@ impl Unit for Storm {
     }
 }
 
-impl SteadyUnitInternal for Storm {}
+impl SteadyUnitInternal for Storm {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Storm {}

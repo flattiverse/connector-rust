@@ -99,7 +99,12 @@ impl Unit for MissionTarget {
     }
 }
 
-impl SteadyUnitInternal for MissionTarget {}
+impl SteadyUnitInternal for MissionTarget {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for MissionTarget {}
 

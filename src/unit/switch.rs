@@ -143,6 +143,11 @@ impl Unit for Switch {
     }
 }
 
-impl SteadyUnitInternal for Switch {}
+impl SteadyUnitInternal for Switch {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Switch {}

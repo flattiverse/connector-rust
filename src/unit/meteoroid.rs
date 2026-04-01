@@ -101,7 +101,12 @@ impl Unit for Meteoroid {
     }
 }
 
-impl SteadyUnitInternal for Meteoroid {}
+impl SteadyUnitInternal for Meteoroid {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for Meteoroid {}
 

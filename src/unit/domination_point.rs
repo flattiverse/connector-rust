@@ -94,7 +94,12 @@ impl Unit for DominationPoint {
     }
 }
 
-impl SteadyUnitInternal for DominationPoint {}
+impl SteadyUnitInternal for DominationPoint {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for DominationPoint {}
 

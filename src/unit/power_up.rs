@@ -81,7 +81,12 @@ impl Unit for AbstractPowerUp {
     }
 }
 
-impl SteadyUnitInternal for AbstractPowerUp {}
+impl SteadyUnitInternal for AbstractPowerUp {
+    #[inline]
+    fn parent(&self) -> &dyn SteadyUnit {
+        &self.parent
+    }
+}
 
 impl SteadyUnit for AbstractPowerUp {}
 
