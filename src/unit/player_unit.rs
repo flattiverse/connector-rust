@@ -241,6 +241,7 @@ impl Unit for AbstractPlayerUnit {
     }
 }
 
+#[forbid(clippy::missing_trait_methods)]
 impl PlayerUnitInternal for AbstractPlayerUnit {
     #[inline]
     fn parent(&self) -> &dyn PlayerUnit {

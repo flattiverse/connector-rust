@@ -66,5 +66,8 @@ impl Unit for AbstractSteadyUnit {
     }
 }
 
+#[forbid(clippy::missing_trait_methods)]
 impl SteadyUnitInternal for AbstractSteadyUnit {}
+
+#[forbid(clippy::missing_trait_methods)]
 impl SteadyUnit for AbstractSteadyUnit {}

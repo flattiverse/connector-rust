@@ -7,7 +7,7 @@ use crate::utils::Atomic;
 use crate::GameError;
 use std::sync::{Arc, Weak};
 
-/// A sun.
+/// Stellar map unit that acts as a major energy intake source and environmental hazard.
 #[derive(Debug, Clone)]
 pub struct Sun {
     parent: AbstractSteadyUnit,
@@ -35,12 +35,14 @@ impl Sun {
     }
 
     /// Photon flux emitted by this sun.
+    /// Energy cells can harvest this field.
     #[inline]
     pub fn energy(&self) -> f32 {
         self.energy.load()
     }
 
     /// Plasma wind emitted by this sun.
+    /// Ion cells can harvest this field.
     #[inline]
     pub fn ions(&self) -> f32 {
         self.ions.load()
@@ -52,13 +54,15 @@ impl Sun {
         self.neutrinos.load()
     }
 
-    /// Thermal radiation. Heat raises energy costs.
+    /// Thermal radiation. Each point drains 15 energy per tick before any remaining overflow turns
+    /// into radiation damage.
     #[inline]
     pub fn heat(&self) -> f32 {
         self.heat.load()
     }
 
-    /// Shield-drain radiation. Drain loads and slowly discharges shields.
+    /// Ionizing radiation component. Each point causes 0.125 hull damage per tick after armor
+    /// reduction.
     #[inline]
     pub fn drain(&self) -> f32 {
         self.drain.load()

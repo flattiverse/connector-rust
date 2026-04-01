@@ -37,14 +37,17 @@ pub use domination_point::*;
 mod planet;
 pub use planet::*;
 
+mod mobile_unit;
+pub use mobile_unit::*;
+
 mod player_unit;
 pub use player_unit::*;
 
-mod power_up;
-pub use power_up::*;
-
 mod classic_ship_player_unit;
 pub use classic_ship_player_unit::*;
+
+mod power_up;
+pub use power_up::*;
 
 mod explosion;
 pub use explosion::*;
