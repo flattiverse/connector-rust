@@ -61,6 +61,36 @@ pub use classic_ship_player_unit::*;
 mod power_up;
 pub use power_up::*;
 
+mod energy_charge_power_up;
+pub use energy_charge_power_up::*;
+
+mod ion_charge_power_up;
+pub use ion_charge_power_up::*;
+
+mod neutrino_charge_power_up;
+pub use neutrino_charge_power_up::*;
+
+mod metal_cargo_power_up;
+pub use metal_cargo_power_up::*;
+
+mod carbon_cargo_power_up;
+pub use carbon_cargo_power_up::*;
+
+mod hydrogen_cargo_power_up;
+pub use hydrogen_cargo_power_up::*;
+
+mod silicon_cargo_power_up;
+pub use silicon_cargo_power_up::*;
+
+mod shield_charge_power_up;
+pub use shield_charge_power_up::*;
+
+mod hull_repair_power_up;
+pub use hull_repair_power_up::*;
+
+mod shot_charge_power_up;
+pub use shot_charge_power_up::*;
+
 mod explosion;
 pub use explosion::*;
 
@@ -114,9 +144,11 @@ mod internal {
     use crate::galaxy_hierarchy::Cluster;
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
-        BlackHole, Buoy, ClassicShipPlayerUnit, DominationPoint, Explosion, Flag, Meteoroid,
-        MissionTarget, Moon, Planet, Shot, Storm, StormActiveWhirl, StormCommencingWhirl, Sun,
-        Switch, Unit, UnitKind, WormHole,
+        BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
+        EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
+        IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon, NeutrinoChargePowerUp,
+        Planet, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm,
+        StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -140,9 +172,19 @@ mod internal {
             UnitKind::WormHole => WormHole::new(cluster, name, reader)?,
             UnitKind::MissionTarget => MissionTarget::new(cluster, name, reader)?,
             UnitKind::Flag => Flag::new(cluster, name, reader)?,
+            UnitKind::DominationPoint => DominationPoint::new(cluster, name, reader)?,
+            UnitKind::EnergyChargePowerUp => EnergyChargePowerUp::new(cluster, name, reader)?,
+            UnitKind::IonChargePowerUp => IonChargePowerUp::new(cluster, name, reader)?,
+            UnitKind::NeutrinoChargePowerUp => NeutrinoChargePowerUp::new(cluster, name, reader)?,
+            UnitKind::MetalCargoPowerUp => MetalCargoPowerUp::new(cluster, name, reader)?,
+            UnitKind::CarbonCargoPowerUp => CarbonCargoPowerUp::new(cluster, name, reader)?,
+            UnitKind::HydrogenCargoPowerUp => HydrogenCargoPowerUp::new(cluster, name, reader)?,
+            UnitKind::SiliconCargoPowerUp => SiliconCargoPowerUp::new(cluster, name, reader)?,
+            UnitKind::ShieldChargePowerUp => ShieldChargePowerUp::new(cluster, name, reader)?,
+            UnitKind::HullRepairPowerUp => HullRepairPowerUp::new(cluster, name, reader)?,
+            UnitKind::ShotChargePowerUp => ShotChargePowerUp::new(cluster, name, reader)?,
             UnitKind::Switch => Switch::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
-            UnitKind::DominationPoint => DominationPoint::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
             UnitKind::Explosion => Explosion::new(cluster, name, reader)?,
             // TODO this should not be necessary

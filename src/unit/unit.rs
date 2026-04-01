@@ -1,10 +1,12 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
-    BlackHole, Buoy, ClassicShipPlayerUnit, DominationPoint, Explosion, Flag, Meteoroid,
-    MissionTarget, MobileUnit, Mobility, Moon, Planet, PlayerUnit, PowerUp, Shot, SteadyUnit,
-    Storm, StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind,
-    WormHole,
+    BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
+    EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
+    IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, MobileUnit, Mobility, Moon,
+    NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, ShieldChargePowerUp, Shot,
+    ShotChargePowerUp, SiliconCargoPowerUp, SteadyUnit, Storm, StormActiveWhirl,
+    StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -124,6 +126,61 @@ pub trait UnitHierarchy: UnitInternal {
     }
 
     #[inline]
+    fn as_domination_point(&self) -> Option<&DominationPoint> {
+        self.parent().as_domination_point()
+    }
+
+    #[inline]
+    fn as_energy_charge_power_up(&self) -> Option<&EnergyChargePowerUp> {
+        self.parent().as_energy_charge_power_up()
+    }
+
+    #[inline]
+    fn as_ion_charge_power_up(&self) -> Option<&IonChargePowerUp> {
+        self.parent().as_ion_charge_power_up()
+    }
+
+    #[inline]
+    fn as_neutrino_charge_power_up(&self) -> Option<&NeutrinoChargePowerUp> {
+        self.parent().as_neutrino_charge_power_up()
+    }
+
+    #[inline]
+    fn as_metal_cargo_power_up(&self) -> Option<&MetalCargoPowerUp> {
+        self.parent().as_metal_cargo_power_up()
+    }
+
+    #[inline]
+    fn as_carbon_cargo_power_up(&self) -> Option<&CarbonCargoPowerUp> {
+        self.parent().as_carbon_cargo_power_up()
+    }
+
+    #[inline]
+    fn as_hydrogen_cargo_power_up(&self) -> Option<&HydrogenCargoPowerUp> {
+        self.parent().as_hydrogen_cargo_power_up()
+    }
+
+    #[inline]
+    fn as_silicon_cargo_power_up(&self) -> Option<&SiliconCargoPowerUp> {
+        self.parent().as_silicon_cargo_power_up()
+    }
+
+    #[inline]
+    fn as_shield_charge_power_up(&self) -> Option<&ShieldChargePowerUp> {
+        self.parent().as_shield_charge_power_up()
+    }
+
+    #[inline]
+    fn as_hull_repair_power_up(&self) -> Option<&HullRepairPowerUp> {
+        self.parent().as_hull_repair_power_up()
+    }
+
+    #[inline]
+    fn as_shot_charge_power_up(&self) -> Option<&ShotChargePowerUp> {
+        self.parent().as_shot_charge_power_up()
+    }
+
+    #[inline]
     fn as_switch(&self) -> Option<&Switch> {
         self.parent().as_switch()
     }
@@ -131,11 +188,6 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_shot(&self) -> Option<&Shot> {
         self.parent().as_shot()
-    }
-
-    #[inline]
-    fn as_domination_point(&self) -> Option<&DominationPoint> {
-        self.parent().as_domination_point()
     }
 
     #[inline]
@@ -372,17 +424,67 @@ impl UnitHierarchy for AbstractUnit {
     }
 
     #[inline]
+    fn as_domination_point(&self) -> Option<&DominationPoint> {
+        None
+    }
+
+    #[inline]
+    fn as_energy_charge_power_up(&self) -> Option<&EnergyChargePowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_ion_charge_power_up(&self) -> Option<&IonChargePowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_neutrino_charge_power_up(&self) -> Option<&NeutrinoChargePowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_metal_cargo_power_up(&self) -> Option<&MetalCargoPowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_carbon_cargo_power_up(&self) -> Option<&CarbonCargoPowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_hydrogen_cargo_power_up(&self) -> Option<&HydrogenCargoPowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_silicon_cargo_power_up(&self) -> Option<&SiliconCargoPowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_shield_charge_power_up(&self) -> Option<&ShieldChargePowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_hull_repair_power_up(&self) -> Option<&HullRepairPowerUp> {
+        None
+    }
+
+    #[inline]
+    fn as_shot_charge_power_up(&self) -> Option<&ShotChargePowerUp> {
+        None
+    }
+
+    #[inline]
     fn as_switch(&self) -> Option<&Switch> {
         None
     }
 
     #[inline]
     fn as_shot(&self) -> Option<&Shot> {
-        None
-    }
-
-    #[inline]
-    fn as_domination_point(&self) -> Option<&DominationPoint> {
         None
     }
 
