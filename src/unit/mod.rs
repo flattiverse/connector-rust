@@ -103,6 +103,9 @@ pub use dynamic_shot_magazine_subsystem_info::*;
 mod dynamic_shot_fabricator_subsystem_info;
 pub use dynamic_shot_fabricator_subsystem_info::*;
 
+mod orbit;
+pub use orbit::*;
+
 #[allow(clippy::module_inception)]
 mod unit;
 pub use unit::*;
