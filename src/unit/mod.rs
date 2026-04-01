@@ -40,6 +40,9 @@ pub use planet::*;
 mod mobile_unit;
 pub use mobile_unit::*;
 
+mod storm_whirl;
+pub use storm_whirl::*;
+
 mod player_unit;
 pub use player_unit::*;
 

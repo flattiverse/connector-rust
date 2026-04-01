@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{AbstractUnit, Mobility, Unit, UnitHierarchy, UnitInternal};
 use crate::utils::Atomic;
-use crate::{GameError, Vector};
+use crate::Vector;
 use std::sync::Weak;
 
 pub(crate) trait MobileUnitInternal {}
@@ -14,17 +14,17 @@ pub trait MobileUnit: MobileUnitInternal + Unit {}
 #[derive(Debug, Clone)]
 pub(crate) struct AbstractMobileUnit {
     parent: AbstractUnit,
-    position: Atomic<Vector>,
-    movement: Atomic<Vector>,
+    pub(crate) position: Atomic<Vector>,
+    pub(crate) movement: Atomic<Vector>,
 }
 
 impl AbstractMobileUnit {
-    pub(crate) fn new(cluster: Weak<Cluster>, name: String) -> Result<Self, GameError> {
-        Ok(Self {
+    pub(crate) fn new(cluster: Weak<Cluster>, name: String) -> Self {
+        Self {
             parent: AbstractUnit::new(cluster, name),
             position: Atomic::default(),
             movement: Atomic::default(),
-        })
+        }
     }
 
     fn read_position_and_movement(&self, reader: &mut dyn PacketReader) {
@@ -45,7 +45,12 @@ impl UnitInternal for AbstractMobileUnit {
     }
 }
 
-impl UnitHierarchy for AbstractMobileUnit {}
+impl UnitHierarchy for AbstractMobileUnit {
+    #[inline]
+    fn as_mobile_unit(&self) -> Option<&dyn MobileUnit> {
+        Some(self)
+    }
+}
 
 impl Unit for AbstractMobileUnit {
     #[inline]
