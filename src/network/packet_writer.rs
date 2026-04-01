@@ -70,7 +70,7 @@ impl PacketWriter for BytesMut {
     fn write_string_with_len_prefix(&mut self, text: &str) {
         let bytes = text.as_bytes();
         if bytes.len() < 255 {
-            debug_assert!(bytes.len() + 1 <= self.capacity(), "Packet too long.");
+            debug_assert!(bytes.len() < self.capacity(), "Packet too long.");
             self.write_byte(bytes.len() as _);
             self.put_slice(bytes);
         } else {

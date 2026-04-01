@@ -183,7 +183,7 @@ impl TryFrom<Arc<Controllable>> for Controls<ClassicShipControllable> {
     fn try_from(controllable: Arc<Controllable>) -> Result<Self, Self::Error> {
         match controllable.specialization() {
             ControllableSpecialization::ClassicShip(p) => {
-                Ok(Controls::<ClassicShipControllable>::proven(&p).control(controllable))
+                Ok(Controls::<ClassicShipControllable>::proven(p).control(controllable))
             }
         }
     }

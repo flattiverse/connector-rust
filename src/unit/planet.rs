@@ -1,15 +1,17 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::{Atomic, Readable};
+use crate::unit::{
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+};
+use crate::utils::Atomic;
+use crate::GameError;
 use num_enum::FromPrimitive;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 /// A planet.
 #[derive(Debug, Clone)]
 pub struct Planet {
-    base: UnitBase,
-    steady: SteadyUnit,
+    parent: AbstractSteadyUnit,
     r#type: PlanetType,
     metal: Atomic<f32>,
     carbon: Atomic<f32>,
@@ -18,20 +20,19 @@ pub struct Planet {
 }
 
 impl Planet {
-    pub(crate) fn read(
+    pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Self {
-        Self {
-            base: UnitBase::new(cluster, name),
-            steady: SteadyUnit::read(reader),
+    ) -> Result<Arc<Planet>, GameError> {
+        Ok(Arc::new(Self {
+            parent: AbstractSteadyUnit::new(cluster, name, reader)?,
             r#type: PlanetType::from_primitive(reader.read_byte()),
             metal: Atomic::default(),
             carbon: Atomic::default(),
             hydrogen: Atomic::default(),
             silicon: Atomic::default(),
-        }
+        }))
     }
 
     /// Visual type of the planet.
@@ -65,30 +66,14 @@ impl Planet {
     }
 }
 
-impl AsRef<UnitBase> for Planet {
+impl UnitInternal for Planet {
     #[inline]
-    fn as_ref(&self) -> &UnitBase {
-        &self.base
-    }
-}
-
-impl AsRef<SteadyUnit> for Planet {
-    #[inline]
-    fn as_ref(&self) -> &SteadyUnit {
-        &self.steady
-    }
-}
-
-impl<'a> UnitExtSealed<'a> for &'a Planet {
-    type Parent = (&'a UnitBase, &'a SteadyUnit);
-
-    #[inline]
-    fn parent(self) -> Self::Parent {
-        (&self.base, &self.steady)
+    fn parent(&self) -> &dyn Unit {
+        &self.parent
     }
 
-    fn update_state(self, reader: &mut dyn PacketReader) {
-        self.parent().update_state(reader);
+    fn update_state(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_state(reader);
 
         self.metal.read(reader);
         self.carbon.read(reader);
@@ -97,12 +82,28 @@ impl<'a> UnitExtSealed<'a> for &'a Planet {
     }
 }
 
-impl<'a> UnitExt<'a> for &'a Planet {
+impl UnitHierarchy for Planet {
     #[inline]
-    fn kind(self) -> UnitKind {
+    fn as_steady_unit(&self) -> Option<&dyn SteadyUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_planet(&self) -> Option<&Planet> {
+        Some(self)
+    }
+}
+
+impl Unit for Planet {
+    #[inline]
+    fn kind(&self) -> UnitKind {
         UnitKind::Planet
     }
 }
+
+impl SteadyUnitInternal for Planet {}
+
+impl SteadyUnit for Planet {}
 
 /// Describes the visual archetype of a planet.
 #[repr(u8)]

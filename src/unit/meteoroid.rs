@@ -1,15 +1,17 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::{Atomic, Readable};
+use crate::unit::{
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+};
+use crate::utils::Atomic;
+use crate::GameError;
 use num_enum::FromPrimitive;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 /// A meteoroid.
 #[derive(Debug, Clone)]
 pub struct Meteoroid {
-    base: UnitBase,
-    steady: SteadyUnit,
+    parent: AbstractSteadyUnit,
     r#type: MeteoroidType,
     metal: Atomic<f32>,
     carbon: Atomic<f32>,
@@ -18,20 +20,19 @@ pub struct Meteoroid {
 }
 
 impl Meteoroid {
-    pub(crate) fn read(
+    pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Self {
-        Self {
-            base: UnitBase::new(cluster, name),
-            steady: SteadyUnit::read(reader),
+    ) -> Result<Arc<Self>, GameError> {
+        Ok(Arc::new(Self {
+            parent: AbstractSteadyUnit::new(cluster, name, reader)?,
             r#type: MeteoroidType::from_primitive(reader.read_byte()),
             metal: Atomic::default(),
             carbon: Atomic::default(),
             hydrogen: Atomic::default(),
             silicon: Atomic::default(),
-        }
+        }))
     }
 
     /// Visual type of the meteoroid.
@@ -65,30 +66,14 @@ impl Meteoroid {
     }
 }
 
-impl AsRef<UnitBase> for Meteoroid {
+impl UnitInternal for Meteoroid {
     #[inline]
-    fn as_ref(&self) -> &UnitBase {
-        &self.base
-    }
-}
-
-impl AsRef<SteadyUnit> for Meteoroid {
-    #[inline]
-    fn as_ref(&self) -> &SteadyUnit {
-        &self.steady
-    }
-}
-
-impl<'a> UnitExtSealed<'a> for &'a Meteoroid {
-    type Parent = (&'a UnitBase, &'a SteadyUnit);
-
-    #[inline]
-    fn parent(self) -> Self::Parent {
-        (&self.base, &self.steady)
+    fn parent(&self) -> &dyn Unit {
+        &self.parent
     }
 
-    fn update_state(self, reader: &mut dyn PacketReader) {
-        self.parent().update_state(reader);
+    fn update_state(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_state(reader);
 
         self.metal.read(reader);
         self.carbon.read(reader);
@@ -97,12 +82,28 @@ impl<'a> UnitExtSealed<'a> for &'a Meteoroid {
     }
 }
 
-impl<'a> UnitExt<'a> for &'a Meteoroid {
+impl UnitHierarchy for Meteoroid {
     #[inline]
-    fn kind(self) -> UnitKind {
+    fn as_steady_unit(&self) -> Option<&dyn SteadyUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_meteoroid(&self) -> Option<&Meteoroid> {
+        Some(self)
+    }
+}
+
+impl Unit for Meteoroid {
+    #[inline]
+    fn kind(&self) -> UnitKind {
         UnitKind::Meteoroid
     }
 }
+
+impl SteadyUnitInternal for Meteoroid {}
+
+impl SteadyUnit for Meteoroid {}
 
 /// Describes the visual archetype of a meteoroid.
 #[repr(u8)]

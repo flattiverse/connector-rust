@@ -157,6 +157,7 @@ impl DynamicShotLauncherSubsystem {
         )
         .ok()?;
 
+        #[allow(clippy::manual_range_contains)]
         if ticks < Self::TICKS_MINIMUM || ticks > Self::TICKS_MAXIMUM {
             return None;
         }

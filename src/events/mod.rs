@@ -13,7 +13,7 @@ pub use galaxy_settings_snapshot::*;
 use crate::galaxy_hierarchy::{
     Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Score, Team,
 };
-use crate::unit::{Unit, UnitExt, UnitKind};
+use crate::unit::{Unit, UnitKind};
 use crate::{SubsystemSlot, SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
@@ -102,7 +102,7 @@ impl Display for FlattiverseEvent {
         match &self.0.kind {
             FlattiverseEventKind::ConnectionTerminated { message } => match message.as_ref() {
                 None => write!(f, "Connection terminated."),
-                Some(message) => return write!(f, "Connection terminated: {}", message),
+                Some(message) => write!(f, "Connection terminated: {}", message),
             },
             FlattiverseEventKind::GalaxyTick { tick } => write!(
                 f,
@@ -257,24 +257,24 @@ impl Display for FlattiverseEvent {
             ),
             FlattiverseEventKind::PlayerUpdated { player } => write!(
                 f,
-                "Updated player: {:?}", &*player.name()
+                "Updated player: {:?}", player.name()
             ),
             FlattiverseEventKind::PlayerJoined { player } => write!(
                 f,
                 "{:?} joined the galaxy with team {:?} as {:?}",
-                &*player.name(),
+                player.name(),
                 &*player.team().name(),
                 player.kind()
             ),
             FlattiverseEventKind::PlayerDisconnected { player } => write!(
                 f,
                 "{:?} disconnected from the galaxy while cleanup is still pending team.",
-                &*player.name(),
+                player.name(),
             ),
             FlattiverseEventKind::PlayerParted { player } => write!(
                 f,
                 "{:?} parted the galaxy with team {:?} as {:?}",
-                &*player.name(),
+                player.name(),
                 &*player.team().name(),
                 player.kind()
             ),
@@ -685,15 +685,15 @@ pub enum FlattiverseEventKind {
     },
     /// You see a new unit.
     UnitAdded {
-        unit: Arc<Unit>,
+        unit: Arc<dyn Unit>,
     },
     /// An existing unit has been updated.
     UnitUpdated {
-        unit: Arc<Unit>,
+        unit: Arc<dyn Unit>,
     },
     /// You don't see the unit anymore.
     UnitRemoved {
-        unit: Arc<Unit>,
+        unit: Arc<dyn Unit>,
     },
     /// This event informs about a unit that has been altered by an admin through map editing.
     UnitAlteredByAdmin {

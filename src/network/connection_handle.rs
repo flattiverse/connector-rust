@@ -337,7 +337,7 @@ impl ConnectionHandle {
             packet.header_mut().set_command(0x24);
             packet.write(|writer| {
                 writer.write_byte(cluster.0);
-                writer.write_string_with_len_prefix(&xml);
+                writer.write_string_with_len_prefix(xml);
             });
 
             let session = self.send_packet_on_new_session(packet).await?;
@@ -477,7 +477,7 @@ impl ConnectionHandle {
             packet.header_mut().set_command(0x28);
             packet.write(|writer| {
                 writer.write_byte(cluster.0);
-                writer.write_string_with_len_prefix(&xml);
+                writer.write_string_with_len_prefix(xml);
             });
 
             let session = self.send_packet_on_new_session(packet).await?;

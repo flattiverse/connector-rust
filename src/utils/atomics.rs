@@ -1,6 +1,7 @@
 use crate::galaxy_hierarchy::{GameMode, PlayerId, TeamId};
 use crate::network::{PacketReader, PacketWriter};
-use crate::Vector;
+use crate::unit::SwitchMode;
+use crate::{SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{
     AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicU16, AtomicU32, AtomicU64,
@@ -255,7 +256,7 @@ macro_rules! impl_atomar_for_primitive {
     };
 }
 
-impl_atomar_for_primitive!(u8, GameMode);
+impl_atomar_for_primitive!(u8, GameMode, SubsystemStatus, SwitchMode);
 
 macro_rules! impl_atomar_for_id {
     ($primitive:ty, $($ty:path),+) => {

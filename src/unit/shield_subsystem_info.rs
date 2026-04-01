@@ -34,37 +34,40 @@ impl ShieldSubsystemInfo {
         self.current.load()
     }
 
-    /// Whether shield loading was active for the tick.
+    /// Whether shield loading was active for the reported tick.
+    /// A shield can exist while being inactive, for example when its configured rate is zero.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
     }
 
-    /// The configured shield load rate.
+    /// Configured shield loading rate.
+    /// Higher rates charge faster but also increase the quadratic tick cost.
     #[inline]
     pub fn rate(&self) -> f32 {
         self.rate.load()
     }
 
-    /// Status of the reported shield subsystem.
+    /// Tick-local runtime status reported for the shield subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
     }
 
-    /// Energy consumed by the shield during the tick.
+    /// Energy consumed by shield loading during the reported tick.
+    /// This is usually zero if the shield was inactive or already full.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// Ions consumed by the shield during the tick.
+    /// Ions consumed by shield loading during the reported tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// Neutrinos consumed by the shield during the tick.
+    /// Neutrinos consumed by shield loading during the reported tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()

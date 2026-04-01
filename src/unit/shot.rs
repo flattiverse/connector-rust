@@ -2,15 +2,15 @@ use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::unit::{Mobility, UnitBase, UnitExt, UnitExtSealed, UnitKind};
+use crate::unit::{AbstractUnit, Mobility, Unit, UnitHierarchy, UnitInternal, UnitKind};
 use crate::utils::Atomic;
-use crate::Vector;
+use crate::{GameError, Vector};
 use std::sync::{Arc, Weak};
 
 /// Represents a shot.
 #[derive(Debug, Clone)]
 pub struct Shot {
-    base: UnitBase,
+    parent: AbstractUnit,
     player: Weak<Player>,
     controllable_info: Weak<ControllableInfo>,
     position: Atomic<Vector>,
@@ -21,11 +21,11 @@ pub struct Shot {
 }
 
 impl Shot {
-    pub(crate) fn read(
+    pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Self {
+    ) -> Result<Arc<Self>, GameError> {
         let galaxy = cluster.upgrade().map(|c| c.galaxy()).unwrap();
 
         let player_id = PlayerId(reader.read_byte());
@@ -39,8 +39,8 @@ impl Shot {
             .as_ref()
             .map(|p| p.get_controllable_info(controllable_id));
 
-        Self {
-            base: UnitBase::new(cluster, name),
+        Ok(Arc::new(Self {
+            parent: AbstractUnit::new(cluster, name),
             player: player.as_ref().map(Arc::downgrade).unwrap_or_default(),
             controllable_info: controllable_info
                 .as_ref()
@@ -51,7 +51,7 @@ impl Shot {
             damage: Atomic::default(),
             position: Atomic::from_reader(reader),
             movement: Atomic::from_reader(reader),
-        }
+        }))
     }
 
     /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
@@ -85,75 +85,73 @@ impl Shot {
     }
 }
 
-impl AsRef<UnitBase> for Shot {
+impl UnitInternal for Shot {
     #[inline]
-    fn as_ref(&self) -> &UnitBase {
-        &self.base
-    }
-}
-
-impl<'a> UnitExtSealed<'a> for &'a Shot {
-    type Parent = &'a UnitBase;
-
-    #[inline]
-    fn parent(self) -> Self::Parent {
-        &self.base
+    fn parent(&self) -> &dyn Unit {
+        &self.parent
     }
 
-    fn update_movement(self, reader: &mut dyn PacketReader) {
-        self.parent().update_movement(reader);
+    fn update_movement(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_movement(reader);
 
         self.ticks.store(reader.read_uint16());
         self.position.read(reader);
         self.movement.read(reader);
     }
 
-    fn update_state(self, reader: &mut dyn PacketReader) {
-        self.parent().update_state(reader);
+    fn update_state(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_state(reader);
 
         self.load.read(reader);
         self.damage.read(reader);
     }
 }
 
-impl<'a> UnitExt<'a> for &'a Shot {
+impl UnitHierarchy for Shot {
     #[inline]
-    fn radius(self) -> f32 {
+    fn as_shot(&self) -> Option<&Shot> {
+        Some(self)
+    }
+}
+
+impl Unit for Shot {
+    #[inline]
+    fn radius(&self) -> f32 {
         1.0
     }
 
     #[inline]
-    fn position(self) -> Vector {
+    fn position(&self) -> Vector {
         self.position.load()
     }
 
     #[inline]
-    fn movement(self) -> Vector {
+    fn movement(&self) -> Vector {
         self.movement.load()
     }
 
     #[inline]
-    fn angle(self) -> f32 {
+    fn angle(&self) -> f32 {
         self.movement().angle()
     }
 
     #[inline]
-    fn is_masking(self) -> bool {
+    fn is_masking(&self) -> bool {
         false
     }
 
     #[inline]
-    fn mobility(self) -> Mobility {
+    fn mobility(&self) -> Mobility {
         Mobility::Mobile
     }
 
     #[inline]
-    fn kind(self) -> UnitKind {
+    fn kind(&self) -> UnitKind {
         UnitKind::Shot
     }
 
     #[inline]
-    fn team(self) -> Weak<Team> {
+    fn team(&self) -> Weak<Team> {
         self.player
             .upgrade()
             .map_or_else(Weak::default, |p| p.team_weak())

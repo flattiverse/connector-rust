@@ -166,7 +166,6 @@ impl ConnectError {
                 }
             }
         }
-        .into()
     }
 }
 

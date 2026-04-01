@@ -49,6 +49,7 @@ pub fn check_message_or_err<S: AsRef<str>>(message: S) -> Result<S, GameError> {
 }
 
 pub fn check_message(message: &str) -> bool {
+    #[allow(clippy::if_same_then_else, clippy::len_zero)]
     if message.len() < 1 || message.len() > 512 {
         false
     } else if message.trim().len() != message.len() {
@@ -101,5 +102,26 @@ where
     {
         f(&mut self);
         self
+    }
+}
+
+pub trait Let {
+    fn r#let<R>(self, f: impl FnOnce(Self) -> R) -> R
+    where
+        Self: Sized,
+        R: Sized;
+}
+
+impl<T> Let for T
+where
+    T: Sized,
+{
+    #[inline]
+    fn r#let<R>(self, f: impl FnOnce(Self) -> R) -> R
+    where
+        Self: Sized,
+        R: Sized,
+    {
+        f(self)
     }
 }

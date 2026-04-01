@@ -29,7 +29,7 @@ pub struct Cluster {
     start: Atomic<bool>,
     respawn: Atomic<bool>,
     active: Atomic<bool>,
-    units: SkipMap<String, Arc<Unit>>,
+    units: SkipMap<String, Arc<dyn Unit>>,
 }
 
 impl Debug for Cluster {
@@ -73,22 +73,21 @@ impl Cluster {
         self.active.store(false);
     }
 
-    pub(crate) fn add_unit(&self, unit: Arc<Unit>) {
-        let name = NamedUnit::name(&*unit).to_string();
-        self.units.insert(name, unit);
+    pub(crate) fn add_unit(&self, unit: Arc<dyn Unit>) {
+        self.units.insert(unit.name().to_string(), unit);
     }
 
-    pub(crate) fn remove_unit_(&self, name: &str) -> Option<Arc<Unit>> {
+    pub(crate) fn remove_unit_(&self, name: &str) -> Option<Arc<dyn Unit>> {
         self.units.remove(name).map(|e| Arc::clone(e.value()))
     }
 
     #[inline]
-    pub fn get_unit(&self, unit: &str) -> Option<Arc<Unit>> {
+    pub fn get_unit(&self, unit: &str) -> Option<Arc<dyn Unit>> {
         self.units.get(unit).map(|e| Arc::clone(e.value()))
     }
 
     #[inline]
-    pub fn iter_units(&self) -> impl Iterator<Item = Arc<Unit>> + '_ {
+    pub fn iter_units(&self) -> impl Iterator<Item = Arc<dyn Unit>> + '_ {
         self.units.iter().map(|e| Arc::clone(e.value()))
     }
 
@@ -208,19 +207,19 @@ impl NamedUnit for Cluster {
     }
 }
 
-impl Hash for Unit {
+impl Hash for dyn Unit {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        NamedUnit::name(self).hash(state)
+        self.name().hash(state)
     }
 }
 
-impl Eq for Unit {}
+impl Eq for dyn Unit {}
 
-impl PartialEq<Self> for Unit {
+impl PartialEq<Self> for dyn Unit {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        *NamedUnit::name(self) == *NamedUnit::name(other)
+        self.name() == other.name()
     }
 }
 

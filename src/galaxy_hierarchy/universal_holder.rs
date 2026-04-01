@@ -1,4 +1,4 @@
-use crate::unit::{PlayerUnit, SteadyUnit, TargetUnit, UnitBase};
+use crate::unit::Unit;
 use std::any::type_name;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
@@ -131,57 +131,9 @@ pub trait NamedUnit {
     fn name(&self) -> impl Deref<Target = str> + '_;
 }
 
-impl<T: AsRef<UnitBase>> NamedUnit for T {
+impl<T: Unit> NamedUnit for T {
     #[inline]
     fn name(&self) -> impl Deref<Target = str> + '_ {
-        self.as_ref().name()
-    }
-}
-
-/// Just as shorthand for `AsRef::<UnitBase>::as_ref(self)`
-pub trait AsUnitBase {
-    fn as_unit_base(&self) -> &UnitBase;
-}
-
-impl<T: AsRef<UnitBase>> AsUnitBase for T {
-    #[inline]
-    fn as_unit_base(&self) -> &UnitBase {
-        self.as_ref()
-    }
-}
-
-/// Just as shorthand for `AsRef::<SteadyUnit>::as_ref(self)`
-pub trait AsSteadyUnit {
-    fn as_steady_unit(&self) -> &SteadyUnit;
-}
-
-impl<T: AsRef<SteadyUnit>> AsSteadyUnit for T {
-    #[inline]
-    fn as_steady_unit(&self) -> &SteadyUnit {
-        self.as_ref()
-    }
-}
-
-/// Just as shorthand for `AsRef::<PlayerUnit>::as_ref(self)`
-pub trait AsPlayerUnit {
-    fn as_player_unit(&self) -> &PlayerUnit;
-}
-
-impl<T: AsRef<PlayerUnit>> AsPlayerUnit for T {
-    #[inline]
-    fn as_player_unit(&self) -> &PlayerUnit {
-        self.as_ref()
-    }
-}
-
-/// Just as shorthand for `AsRef::<TargetUnit>::as_ref(self)`
-pub trait AsTargetUnit {
-    fn as_target_unit(&self) -> &TargetUnit;
-}
-
-impl<T: AsRef<TargetUnit>> AsTargetUnit for T {
-    #[inline]
-    fn as_target_unit(&self) -> &TargetUnit {
-        self.as_ref()
+        self.name()
     }
 }

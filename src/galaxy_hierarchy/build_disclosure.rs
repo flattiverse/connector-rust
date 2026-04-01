@@ -104,8 +104,8 @@ impl Display for BuildDisclosure {
 
 fn nibble_to_hex(value: u8) -> char {
     if value < 10 {
-        char::from('0' as u8 + value)
+        char::from(b'0' + value)
     } else {
-        char::from('A' as u8 + value - 10)
+        char::from(b'A' + value - 10)
     }
 }

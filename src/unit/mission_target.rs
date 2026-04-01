@@ -1,17 +1,18 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{SteadyUnit, TargetUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind};
-use crate::utils::{Atomic, Readable};
-use crate::Vector;
+use crate::unit::{
+    AbstractTargetUnit, SteadyUnit, SteadyUnitInternal, TargetUnit, TargetUnitInternal, Unit,
+    UnitHierarchy, UnitInternal, UnitKind,
+};
+use crate::utils::Atomic;
+use crate::{GameError, Vector};
 use arc_swap::{ArcSwap, Guard};
 use std::sync::{Arc, Weak};
 
 /// A mission target with a sequence number and configurable waypoint vectors.
 #[derive(Debug)]
 pub struct MissionTarget {
-    base: UnitBase,
-    steady: SteadyUnit,
-    target: TargetUnit,
+    parent: AbstractTargetUnit,
     sequence_number: Atomic<i32>,
     vectors: ArcSwap<Vec<Vector>>,
 }
@@ -19,9 +20,7 @@ pub struct MissionTarget {
 impl Clone for MissionTarget {
     fn clone(&self) -> Self {
         Self {
-            base: self.base.clone(),
-            steady: self.steady.clone(),
-            target: self.target.clone(),
+            parent: self.parent.clone(),
             sequence_number: Atomic::default(),
             vectors: ArcSwap::new(self.vectors.load_full()),
         }
@@ -29,18 +28,16 @@ impl Clone for MissionTarget {
 }
 
 impl MissionTarget {
-    pub(crate) fn read(
+    pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Self {
-        Self {
-            base: UnitBase::new(cluster.clone(), name),
-            steady: SteadyUnit::read(reader),
-            target: TargetUnit::read(&cluster, reader),
+    ) -> Result<Arc<Self>, GameError> {
+        Ok(Arc::new(Self {
+            parent: AbstractTargetUnit::new(cluster.clone(), name, reader)?,
             sequence_number: Atomic::default(),
             vectors: ArcSwap::default(),
-        }
+        }))
     }
 
     /// Sequence number of this mission target.
@@ -56,37 +53,14 @@ impl MissionTarget {
     }
 }
 
-impl AsRef<UnitBase> for MissionTarget {
+impl UnitInternal for MissionTarget {
     #[inline]
-    fn as_ref(&self) -> &UnitBase {
-        &self.base
-    }
-}
-
-impl AsRef<SteadyUnit> for MissionTarget {
-    #[inline]
-    fn as_ref(&self) -> &SteadyUnit {
-        &self.steady
-    }
-}
-
-impl AsRef<TargetUnit> for MissionTarget {
-    #[inline]
-    fn as_ref(&self) -> &TargetUnit {
-        &self.target
-    }
-}
-
-impl<'a> UnitExtSealed<'a> for &'a MissionTarget {
-    type Parent = (&'a UnitBase, &'a SteadyUnit, &'a TargetUnit);
-
-    #[inline]
-    fn parent(self) -> Self::Parent {
-        (&self.base, &self.steady, &self.target)
+    fn parent(&self) -> &dyn Unit {
+        &self.parent
     }
 
-    fn update_state(self, reader: &mut dyn PacketReader) {
-        self.parent().update_state(reader);
+    fn update_state(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_state(reader);
 
         self.sequence_number.read(reader);
 
@@ -101,9 +75,34 @@ impl<'a> UnitExtSealed<'a> for &'a MissionTarget {
     }
 }
 
-impl<'a> UnitExt<'a> for &'a MissionTarget {
+impl UnitHierarchy for MissionTarget {
     #[inline]
-    fn kind(self) -> UnitKind {
+    fn as_steady_unit(&self) -> Option<&dyn SteadyUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_target_unit(&self) -> Option<&dyn TargetUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_mission_target(&self) -> Option<&MissionTarget> {
+        Some(self)
+    }
+}
+
+impl Unit for MissionTarget {
+    #[inline]
+    fn kind(&self) -> UnitKind {
         UnitKind::MissionTarget
     }
 }
+
+impl SteadyUnitInternal for MissionTarget {}
+
+impl SteadyUnit for MissionTarget {}
+
+impl TargetUnitInternal for MissionTarget {}
+
+impl TargetUnit for MissionTarget {}

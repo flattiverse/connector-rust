@@ -1,19 +1,19 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    ClassicShipEngineSubsystemInfo, DynamicScannerSubsystemInfo,
+    AbstractPlayerUnit, ClassicShipEngineSubsystemInfo, DynamicScannerSubsystemInfo,
     DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo,
-    DynamicShotMagazineSubsystemInfo, PlayerUnit, UnitBase, UnitExt, UnitExtSealed, UnitKind,
+    DynamicShotMagazineSubsystemInfo, PlayerUnit, PlayerUnitInternal, Unit, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::utils::Readable;
-use crate::{SubsystemStatus, Vector};
-use std::sync::Weak;
+use crate::{GameError, SubsystemStatus, Vector};
+use std::sync::{Arc, Weak};
 
 /// A classic ship for noobs.
 #[derive(Debug, Clone)]
 pub struct ClassicShipPlayerUnit {
-    base: UnitBase,
-    player_unit: PlayerUnit,
+    parent: AbstractPlayerUnit,
     engine: ClassicShipEngineSubsystemInfo,
     shot_launcher: DynamicShotLauncherSubsystemInfo,
     shot_magazine: DynamicShotMagazineSubsystemInfo,
@@ -23,33 +23,20 @@ pub struct ClassicShipPlayerUnit {
 }
 
 impl ClassicShipPlayerUnit {
-    pub(crate) fn read(
+    pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Self {
-        let galaxy = cluster.upgrade().unwrap().galaxy();
-
-        Self {
-            base: UnitBase::new(cluster, name),
-            player_unit: PlayerUnit::read(&*galaxy, reader),
+    ) -> Result<Arc<Self>, GameError> {
+        Ok(Arc::new(Self {
+            parent: AbstractPlayerUnit::new(cluster, name, reader)?,
             engine: Default::default(),
             shot_launcher: Default::default(),
             shot_magazine: Default::default(),
             shot_fabricator: Default::default(),
             main_scanner: Default::default(),
             secondary_scanner: Default::default(),
-        }
-    }
-
-    #[inline]
-    pub const fn gravity(&self) -> f32 {
-        0.0012
-    }
-
-    #[inline]
-    pub const fn radius(&self) -> f32 {
-        14.0
+        }))
     }
 
     /// Visible snapshot of the engine subsystem.
@@ -89,31 +76,14 @@ impl ClassicShipPlayerUnit {
     }
 }
 
-impl AsRef<UnitBase> for ClassicShipPlayerUnit {
+impl UnitInternal for ClassicShipPlayerUnit {
     #[inline]
-    fn as_ref(&self) -> &UnitBase {
-        &self.base
-    }
-}
-
-impl AsRef<PlayerUnit> for ClassicShipPlayerUnit {
-    #[inline]
-    fn as_ref(&self) -> &PlayerUnit {
-        &self.player_unit
-    }
-}
-
-impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
-    type Parent = (&'a UnitBase, &'a PlayerUnit);
-
-    #[inline]
-    fn parent(self) -> (&'a UnitBase, &'a PlayerUnit) {
-        (&self.base, &self.player_unit)
+    fn parent(&self) -> &dyn Unit {
+        &self.parent
     }
 
-    #[inline]
-    fn update_state(self, reader: &mut dyn PacketReader) {
-        self.parent().update_state(reader);
+    fn update_state(&self, reader: &mut dyn PacketReader) {
+        self.parent.update_state(reader);
 
         self.main_scanner.update(
             reader.read_byte() != 0,
@@ -202,19 +172,40 @@ impl<'a> UnitExtSealed<'a> for &'a ClassicShipPlayerUnit {
     }
 }
 
-impl<'a> UnitExt<'a> for &'a ClassicShipPlayerUnit {
+impl UnitHierarchy for ClassicShipPlayerUnit {
     #[inline]
-    fn radius(self) -> f32 {
+    fn as_player_unit(&self) -> Option<&dyn PlayerUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_classic_ship(&self) -> Option<&ClassicShipPlayerUnit> {
+        Some(self)
+    }
+}
+
+impl Unit for ClassicShipPlayerUnit {
+    #[inline]
+    fn radius(&self) -> f32 {
         14.0
     }
 
     #[inline]
-    fn gravity(self) -> f32 {
+    fn gravity(&self) -> f32 {
         0.0012
     }
 
     #[inline]
-    fn kind(self) -> UnitKind {
+    fn kind(&self) -> UnitKind {
         UnitKind::ClassicShipPlayerUnit
     }
 }
+
+impl PlayerUnitInternal for ClassicShipPlayerUnit {
+    #[inline]
+    fn parent(&self) -> &dyn PlayerUnit {
+        &self.parent
+    }
+}
+
+impl PlayerUnit for ClassicShipPlayerUnit {}

@@ -4,7 +4,7 @@ use crate::galaxy_hierarchy::{
     UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
-use crate::unit::{Unit, UnitExtSealed, UnitKind};
+use crate::unit::UnitKind;
 use crate::utils::GuardedArcStringDeref;
 use crate::utils::{Also, Atomic};
 use crate::{
@@ -181,7 +181,7 @@ impl Galaxy {
                 })
                 .also(|galaxy| {
                     galaxy.teams.populate(Team::new(
-                        Arc::downgrade(&galaxy),
+                        Arc::downgrade(galaxy),
                         Self::SPECTATORS_TEAM_ID,
                         "Spectators",
                         128,
@@ -681,7 +681,7 @@ impl Galaxy {
             .controllable_infos
             .populate(ControllableInfo::from_packet(
                 kind,
-                Arc::downgrade(&self),
+                Arc::downgrade(self),
                 Arc::downgrade(&player),
                 id,
                 name,
@@ -932,7 +932,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, events, reader))]
     pub(crate) fn unit_new(
         &self,
         events: &mut EventSink,
@@ -945,12 +945,12 @@ impl Galaxy {
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
-        let unit = match Unit::try_read(kind, Arc::downgrade(&cluster), name, reader) {
-            None => {
-                error!("Unable to read Unit for UnitKind::{kind:?}");
+        let unit = match crate::unit::try_read(kind, Arc::downgrade(&cluster), name, reader) {
+            Ok(unit) => unit,
+            Err(e) => {
+                error!("Unable to read Unit for UnitKind::{kind:?}: {e:?}");
                 return Ok(());
             }
-            Some(unit) => Arc::new(unit),
         };
 
         cluster.add_unit(Arc::clone(&unit));
