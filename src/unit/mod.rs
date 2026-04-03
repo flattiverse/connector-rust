@@ -139,6 +139,9 @@ pub use dynamic_shot_launcher_subsystem_info::*;
 mod hull_subsystem_info;
 pub use hull_subsystem_info::*;
 
+mod jump_drive_subsystem_info;
+pub use jump_drive_subsystem_info::*;
+
 mod resource_miner_subsystem_info;
 pub use resource_miner_subsystem_info::*;
 
