@@ -139,6 +139,9 @@ pub use hull_subsystem_info::*;
 mod resource_miner_subsystem_info;
 pub use resource_miner_subsystem_info::*;
 
+mod nebula_collector_subsystem_info;
+pub use nebula_collector_subsystem_info::*;
+
 mod railgun_subsystem_info;
 pub use railgun_subsystem_info::*;
 
