@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::{Cluster, ClusterId};
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -100,6 +101,10 @@ impl UnitInternal for WormHole {
         self.target_right.read(reader);
         self.target_bottom.read(reader);
     }
+}
+
+impl UnitCastTable for WormHole {
+    cast_fn!(steady_unit_cast_fn, WormHole, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for WormHole {

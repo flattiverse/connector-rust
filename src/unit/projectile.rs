@@ -3,7 +3,8 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractMobileUnit, MobileUnit, MobileUnitInternal, Unit, UnitHierarchy, UnitInternal,
+    AbstractMobileUnit, MobileUnit, MobileUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal,
 };
 use crate::utils::{Atomic, Let};
 use crate::GameError;
@@ -109,6 +110,11 @@ impl UnitInternal for AbstractProjectile {
         self.load.read(reader);
         self.damage.read(reader);
     }
+}
+
+impl UnitCastTable for AbstractProjectile {
+    cast_fn!(mobile_unit_cast_fn, AbstractProjectile, dyn MobileUnit);
+    cast_fn!(projectile_cast_fn, AbstractProjectile, dyn Projectile);
 }
 
 impl UnitHierarchy for AbstractProjectile {

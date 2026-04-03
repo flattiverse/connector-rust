@@ -1,10 +1,12 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractMobileUnit, MobileUnit, MobileUnitInternal, Unit, UnitHierarchy, UnitInternal,
+    AbstractMobileUnit, MobileUnit, MobileUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal,
 };
 use crate::utils::{Also, Atomic};
 use crate::GameError;
+use std::sync::Arc;
 use std::sync::Weak;
 
 pub(crate) trait StormWhirlInternal {}
@@ -48,6 +50,11 @@ impl UnitInternal for AbstractStormWhirl {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
+}
+
+impl UnitCastTable for AbstractStormWhirl {
+    cast_fn!(mobile_unit_cast_fn, AbstractStormWhirl, dyn MobileUnit);
+    cast_fn!(storm_whirl_cast_fn, AbstractStormWhirl, dyn StormWhirl);
 }
 
 impl UnitHierarchy for AbstractStormWhirl {

@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractStormWhirl, MobileUnit, MobileUnitInternal, StormWhirl, StormWhirlInternal, Unit,
-    UnitHierarchy, UnitInternal, UnitKind,
+    UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::GameError;
 use std::sync::{Arc, Weak};
@@ -35,6 +35,11 @@ impl UnitInternal for StormCommencingWhirl {
         self.parent.update_state(reader);
         self.parent.read_remaining_ticks(reader);
     }
+}
+
+impl UnitCastTable for StormCommencingWhirl {
+    cast_fn!(mobile_unit_cast_fn, StormCommencingWhirl, dyn MobileUnit);
+    cast_fn!(storm_whirl_cast_fn, StormCommencingWhirl, dyn StormWhirl);
 }
 
 impl UnitHierarchy for StormCommencingWhirl {

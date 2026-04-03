@@ -1,8 +1,9 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{AbstractUnit, Mobility, Unit, UnitHierarchy, UnitInternal};
+use crate::unit::{AbstractUnit, Mobility, Unit, UnitCastTable, UnitHierarchy, UnitInternal};
 use crate::utils::Atomic;
 use crate::Vector;
+use std::sync::Arc;
 use std::sync::Weak;
 
 pub(crate) trait MobileUnitInternal {}
@@ -43,6 +44,10 @@ impl UnitInternal for AbstractMobileUnit {
         self.parent.update_movement(reader);
         self.read_position_and_movement(reader);
     }
+}
+
+impl UnitCastTable for AbstractMobileUnit {
+    cast_fn!(mobile_unit_cast_fn, AbstractMobileUnit, dyn MobileUnit);
 }
 
 impl UnitHierarchy for AbstractMobileUnit {

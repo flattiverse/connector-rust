@@ -4,7 +4,7 @@ use crate::unit::{
     AbstractPlayerUnit, ClassicShipEngineSubsystemInfo, DynamicScannerSubsystemInfo,
     DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo,
     DynamicShotMagazineSubsystemInfo, MobileUnit, MobileUnitInternal, PlayerUnit,
-    PlayerUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    PlayerUnitInternal, Unit, UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Readable;
 use crate::{GameError, SubsystemStatus, Vector};
@@ -174,6 +174,11 @@ impl UnitInternal for ClassicShipPlayerUnit {
             reader.read_f32(),
         );
     }
+}
+
+impl UnitCastTable for ClassicShipPlayerUnit {
+    cast_fn!(mobile_unit_cast_fn, ClassicShipPlayerUnit, dyn MobileUnit);
+    cast_fn!(player_unit_cast_fn, ClassicShipPlayerUnit, dyn PlayerUnit);
 }
 
 impl UnitHierarchy for ClassicShipPlayerUnit {

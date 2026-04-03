@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractTargetUnit, SteadyUnit, SteadyUnitInternal, TargetUnit, TargetUnitInternal, Unit,
-    UnitHierarchy, UnitInternal, UnitKind,
+    UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::{Also, Atomic};
 use crate::GameError;
@@ -57,6 +57,11 @@ impl UnitInternal for Flag {
         self.grace_ticks.read(reader);
         self.active.store(reader.read_byte() != 0);
     }
+}
+
+impl UnitCastTable for Flag {
+    cast_fn!(steady_unit_cast_fn, Flag, dyn SteadyUnit);
+    cast_fn!(target_unit_cast_fn, Flag, dyn TargetUnit);
 }
 
 impl UnitHierarchy for Flag {

@@ -1,8 +1,8 @@
 use crate::galaxy_hierarchy::{Cluster, Team, TeamId};
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, SwitchMode, Unit, UnitHierarchy,
-    UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, SwitchMode, Unit, UnitCastTable,
+    UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::{Atomic, Let};
 use crate::GameError;
@@ -112,6 +112,10 @@ impl UnitInternal for Switch {
         self.cooldown_remaining_ticks.read(reader);
         self.switched.store(reader.read_byte() != 0x00)
     }
+}
+
+impl UnitCastTable for Switch {
+    cast_fn!(steady_unit_cast_fn, Switch, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for Switch {

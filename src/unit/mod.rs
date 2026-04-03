@@ -1,3 +1,17 @@
+macro_rules! cast_fn {
+    ($ct:ty, $dt:ty) => {
+        fn cast_fn(this: Arc<dyn Unit>) -> Option<Arc<$dt>> {
+            Arc::downcast::<$ct>(this).map(|it| it as Arc<$dt>).ok()
+        }
+        return cast_fn;
+    };
+    ($wrapped:ident, $ct:ty, $dt:ty) => {
+        fn $wrapped(&self) -> fn(Arc<dyn Unit>) -> Option<Arc<$dt>> {
+            cast_fn!($ct, $dt);
+        }
+    };
+}
+
 mod kind;
 pub use kind::*;
 
@@ -94,6 +108,9 @@ pub use hull_repair_power_up::*;
 mod shot_charge_power_up;
 pub use shot_charge_power_up::*;
 
+mod interceptor_explosion;
+pub use interceptor_explosion::*;
+
 mod explosion;
 pub use explosion::*;
 
@@ -174,10 +191,10 @@ mod internal {
     use crate::galaxy_hierarchy::Cluster;
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
-        BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
-        EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
-        IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon, Nebula,
-        NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
+        AbstractExplosion, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
+        DominationPoint, EnergyChargePowerUp, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
+        InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon,
+        Nebula, NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
         SiliconCargoPowerUp, Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit,
         UnitKind, WormHole,
     };
@@ -219,7 +236,8 @@ mod internal {
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
             UnitKind::Rail => Rail::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
-            UnitKind::Explosion => Explosion::new(cluster, name, reader)?,
+            UnitKind::InterceptorExplosion => InterceptorExplosion::new(cluster, name, reader)?,
+            UnitKind::Explosion => AbstractExplosion::new(cluster, name, reader)?,
             // TODO this should not be necessary
             _ => {
                 return Err(GameErrorKind::InvalidArgument {

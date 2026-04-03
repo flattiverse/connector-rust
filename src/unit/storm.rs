@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -142,6 +143,10 @@ impl UnitInternal for Storm {
         self.max_whirl_gravity.read(reader);
         self.damage.read(reader);
     }
+}
+
+impl UnitCastTable for Storm {
+    cast_fn!(steady_unit_cast_fn, Storm, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for Storm {

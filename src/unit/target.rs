@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::{Cluster, Team, TeamId};
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal,
 };
 use crate::utils::Let;
 use crate::GameError;
@@ -57,6 +58,11 @@ impl UnitInternal for AbstractTargetUnit {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
+}
+
+impl UnitCastTable for AbstractTargetUnit {
+    cast_fn!(steady_unit_cast_fn, AbstractTargetUnit, dyn SteadyUnit);
+    cast_fn!(target_unit_cast_fn, AbstractTargetUnit, dyn TargetUnit);
 }
 
 impl UnitHierarchy for AbstractTargetUnit {

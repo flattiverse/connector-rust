@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::unit::{AbstractUnit, Unit, UnitInternal};
-use crate::unit::{Mobility, Orbit, UnitHierarchy};
+use crate::unit::{Mobility, Orbit, UnitCastTable, UnitHierarchy};
 use crate::utils::Atomic;
 use crate::{GameError, Vector};
 use arc_swap::ArcSwap;
@@ -100,6 +100,10 @@ impl UnitInternal for AbstractSteadyUnit {
         }
         self.orbiting_list.store(Arc::new(orbits));
     }
+}
+
+impl UnitCastTable for AbstractSteadyUnit {
+    cast_fn!(steady_unit_cast_fn, AbstractSteadyUnit, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for AbstractSteadyUnit {

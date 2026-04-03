@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractProjectile, MobileUnit, MobileUnitInternal, Projectile, ProjectileInternal, Unit,
-    UnitHierarchy, UnitInternal, UnitKind,
+    UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::GameError;
 use std::sync::{Arc, Weak};
@@ -30,6 +30,11 @@ impl UnitInternal for Shot {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
+}
+
+impl UnitCastTable for Shot {
+    cast_fn!(mobile_unit_cast_fn, Shot, dyn MobileUnit);
+    cast_fn!(projectile_cast_fn, Shot, dyn Projectile);
 }
 
 impl UnitHierarchy for Shot {

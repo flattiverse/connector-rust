@@ -5,8 +5,8 @@ use crate::network::PacketReader;
 use crate::unit::{
     AbstractMobileUnit, ArmorSubsystemInfo, BatterySubsystemInfo, CargoSubsystemInfo,
     EnergyCellSubsystemInfo, HullSubsystemInfo, MobileUnit, MobileUnitInternal,
-    RepairSubsystemInfo, ResourceMinerSubsystemInfo, ShieldSubsystemInfo, Unit, UnitHierarchy,
-    UnitInternal,
+    RepairSubsystemInfo, ResourceMinerSubsystemInfo, ShieldSubsystemInfo, Unit, UnitCastTable,
+    UnitHierarchy, UnitInternal,
 };
 use crate::utils::{Let, Readable};
 use crate::{GameError, SubsystemStatus};
@@ -287,6 +287,11 @@ impl UnitInternal for AbstractPlayerUnit {
             reader.read_f32(),
         );
     }
+}
+
+impl UnitCastTable for AbstractPlayerUnit {
+    cast_fn!(mobile_unit_cast_fn, AbstractPlayerUnit, dyn MobileUnit);
+    cast_fn!(player_unit_cast_fn, AbstractPlayerUnit, dyn PlayerUnit);
 }
 
 impl UnitHierarchy for AbstractPlayerUnit {

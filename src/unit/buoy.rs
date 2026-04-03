@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::GameError;
 use arc_swap::{ArcSwapOption, Guard};
@@ -53,6 +54,10 @@ impl UnitInternal for Buoy {
 
         self.message.store(reader.opt_read_string().map(Arc::new));
     }
+}
+
+impl UnitCastTable for Buoy {
+    cast_fn!(steady_unit_cast_fn, Buoy, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for Buoy {

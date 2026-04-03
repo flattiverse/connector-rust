@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -81,6 +82,10 @@ impl UnitInternal for Planet {
         self.hydrogen.read(reader);
         self.silicon.read(reader);
     }
+}
+
+impl UnitCastTable for Planet {
+    cast_fn!(steady_unit_cast_fn, Planet, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for Planet {

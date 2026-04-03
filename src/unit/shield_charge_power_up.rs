@@ -1,8 +1,8 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractPowerUp, PowerUp, PowerUpInternal, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy,
-    UnitInternal, UnitKind,
+    AbstractPowerUp, PowerUp, PowerUpInternal, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable,
+    UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::GameError;
 use std::sync::{Arc, Weak};
@@ -30,6 +30,11 @@ impl UnitInternal for ShieldChargePowerUp {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
+}
+
+impl UnitCastTable for ShieldChargePowerUp {
+    cast_fn!(steady_unit_cast_fn, ShieldChargePowerUp, dyn SteadyUnit);
+    cast_fn!(power_up_cast_fn, ShieldChargePowerUp, dyn PowerUp);
 }
 
 impl UnitHierarchy for ShieldChargePowerUp {

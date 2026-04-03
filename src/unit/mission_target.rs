@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractTargetUnit, SteadyUnit, SteadyUnitInternal, TargetUnit, TargetUnitInternal, Unit,
-    UnitHierarchy, UnitInternal, UnitKind,
+    UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::{GameError, Vector};
@@ -74,6 +74,11 @@ impl UnitInternal for MissionTarget {
 
         self.vectors.store(Arc::new(vectors));
     }
+}
+
+impl UnitCastTable for MissionTarget {
+    cast_fn!(steady_unit_cast_fn, MissionTarget, dyn SteadyUnit);
+    cast_fn!(target_unit_cast_fn, MissionTarget, dyn TargetUnit);
 }
 
 impl UnitHierarchy for MissionTarget {

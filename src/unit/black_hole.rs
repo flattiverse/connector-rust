@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -53,6 +54,10 @@ impl UnitInternal for BlackHole {
         self.gravity_well_radius.read(reader);
         self.gravity_well_force.read(reader);
     }
+}
+
+impl UnitCastTable for BlackHole {
+    cast_fn!(steady_unit_cast_fn, BlackHole, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for BlackHole {

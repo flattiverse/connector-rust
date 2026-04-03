@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::steady::SteadyUnitInternal;
 use crate::unit::unit::{Unit, UnitInternal};
-use crate::unit::{AbstractSteadyUnit, SteadyUnit, UnitHierarchy, UnitKind};
+use crate::unit::{AbstractSteadyUnit, SteadyUnit, UnitCastTable, UnitHierarchy, UnitKind};
 use crate::utils::Atomic;
 use crate::GameError;
 use num_enum::FromPrimitive;
@@ -80,6 +80,10 @@ impl UnitInternal for Moon {
         self.hydrogen.read(reader);
         self.silicon.read(reader);
     }
+}
+
+impl UnitCastTable for Moon {
+    cast_fn!(steady_unit_cast_fn, Moon, dyn SteadyUnit);
 }
 
 impl UnitHierarchy for Moon {

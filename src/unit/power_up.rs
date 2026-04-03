@@ -1,10 +1,12 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitCastTable, UnitHierarchy,
+    UnitInternal,
 };
 use crate::utils::Atomic;
 use crate::GameError;
+use std::sync::Arc;
 use std::sync::Weak;
 
 pub(crate) trait PowerUpInternal {
@@ -50,6 +52,11 @@ impl UnitInternal for AbstractPowerUp {
         self.parent.update_state(reader);
         self.amount.read(reader);
     }
+}
+
+impl UnitCastTable for AbstractPowerUp {
+    cast_fn!(steady_unit_cast_fn, AbstractPowerUp, dyn SteadyUnit);
+    cast_fn!(power_up_cast_fn, AbstractPowerUp, dyn PowerUp);
 }
 
 impl UnitHierarchy for AbstractPowerUp {

@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{Cluster, TeamId};
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractTargetUnit, SteadyUnit, SteadyUnitInternal, TargetUnit, TargetUnitInternal, Unit,
-    UnitHierarchy, UnitInternal, UnitKind,
+    UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;
@@ -68,6 +68,11 @@ impl UnitInternal for DominationPoint {
         self.parent
             .update_target_team(team.as_ref().map(Arc::downgrade).unwrap_or_default());
     }
+}
+
+impl UnitCastTable for DominationPoint {
+    cast_fn!(steady_unit_cast_fn, DominationPoint, dyn SteadyUnit);
+    cast_fn!(target_unit_cast_fn, DominationPoint, dyn TargetUnit);
 }
 
 impl UnitHierarchy for DominationPoint {

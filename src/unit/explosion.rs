@@ -2,14 +2,53 @@ use crate::galaxy_hierarchy::{
     Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
 };
 use crate::network::PacketReader;
-use crate::unit::{AbstractUnit, Unit, UnitHierarchy, UnitInternal, UnitKind};
+use crate::unit::{AbstractUnit, Unit, UnitCastTable, UnitHierarchy, UnitInternal, UnitKind};
 use crate::utils::{Also, Atomic};
 use crate::{GameError, Vector};
 use std::sync::{Arc, Weak};
 
+pub(crate) trait ExplosionInternal {
+    fn parent(&self) -> &dyn Explosion;
+}
+
 /// Represents an explosion.
+#[allow(private_bounds)]
+pub trait Explosion: ExplosionInternal + Unit {
+    /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
+    /// player.
+    #[inline]
+    fn player(&self) -> &Weak<Player> {
+        ExplosionInternal::parent(self).player()
+    }
+
+    /// Represents the ControllableInfo which invoked the shot or null, if the shot hasn't been
+    /// invoked by a player.
+    #[inline]
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
+        ExplosionInternal::parent(self).controllable_info()
+    }
+
+    /// Defines whether this explosion is in the damage phase or not.
+    #[inline]
+    fn is_damage_phase(&self) -> bool {
+        ExplosionInternal::parent(self).is_damage_phase()
+    }
+
+    /// Defines whether this explosion is in the shockwave phase.
+    #[inline]
+    fn is_shock_wave_phase(&self) -> bool {
+        ExplosionInternal::parent(self).is_shock_wave_phase()
+    }
+
+    /// The damage this explosion inflicts.
+    #[inline]
+    fn damage(&self) -> f32 {
+        ExplosionInternal::parent(self).damage()
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct Explosion {
+pub(crate) struct AbstractExplosion {
     parent: AbstractUnit,
     player: Weak<Player>,
     controllable_info: Weak<ControllableInfo>,
@@ -19,12 +58,21 @@ pub struct Explosion {
     second_phase: Atomic<bool>,
 }
 
-impl Explosion {
+impl AbstractExplosion {
+    #[inline]
     pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Result<Arc<Self>, GameError> {
+        Self::new_inner(cluster, name, reader).map(Arc::new)
+    }
+
+    pub(crate) fn new_inner(
+        cluster: Weak<Cluster>,
+        name: String,
+        reader: &mut dyn PacketReader,
+    ) -> Result<Self, GameError> {
         let galaxy = cluster.upgrade().map(|c| c.galaxy()).unwrap();
 
         let player_id = PlayerId(reader.read_byte());
@@ -38,59 +86,25 @@ impl Explosion {
             .as_ref()
             .and_then(|p| p.get_controllable_info_opt(controllable_id));
 
-        Ok(Arc::new(
-            Self {
-                parent: AbstractUnit::new(cluster, name),
-                player: player.as_ref().map(Arc::downgrade).unwrap_or_default(),
-                controllable_info: controllable_info
-                    .as_ref()
-                    .map(Arc::downgrade)
-                    .unwrap_or_default(),
-                size: reader.read_f32(),
-                damage: reader.read_f32(),
-                position: Vector::from_read(reader),
-                second_phase: Atomic::from(false),
-            }
-            .also(|it| {
-                it.mark_full_state_known();
-            }),
-        ))
-    }
-
-    /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
-    /// player.
-    #[inline]
-    pub fn player(&self) -> &Weak<Player> {
-        &self.player
-    }
-
-    /// Represents the ControllableInfo which invoked the shot or null, if the shot hasn't been
-    /// invoked by a player.
-    #[inline]
-    pub fn controllable_info(&self) -> &Weak<ControllableInfo> {
-        &self.controllable_info
-    }
-
-    /// Defines whether this explosion is in the damage phase or not.
-    #[inline]
-    pub fn is_damage_phase(&self) -> bool {
-        true
-    }
-
-    /// Defines whether this explosion is in the shockwave phase.
-    #[inline]
-    pub fn is_shock_wave_phase(&self) -> bool {
-        false
-    }
-
-    /// The damage this explosion inflicts.
-    #[inline]
-    pub fn damage(&self) -> f32 {
-        self.damage
+        Ok(Self {
+            parent: AbstractUnit::new(cluster, name),
+            player: player.as_ref().map(Arc::downgrade).unwrap_or_default(),
+            controllable_info: controllable_info
+                .as_ref()
+                .map(Arc::downgrade)
+                .unwrap_or_default(),
+            size: reader.read_f32(),
+            damage: reader.read_f32(),
+            position: Vector::from_read(reader),
+            second_phase: Atomic::from(false),
+        }
+        .also(|it| {
+            it.mark_full_state_known();
+        }))
     }
 }
 
-impl UnitInternal for Explosion {
+impl UnitInternal for AbstractExplosion {
     #[inline]
     fn parent(&self) -> &dyn Unit {
         &self.parent
@@ -104,14 +118,18 @@ impl UnitInternal for Explosion {
     }
 }
 
-impl UnitHierarchy for Explosion {
+impl UnitCastTable for AbstractExplosion {
+    cast_fn!(explosion_cast_fn, AbstractExplosion, dyn Explosion);
+}
+
+impl UnitHierarchy for AbstractExplosion {
     #[inline]
-    fn as_explosion(&self) -> Option<&Explosion> {
+    fn as_explosion(&self) -> Option<&dyn Explosion> {
         Some(self)
     }
 }
 
-impl Unit for Explosion {
+impl Unit for AbstractExplosion {
     #[inline]
     fn radius(&self) -> f32 {
         self.size
@@ -147,5 +165,41 @@ impl Unit for Explosion {
         self.player
             .upgrade()
             .map_or_else(Weak::default, |p| p.team_weak())
+    }
+}
+
+#[forbid(clippy::missing_trait_methods)]
+impl ExplosionInternal for AbstractExplosion {
+    #[inline]
+    fn parent(&self) -> &dyn Explosion {
+        unreachable!()
+    }
+}
+
+#[forbid(clippy::missing_trait_methods)]
+impl Explosion for AbstractExplosion {
+    #[inline]
+    fn player(&self) -> &Weak<Player> {
+        &self.player
+    }
+
+    #[inline]
+    fn controllable_info(&self) -> &Weak<ControllableInfo> {
+        &self.controllable_info
+    }
+
+    #[inline]
+    fn is_damage_phase(&self) -> bool {
+        true
+    }
+
+    #[inline]
+    fn is_shock_wave_phase(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn damage(&self) -> f32 {
+        self.damage
     }
 }

@@ -3,11 +3,11 @@ use crate::network::PacketReader;
 use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
-    IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, MobileUnit, Mobility, Moon,
-    Nebula, NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, Projectile, Rail,
-    ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SteadyUnit, Storm,
-    StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind,
-    WormHole,
+    InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
+    MobileUnit, Mobility, Moon, Nebula, NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp,
+    Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp,
+    SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit,
+    UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -69,6 +69,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_projectile(&self) -> Option<&dyn Projectile> {
         self.parent().as_projectile()
+    }
+
+    #[inline]
+    fn as_explosion(&self) -> Option<&dyn Explosion> {
+        self.parent().as_explosion()
     }
 
     #[inline]
@@ -212,8 +217,8 @@ pub trait UnitHierarchy: UnitInternal {
     }
 
     #[inline]
-    fn as_explosion(&self) -> Option<&Explosion> {
-        self.parent().as_explosion()
+    fn as_interceptor_explosion(&self) -> Option<&InterceptorExplosion> {
+        self.parent().as_interceptor_explosion()
     }
 }
 
@@ -221,7 +226,7 @@ pub trait UnitHierarchy: UnitInternal {
 /// Derived classes add the type-specific data that becomes available once the server has delivered the full state for
 /// the unit.
 #[allow(private_bounds)]
-pub trait Unit: UnitInternal + UnitHierarchy + Debug + Send + Sync + Any {
+pub trait Unit: UnitInternal + UnitCastTable + UnitHierarchy + Debug + Send + Sync + Any {
     /// Stable protocol name of the unit inside its cluster.
     fn name(&self) -> &str {
         self.parent().name()
@@ -347,6 +352,8 @@ impl UnitInternal for AbstractUnit {
     }
 }
 
+impl UnitCastTable for AbstractUnit {}
+
 #[forbid(clippy::missing_trait_methods)]
 impl UnitHierarchy for AbstractUnit {
     #[inline]
@@ -381,6 +388,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_projectile(&self) -> Option<&dyn Projectile> {
+        None
+    }
+
+    #[inline]
+    fn as_explosion(&self) -> Option<&dyn Explosion> {
         None
     }
 
@@ -525,7 +537,7 @@ impl UnitHierarchy for AbstractUnit {
     }
 
     #[inline]
-    fn as_explosion(&self) -> Option<&Explosion> {
+    fn as_interceptor_explosion(&self) -> Option<&InterceptorExplosion> {
         None
     }
 }
@@ -603,4 +615,97 @@ impl Unit for AbstractUnit {
     fn full_state_known(&self) -> bool {
         self.full_state_known.load()
     }
+}
+
+type CastFn<TARGET> = fn(Arc<dyn Unit>) -> Option<Arc<TARGET>>;
+
+pub(crate) trait UnitCastTable {
+    #[inline]
+    fn steady_unit_cast_fn(&self) -> CastFn<dyn SteadyUnit> {
+        cast_none()
+    }
+
+    #[inline]
+    fn target_unit_cast_fn(&self) -> CastFn<dyn TargetUnit> {
+        cast_none()
+    }
+
+    #[inline]
+    fn player_unit_cast_fn(&self) -> CastFn<dyn PlayerUnit> {
+        cast_none()
+    }
+
+    #[inline]
+    fn power_up_cast_fn(&self) -> CastFn<dyn PowerUp> {
+        cast_none()
+    }
+
+    #[inline]
+    fn mobile_unit_cast_fn(&self) -> CastFn<dyn MobileUnit> {
+        cast_none()
+    }
+
+    #[inline]
+    fn storm_whirl_cast_fn(&self) -> CastFn<dyn StormWhirl> {
+        cast_none()
+    }
+
+    #[inline]
+    fn projectile_cast_fn(&self) -> CastFn<dyn Projectile> {
+        cast_none()
+    }
+
+    #[inline]
+    fn explosion_cast_fn(&self) -> CastFn<dyn Explosion> {
+        cast_none()
+    }
+}
+
+impl dyn Unit {
+    #[inline]
+    pub fn into_steady_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn SteadyUnit>> {
+        self.steady_unit_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_target_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn TargetUnit>> {
+        self.target_unit_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_player_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn PlayerUnit>> {
+        self.player_unit_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_power_up(self: Arc<dyn Unit>) -> Option<Arc<dyn PowerUp>> {
+        self.power_up_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_mobile_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn MobileUnit>> {
+        self.mobile_unit_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_storm_whirl(self: Arc<dyn Unit>) -> Option<Arc<dyn StormWhirl>> {
+        self.storm_whirl_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_projectile(self: Arc<dyn Unit>) -> Option<Arc<dyn Projectile>> {
+        self.projectile_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_explosion(self: Arc<dyn Unit>) -> Option<Arc<dyn Explosion>> {
+        self.explosion_cast_fn()(self)
+    }
+}
+
+pub(crate) const fn cast_none<T: ?Sized>() -> CastFn<T> {
+    fn f<FT: ?Sized>(_: Arc<dyn Unit>) -> Option<Arc<FT>> {
+        None
+    }
+    f::<T>
 }
