@@ -8,7 +8,7 @@ use crate::utils::Atomic;
 use crate::GameError;
 use std::sync::{Arc, Weak};
 
-/// A black hole.
+/// Black hole map unit with an additional intensified gravity well around the main body.
 #[derive(Debug, Clone)]
 pub struct BlackHole {
     parent: AbstractSteadyUnit,
