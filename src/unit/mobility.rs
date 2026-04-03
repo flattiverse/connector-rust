@@ -1,4 +1,4 @@
-/// Specifies the mobility of a unit.
+/// Describes how a unit moves on the map.
 #[repr(u8)]
 #[derive(
     Debug,
@@ -12,11 +12,11 @@
     strum::AsRefStr,
 )]
 pub enum Mobility {
-    /// The unit doesn't move at all.
+    /// The unit does not move.
     Still = 0x01,
-    /// The unit has a steady movement.
+    /// The unit moves with a predefined steady movement.
     Steady = 0x02,
-    /// the unit is mobile.
+    /// The unit can actively change its movement at runtime.
     Mobile = 0x04,
     #[num_enum(catch_all)]
     Unknown(u8),
