@@ -4,7 +4,7 @@ use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
     IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, MobileUnit, Mobility, Moon,
-    NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, ShieldChargePowerUp, Shot,
+    NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, Projectile, ShieldChargePowerUp, Shot,
     ShotChargePowerUp, SiliconCargoPowerUp, SteadyUnit, Storm, StormActiveWhirl,
     StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
@@ -63,6 +63,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_storm_whirl(&self) -> Option<&dyn StormWhirl> {
         self.parent().as_storm_whirl()
+    }
+
+    #[inline]
+    fn as_projectile(&self) -> Option<&dyn Projectile> {
+        self.parent().as_projectile()
     }
 
     #[inline]
@@ -360,6 +365,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_storm_whirl(&self) -> Option<&dyn StormWhirl> {
+        None
+    }
+
+    #[inline]
+    fn as_projectile(&self) -> Option<&dyn Projectile> {
         None
     }
 

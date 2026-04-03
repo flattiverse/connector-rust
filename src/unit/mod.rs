@@ -100,6 +100,9 @@ pub use switch::*;
 mod switch_mode;
 pub use switch_mode::*;
 
+mod projectile;
+pub use projectile::*;
+
 mod shot;
 pub use shot::*;
 

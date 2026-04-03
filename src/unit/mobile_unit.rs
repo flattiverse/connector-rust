@@ -27,7 +27,7 @@ impl AbstractMobileUnit {
         }
     }
 
-    fn read_position_and_movement(&self, reader: &mut dyn PacketReader) {
+    pub(crate) fn read_position_and_movement(&self, reader: &mut dyn PacketReader) {
         self.position.read(reader);
         self.movement.read(reader);
     }

@@ -1,23 +1,16 @@
-use crate::galaxy_hierarchy::{
-    Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
-};
+use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
-use crate::unit::{AbstractUnit, Mobility, Unit, UnitHierarchy, UnitInternal, UnitKind};
-use crate::utils::Atomic;
-use crate::{GameError, Vector};
+use crate::unit::{
+    AbstractProjectile, MobileUnit, MobileUnitInternal, Projectile, ProjectileInternal, Unit,
+    UnitHierarchy, UnitInternal, UnitKind,
+};
+use crate::GameError;
 use std::sync::{Arc, Weak};
 
 /// Represents a shot.
 #[derive(Debug, Clone)]
 pub struct Shot {
-    parent: AbstractUnit,
-    player: Weak<Player>,
-    controllable_info: Weak<ControllableInfo>,
-    position: Atomic<Vector>,
-    movement: Atomic<Vector>,
-    ticks: Atomic<u16>,
-    load: Atomic<f32>,
-    damage: Atomic<f32>,
+    parent: AbstractProjectile,
 }
 
 impl Shot {
@@ -26,62 +19,9 @@ impl Shot {
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Result<Arc<Self>, GameError> {
-        let galaxy = cluster.upgrade().map(|c| c.galaxy()).unwrap();
-
-        let player_id = PlayerId(reader.read_byte());
-        let controllable_id = ControllableInfoId(reader.read_byte());
-
-        let player = Some(player_id)
-            .filter(|id| id.0 < 192)
-            .map(|id| galaxy.get_player(id));
-
-        let controllable_info = player
-            .as_ref()
-            .map(|p| p.get_controllable_info(controllable_id));
-
         Ok(Arc::new(Self {
-            parent: AbstractUnit::new(cluster, name),
-            player: player.as_ref().map(Arc::downgrade).unwrap_or_default(),
-            controllable_info: controllable_info
-                .as_ref()
-                .map(Arc::downgrade)
-                .unwrap_or_default(),
-            ticks: Atomic::from(reader.read_uint16()),
-            load: Atomic::default(),
-            damage: Atomic::default(),
-            position: Atomic::from_reader(reader),
-            movement: Atomic::from_reader(reader),
+            parent: AbstractProjectile::new(cluster, name, reader)?,
         }))
-    }
-
-    /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
-    /// player.
-    #[inline]
-    pub fn player(&self) -> &Weak<Player> {
-        &self.player
-    }
-
-    /// Represents the ControllableInfo which invoked the shot or null, if the shot hasn't been
-    /// invoked by a player.
-    #[inline]
-    pub fn controllable_info(&self) -> &Weak<ControllableInfo> {
-        &self.controllable_info
-    }
-
-    /// The countdown of when the shot explodes.
-    #[inline]
-    pub fn ticks(&self) -> u16 {
-        self.ticks.load()
-    }
-
-    #[inline]
-    pub fn load(&self) -> f32 {
-        self.load.load()
-    }
-
-    #[inline]
-    pub fn damage(&self) -> f32 {
-        self.damage.load()
     }
 }
 
@@ -90,24 +30,19 @@ impl UnitInternal for Shot {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
-
-    fn update_movement(&self, reader: &mut dyn PacketReader) {
-        self.parent.update_movement(reader);
-
-        self.ticks.store(reader.read_uint16());
-        self.position.read(reader);
-        self.movement.read(reader);
-    }
-
-    fn update_state(&self, reader: &mut dyn PacketReader) {
-        self.parent.update_state(reader);
-
-        self.load.read(reader);
-        self.damage.read(reader);
-    }
 }
 
 impl UnitHierarchy for Shot {
+    #[inline]
+    fn as_mobile_unit(&self) -> Option<&dyn MobileUnit> {
+        Some(self)
+    }
+
+    #[inline]
+    fn as_projectile(&self) -> Option<&dyn Projectile> {
+        Some(self)
+    }
+
     #[inline]
     fn as_shot(&self) -> Option<&Shot> {
         Some(self)
@@ -116,44 +51,20 @@ impl UnitHierarchy for Shot {
 
 impl Unit for Shot {
     #[inline]
-    fn radius(&self) -> f32 {
-        1.0
-    }
-
-    #[inline]
-    fn position(&self) -> Vector {
-        self.position.load()
-    }
-
-    #[inline]
-    fn movement(&self) -> Vector {
-        self.movement.load()
-    }
-
-    #[inline]
-    fn angle(&self) -> f32 {
-        self.movement().angle()
-    }
-
-    #[inline]
-    fn is_masking(&self) -> bool {
-        false
-    }
-
-    #[inline]
-    fn mobility(&self) -> Mobility {
-        Mobility::Mobile
-    }
-
-    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Shot
     }
+}
 
+impl MobileUnitInternal for Shot {}
+
+impl MobileUnit for Shot {}
+
+impl ProjectileInternal for Shot {
     #[inline]
-    fn team(&self) -> Weak<Team> {
-        self.player
-            .upgrade()
-            .map_or_else(Weak::default, |p| p.team_weak())
+    fn parent(&self) -> &dyn Projectile {
+        &self.parent
     }
 }
+
+impl Projectile for Shot {}
