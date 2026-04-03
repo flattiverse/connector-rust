@@ -8,7 +8,7 @@ use crate::GameError;
 use num_enum::FromPrimitive;
 use std::sync::{Arc, Weak};
 
-/// A planet.
+/// Planetary map unit that can act as a mining target.
 #[derive(Debug, Clone)]
 pub struct Planet {
     parent: AbstractSteadyUnit,
@@ -41,25 +41,26 @@ impl Planet {
         self.r#type
     }
 
-    /// Metal richness of this planet.
+    /// Metal richness of this planet for the current mining model.
+    /// This is a source characteristic, not a depleting stockpile.
     #[inline]
     pub fn metal(&self) -> f32 {
         self.metal.load()
     }
 
-    /// Carbon richness of this planet.
+    /// Carbon richness of this planet for the current mining model.
     #[inline]
     pub fn carbon(&self) -> f32 {
         self.carbon.load()
     }
 
-    /// Hydrogen richness of this planet.
+    /// Hydrogen richness of this planet for the current mining model.
     #[inline]
     pub fn hydrogen(&self) -> f32 {
         self.hydrogen.load()
     }
 
-    /// Silicon richness of this planet.
+    /// Silicon richness of this planet for the current mining model.
     #[inline]
     pub fn silicon(&self) -> f32 {
         self.silicon.load()
