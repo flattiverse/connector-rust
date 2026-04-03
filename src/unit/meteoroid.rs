@@ -8,7 +8,7 @@ use crate::GameError;
 use num_enum::FromPrimitive;
 use std::sync::{Arc, Weak};
 
-/// A meteoroid.
+/// Meteoroid map unit that can act as a mining target.
 #[derive(Debug, Clone)]
 pub struct Meteoroid {
     parent: AbstractSteadyUnit,
@@ -41,19 +41,19 @@ impl Meteoroid {
         self.r#type
     }
 
-    /// Metal richness of this meteoroid.
+    /// Metal richness of this meteoroid for the current mining model.
     #[inline]
     pub fn metal(&self) -> f32 {
         self.metal.load()
     }
 
-    /// Carbon richness of this meteoroid.
+    /// Carbon richness of this meteoroid for the current mining model.
     #[inline]
     pub fn carbon(&self) -> f32 {
         self.carbon.load()
     }
 
-    /// Hydrogen richness of this meteoroid.
+    /// Silicon richness of this meteoroid for the current mining model.
     #[inline]
     pub fn hydrogen(&self) -> f32 {
         self.hydrogen.load()
