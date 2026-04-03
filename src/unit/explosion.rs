@@ -11,30 +11,33 @@ pub(crate) trait ExplosionInternal {
     fn parent(&self) -> &dyn Explosion;
 }
 
-/// Represents an explosion.
+/// Visible explosion unit created by a projectile or another gameplay effect.
+/// The current connector model exposes explosions as immediate damage-phase objects without a
+/// separate shockwave phase.
 #[allow(private_bounds)]
 pub trait Explosion: ExplosionInternal + Unit {
-    /// Represents the player which invoked the shot or null, if the shot hasn't been invoked by a
-    /// player.
+    /// Player that caused the explosion, or yields `None` if no player-owned source is known.
     #[inline]
     fn player(&self) -> &Weak<Player> {
         ExplosionInternal::parent(self).player()
     }
 
-    /// Represents the ControllableInfo which invoked the shot or null, if the shot hasn't been
-    /// invoked by a player.
+    /// Controllable entry that caused the explosion, or yields `None` if no player-owned source is
+    /// known.
     #[inline]
     fn controllable_info(&self) -> &Weak<ControllableInfo> {
         ExplosionInternal::parent(self).controllable_info()
     }
 
-    /// Defines whether this explosion is in the damage phase or not.
+    /// Whether this explosion is currently in its damage phase.
+    /// In the current connector model this is always `true`.
     #[inline]
     fn is_damage_phase(&self) -> bool {
         ExplosionInternal::parent(self).is_damage_phase()
     }
 
-    /// Defines whether this explosion is in the shockwave phase.
+    /// Whether this explosion is currently in its shockwave phase.
+    /// In the current connector model this is always `false`.
     #[inline]
     fn is_shock_wave_phase(&self) -> bool {
         ExplosionInternal::parent(self).is_shock_wave_phase()
