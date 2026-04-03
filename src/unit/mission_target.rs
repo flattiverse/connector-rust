@@ -13,7 +13,7 @@ use std::sync::{Arc, Weak};
 #[derive(Debug)]
 pub struct MissionTarget {
     parent: AbstractTargetUnit,
-    sequence_number: Atomic<i32>,
+    sequence_number: Atomic<u16>,
     vectors: ArcSwap<Vec<Vector>>,
 }
 
@@ -40,13 +40,14 @@ impl MissionTarget {
         }))
     }
 
-    /// Sequence number of this mission target.
+    /// Sequence number of this mission target within the scenario.
     #[inline]
-    pub fn sequence_number(&self) -> i32 {
+    pub fn sequence_number(&self) -> u16 {
         self.sequence_number.load()
     }
 
-    /// Returns all configured waypoint vectors.
+    /// Returns all configured mission vectors.
+    /// Their exact scenario-specific meaning depends on the mission script or map logic.
     #[inline]
     pub fn vectors(&self) -> Guard<Arc<Vec<Vector>>> {
         self.vectors.load()
