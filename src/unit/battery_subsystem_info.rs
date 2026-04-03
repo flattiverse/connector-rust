@@ -12,31 +12,31 @@ pub struct BatterySubsystemInfo {
 }
 
 impl BatterySubsystemInfo {
-    /// Whether the subsystem exists.
+    /// Indicates whether the scanned unit actually has this battery subsystem installed.
     #[inline]
     pub fn exists(&self) -> bool {
         self.exists.load()
     }
 
-    /// The maximum storable amount.
+    /// Maximum storable amount in this battery.
     #[inline]
     pub fn maximum(&self) -> f32 {
         self.maximum.load()
     }
 
-    /// The currently stored amount.
+    /// Currently stored amount in this battery.
     #[inline]
     pub fn current(&self) -> f32 {
         self.current.load()
     }
 
-    /// The amount consumed during the current server tick.
+    /// Amount consumed during the current server tick.
     #[inline]
     pub fn consumed_this_tick(&self) -> f32 {
         self.consumed_this_tick.load()
     }
 
-    /// The status for the current server tick.
+    /// Tick-local runtime status reported for this battery.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
