@@ -1,6 +1,7 @@
 use crate::utils::Atomic;
 use crate::{SubsystemStatus, Vector};
 
+/// Visible snapshot of a classic-ship engine subsystem on a scanned player unit.
 #[derive(Debug, Clone, Default)]
 pub struct ClassicShipEngineSubsystemInfo {
     exists: Atomic<bool>,
@@ -14,25 +15,26 @@ pub struct ClassicShipEngineSubsystemInfo {
 }
 
 impl ClassicShipEngineSubsystemInfo {
-    /// Whether the subsystem exists.
+    /// Indicates whether the scanned unit actually has this engine subsystem installed.
     #[inline]
     pub fn exists(&self) -> bool {
         self.exists.load()
     }
 
-    /// The maximum configurable impulse length.
+    /// Maximum configurable impulse length of the engine command.
     #[inline]
     pub fn maximum(&self) -> f32 {
         self.maximum.load()
     }
 
-    /// The current applied engine impulse.
+    /// Current engine impulse applied by the server.
+    /// This is the thrust vector, not the ship's world-space movement vector.
     #[inline]
     pub fn current(&self) -> Vector {
         self.current.load()
     }
 
-    /// The configured target engine impulse.
+    /// Target engine impulse currently configured on the server.
     #[inline]
     pub fn target(&self) -> Vector {
         self.target.load()
