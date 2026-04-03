@@ -4,9 +4,10 @@ use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
     IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, MobileUnit, Mobility, Moon,
-    NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp,
-    Shot, ShotChargePowerUp, SiliconCargoPowerUp, SteadyUnit, Storm, StormActiveWhirl,
-    StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
+    Nebula, NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp, Projectile, Rail,
+    ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SteadyUnit, Storm,
+    StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind,
+    WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -78,6 +79,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_black_hole(&self) -> Option<&BlackHole> {
         self.parent().as_black_hole()
+    }
+
+    #[inline]
+    fn as_nebula(&self) -> Option<&Nebula> {
+        self.parent().as_nebula()
     }
 
     #[inline]

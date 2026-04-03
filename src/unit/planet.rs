@@ -24,7 +24,7 @@ impl Planet {
         cluster: Weak<Cluster>,
         name: String,
         reader: &mut dyn PacketReader,
-    ) -> Result<Arc<Planet>, GameError> {
+    ) -> Result<Arc<Self>, GameError> {
         Ok(Arc::new(Self {
             parent: AbstractSteadyUnit::new(cluster, name, reader)?,
             r#type: PlanetType::from_primitive(reader.read_byte()),

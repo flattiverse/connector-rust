@@ -43,6 +43,9 @@ pub use mobile_unit::*;
 mod storm_whirl;
 pub use storm_whirl::*;
 
+mod nebula;
+pub use nebula::*;
+
 mod storm;
 pub use storm::*;
 
@@ -170,9 +173,10 @@ mod internal {
     use crate::unit::{
         BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
         EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
-        IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon, NeutrinoChargePowerUp,
-        Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm,
-        StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
+        IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon, Nebula,
+        NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
+        SiliconCargoPowerUp, Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit,
+        UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -186,6 +190,7 @@ mod internal {
         Ok(match kind {
             UnitKind::Sun => Sun::new(cluster, name, reader)?,
             UnitKind::BlackHole => BlackHole::new(cluster, name, reader)?,
+            UnitKind::Nebula => Nebula::new(cluster, name, reader)?,
             UnitKind::Storm => Storm::new(cluster, name, reader)?,
             UnitKind::StormCommencingWhirl => StormCommencingWhirl::new(cluster, name, reader)?,
             UnitKind::StormActiveWhirl => StormActiveWhirl::new(cluster, name, reader)?,
