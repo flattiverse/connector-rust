@@ -60,67 +60,70 @@ impl DynamicScannerSubsystemInfo {
         self.angle_speed.load()
     }
 
-    /// Whether the scanner was active for the tick.
+    /// Whether the scanner was active during the reported tick.
+    /// After switching the scanner off, the current geometry typically drops back to zero until it
+    /// is activated again.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
     }
 
-    /// Current reported scan width.
+    /// Current scan width reported by the server for this tick.
+    /// This is the live runtime value, not necessarily the requested target width.
     #[inline]
     pub fn current_width(&self) -> f32 {
         self.current_width.load()
     }
 
-    /// Current reported scan length.
+    /// Current scan length reported by the server for this tick.
     #[inline]
     pub fn current_length(&self) -> f32 {
         self.current_length.load()
     }
 
-    /// Current reported absolute scan center angle.
+    /// Current absolute world-space scan center angle reported for this tick.
     #[inline]
     pub fn current_angle(&self) -> f32 {
         self.current_angle.load()
     }
 
-    /// Last reported target width.
+    /// Target scan width currently requested on the server.
     #[inline]
     pub fn target_width(&self) -> f32 {
         self.target_width.load()
     }
 
-    /// Last reported target length.
+    /// Target scan length currently requested on the server.
     #[inline]
     pub fn target_length(&self) -> f32 {
         self.target_length.load()
     }
 
-    /// Last reported target absolute angle.
+    /// Target absolute world-space scan center angle currently requested on the server.
     #[inline]
     pub fn target_angle(&self) -> f32 {
         self.target_angle.load()
     }
 
-    /// Status of the reported scanner subsystem.
+    /// Tick-local runtime status reported for the scanner subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
     }
 
-    /// Energy consumed by the scanner during the tick.
+    /// Energy consumed by scanning during the reported tick.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// Ions consumed by the scanner during the tick.
+    /// Ions consumed by scanning during the reported tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// Neutrinos consumed by the scanner during the tick.
+    /// Neutrinos consumed by scanning during the reported tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()

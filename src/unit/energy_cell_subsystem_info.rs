@@ -11,25 +11,25 @@ pub struct EnergyCellSubsystemInfo {
 }
 
 impl EnergyCellSubsystemInfo {
-    /// Whether the subsystem exists.
+    /// Indicates whether the scanned unit actually has this energy-cell subsystem installed.
     #[inline]
     pub fn exists(&self) -> bool {
         self.exists.load()
     }
 
-    /// The charging efficiency.
+    /// Conversion efficiency of the cell for its matching environmental intake source.
     #[inline]
     pub fn efficiency(&self) -> f32 {
         self.efficiency.load()
     }
 
-    /// The amount collected during the current server tick.
+    /// Amount collected during the current server tick.
     #[inline]
     pub fn collected_this_tick(&self) -> f32 {
         self.collected_this_tick.load()
     }
 
-    /// The status reported for the current server tick.
+    /// Tick-local runtime status reported for this energy cell.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()

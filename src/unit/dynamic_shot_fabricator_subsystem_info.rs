@@ -34,37 +34,39 @@ impl DynamicShotFabricatorSubsystemInfo {
         self.maximum_rate.load()
     }
 
-    /// Whether the fabricator was active for the tick.
+    /// Whether the fabricator was active during the reported tick.
+    /// This is separate from [`Self::rate()`] because a non-zero configured rate can still be
+    /// inactive.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
     }
 
-    /// The configured shot fabrication rate.
+    /// Configured shot fabrication rate.
     #[inline]
     pub fn rate(&self) -> f32 {
         self.rate.load()
     }
 
-    /// Status of the reported shot fabricator subsystem.
+    /// Tick-local runtime status reported for the shot fabricator subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
     }
 
-    /// Energy consumed by the fabricator during the tick.
+    /// Energy consumed by fabrication during the reported tick.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// Ions consumed by the fabricator during the tick.
+    /// Ions consumed by fabrication during the reported tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// Neutrinos consumed by the fabricator during the tick.
+    /// Neutrinos consumed by fabrication during the reported tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()

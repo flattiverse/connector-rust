@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
-    BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
+    BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
     InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
     MobileUnit, Mobility, Moon, Nebula, NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp,
@@ -84,6 +84,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_black_hole(&self) -> Option<&BlackHole> {
         self.parent().as_black_hole()
+    }
+
+    #[inline]
+    fn as_current_field(&self) -> Option<&CurrentField> {
+        self.parent().as_current_field()
     }
 
     #[inline]
@@ -403,6 +408,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_black_hole(&self) -> Option<&BlackHole> {
+        None
+    }
+
+    #[inline]
+    fn as_current_field(&self) -> Option<&CurrentField> {
         None
     }
 

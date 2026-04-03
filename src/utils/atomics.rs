@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{GameMode, PlayerId, RailgunDirection, TeamId};
 use crate::network::{PacketReader, PacketWriter};
-use crate::unit::SwitchMode;
+use crate::unit::{CurrentFieldMode, SwitchMode};
 use crate::{SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{
@@ -256,7 +256,14 @@ macro_rules! impl_atomar_for_primitive {
     };
 }
 
-impl_atomar_for_primitive!(u8, GameMode, SubsystemStatus, SwitchMode, RailgunDirection);
+impl_atomar_for_primitive!(
+    u8,
+    GameMode,
+    SubsystemStatus,
+    SwitchMode,
+    RailgunDirection,
+    CurrentFieldMode
+);
 
 macro_rules! impl_atomar_for_id {
     ($primitive:ty, $($ty:path),+) => {

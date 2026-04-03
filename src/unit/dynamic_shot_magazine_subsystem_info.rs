@@ -23,13 +23,13 @@ impl DynamicShotMagazineSubsystemInfo {
         self.maximum_shots.load()
     }
 
-    /// The currently stored shots.
+    /// Currently available ammunition measured in shots.
     #[inline]
     pub fn current_shots(&self) -> f32 {
         self.current_shots.load()
     }
 
-    /// Status of the reported shot magazine subsystem.
+    /// Tick-local runtime status reported for the shot magazine subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()

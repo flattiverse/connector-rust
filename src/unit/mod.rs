@@ -132,6 +132,12 @@ pub use shot::*;
 mod target;
 pub use target::*;
 
+mod current_field;
+pub use current_field::*;
+
+mod current_field_mode;
+pub use current_field_mode::*;
+
 mod armor_subsystem_info;
 pub use armor_subsystem_info::*;
 
@@ -146,6 +152,15 @@ pub use classic_ship_engine_subsystem_info::*;
 
 mod energy_cell_subsystem_info;
 pub use energy_cell_subsystem_info::*;
+
+mod dynamic_interceptor_fabricator_subsystem_info;
+pub use dynamic_interceptor_fabricator_subsystem_info::*;
+
+mod dynamic_interceptor_launcher_subsystem_info;
+pub use dynamic_interceptor_launcher_subsystem_info::*;
+
+mod dynamic_interceptor_magazine_subsystem_info;
+pub use dynamic_interceptor_magazine_subsystem_info::*;
 
 mod dynamic_scanner_subsystem_info;
 pub use dynamic_scanner_subsystem_info::*;
@@ -192,11 +207,11 @@ mod internal {
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
         AbstractExplosion, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
-        DominationPoint, EnergyChargePowerUp, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
-        InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon,
-        Nebula, NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
-        SiliconCargoPowerUp, Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit,
-        UnitKind, WormHole,
+        CurrentField, DominationPoint, EnergyChargePowerUp, Flag, HullRepairPowerUp,
+        HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
+        MissionTarget, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp,
+        Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm, StormActiveWhirl,
+        StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -210,6 +225,7 @@ mod internal {
         Ok(match kind {
             UnitKind::Sun => Sun::new(cluster, name, reader)?,
             UnitKind::BlackHole => BlackHole::new(cluster, name, reader)?,
+            UnitKind::CurrentField => CurrentField::new(cluster, name, reader)?,
             UnitKind::Nebula => Nebula::new(cluster, name, reader)?,
             UnitKind::Storm => Storm::new(cluster, name, reader)?,
             UnitKind::StormCommencingWhirl => StormCommencingWhirl::new(cluster, name, reader)?,

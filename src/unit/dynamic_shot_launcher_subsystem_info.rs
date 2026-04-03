@@ -1,7 +1,9 @@
 use crate::utils::Atomic;
 use crate::{SubsystemStatus, Vector};
 
-/// Visible snapshot of a dynamic projectile launcher subsystem on a scanned player unit.
+/// Visible snapshot of a configurable shot launcher on a scanned player unit.
+/// The launcher stores the currently configured projectile profile that would be used for the next
+/// shot.
 #[derive(Debug, Clone, Default)]
 pub struct DynamicShotLauncherSubsystemInfo {
     exists: Atomic<bool>,
@@ -78,49 +80,50 @@ impl DynamicShotLauncherSubsystemInfo {
         self.maximum_damage.load()
     }
 
-    /// Reported movement vector for the last shot request.
+    /// Projectile movement relative to the launching unit that is currently configured on the
+    /// server.
     #[inline]
     pub fn relative_movement(&self) -> Vector {
         self.relative_movement.load()
     }
 
-    /// Lifetime of the processed shot.
+    /// Configured projectile lifetime in ticks.
     #[inline]
     pub fn ticks(&self) -> u16 {
         self.ticks.load()
     }
 
-    /// Explosion load applied when the shot expires.
+    /// Configured explosion load applied when the projectile expires.
     #[inline]
     pub fn load(&self) -> f32 {
         self.load.load()
     }
 
-    /// Damage applied by the reported shot.
+    /// Configured direct damage of the projectile.
     #[inline]
     pub fn damage(&self) -> f32 {
         self.damage.load()
     }
 
-    /// Status of the reported launcher subsystem.
+    /// Tick-local runtime status reported for the launcher subsystem.
     #[inline]
     pub fn status(&self) -> SubsystemStatus {
         self.status.load()
     }
 
-    /// Energy consumed by the launcher during the tick.
+    /// Energy consumed by the launcher during the reported tick.
     #[inline]
     pub fn consumed_energy_this_tick(&self) -> f32 {
         self.consumed_energy_this_tick.load()
     }
 
-    /// Ions consumed by the launcher during the tick.
+    /// Ions consumed by the launcher during the reported tick.
     #[inline]
     pub fn consumed_ions_this_tick(&self) -> f32 {
         self.consumed_ions_this_tick.load()
     }
 
-    /// Neutrinos consumed by the launcher during the tick.
+    /// Neutrinos consumed by the launcher during the reported tick.
     #[inline]
     pub fn consumed_neutrinos_this_tick(&self) -> f32 {
         self.consumed_neutrinos_this_tick.load()
