@@ -10,6 +10,9 @@ pub use galaxy::*;
 mod player;
 pub use player::*;
 
+mod railgun_direction;
+pub use railgun_direction::*;
+
 mod team;
 pub use team::*;
 

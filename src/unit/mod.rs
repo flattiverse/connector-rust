@@ -103,11 +103,20 @@ pub use switch_mode::*;
 mod projectile;
 pub use projectile::*;
 
+mod rail;
+pub use rail::*;
+
 mod shot;
 pub use shot::*;
 
 mod target;
 pub use target::*;
+
+mod armor_subsystem_info;
+pub use armor_subsystem_info::*;
+
+mod cargo_subsystem_info;
+pub use cargo_subsystem_info::*;
 
 mod battery_subsystem_info;
 pub use battery_subsystem_info::*;
@@ -126,6 +135,15 @@ pub use dynamic_shot_launcher_subsystem_info::*;
 
 mod hull_subsystem_info;
 pub use hull_subsystem_info::*;
+
+mod resource_miner_subsystem_info;
+pub use resource_miner_subsystem_info::*;
+
+mod railgun_subsystem_info;
+pub use railgun_subsystem_info::*;
+
+mod repair_subsystem_info;
+pub use repair_subsystem_info::*;
 
 mod shield_subsystem_info;
 pub use shield_subsystem_info::*;
@@ -150,7 +168,7 @@ mod internal {
         BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, DominationPoint,
         EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
         IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, Moon, NeutrinoChargePowerUp,
-        Planet, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm,
+        Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm,
         StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
@@ -188,6 +206,7 @@ mod internal {
             UnitKind::ShotChargePowerUp => ShotChargePowerUp::new(cluster, name, reader)?,
             UnitKind::Switch => Switch::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
+            UnitKind::Rail => Rail::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
             UnitKind::Explosion => Explosion::new(cluster, name, reader)?,
             // TODO this should not be necessary

@@ -3,27 +3,31 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractUnit, BatterySubsystemInfo, EnergyCellSubsystemInfo, HullSubsystemInfo, Mobility,
-    ShieldSubsystemInfo, Unit, UnitHierarchy, UnitInternal,
+    AbstractMobileUnit, ArmorSubsystemInfo, BatterySubsystemInfo, CargoSubsystemInfo,
+    EnergyCellSubsystemInfo, HullSubsystemInfo, MobileUnit, MobileUnitInternal,
+    RepairSubsystemInfo, ResourceMinerSubsystemInfo, ShieldSubsystemInfo, Unit, UnitHierarchy,
+    UnitInternal,
 };
-use crate::utils::{Atomic, Let, Readable};
-use crate::{GameError, SubsystemStatus, Vector};
+use crate::utils::{Let, Readable};
+use crate::{GameError, SubsystemStatus};
 use std::sync::{Arc, Weak};
 
 pub(crate) trait PlayerUnitInternal {
     fn parent(&self) -> &dyn PlayerUnit;
 }
 
-/// Represents a player unit.
+/// Visible cluster-side snapshot of one player-owned unit.
+/// This is what the local player can currently see in the world, not the owner-side runtime handle
+/// used to command the local player's own ships.
 #[allow(private_bounds)]
-pub trait PlayerUnit: PlayerUnitInternal + Unit {
-    /// Represents the player which controls the PlayerUnit.
+pub trait PlayerUnit: PlayerUnitInternal + MobileUnit {
+    /// Player who owns the visible unit.
     #[inline]
     fn player(&self) -> Arc<Player> {
         PlayerUnitInternal::parent(self).player()
     }
 
-    /// Represents the ControllableInfo of this PlayerUnit.
+    /// Owner-side controllable roster entry associated with this visible unit.
     #[inline]
     fn controllable_info(&self) -> Arc<ControllableInfo> {
         PlayerUnitInternal::parent(self).controllable_info()
@@ -76,15 +80,37 @@ pub trait PlayerUnit: PlayerUnitInternal + Unit {
     fn shield(&self) -> &ShieldSubsystemInfo {
         PlayerUnitInternal::parent(self).shield()
     }
+
+    /// Visible snapshot of the armor subsystem.
+    #[inline]
+    fn armor(&self) -> &ArmorSubsystemInfo {
+        PlayerUnitInternal::parent(self).armor()
+    }
+
+    /// Visible snapshot of the repair subsystem.
+    #[inline]
+    fn repair(&self) -> &RepairSubsystemInfo {
+        PlayerUnitInternal::parent(self).repair()
+    }
+
+    /// Visible snapshot of the cargo subsystem.
+    #[inline]
+    fn cargo(&self) -> &CargoSubsystemInfo {
+        PlayerUnitInternal::parent(self).cargo()
+    }
+
+    /// Visible snapshot of the resource miner subsystem.
+    #[inline]
+    fn resource_miner(&self) -> &ResourceMinerSubsystemInfo {
+        PlayerUnitInternal::parent(self).resource_miner()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct AbstractPlayerUnit {
-    parent: AbstractUnit,
+    parent: AbstractMobileUnit,
     player: Weak<Player>,
     controllable_info: Weak<ControllableInfo>,
-    position: Atomic<Vector>,
-    movement: Atomic<Vector>,
     energy_battery: BatterySubsystemInfo,
     ion_battery: BatterySubsystemInfo,
     neutrino_battery: BatterySubsystemInfo,
@@ -93,6 +119,10 @@ pub(crate) struct AbstractPlayerUnit {
     neutrino_cell: EnergyCellSubsystemInfo,
     hull: HullSubsystemInfo,
     shield: ShieldSubsystemInfo,
+    armor: ArmorSubsystemInfo,
+    repair: RepairSubsystemInfo,
+    cargo: CargoSubsystemInfo,
+    resource_miner: ResourceMinerSubsystemInfo,
 }
 
 impl AbstractPlayerUnit {
@@ -101,7 +131,7 @@ impl AbstractPlayerUnit {
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Result<Self, GameError> {
-        Ok(AbstractUnit::new(cluster, name).r#let(|parent| {
+        Ok(AbstractMobileUnit::new(cluster, name).r#let(|parent| {
             let player = parent
                 .cluster()
                 .galaxy()
@@ -110,11 +140,11 @@ impl AbstractPlayerUnit {
             let controllable_info =
                 player.get_controllable_info(ControllableInfoId(reader.read_byte()));
 
+            parent.read_position_and_movement(reader);
+
             Self {
                 player: Arc::downgrade(&player),
                 controllable_info: Arc::downgrade(&controllable_info),
-                position: Atomic::from_reader(reader),
-                movement: Atomic::from_reader(reader),
                 energy_battery: BatterySubsystemInfo::default(),
                 ion_battery: BatterySubsystemInfo::default(),
                 neutrino_battery: BatterySubsystemInfo::default(),
@@ -123,6 +153,10 @@ impl AbstractPlayerUnit {
                 neutrino_cell: EnergyCellSubsystemInfo::default(),
                 hull: HullSubsystemInfo::default(),
                 shield: ShieldSubsystemInfo::default(),
+                armor: ArmorSubsystemInfo::default(),
+                repair: RepairSubsystemInfo::default(),
+                cargo: CargoSubsystemInfo::default(),
+                resource_miner: ResourceMinerSubsystemInfo::default(),
                 parent,
             }
         }))
@@ -137,9 +171,6 @@ impl UnitInternal for AbstractPlayerUnit {
 
     fn update_movement(&self, reader: &mut dyn PacketReader) {
         self.parent.update_movement(reader);
-
-        self.position.read(reader);
-        self.movement.read(reader);
     }
 
     fn update_state(&self, reader: &mut dyn PacketReader) {
@@ -204,10 +235,66 @@ impl UnitInternal for AbstractPlayerUnit {
             reader.read_f32(),
             reader.read_f32(),
         );
+
+        self.armor.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        self.repair.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        self.cargo.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        self.resource_miner.update(
+            reader.read_byte() != 0,
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
     }
 }
 
 impl UnitHierarchy for AbstractPlayerUnit {
+    #[inline]
+    fn as_mobile_unit(&self) -> Option<&dyn MobileUnit> {
+        Some(self)
+    }
+
     #[inline]
     fn as_player_unit(&self) -> Option<&dyn PlayerUnit> {
         Some(self)
@@ -216,30 +303,14 @@ impl UnitHierarchy for AbstractPlayerUnit {
 
 impl Unit for AbstractPlayerUnit {
     #[inline]
-    fn position(&self) -> Vector {
-        self.position.load()
-    }
-
-    #[inline]
-    fn movement(&self) -> Vector {
-        self.movement.load()
-    }
-
-    #[inline]
-    fn angle(&self) -> f32 {
-        self.movement.load().angle()
-    }
-
-    #[inline]
-    fn mobility(&self) -> Mobility {
-        Mobility::Mobile
-    }
-
-    #[inline]
     fn team(&self) -> Weak<Team> {
         self.player().team_weak()
     }
 }
+
+impl MobileUnitInternal for AbstractPlayerUnit {}
+
+impl MobileUnit for AbstractPlayerUnit {}
 
 #[forbid(clippy::missing_trait_methods)]
 impl PlayerUnitInternal for AbstractPlayerUnit {
@@ -299,5 +370,25 @@ impl PlayerUnit for AbstractPlayerUnit {
     #[inline]
     fn shield(&self) -> &ShieldSubsystemInfo {
         &self.shield
+    }
+
+    #[inline]
+    fn armor(&self) -> &ArmorSubsystemInfo {
+        &self.armor
+    }
+
+    #[inline]
+    fn repair(&self) -> &RepairSubsystemInfo {
+        &self.repair
+    }
+
+    #[inline]
+    fn cargo(&self) -> &CargoSubsystemInfo {
+        &self.cargo
+    }
+
+    #[inline]
+    fn resource_miner(&self) -> &ResourceMinerSubsystemInfo {
+        &self.resource_miner
     }
 }

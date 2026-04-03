@@ -3,14 +3,18 @@ use crate::network::PacketReader;
 use crate::unit::{
     AbstractPlayerUnit, ClassicShipEngineSubsystemInfo, DynamicScannerSubsystemInfo,
     DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo,
-    DynamicShotMagazineSubsystemInfo, PlayerUnit, PlayerUnitInternal, Unit, UnitHierarchy,
-    UnitInternal, UnitKind,
+    DynamicShotMagazineSubsystemInfo, MobileUnit, MobileUnitInternal, PlayerUnit,
+    PlayerUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Readable;
 use crate::{GameError, SubsystemStatus, Vector};
 use std::sync::{Arc, Weak};
 
-/// A classic ship for noobs.
+/// Visible snapshot of a classic-ship player unit in a cluster.
+/// This mirrors what the local player can currently see about the ship and must not be confused
+/// with the owner-side [`ClassicShipControllable`] used to command the local player's own ship.
+///
+/// [`ClassicShipControllable`]: crate::galaxy_hierarchy::ClassicShipControllable
 #[derive(Debug, Clone)]
 pub struct ClassicShipPlayerUnit {
     parent: AbstractPlayerUnit,
@@ -174,6 +178,11 @@ impl UnitInternal for ClassicShipPlayerUnit {
 
 impl UnitHierarchy for ClassicShipPlayerUnit {
     #[inline]
+    fn as_mobile_unit(&self) -> Option<&dyn MobileUnit> {
+        Some(self)
+    }
+
+    #[inline]
     fn as_player_unit(&self) -> Option<&dyn PlayerUnit> {
         Some(self)
     }
@@ -186,20 +195,13 @@ impl UnitHierarchy for ClassicShipPlayerUnit {
 
 impl Unit for ClassicShipPlayerUnit {
     #[inline]
-    fn radius(&self) -> f32 {
-        14.0
-    }
-
-    #[inline]
-    fn gravity(&self) -> f32 {
-        0.0012
-    }
-
-    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::ClassicShipPlayerUnit
     }
 }
+
+impl MobileUnitInternal for ClassicShipPlayerUnit {}
+impl MobileUnit for ClassicShipPlayerUnit {}
 
 impl PlayerUnitInternal for ClassicShipPlayerUnit {
     #[inline]
