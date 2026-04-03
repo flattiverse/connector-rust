@@ -1,8 +1,7 @@
 use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractSteadyUnit, Planet, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal,
-    UnitKind,
+    AbstractSteadyUnit, SteadyUnit, SteadyUnitInternal, Unit, UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Atomic;
 use crate::GameError;

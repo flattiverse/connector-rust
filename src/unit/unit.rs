@@ -395,6 +395,11 @@ impl UnitHierarchy for AbstractUnit {
     }
 
     #[inline]
+    fn as_nebula(&self) -> Option<&Nebula> {
+        None
+    }
+
+    #[inline]
     fn as_storm(&self) -> Option<&Storm> {
         None
     }
