@@ -102,7 +102,8 @@ impl<T: AsSubsystemBase> SubsystemExt for T {
         &self.as_subsystem_base().name
     }
 
-    /// Whether the controllable actually provides this subsystem.
+    /// True if this controllable actually has the subsystem installed in this slot.
+    /// Missing subsystems keep reporting default values and cannot be commanded.
     #[inline]
     fn exists(&self) -> bool {
         self.as_subsystem_base().exists
