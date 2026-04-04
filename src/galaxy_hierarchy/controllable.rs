@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{
     AsSubsystemBase, BatterySubsystem, ClassicShipControllable, Cluster, EnergyCellSubsystem,
-    HullSubsystem, Identifiable, Indexer, NamedUnit, ShieldSubsystem,
+    HullSubsystem, Identifiable, Indexer, ShieldSubsystem,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -435,12 +435,5 @@ impl Identifiable<ControllableId> for Controllable {
     #[inline]
     fn id(&self) -> ControllableId {
         Controllable::id(self)
-    }
-}
-
-impl NamedUnit for Controllable {
-    #[inline]
-    fn name(&self) -> impl Deref<Target = str> + '_ {
-        Controllable::name(self)
     }
 }

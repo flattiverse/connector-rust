@@ -1,9 +1,6 @@
 mod universal_holder;
 pub use universal_holder::*;
 
-mod universal_holder_arc;
-pub use universal_holder_arc::*;
-
 mod galaxy;
 pub use galaxy::*;
 

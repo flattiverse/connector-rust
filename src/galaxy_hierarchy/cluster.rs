@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer, NamedUnit};
+use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer};
 use crate::unit::Unit;
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
@@ -100,7 +100,7 @@ impl Cluster {
     /// The name of the cluster.
     #[inline]
     pub fn name(&self) -> impl Deref<Target = str> + '_ {
-        NamedUnit::name(self)
+        GuardedArcStringDeref(self.name.load())
     }
 
     /// If true, freshly registered ships spawn in this cluster.
@@ -197,13 +197,6 @@ impl Identifiable<ClusterId> for Cluster {
     #[inline]
     fn id(&self) -> ClusterId {
         self.id
-    }
-}
-
-impl NamedUnit for Cluster {
-    #[inline]
-    fn name(&self) -> impl Deref<Target = str> + '_ {
-        GuardedArcStringDeref(self.name.load())
     }
 }
 
