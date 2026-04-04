@@ -3,6 +3,7 @@ use crate::galaxy_hierarchy::Team;
 use std::sync::Arc;
 
 /// Snapshot of one team inside a configured tournament.
+#[derive(Debug, Clone)]
 pub struct TournamentTeam {
     team: Arc<Team>,
     participants: Vec<Arc<Account>>,
