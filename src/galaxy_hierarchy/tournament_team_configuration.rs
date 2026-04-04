@@ -29,7 +29,7 @@ impl TournamentTeamConfiguration {
 
     /// Persistent account ids assigned to the [`Team`] of this configuration.
     #[inline]
-    pub fn account_ids(&self) -> impl Iterator<Item = AccountId> + '_ {
-        self.account_ids.iter().copied()
+    pub fn account_ids(&self) -> &[AccountId] {
+        &self.account_ids
     }
 }
