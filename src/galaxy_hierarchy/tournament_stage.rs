@@ -1,3 +1,4 @@
+/// Lifecycle stage of a configured tournament.
 #[repr(u8)]
 #[derive(
     Debug,
