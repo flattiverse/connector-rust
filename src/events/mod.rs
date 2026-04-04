@@ -11,7 +11,7 @@ mod galaxy_settings_snapshot;
 pub use galaxy_settings_snapshot::*;
 
 use crate::galaxy_hierarchy::{
-    Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Identifiable, Player, Score, Team,
+    Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Player, Score, Team,
 };
 use crate::unit::{Unit, UnitKind};
 use crate::{SubsystemSlot, SubsystemStatus, Vector};
@@ -123,7 +123,7 @@ impl Display for FlattiverseEvent {
                 team.blue()
             ),
             FlattiverseEventKind::TeamUpdated { team, before } => {
-                write!(f, "Team updated: id={:?}", team.id)?;
+                write!(f, "Team updated: id={:?}", team.id())?;
                 let mut appended_at_least_one_change = false;
 
                 log_change!(appended_at_least_one_change, &*team.name(), before.name, name);

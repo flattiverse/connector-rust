@@ -16,13 +16,11 @@ impl Indexer for TeamId {
     }
 }
 
-/// Represents a team.
+/// Represents one team inside the connected galaxy session.
 #[derive(Debug)]
 pub struct Team {
     galaxy: Weak<Galaxy>,
-    /// The id of the team
-    pub id: TeamId,
-    /// The name of the team.
+    id: TeamId,
     name: ArcSwap<String>,
     red: Atomic<u8>,
     green: Atomic<u8>,
@@ -72,6 +70,18 @@ impl Team {
 
     pub fn deactivate(&self) {
         self.active.store(false);
+    }
+
+    /// The connected galaxy session this team belongs to.
+    #[inline]
+    pub fn galaxy(&self) -> Arc<Galaxy> {
+        self.galaxy.upgrade().unwrap()
+    }
+
+    /// The id of the team.
+    #[inline]
+    pub fn id(&self) -> TeamId {
+        self.id
     }
 
     #[inline]

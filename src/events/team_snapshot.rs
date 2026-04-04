@@ -18,7 +18,7 @@ pub struct TeamSnapshot {
 impl From<&Team> for TeamSnapshot {
     fn from(team: &Team) -> Self {
         Self {
-            id: team.id,
+            id: team.id(),
             name: team.name().to_string(),
             red: team.red(),
             green: team.green(),
