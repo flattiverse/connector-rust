@@ -81,7 +81,9 @@ pub enum GameErrorKind {
     ServerFullOfPlayerKind(Option<PlayerKind>),
     AccountAlreadyLoggedIn,
     SessionsExhausted,
-    InvalidData,
+    InvalidData {
+        message: Option<String>,
+    },
     ConnectionTerminated {
         reason: Option<Arc<str>>,
     },
@@ -180,7 +182,12 @@ impl Display for GameErrorKind {
                 PlayerKind::Unknown(id) => return write!(f, "[0x08] Server is full of things with code {:#02x}.", id)
             },
             GameErrorKind::SessionsExhausted => "[0x0C] Sessions exhausted: You cannot have more than 255 calls in progress.",
-            GameErrorKind::InvalidData => "[0x0D] Invalid data received, protocol mismatch: Terminating connection.",
+            GameErrorKind::InvalidData {
+                message,
+            } => match message {
+                None => "[0x0D] Invalid data received, protocol mismatch: Terminating connection.",
+                Some(message) => message.as_str(),
+            },
             GameErrorKind::ConnectionTerminated { reason } => if let Some(reason) = reason {
                 return write!(f, "[0x0E] Connection has been terminated with reason: {reason}.");
             } else {
@@ -244,7 +251,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             ),
             0x09 => GameErrorKind::AccountAlreadyLoggedIn,
             0x0C => GameErrorKind::SessionsExhausted,
-            0x0D => GameErrorKind::InvalidData,
+            0x0D => GameErrorKind::InvalidData { message: None },
             0x0F => GameErrorKind::ConnectionTerminated { reason: None },
             0x10 => GameErrorKind::SpecifiedElementNotFound,
             0x11 => GameErrorKind::CantCallThisConcurrent,

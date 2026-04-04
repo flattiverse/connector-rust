@@ -20,6 +20,7 @@ pub trait PacketReader {
 
     fn peek_string(&self) -> String;
     fn jump_over_string(&mut self);
+    fn fill_bytes(&mut self, target: &mut [u8]);
 
     fn opt_read_string(&mut self) -> Option<String>;
     fn opt_read_sbyte(&mut self) -> Option<i8>;
@@ -137,6 +138,11 @@ impl PacketReader for BytesMut {
         let length = self.read_byte();
         let length = usize::from(length);
         self.advance(length);
+    }
+
+    #[inline]
+    fn fill_bytes(&mut self, target: &mut [u8]) {
+        self.copy_to_slice(target);
     }
 
     #[inline]

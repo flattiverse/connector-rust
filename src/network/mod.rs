@@ -36,6 +36,9 @@ pub use session::*;
 mod invalid_argument_kind;
 pub use invalid_argument_kind::*;
 
+mod chunked_transfer;
+pub use chunked_transfer::*;
+
 use crate::galaxy_hierarchy::{BuildDisclosure, Galaxy, RuntimeDisclosure};
 use crate::game_error::GameError;
 use crate::{FlattiverseEvent, GameErrorKind};

@@ -1,5 +1,5 @@
-use crate::network::Packet;
-use crate::GameErrorKind;
+use crate::network::{ChunkedTransfer, Packet};
+use crate::{GameErrorKind, ProgressState};
 use arc_swap::ArcSwapOption;
 use async_channel::{Receiver, Sender};
 use std::sync::Arc;
@@ -88,7 +88,7 @@ impl Session {
     }
 
     #[inline]
-    pub async fn response(self) -> Result<Packet, GameErrorKind> {
+    pub(crate) async fn next(&self) -> Result<Packet, GameErrorKind> {
         match self.receiver.recv().await {
             Ok(ResponseData::Packet(packet)) => Ok(packet),
             Ok(ResponseData::CloseReason(reason)) => {
@@ -96,5 +96,18 @@ impl Session {
             }
             Err(_) => Err(GameErrorKind::ConnectionTerminated { reason: None }),
         }
+    }
+
+    #[inline]
+    pub async fn response(self) -> Result<Packet, GameErrorKind> {
+        self.next().await
+    }
+
+    #[inline]
+    pub fn chunked_transfer(
+        self,
+        progress: impl Into<Option<Arc<ProgressState>>>,
+    ) -> ChunkedTransfer {
+        ChunkedTransfer::new(self, progress.into())
     }
 }
