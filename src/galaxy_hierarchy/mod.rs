@@ -90,3 +90,6 @@ pub use dynamic_shot_fabricator_subsystem::*;
 
 mod cost;
 pub use cost::*;
+
+mod tournament_team_configuration;
+pub use tournament_team_configuration::*;

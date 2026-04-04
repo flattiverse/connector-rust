@@ -1,0 +1,2 @@
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
+pub struct AccountId(pub(crate) i32);
