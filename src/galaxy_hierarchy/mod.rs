@@ -91,6 +91,9 @@ pub use dynamic_shot_fabricator_subsystem::*;
 mod cost;
 pub use cost::*;
 
+mod tournament_match_result;
+pub use tournament_match_result::*;
+
 mod tournament_mode;
 pub use tournament_mode::*;
 
