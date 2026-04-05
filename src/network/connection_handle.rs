@@ -1,9 +1,11 @@
 use crate::galaxy_hierarchy::{
     ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId, TeamId,
 };
-use crate::network::{InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler};
+use crate::network::{
+    ChunkedTransfer, InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler,
+};
 use crate::utils::check_name_or_err;
-use crate::{FlattiverseEvent, GameError, GameErrorKind, Vector};
+use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, Vector};
 use async_channel::WeakSender;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
@@ -71,59 +73,46 @@ impl ConnectionHandle {
     }
 
     /// Downloads the player's cached small avatar image bytes.
-    #[inline]
-    pub async fn download_player_small_avatar(
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn player_download_small_avatar(
         &self,
         player: PlayerId,
+        progress_state: Option<Arc<ProgressState>>,
     ) -> Result<Vec<u8>, GameError> {
-        self.download_player_small_avatar_split(player).await?.await
-    }
-
-    /// Downloads the player's cached small avatar image bytes.
-    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn download_player_small_avatar_split(
-        &self,
-        player: PlayerId,
-    ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0xF1);
-        packet.write(|writer| writer.write_byte(player.0));
-
-        let session = self.send_packet_on_new_session(packet).await?;
-
-        Ok(async move {
-            let response = session.response().await?;
-            GameError::check(response, |mut response| {
-                Ok(response.read(|reader| reader.read_remaining_as_bytes()))
-            })
-        })
+        ChunkedTransfer::download_bytes(
+            |offset, maximum_length| {
+                self.send_command_with_payload(0xF1, move |writer| {
+                    writer.write_byte(player.0);
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_length);
+                })
+            },
+            progress_state,
+            "small avatar".to_string(),
+        )
+        .await
     }
 
     /// Downloads the player's cached big avatar image bytes.
     #[inline]
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn download_player_big_avatar(&self, player: PlayerId) -> Result<Vec<u8>, GameError> {
-        self.download_player_big_avatar_split(player).await?.await
-    }
-
-    /// Downloads the player's cached big avatar image bytes.
-    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn download_player_big_avatar_split(
+    pub async fn player_download_big_avatar(
         &self,
         player: PlayerId,
-    ) -> Result<impl Future<Output = Result<Vec<u8>, GameError>>, GameError> {
-        let session = self
-            .send_command_with_payload(0xF2, |writer| {
-                writer.write_byte(player.0);
-            })
-            .await?;
-
-        Ok(async move {
-            let response = session.response().await?;
-            GameError::check(response, |mut response| {
-                Ok(response.read(|reader| reader.read_remaining_as_bytes()))
-            })
-        })
+        progress_state: Option<Arc<ProgressState>>,
+    ) -> Result<Vec<u8>, GameError> {
+        ChunkedTransfer::download_bytes(
+            |offset, maximum_length| {
+                self.send_command_with_payload(0xF2, move |writer| {
+                    writer.write_byte(player.0);
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_length);
+                })
+            },
+            progress_state,
+            "big avatar".to_string(),
+        )
+        .await
     }
 
     /// Sends a chat message to the connected [`crate::galaxy_hierarchy::Team`].
@@ -1061,36 +1050,36 @@ impl ConnectionHandle {
 
     /// Fires the railgun forward.
     #[inline]
-    pub async fn railgun_fire_front(&self, controllable: ControllableId) -> Result<(), GameError> {
-        self.railgun_fire_front_split(controllable).await?.await
+    pub async fn fire_railgun_front(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.fire_railgun_front_split(controllable).await?.await
     }
 
     /// Fires the railgun forward.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn railgun_fire_front_split(
+    pub async fn fire_railgun_front_split(
         &self,
         controllable: ControllableId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.railgun_fire_split(controllable, 0x9A).await
+        self.fire_railgun_split(controllable, 0x9A).await
     }
 
     /// Fires the railgun backward.
     #[inline]
-    pub async fn railgun_fire_back(&self, controllable: ControllableId) -> Result<(), GameError> {
-        self.railgun_fire_back_split(controllable).await?.await
+    pub async fn fire_railgun_back(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.fire_railgun_back_split(controllable).await?.await
     }
 
     /// Fires the railgun backward.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn railgun_fire_back_split(
+    pub async fn fire_railgun_back_split(
         &self,
         controllable: ControllableId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
-        self.railgun_fire_split(controllable, 0x9B).await
+        self.fire_railgun_split(controllable, 0x9B).await
     }
 
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    async fn railgun_fire_split(
+    async fn fire_railgun_split(
         &self,
         controllable: ControllableId,
         command: u8,
@@ -1128,7 +1117,7 @@ impl ConnectionHandle {
     }
 
     #[inline]
-    async fn send_command_with_payload(
+    pub(crate) async fn send_command_with_payload(
         &self,
         command: u8,
         f: impl FnOnce(&mut dyn PacketWriter),
@@ -1141,7 +1130,10 @@ impl ConnectionHandle {
     }
 
     #[inline]
-    async fn send_packet_on_new_session(&self, mut packet: Packet) -> Result<Session, GameError> {
+    pub(crate) async fn send_packet_on_new_session(
+        &self,
+        mut packet: Packet,
+    ) -> Result<Session, GameError> {
         let session = self
             .sessions
             .get()

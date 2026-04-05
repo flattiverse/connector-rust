@@ -111,7 +111,7 @@ impl RailgunSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .railgun_fire_front(controllable.id())
+                .fire_railgun_front(controllable.id())
                 .await
         }
     }
@@ -129,7 +129,7 @@ impl RailgunSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .railgun_fire_back(controllable.id())
+                .fire_railgun_back(controllable.id())
                 .await
         }
     }

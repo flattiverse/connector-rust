@@ -1,38 +1,35 @@
-use crate::network::{PacketReader, Session};
+use crate::network::Session;
 use crate::{GameError, GameErrorKind, ProgressState};
 use std::sync::Arc;
 
-pub struct ChunkedTransfer {
-    session: Session,
-    progress: Option<Arc<ProgressState>>,
-}
+pub struct ChunkedTransfer;
 
 impl ChunkedTransfer {
     pub(crate) const AVATAR_CHUNK_MAXIMUM_LENGTH: u16 = 16384;
     pub(crate) const ACCOUNT_CHUNK_MAXIMUM_COUNT: u16 = 8;
     pub(crate) const EDITABLE_UNIT_CHUNK_MAXIMUM_COUNT: u16 = 16;
 
-    #[inline]
-    pub(crate) fn new(session: Session, progress: Option<Arc<ProgressState>>) -> Self {
-        Self { session, progress }
-    }
-
     pub async fn download_bytes(
-        self,
-        max_chunks: u16,
+        request_writer: impl AsyncFn(i32, u16) -> Result<Session, GameError>,
+        progress_state: Option<Arc<ProgressState>>,
         description: impl Into<String>,
     ) -> Result<Vec<u8>, GameError> {
         let description = description.into();
         let mut offset = 0_usize;
         let mut data = None::<Vec<u8>>;
 
-        if let Some(progress) = &self.progress {
+        if let Some(progress) = &progress_state {
             progress.reset();
         }
 
-        for _ in 0..max_chunks {
+        loop {
+            let response = request_writer(offset as i32, Self::AVATAR_CHUNK_MAXIMUM_LENGTH)
+                .await?
+                .response()
+                .await?;
+
             let (total_length, returned_offset, chunk_length, mut packet) =
-                GameError::check(self.session.next().await?, |mut packet| {
+                GameError::check(response, |mut packet| {
                     let (total_length, returned_offset, chunk_length) = packet.read(|reader| {
                         (
                             reader.read_int32(),
@@ -90,7 +87,7 @@ impl ChunkedTransfer {
             });
 
             offset += chunk_length as usize;
-            if let Some(progress) = &self.progress {
+            if let Some(progress) = &progress_state {
                 progress.report(offset as _, data_slice.len() as _);
             }
 
@@ -104,13 +101,9 @@ impl ChunkedTransfer {
                 }.into());
             }
         }
-
-        Err(GameErrorKind::InvalidData {
-            message: Some(format!("Reached maximum chunk count of {max_chunks}")),
-        }
-        .into())
     }
 
+    /*
     pub async fn download_items<T>(
         self,
         max_count: u16,
@@ -211,4 +204,5 @@ impl ChunkedTransfer {
         }
         .into())
     }
+     */
 }

@@ -3,7 +3,7 @@ use crate::galaxy_hierarchy::{
     RuntimeDisclosure, Score, Team, UniversalArcHolder,
 };
 use crate::utils::Atomic;
-use crate::{GameError, GameErrorKind};
+use crate::{GameError, GameErrorKind, ProgressState};
 use std::sync::{Arc, Weak};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
@@ -16,7 +16,7 @@ impl Indexer for PlayerId {
     }
 }
 
-/// Represents a player in the galaxy.
+/// Represents one player account inside the connected galaxy session.
 #[derive(Debug)]
 pub struct Player {
     galaxy: Weak<Galaxy>,
@@ -91,13 +91,13 @@ impl Player {
         }
     }
 
-    /// The id of the player
+    /// Protocol id of the player.
     #[inline]
     pub fn id(&self) -> PlayerId {
         self.id
     }
 
-    /// The kind of the player.
+    /// Login kind of the player, for example normal player, spectator, or admin.
     #[inline]
     pub fn kind(&self) -> PlayerKind {
         self.kind
@@ -115,24 +115,6 @@ impl Player {
         self.team.clone()
     }
 
-    /// The account name.
-    #[inline]
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Whether the player is still represented in the current galaxy session.
-    #[inline]
-    pub fn active(&self) -> bool {
-        self.active.load()
-    }
-
-    /// Whether the player's connection has already disconnected and only cleanup remains.
-    #[inline]
-    pub fn disconnected(&self) -> bool {
-        self.disconnected.load()
-    }
-
     /// Sends a chat message to this [`Player`].
     #[inline]
     pub async fn chat(&self, message: impl AsRef<str>) -> Result<(), GameError> {
@@ -146,7 +128,10 @@ impl Player {
 
     /// Downloads the player's cached small avatar image bytes.
     #[inline]
-    pub async fn download_small_avatar(&self) -> Result<Vec<u8>, GameError> {
+    pub async fn download_small_avatar(
+        &self,
+        progress_state: impl Into<Option<Arc<ProgressState>>>,
+    ) -> Result<Vec<u8>, GameError> {
         if !self.has_avatar {
             Err(GameErrorKind::AvatarNotAvailable.into())
         } else {
@@ -154,14 +139,17 @@ impl Player {
                 .upgrade()
                 .unwrap()
                 .connection()
-                .download_player_small_avatar(self.id)
+                .player_download_small_avatar(self.id, progress_state.into())
                 .await
         }
     }
 
     /// Downloads the player's cached big avatar image bytes.
     #[inline]
-    pub async fn download_big_avatar(&self) -> Result<Vec<u8>, GameError> {
+    pub async fn download_big_avatar(
+        &self,
+        progress_state: impl Into<Option<Arc<ProgressState>>>,
+    ) -> Result<Vec<u8>, GameError> {
         if !self.has_avatar {
             Err(GameErrorKind::AvatarNotAvailable.into())
         } else {
@@ -169,12 +157,30 @@ impl Player {
                 .upgrade()
                 .unwrap()
                 .connection()
-                .download_player_big_avatar(self.id)
+                .player_download_big_avatar(self.id, progress_state.into())
                 .await
         }
     }
 
-    /// The ping in ms of the player.
+    /// Account display name inside this galaxy session.
+    #[inline]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// True while this player is still represented in the current galaxy session.
+    #[inline]
+    pub fn active(&self) -> bool {
+        self.active.load()
+    }
+
+    /// True when the player's connection has already dropped and only session cleanup remains.
+    #[inline]
+    pub fn disconnected(&self) -> bool {
+        self.disconnected.load()
+    }
+
+    /// Latest ping in milliseconds reported by the server.
     #[inline]
     pub fn ping(&self) -> f32 {
         self.ping.load()
@@ -311,6 +317,12 @@ impl Player {
     #[inline]
     pub fn iter_controllable_infos(&self) -> impl Iterator<Item = Arc<ControllableInfo>> + '_ {
         self.controllable_infos.iter()
+    }
+
+    /// The connected galaxy session this player belongs to.
+    #[inline]
+    pub fn galaxy(&self) -> Arc<Galaxy> {
+        self.galaxy.upgrade().unwrap()
     }
 }
 
