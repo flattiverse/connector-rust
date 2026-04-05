@@ -79,6 +79,9 @@ pub use build_disclosure_aspect::*;
 mod build_disclosure_level;
 pub use build_disclosure_level::*;
 
+mod resource_miner_subsystem;
+pub use resource_miner_subsystem::*;
+
 mod shield_subsystem;
 pub use shield_subsystem::*;
 
