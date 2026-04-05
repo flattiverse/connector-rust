@@ -8,7 +8,9 @@ use std::sync::{Arc, Weak};
 
 #[derive(Debug)]
 pub enum ControllableInfo {
+    /// Roster entry for one classic-ship controllable of a player.
     Classic { base: ControllableInfoBase },
+    /// Roster entry for one new-ship controllable of a player.
     New { base: ControllableInfoBase },
 }
 
