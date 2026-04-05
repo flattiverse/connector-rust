@@ -6,6 +6,7 @@ use crate::unit::UnitKind;
 use crate::{GameError, GameErrorKind};
 use std::sync::{Arc, Weak};
 
+/// Roster entry for one new-ship controllable of a player.
 #[derive(Debug)]
 pub enum ControllableInfo {
     /// Roster entry for one classic-ship controllable of a player.
