@@ -1059,6 +1059,54 @@ impl ConnectionHandle {
         })
     }
 
+    /// Fires the railgun forward.
+    #[inline]
+    pub async fn railgun_fire_front(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.railgun_fire_front_split(controllable).await?.await
+    }
+
+    /// Fires the railgun forward.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn railgun_fire_front_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.railgun_fire_split(controllable, 0x9A).await
+    }
+
+    /// Fires the railgun backward.
+    #[inline]
+    pub async fn railgun_fire_back(&self, controllable: ControllableId) -> Result<(), GameError> {
+        self.railgun_fire_back_split(controllable).await?.await
+    }
+
+    /// Fires the railgun backward.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn railgun_fire_back_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.railgun_fire_split(controllable, 0x9B).await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    async fn railgun_fire_split(
+        &self,
+        controllable: ControllableId,
+        command: u8,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(command, |writer| {
+                writer.write_byte(controllable.0);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     #[inline]
     pub(crate) fn respond_to_ping(&self, challenge: u16) -> Result<(), GameError> {
         let mut packet = Packet::default();

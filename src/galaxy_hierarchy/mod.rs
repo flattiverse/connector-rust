@@ -79,6 +79,9 @@ pub use build_disclosure_aspect::*;
 mod build_disclosure_level;
 pub use build_disclosure_level::*;
 
+mod railgun_subsystem;
+pub use railgun_subsystem::*;
+
 mod repair_subsystem;
 pub use repair_subsystem::*;
 
