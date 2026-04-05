@@ -562,6 +562,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::HullSubsystem { controllable, slot, status, current } => {
                 write!(f, "Hull subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
+            FlattiverseEventKind::NebulaCollectorSubsystem { controllable, slot, status, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, collected_this_tick, collected_hue_this_tick } => {
+                write!(f, "Railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, collected_this_tick={collected_this_tick}, collected_hue_this_tick={collected_hue_this_tick}", controllable.name())
+            }
             FlattiverseEventKind::RailgunSubsystem { controllable, slot, status, direction, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
                 write!(f, "Railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, direction={direction:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
             }
@@ -937,6 +940,27 @@ pub enum FlattiverseEventKind {
         status: SubsystemStatus,
         /// The current hull integrity.
         current: f32,
+    },
+    /// Update of a nebula collector subsystem on your own controllable.
+    NebulaCollectorSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// Collector rate mirrored for the current server tick.
+        rate: f32,
+        /// Energy consumed by the collector during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// Ions consumed by the collector during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// Neutrinos consumed by the collector during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+        /// Nebula amount collected during the current server tick.
+        collected_this_tick: f32,
+        /// Hue of the nebula material collected during the current server tick.
+        collected_hue_this_tick: f32,
     },
     /// Update of a railgun subsystem on your own controllable.
     RailgunSubsystem {

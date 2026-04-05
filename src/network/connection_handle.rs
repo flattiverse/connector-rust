@@ -1096,6 +1096,38 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the target nebula-collection rate on the server.
+    #[inline]
+    pub async fn nebula_collector_set(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.nebula_collector_set_split(controllable, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the target nebula-collection rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn nebula_collector_set_split(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x9C, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_f32(rate);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     #[inline]
     pub(crate) fn respond_to_ping(&self, challenge: u16) -> Result<(), GameError> {
         let mut packet = Packet::default();
