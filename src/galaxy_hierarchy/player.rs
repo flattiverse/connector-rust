@@ -139,7 +139,7 @@ impl Player {
                 .upgrade()
                 .unwrap()
                 .connection()
-                .player_download_small_avatar(self.id, progress_state.into())
+                .download_player_small_avatar(self.id, progress_state.into())
                 .await
         }
     }
@@ -157,7 +157,7 @@ impl Player {
                 .upgrade()
                 .unwrap()
                 .connection()
-                .player_download_big_avatar(self.id, progress_state.into())
+                .download_player_big_avatar(self.id, progress_state.into())
                 .await
         }
     }

@@ -12,7 +12,7 @@ pub use galaxy_settings_snapshot::*;
 
 use crate::galaxy_hierarchy::{
     Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Player, RailgunDirection, Score,
-    Team,
+    Team, Tournament,
 };
 use crate::unit::{Unit, UnitKind};
 use crate::{SubsystemSlot, SubsystemStatus, Vector};
@@ -196,6 +196,20 @@ impl Display for FlattiverseEvent {
                 cluster.start(),
                 cluster.respawn(),
             ),
+
+            FlattiverseEventKind::TournamentCreated { tournament } => write!(
+                f,
+                "Tournament created: {:?} in stage {:?}", tournament.mode(), tournament.stage(),
+            ),
+            FlattiverseEventKind::TournamentUpdated { old_tournament, new_tournament } => write!(
+                f,
+                "Tournament updated: {:?} => {:?}", old_tournament.stage(), new_tournament.stage(),
+            ),
+            FlattiverseEventKind::TournamentRemoved { tournament } => write!(
+                f,
+                "Tournament removed from stage {:?}", tournament.stage(),
+            ),
+            FlattiverseEventKind::TournamentMessage { message } => write!(f, "{message}"),
 
             FlattiverseEventKind::GalaxySettingsUpdated { galaxy, before } => {
                 if let Some(before) = before {
@@ -832,6 +846,28 @@ pub enum FlattiverseEventKind {
     ClusterRemoved {
         /// The removed [Cluster].
         cluster: Arc<Cluster>,
+    },
+
+    /// Raised when the galaxy starts mirroring a newly configured tournament.
+    TournamentCreated {
+        /// Newly mirrored tournament snapshot.
+        tournament: Arc<Tournament>,
+    },
+    /// Raised when the mirrored tournament snapshot changes.
+    TournamentUpdated {
+        /// Tournament snapshot before the update.
+        old_tournament: Arc<Tournament>,
+        /// Tournament snapshot after the update.
+        new_tournament: Arc<Tournament>,
+    },
+    /// Raised when the currently mirrored tournament is removed from the galaxy.
+    TournamentRemoved {
+        /// Last tournament snapshot before removal.
+        tournament: Arc<Tournament>,
+    },
+    /// Server-originated tournament system chat message.
+    TournamentMessage {
+        message: String,
     },
 
     // ------------------- ControllableSubsystemEvents -------------------

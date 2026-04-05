@@ -306,6 +306,9 @@ impl Connection {
                 TeamId(reader.read_byte()),
                 reader.read_string(),
             ),
+            0xD0 => galaxy.tournament_upsert(events, reader),
+            0xD1 => galaxy.tournament_removed(events),
+            0xD2 => galaxy.tournament_message(events, reader.read_string()),
             _ => {
                 warn!("Received packet with unknown command={command:#02x}",);
                 Ok(())

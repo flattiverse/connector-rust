@@ -1,5 +1,7 @@
+use crate::account::{Account, AccountId};
 use crate::galaxy_hierarchy::{
-    ClusterId, ControllableId, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId, TeamId,
+    ClusterId, ControllableId, Galaxy, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId,
+    TeamId, TournamentConfiguration,
 };
 use crate::network::{
     ChunkedTransfer, InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler,
@@ -7,6 +9,7 @@ use crate::network::{
 use crate::utils::check_name_or_err;
 use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, Vector};
 use async_channel::WeakSender;
+use serde::Serialize;
 use std::fmt::{Debug, Formatter};
 use std::future::Future;
 use std::sync::Arc;
@@ -74,7 +77,7 @@ impl ConnectionHandle {
 
     /// Downloads the player's cached small avatar image bytes.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn player_download_small_avatar(
+    pub async fn download_player_small_avatar(
         &self,
         player: PlayerId,
         progress_state: Option<Arc<ProgressState>>,
@@ -96,7 +99,7 @@ impl ConnectionHandle {
     /// Downloads the player's cached big avatar image bytes.
     #[inline]
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn player_download_big_avatar(
+    pub async fn download_player_big_avatar(
         &self,
         player: PlayerId,
         progress_state: Option<Arc<ProgressState>>,
@@ -111,6 +114,49 @@ impl ConnectionHandle {
             },
             progress_state,
             "big avatar".to_string(),
+        )
+        .await
+    }
+
+    /// Downloads the small persisted avatar image of this account.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn download_account_small_avatar(
+        &self,
+        account: AccountId,
+        progress_state: Option<Arc<ProgressState>>,
+    ) -> Result<Vec<u8>, GameError> {
+        ChunkedTransfer::download_bytes(
+            |offset, maximum_length| {
+                self.send_command_with_payload(0xF3, move |writer| {
+                    writer.write_int32(account.0);
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_length);
+                })
+            },
+            progress_state,
+            "small account avatar".to_string(),
+        )
+        .await
+    }
+
+    /// Downloads the large persisted avatar image of this account.
+    #[inline]
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn download_account_big_avatar(
+        &self,
+        account: AccountId,
+        progress_state: Option<Arc<ProgressState>>,
+    ) -> Result<Vec<u8>, GameError> {
+        ChunkedTransfer::download_bytes(
+            |offset, maximum_length| {
+                self.send_command_with_payload(0xF4, move |writer| {
+                    writer.write_int32(account.0);
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_length);
+                })
+            },
+            progress_state,
+            "big account avatar".to_string(),
         )
         .await
     }
@@ -1157,6 +1203,170 @@ impl ConnectionHandle {
             let response = session.response().await?;
             GameError::check_ok(response)
         })
+    }
+
+    /// Configures a tournament from a typed connector-side description.
+    #[inline]
+    pub async fn galaxy_configure_tournament(
+        &self,
+        configuration: &TournamentConfiguration,
+    ) -> Result<(), GameError> {
+        self.galaxy_configure_tournament_split(configuration)
+            .await?
+            .await
+    }
+
+    /// Configures a tournament from a typed connector-side description.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn galaxy_configure_tournament_split(
+        &self,
+        configuration: &TournamentConfiguration,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "PascalCase")]
+        struct Tournament {
+            mode: u8,
+            duration_ticks: u32,
+            #[serde(flatten)]
+            teams: Vec<Team>,
+            #[serde(flatten)]
+            accounts: Vec<Account>,
+            #[serde(flatten)]
+            match_history: Vec<Match>,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "PascalCase")]
+        struct Team {
+            id: u8,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "PascalCase")]
+        struct Account {
+            id: i32,
+        }
+
+        #[derive(Serialize)]
+        #[serde(rename_all = "PascalCase")]
+        struct Match {
+            winner_team_id: u8,
+        }
+
+        let tournament = Tournament {
+            mode: u8::from(configuration.mode()),
+            duration_ticks: configuration.duration_ticks(),
+            teams: configuration
+                .teams()
+                .iter()
+                .map(|t| Team {
+                    id: t.team().id().0,
+                })
+                .collect(),
+            accounts: configuration
+                .teams()
+                .iter()
+                .flat_map(|t| t.account_ids().iter().map(|a| Account { id: a.0 }))
+                .collect(),
+            match_history: configuration
+                .winning_team_ids()
+                .iter()
+                .map(|t| Match {
+                    winner_team_id: t.0,
+                })
+                .collect(),
+        };
+
+        let xml = serde_xml_rs::to_string(&tournament).unwrap();
+        let session = self
+            .send_command_with_payload(0x60, |writer| {
+                writer.write_string_with_len_prefix(&xml);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Advances the configured tournament from preparation into the commencing stage.
+    #[inline]
+    pub async fn galaxy_commence_tournament(&self) -> Result<(), GameError> {
+        self.galaxy_commence_tournament_split().await?.await
+    }
+
+    /// Advances the configured tournament from preparation into the commencing stage.
+    #[inline]
+    pub async fn galaxy_commence_tournament_split(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self.send_command_with_payload(0x61, |_| {}).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Starts a previously commenced tournament so that it enters the running stage.
+    #[inline]
+    pub async fn galaxy_start_tournament(&self) -> Result<(), GameError> {
+        self.galaxy_start_tournament_split().await?.await
+    }
+
+    /// Starts a previously commenced tournament so that it enters the running stage.
+    #[inline]
+    pub async fn galaxy_start_tournament_split(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self.send_command_with_payload(0x62, |_| {}).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Removes the currently configured tournament from the galaxy.
+    #[inline]
+    pub async fn galaxy_cancel_tournament(&self) -> Result<(), GameError> {
+        self.galaxy_cancel_tournament_split().await?.await
+    }
+
+    /// Removes the currently configured tournament from the galaxy.
+    #[inline]
+    pub async fn galaxy_cancel_tournament_split(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self.send_command_with_payload(0x63, |_| {}).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Queries the account list that the server exposes for tournament tooling.
+    #[inline]
+    pub async fn galaxy_query_accounts(
+        &self,
+        galaxy: &Arc<Galaxy>,
+        progress_state: Option<Arc<ProgressState>>,
+    ) -> Result<Vec<Arc<Account>>, GameError> {
+        ChunkedTransfer::download_items(
+            |offset, maximum_length| {
+                self.send_command_with_payload(0x64, move |writer| {
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_length);
+                })
+            },
+            |reader| Ok(Arc::new(Account::try_read(Arc::downgrade(galaxy), reader)?)),
+            progress_state,
+            ChunkedTransfer::ACCOUNT_CHUNK_MAXIMUM_COUNT,
+            "account query result".to_string(),
+        )
+        .await
     }
 
     #[inline]

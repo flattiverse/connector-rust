@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{
     BuildDisclosure, Cluster, ClusterId, Controllable, ControllableId, ControllableInfo,
     ControllableInfoId, GameMode, Player, PlayerId, PlayerKind, RuntimeDisclosure, Team, TeamId,
-    UniversalArcHolder,
+    Tournament, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::unit::UnitKind;
@@ -11,19 +11,13 @@ use crate::{
     ClusterSnapshot, FlattiverseEvent, FlattiverseEventKind, GalaxySettingsSnapshot, GameError,
     GameErrorKind, PlayerUnitDestroyedReason, TeamSnapshot,
 };
-use arc_swap::ArcSwap;
+use arc_swap::{ArcSwap, ArcSwapOption};
 use async_channel::{Receiver, TryRecvError};
 use std::ops::Deref;
 use std::sync::Arc;
 use tracing::instrument;
 
 pub type EventSink = Vec<FlattiverseEvent>;
-
-macro_rules! event {
-    ($sink:expr, $kind:ident $content:tt) => {
-        $sink.push({FlattiverseEventKind::$kind $content}.into());
-    };
-}
 
 #[derive(Debug)]
 pub struct Galaxy {
@@ -67,6 +61,10 @@ pub struct Galaxy {
     events: Receiver<FlattiverseEvent>,
 
     player: Atomic<PlayerId>,
+
+    // --- partial `tournament` >>>
+    pub(crate) tournament: ArcSwapOption<Tournament>,
+    // <<< partial `tournament` ---
 }
 
 impl Galaxy {
@@ -178,6 +176,7 @@ impl Galaxy {
                     connection: handle,
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
+                    tournament: ArcSwapOption::default(),
                 })
                 .also(|galaxy| {
                     galaxy.teams.populate(Team::new(

@@ -1,4 +1,4 @@
-use crate::network::Session;
+use crate::network::{PacketReader, Session};
 use crate::{GameError, GameErrorKind, ProgressState};
 use std::sync::Arc;
 
@@ -46,7 +46,7 @@ impl ChunkedTransfer {
                         "Unexpected {description} chunk offset returned_offset={returned_offset}, expected={offset}"
                     )),
                 }
-                .into());
+                    .into());
             }
 
             let data_slice = match &mut data {
@@ -103,24 +103,29 @@ impl ChunkedTransfer {
         }
     }
 
-    /*
     pub async fn download_items<T>(
-        self,
+        request_writer: impl AsyncFn(i32, u16) -> Result<Session, GameError>,
+        item_reader: impl Fn(&mut dyn PacketReader) -> Result<T, GameError>,
+        progress_state: Option<Arc<ProgressState>>,
         max_count: u16,
         description: impl Into<String>,
-        item_reader: impl Fn(&mut dyn PacketReader) -> Result<T, GameError>,
     ) -> Result<Vec<T>, GameError> {
         let description = description.into();
         let mut offset = 0_usize;
         let mut items = None::<Vec<T>>;
 
-        if let Some(progress) = &self.progress {
+        if let Some(progress) = &progress_state {
             progress.reset();
         }
 
-        for _ in 0..max_count {
+        loop {
+            let response = request_writer(offset as i32, max_count)
+                .await?
+                .response()
+                .await?;
+
             let (total_count, returned_offset, chunk_count, mut packet) =
-                GameError::check(self.session.next().await?, |mut packet| {
+                GameError::check(response, |mut packet| {
                     let (total_count, returned_offset, chunk_count) = packet.read(|reader| {
                         (
                             reader.read_int32(),
@@ -184,7 +189,7 @@ impl ChunkedTransfer {
             })?;
 
             offset += chunk_count as usize;
-            if let Some(progress) = &self.progress {
+            if let Some(progress) = &progress_state {
                 progress.report(offset as _, items_vec.len() as _);
             }
 
@@ -198,11 +203,5 @@ impl ChunkedTransfer {
                 }.into());
             }
         }
-
-        Err(GameErrorKind::InvalidData {
-            message: Some(format!("Reached maximum item count of {max_count}")),
-        }
-        .into())
     }
-     */
 }

@@ -1,7 +1,14 @@
 mod universal_holder;
 pub use universal_holder::*;
 
+macro_rules! event {
+    ($sink:expr, $kind:ident $content:tt) => {
+        $sink.push({FlattiverseEventKind::$kind $content}.into());
+    };
+}
+
 mod galaxy;
+mod galaxy_tournament;
 pub use galaxy::*;
 
 mod player;
