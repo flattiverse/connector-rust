@@ -9,6 +9,7 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct ShieldSubsystem {
     base: SubsystemBase,
+    maximum: Atomic<f32>,
     current: Atomic<f32>,
     active: Atomic<bool>,
     rate: Atomic<f32>,
@@ -31,6 +32,7 @@ impl ShieldSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
+            maximum: Atomic::from(if exists { Self::MAXIMUM_VALUE } else { 0.0 }),
             current: Default::default(),
             active: Default::default(),
             rate: Default::default(),
@@ -53,11 +55,7 @@ impl ShieldSubsystem {
     /// The maximum shield integrity.
     #[inline]
     pub fn maximum(&self) -> f32 {
-        if self.exists() {
-            Self::MAXIMUM_VALUE
-        } else {
-            0.0
-        }
+        self.maximum.load()
     }
 
     /// The current shield integrity.
@@ -76,6 +74,21 @@ impl ShieldSubsystem {
     #[inline]
     pub fn maximum_rate(&self) -> f32 {
         Self::MAXIMUM_RATE_VALUE
+    }
+
+    #[inline]
+    pub(crate) fn set_maximum(&self, maximum: f32) {
+        let maximum = if self.exists() {
+            self.maximum.store(maximum);
+            maximum
+        } else {
+            self.maximum.store(0.0);
+            0.0
+        };
+
+        if self.current() > maximum {
+            self.current.store(maximum);
+        }
     }
 
     /// Whether shield loading is active.
