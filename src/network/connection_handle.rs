@@ -956,6 +956,37 @@ impl ConnectionHandle {
         })
     }
 
+    /// Requests a worm-hole jump on the server.
+    #[inline]
+    pub async fn jump_drive_subsystem_jump(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.jump_drive_subsystem_jump_split(controllable)
+            .await?
+            .await
+    }
+
+    /// Requests a worm-hole jump on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn jump_drive_subsystem_jump_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x95);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Sets the shot fabrication rate on the server.
     #[inline]
     pub async fn dynamic_shot_fabricator_subsystem_set(

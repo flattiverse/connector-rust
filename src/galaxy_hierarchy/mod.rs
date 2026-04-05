@@ -79,6 +79,9 @@ pub use build_disclosure_aspect::*;
 mod build_disclosure_level;
 pub use build_disclosure_level::*;
 
+mod jump_drive_subsystem;
+pub use jump_drive_subsystem::*;
+
 mod nebula_collector_subsystem;
 pub use nebula_collector_subsystem::*;
 
