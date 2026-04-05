@@ -899,6 +899,40 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the repair rate on the server.
+    #[inline]
+    pub async fn repair_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.repair_subsystem_set_split(controllable, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the repair rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn repair_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let mut packet = Packet::default();
+        packet.header_mut().set_command(0x93);
+        packet.write(|writer| {
+            writer.write_byte(controllable.0);
+            writer.write_f32(rate);
+        });
+
+        let session = self.send_packet_on_new_session(packet).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Sets the mining rate on the server.
     #[inline]
     pub async fn resource_miner_subsystem_set(

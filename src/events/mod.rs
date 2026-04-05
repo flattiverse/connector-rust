@@ -561,6 +561,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::HullSubsystem { controllable, slot, status, current } => {
                 write!(f, "Hull subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
+            FlattiverseEventKind::RepairSubsystem { controllable, slot, status, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, repaired_hull_this_tick } => {
+                write!(f, "Repair subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, repaired_hull_this_tick={repaired_hull_this_tick}", controllable.name())
+            }
             FlattiverseEventKind::ResourceMinerSubsystem { controllable, slot, status, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, mined_metal_this_tick, mined_carbon_this_tick, mined_hydrogen_this_tick, mined_silicon_this_tick } => {
                 write!(f, "Resource miner subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, mined_metal_this_tick={mined_metal_this_tick}, mined_carbon_this_tick={mined_carbon_this_tick}, mined_hydrogen_this_tick={mined_hydrogen_this_tick}, mined_silicon_this_tick={mined_silicon_this_tick}", controllable.name())
             }
@@ -930,6 +933,25 @@ pub enum FlattiverseEventKind {
         status: SubsystemStatus,
         /// The current hull integrity.
         current: f32,
+    },
+    /// Update of a repair subsystem on your own controllable.
+    RepairSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// Configured hull repair rate for the tick.
+        rate: f32,
+        /// Energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// Ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// Neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+        /// Hull repaired during the current tick.
+        repaired_hull_this_tick: f32,
     },
     /// Update of a resource miner subsystem on your own controllable.
     ResourceMinerSubsystem {

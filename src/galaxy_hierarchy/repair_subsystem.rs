@@ -6,24 +6,21 @@ use crate::{
 };
 use std::sync::Weak;
 
-/// Shield subsystem of a controllable.
+/// Hull repair subsystem of a controllable.
 #[derive(Debug)]
-pub struct ShieldSubsystem {
+pub struct RepairSubsystem {
     base: SubsystemBase,
-    maximum: Atomic<f32>,
-    current: Atomic<f32>,
-    active: Atomic<bool>,
     rate: Atomic<f32>,
     consumed_energy_this_tick: Atomic<f32>,
     consumed_ions_this_tick: Atomic<f32>,
     consumed_neutrinos_this_tick: Atomic<f32>,
+    repaired_hull_this_tick: Atomic<f32>,
 }
 
-impl ShieldSubsystem {
-    const MAXIMUM_VALUE: f32 = 20.0;
+impl RepairSubsystem {
     const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const MAXIMUM_RATE_VALUE: f32 = 0.125;
-    const ENERGY_SCALE: f32 = 1600.0;
+    const MAXIMUM_RATE_VALUE: f32 = 0.1;
+    const ENERGY_SCALE: f32 = 1_600.0;
 
     pub(crate) fn new(
         controllable: Weak<Controllable>,
@@ -33,72 +30,36 @@ impl ShieldSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
-            maximum: Atomic::from(if exists { Self::MAXIMUM_VALUE } else { 0.0 }),
-            current: Default::default(),
-            active: Default::default(),
             rate: Default::default(),
             consumed_energy_this_tick: Default::default(),
             consumed_ions_this_tick: Default::default(),
             consumed_neutrinos_this_tick: Default::default(),
+            repaired_hull_this_tick: Default::default(),
         }
     }
 
-    #[inline]
-    pub(crate) fn create_classic_ship_shield(controllable: Weak<Controllable>) -> Self {
+    pub(crate) fn create_classic_ship_repair(controllable: Weak<Controllable>) -> Self {
         Self::new(
             controllable,
-            "Shield".to_string(),
+            "Repair".to_string(),
             true,
-            SubsystemSlot::Shield,
+            SubsystemSlot::Repair,
         )
     }
 
-    /// The maximum shield integrity.
-    #[inline]
-    pub fn maximum(&self) -> f32 {
-        self.maximum.load()
-    }
-
-    /// The current shield integrity.
-    #[inline]
-    pub fn current(&self) -> f32 {
-        self.current.load()
-    }
-
-    /// The minimum configurable shield load rate.
+    /// The minimum configurable repair rate.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
         Self::MINIMUM_RATE_VALUE
     }
 
-    /// The maximum configurable shield load rate.
+    /// The maximum configurable repair rate.
     #[inline]
     pub fn maximum_rate(&self) -> f32 {
         Self::MAXIMUM_RATE_VALUE
     }
 
-    #[inline]
-    pub(crate) fn set_maximum(&self, maximum: f32) {
-        let maximum = if self.exists() {
-            self.maximum.store(maximum);
-            maximum
-        } else {
-            self.maximum.store(0.0);
-            0.0
-        };
-
-        if self.current() > maximum {
-            self.current.store(maximum);
-        }
-    }
-
-    /// Whether shield loading is active.
-    #[inline]
-    pub fn active(&self) -> bool {
-        self.active.load()
-    }
-
-    /// The configured shield load rate per tick.
+    /// The configured hull repair rate per tick.
     #[inline]
     pub fn rate(&self) -> f32 {
         self.rate.load()
@@ -122,7 +83,13 @@ impl ShieldSubsystem {
         self.consumed_neutrinos_this_tick.load()
     }
 
-    /// Calculates the resource costs for one shield loading tick at the specified rate.
+    /// The amount of hull repaired during the current server tick.
+    #[inline]
+    pub fn repaired_hull_this_tick(&self) -> f32 {
+        self.repaired_hull_this_tick.load()
+    }
+
+    /// Calculates the resource costs for one repair tick at the specified rate.
     pub fn calculate_cost(&self, rate: f32) -> Option<Cost> {
         if !self.exists() {
             None
@@ -140,7 +107,7 @@ impl ShieldSubsystem {
         }
     }
 
-    /// Sets the shield load rate on the server.
+    /// Sets the repair rate on the server.
     pub async fn set(&self, rate: f32) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -163,75 +130,36 @@ impl ShieldSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .shield_subsystem_set(controllable.id(), rate)
-                .await
-        }
-    }
-
-    /// Turns shield loading on.
-    pub async fn on(&self) -> Result<(), GameError> {
-        let controllable = self.controllable();
-
-        if !controllable.active() || !self.exists() {
-            Err(GameErrorKind::SpecifiedElementNotFound.into())
-        } else if !controllable.alive() {
-            Err(GameErrorKind::YouNeedToContinueFirst.into())
-        } else {
-            controllable
-                .cluster()
-                .galaxy()
-                .connection()
-                .shield_subsystem_on(controllable.id())
-                .await
-        }
-    }
-
-    /// Turns shield loading off.
-    pub async fn off(&self) -> Result<(), GameError> {
-        let controllable = self.controllable();
-
-        if !controllable.active() || !self.exists() {
-            Err(GameErrorKind::SpecifiedElementNotFound.into())
-        } else if !controllable.alive() {
-            Err(GameErrorKind::YouNeedToContinueFirst.into())
-        } else {
-            controllable
-                .cluster()
-                .galaxy()
-                .connection()
-                .shield_subsystem_off(controllable.id())
+                .repair_subsystem_set(controllable.id(), rate)
                 .await
         }
     }
 
     pub(crate) fn reset_runtime(&self) {
-        self.current.store(0.0);
-        self.active.store(false);
-        self.rate.store(0.0);
-        self.consumed_energy_this_tick.store(0.0);
-        self.consumed_ions_this_tick.store(0.0);
-        self.consumed_neutrinos_this_tick.store(0.0);
+        self.rate.store_default();
+        self.consumed_energy_this_tick.store_default();
+        self.consumed_ions_this_tick.store_default();
+        self.consumed_neutrinos_this_tick.store_default();
+        self.repaired_hull_this_tick.store_default();
         self.base.reset_runtime_status();
     }
 
     pub(crate) fn update_runtime(
         &self,
-        current: f32,
-        active: bool,
         rate: f32,
         status: SubsystemStatus,
         consumed_energy_this_tick: f32,
         consumed_ions_this_tick: f32,
         consumed_neutrinos_this_tick: f32,
+        repaired_hull_this_tick: f32,
     ) {
-        self.current.store(current);
-        self.active.store(active);
         self.rate.store(rate);
         self.consumed_energy_this_tick
             .store(consumed_energy_this_tick);
         self.consumed_ions_this_tick.store(consumed_ions_this_tick);
         self.consumed_neutrinos_this_tick
             .store(consumed_neutrinos_this_tick);
+        self.repaired_hull_this_tick.store(repaired_hull_this_tick);
         self.base.update_runtime_status(status);
     }
 
@@ -240,16 +168,15 @@ impl ShieldSubsystem {
             None
         } else {
             Some(
-                FlattiverseEventKind::ShieldSubsystem {
+                FlattiverseEventKind::RepairSubsystem {
                     controllable: self.controllable(),
                     slot: self.slot(),
                     status: self.status(),
-                    current: self.current(),
-                    active: self.active(),
                     rate: self.rate(),
                     consumed_energy_this_tick: self.consumed_energy_this_tick(),
                     consumed_ions_this_tick: self.consumed_ions_this_tick(),
                     consumed_neutrinos_this_tick: self.consumed_neutrinos_this_tick(),
+                    repaired_hull_this_tick: self.repaired_hull_this_tick(),
                 }
                 .into(),
             )
@@ -257,7 +184,7 @@ impl ShieldSubsystem {
     }
 }
 
-impl AsRef<SubsystemBase> for ShieldSubsystem {
+impl AsRef<SubsystemBase> for RepairSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         &self.base
