@@ -11,9 +11,14 @@ pub struct JumpDriveSubsystem {
 }
 
 impl JumpDriveSubsystem {
-    pub(crate) fn new(controllable: Weak<Controllable>, exists: bool, slot: SubsystemSlot) -> Self {
+    pub(crate) fn new(controllable: Weak<Controllable>, exists: bool) -> Self {
         Self {
-            base: SubsystemBase::new(controllable, "JumpDrive".to_string(), exists, slot),
+            base: SubsystemBase::new(
+                controllable,
+                "JumpDrive".to_string(),
+                exists,
+                SubsystemSlot::JumpDrive,
+            ),
             energy_cost: Atomic::from(if exists { 1_000.0 } else { 0.0 }),
         }
     }

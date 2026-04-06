@@ -1,7 +1,8 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, DynamicShotMagazineSubsystem, SubsystemBase, SubsystemExt,
+    AsSubsystemBase, Controllable, DynamicShotMagazineSubsystem, SubsystemBase, SubsystemExt,
 };
-use crate::{FlattiverseEvent, FlattiverseEventKind, SubsystemStatus};
+use crate::{FlattiverseEvent, FlattiverseEventKind, SubsystemSlot, SubsystemStatus};
+use std::sync::Weak;
 
 /// Dynamic interceptor magazine subsystem of a controllable.
 #[derive(Debug)]
@@ -10,6 +11,17 @@ pub struct DynamicInterceptorMagazineSubsystem {
 }
 
 impl DynamicInterceptorMagazineSubsystem {
+    pub(crate) fn new(
+        controllable: Weak<Controllable>,
+        name: String,
+        exists: bool,
+        slot: SubsystemSlot,
+    ) -> Self {
+        Self {
+            base: DynamicShotMagazineSubsystem::new(controllable, name, exists, slot),
+        }
+    }
+
     /// The magazine capacity in shots.
     #[inline]
     pub fn maximum_shots(&self) -> f32 {

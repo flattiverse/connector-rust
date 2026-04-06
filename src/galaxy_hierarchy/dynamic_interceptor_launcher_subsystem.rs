@@ -1,11 +1,13 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, Cost, DynamicShotLauncherSubsystem, RangeTolerance, SubsystemBase,
-    SubsystemExt,
+    AsSubsystemBase, Controllable, Cost, DynamicShotLauncherSubsystem, RangeTolerance,
+    SubsystemBase, SubsystemExt,
 };
 use crate::network::InvalidArgumentKind;
 use crate::{
-    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemStatus, Vector,
+    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
+    SubsystemStatus, Vector,
 };
+use std::sync::Weak;
 
 /// Dynamic interceptor launcher subsystem of a controllable.
 #[derive(Debug)]
@@ -14,6 +16,17 @@ pub struct DynamicInterceptorLauncherSubsystem {
 }
 
 impl DynamicInterceptorLauncherSubsystem {
+    pub(crate) fn new(
+        controllable: Weak<Controllable>,
+        name: String,
+        exists: bool,
+        slot: SubsystemSlot,
+    ) -> Self {
+        Self {
+            base: DynamicShotLauncherSubsystem::new(controllable, name, exists, slot),
+        }
+    }
+
     /// The minimum allowed relative shot speed.
     #[inline]
     pub fn minimum_relative_movement(&self) -> f32 {

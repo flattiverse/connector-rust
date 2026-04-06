@@ -5,7 +5,7 @@ use crate::galaxy_hierarchy::{
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
-use crate::utils::{Also, Atomic, Readable};
+use crate::utils::{Also, Atomic, Let, Readable};
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
     SubsystemStatus, Vector,
@@ -66,7 +66,7 @@ impl Controllable {
         reader: &mut dyn PacketReader,
     ) -> Result<Arc<Self>, GameError> {
         match kind {
-            UnitKind::ClassicShipPlayerUnit => Ok(Arc::new(Self {
+            UnitKind::ClassicShipPlayerUnit => Ok(Self {
                 name,
                 id,
                 cluster: ArcSwapWeak::new(Arc::downgrade(cluster)),
@@ -116,7 +116,16 @@ impl Controllable {
                 specialization: ControllableSpecialization::ClassicShip(
                     ClassicShipControllable::new(),
                 ),
+            }
+            .also(|this| {
+                this.read_initial_state(reader);
+                match &mut this.specialization {
+                    ControllableSpecialization::ClassicShip(c) => {
+                        c.read_initial_state(reader);
+                    }
+                }
             })
+            .r#let(Arc::new)
             .also(|this| {
                 // finish the initialization of cross-references
                 for subsystem in [
@@ -387,10 +396,7 @@ impl Controllable {
             .await
     }
 
-    pub(crate) fn read_initial_state(
-        &self,
-        reader: &mut dyn PacketReader,
-    ) -> Result<(), GameError> {
+    pub(crate) fn read_initial_state(&self, reader: &mut dyn PacketReader) {
         let _energy_battery_exists = reader.read_byte();
         self.energy_battery.set_maximum(reader.read_f32());
         self.energy_battery.update_runtime(
@@ -497,8 +503,6 @@ impl Controllable {
             reader.read_f32(),
             reader.read_f32(),
         );
-
-        Ok(())
     }
 
     pub(crate) fn deceased(&self) {
@@ -608,7 +612,7 @@ impl Controllable {
         self.neutrino_cell.reset_runtime();
         self.hull.reset_runtime();
         self.shield.reset_runtime();
-        self.shield.reset_runtime();
+        self.armor.reset_runtime();
         self.repair.reset_runtime();
         self.cargo.reset_runtime();
         self.resource_miner.reset_runtime();
