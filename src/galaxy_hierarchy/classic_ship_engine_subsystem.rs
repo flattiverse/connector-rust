@@ -25,7 +25,7 @@ impl ClassicShipEngineSubsystem {
                 controllable,
                 "Engine".to_string(),
                 true,
-                SubsystemSlot::PrimaryEnergy,
+                SubsystemSlot::PrimaryEngine,
             ),
             maximum: 0.1,
             current: Atomic::default(),

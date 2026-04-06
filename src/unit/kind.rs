@@ -79,7 +79,7 @@ pub enum UnitKind {
     /// Represents a classical player ship.
     ClassicShipPlayerUnit = 0xF0,
     /// Represents a new style player ship.
-    NewShipPlayerUnit = 0xF1,
+    ModernShipPlayerUnit = 0xF1,
     /// Represents an interceptor explosion.
     InterceptorExplosion = 0xFE,
     /// Explosion unit.

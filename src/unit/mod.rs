@@ -150,6 +150,9 @@ pub use battery_subsystem_info::*;
 mod classic_ship_engine_subsystem_info;
 pub use classic_ship_engine_subsystem_info::*;
 
+mod modern_ship_engine_subsystem_info;
+pub use modern_ship_engine_subsystem_info::*;
+
 mod energy_cell_subsystem_info;
 pub use energy_cell_subsystem_info::*;
 

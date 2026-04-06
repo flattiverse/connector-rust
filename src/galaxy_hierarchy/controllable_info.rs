@@ -14,7 +14,7 @@ pub enum ControllableInfo {
     /// Roster entry for one classic-ship controllable of a player.
     Classic { base: ControllableInfoBase },
     /// Roster entry for one new-ship controllable of a player.
-    New { base: ControllableInfoBase },
+    Modern { base: ControllableInfoBase },
 }
 
 impl ControllableInfo {
@@ -65,7 +65,7 @@ impl ControllableInfo {
     pub fn kind(&self) -> UnitKind {
         match self {
             ControllableInfo::Classic { .. } => UnitKind::ClassicShipPlayerUnit,
-            ControllableInfo::New { .. } => UnitKind::NewShipPlayerUnit,
+            ControllableInfo::Modern { .. } => UnitKind::ModernShipPlayerUnit,
         }
     }
 
@@ -84,7 +84,7 @@ impl ControllableInfo {
     pub fn base(&self) -> &ControllableInfoBase {
         match self {
             ControllableInfo::Classic { base, .. } => base,
-            ControllableInfo::New { base, .. } => base,
+            ControllableInfo::Modern { base, .. } => base,
         }
     }
 
@@ -99,7 +99,7 @@ impl ControllableInfo {
         let base = ControllableInfoBase::new(galaxy, player, id, name, alive);
         match kind {
             UnitKind::ClassicShipPlayerUnit => Ok(Self::Classic { base }),
-            UnitKind::NewShipPlayerUnit => Ok(Self::New { base }),
+            UnitKind::ModernShipPlayerUnit => Ok(Self::Modern { base }),
             _ => Err(GameErrorKind::InvalidArgument {
                 reason: InvalidArgumentKind::Unknown(Default::default()),
                 parameter: "kind".to_string(),
