@@ -4,6 +4,7 @@ use crate::galaxy_hierarchy::{
 use crate::game_error::GameError;
 use crate::network::{ConnectionHandle, Packet, SessionId};
 use crate::unit::UnitKind;
+use crate::utils::Readable;
 use crate::{FlattiverseEvent, FlattiverseEventKind, GameErrorKind, PlayerUnitDestroyedReason};
 use async_channel::Sender;
 use num_enum::FromPrimitive;
@@ -191,7 +192,7 @@ impl Connection {
             0x20 => galaxy.controllable_info_new(
                 events,
                 PlayerId(reader.read_byte()),
-                UnitKind::from_primitive(reader.read_byte()),
+                UnitKind::read(reader),
                 ControllableInfoId(reader.read_byte()),
                 reader.read_string(),
                 reader.read_boolean(),
@@ -211,7 +212,7 @@ impl Connection {
                 events,
                 PlayerId(reader.read_byte()),
                 ControllableInfoId(reader.read_byte()),
-                UnitKind::from_primitive(reader.read_byte()),
+                UnitKind::read(reader),
                 reader.read_string(),
             ),
             0x24 => galaxy.controllable_info_dead_by_player_unit(
@@ -242,7 +243,7 @@ impl Connection {
             ),
             0x80 => galaxy.controllable_new(
                 events,
-                UnitKind::from_primitive(reader.read_byte()),
+                UnitKind::read(reader),
                 ControllableId(reader.read_byte()),
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
@@ -259,7 +260,7 @@ impl Connection {
             0x8E => galaxy.power_up_collected(
                 events,
                 ControllableId(reader.read_byte()),
-                UnitKind::from_primitive(reader.read_byte()),
+                UnitKind::read(reader),
                 reader.read_string(),
                 reader.read_f32(),
                 reader.read_f32(),
@@ -268,7 +269,7 @@ impl Connection {
                 events,
                 ClusterId(reader.read_byte()),
                 reader.read_string(),
-                UnitKind::from_primitive(reader.read_byte()),
+                UnitKind::read(reader),
                 reader,
             ),
             0x31 => galaxy.unit_updated_movement(

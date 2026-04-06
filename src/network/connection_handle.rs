@@ -1,12 +1,13 @@
 use crate::account::{Account, AccountId};
 use crate::galaxy_hierarchy::{
-    ClusterId, ControllableId, Crystal, CrystalGrade, Galaxy, PlayerId, Region, RegionTeam,
-    Regions, ScannerSubsystemId, TeamId, TournamentConfiguration,
+    ClusterId, ControllableId, Crystal, CrystalGrade, EditableUnitSummary, Galaxy, PlayerId,
+    Region, RegionTeam, Regions, ScannerSubsystemId, TeamId, TournamentConfiguration,
 };
 use crate::network::{
     ChunkedTransfer, InvalidArgumentKind, Packet, PacketReader, PacketWriter, Session,
     SessionHandler,
 };
+use crate::unit::UnitKind;
 use crate::utils::{check_name_or_err, Readable};
 use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, Vector};
 use async_channel::WeakSender;
@@ -661,6 +662,37 @@ impl ConnectionHandle {
                 })
             })
         })
+    }
+
+    #[instrument(
+        level = "debug",
+        skip(self, progress_state),
+        err(Display, level = "warn")
+    )]
+    pub async fn query_cluster_editable_units(
+        &self,
+        cluster: ClusterId,
+        progress_state: Option<Arc<ProgressState>>,
+    ) -> Result<Vec<EditableUnitSummary>, GameError> {
+        ChunkedTransfer::download_items(
+            |offset, maximum_count| {
+                self.send_command_with_payload(0x27, move |writer| {
+                    writer.write_byte(cluster.0);
+                    writer.write_int32(offset);
+                    writer.write_uint16(maximum_count);
+                })
+            },
+            |reader| {
+                Ok(EditableUnitSummary {
+                    kind: UnitKind::read(reader),
+                    name: reader.read_string(),
+                })
+            },
+            progress_state,
+            ChunkedTransfer::EDITABLE_UNIT_CHUNK_MAXIMUM_COUNT,
+            "editable unit query result",
+        )
+        .await
     }
 
     /// Creates or updates a single editable map unit in the cluster.
@@ -1674,7 +1706,11 @@ impl ConnectionHandle {
     }
 
     /// Queries the account list that the server exposes for tournament tooling.
-    #[inline]
+    #[instrument(
+        level = "debug",
+        skip(self, galaxy, progress_state),
+        err(Display, level = "warn")
+    )]
     pub async fn galaxy_query_accounts(
         &self,
         galaxy: &Arc<Galaxy>,

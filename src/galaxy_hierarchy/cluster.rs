@@ -1,8 +1,8 @@
-use crate::galaxy_hierarchy::{Galaxy, Identifiable, Indexer};
+use crate::galaxy_hierarchy::{EditableUnitSummary, Galaxy, Identifiable, Indexer};
 use crate::unit::Unit;
 use crate::utils::Atomic;
 use crate::utils::GuardedArcStringDeref;
-use crate::GameError;
+use crate::{GameError, ProgressState};
 use arc_swap::ArcSwap;
 use crossbeam_skiplist::SkipMap;
 use serde::{Deserialize, Serialize};
@@ -158,6 +158,18 @@ impl Cluster {
         self.galaxy()
             .connection()
             .query_cluster_regions(self.id)
+            .await
+    }
+
+    /// Queries all editable units of this cluster, including currently invisible ones like inactive power-ups.
+    #[inline]
+    pub async fn query_editable_units(
+        &self,
+        progress_state: impl Into<Option<Arc<ProgressState>>>,
+    ) -> Result<Vec<EditableUnitSummary>, GameError> {
+        self.galaxy()
+            .connection()
+            .query_cluster_editable_units(self.id, progress_state.into())
             .await
     }
 

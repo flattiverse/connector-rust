@@ -1,3 +1,7 @@
+use crate::network::{PacketReader, PacketWriter};
+use crate::utils::{Readable, Writable};
+use num_enum::FromPrimitive;
+
 /// Specifies of which kind a unit is.
 #[repr(u8)]
 #[derive(
@@ -88,5 +92,19 @@ impl UnitKind {
     #[inline]
     pub fn iter() -> impl Iterator<Item = Self> {
         <Self as strum::IntoEnumIterator>::iter()
+    }
+}
+
+impl Readable for UnitKind {
+    #[inline]
+    fn read(reader: &mut dyn PacketReader) -> Self {
+        Self::from_primitive(reader.read_byte())
+    }
+}
+
+impl Writable for UnitKind {
+    #[inline]
+    fn write(&self, writer: &mut dyn PacketWriter) {
+        writer.write_byte(u8::from(*self))
     }
 }
