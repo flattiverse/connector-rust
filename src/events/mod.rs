@@ -33,11 +33,14 @@ struct Inner {
 pub struct FlattiverseEvent(Arc<Inner>);
 
 impl FlattiverseEvent {
+    /// [`SystemTime`] timestamp when this event instance was created inside the connector.
+    /// This is a local connector timestamp, not the authoritative server tick time.
     #[inline]
     pub fn timestamp(&self) -> SystemTime {
         self.0.stamp
     }
 
+    /// Connector-side event classification used for event dispatch and switch statements.
     #[inline]
     pub fn kind(&self) -> &FlattiverseEventKind {
         &self.0.kind
@@ -687,110 +690,117 @@ impl Display for FlattiverseEvent {
     }
 }
 
-/// Specifies the various event kinds for a better match experience.
+/// Connector-side classification of [`FlattiverseEvent`].
+/// These values are meant for application-side dispatch and do not directly mirror wire-protocol
+/// packet opcodes.
 #[derive(Debug)]
 pub enum FlattiverseEventKind {
-    /// A player has joined the galaxy
+    /// Raised when a player snapshot becomes known to the connector.
     PlayerJoined {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
     },
     /// Is raised when a player score has been updated.
     PlayerScoreUpdated {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The player score before the update.
         before: Score,
     },
-    /// This event is raised when a player's connection has disconnected but the player is still
-    /// present for cleanup.
+    /// Raised when a player's connection has dropped but the player snapshot is still present for
+    /// cleanup.
     PlayerDisconnected {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
     },
-    /// A player has parted the galaxy.
+    /// Raised when a player snapshot is removed from the local galaxy mirror.
     PlayerParted {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
     },
-    /// A PlayerUnit has been registered
+    /// Raised when a player registers a new public controllable entry.
     ControllableInfoRegistered {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
     },
-    /// A PlayerUnit did continue the game.
+    /// Raised when a public controllable entry becomes alive in the world again.
     ControllableInfoContinued {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
     },
-    /// A PlayerUnit was destroyed.
+    /// Raised when a public controllable entry dies.
     ControllableInfoDestroyed {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
     },
-    /// A PlayerUnit got destroyed by collision with a neutral unit.
+    /// Raised when one controllable runtime is destroyed by colliding with a neutral world unit.
     ControllableInfoDestroyedByNeutralCollision {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
-        /// The UnitKind of the unit the PlayerUnit collided with.
+        /// Unit kind of the neutral collider.
         colliders_kind: UnitKind,
-        /// The name of the unit the PlayerUnit collided with.
+        /// Name of the neutral collider.
         colliders_name: String,
     },
     /// A PlayerUnit got destroyed by collision with a neutral unit.
     ControllableInfoDestroyedByPlayerUnit {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
-        /// The PlayerUnit which destroyed the PlayerUnit in question.
+        /// Controllable entry of the destroyer.
         destroyed_unit: Arc<ControllableInfo>,
-        /// The Player of the unit which destroyed the PlayerUnit in question.
+        /// Owner of the destroyer controllable.
         destroyer_player: Arc<Player>,
     },
     /// Is raised when a controllable-info score has been updated.
     ControllableInfoScoreUpdated {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         before: Score,
     },
-    /// Signals that the player has closed a controllable.
+    /// Raised when a public controllable entry is finally closed and removed.
+    /// This is the final close, not the initial close request.
     ControllableInfoClosed {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The corresponding PlayerUnit the ControllableInfo informs about.
         controllable: Arc<ControllableInfo>,
     },
-    /// You see a new unit.
+    /// Raised when a visible unit becomes newly known to the local visibility mirror.
     UnitAdded {
+        /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
-    /// An existing unit has been updated.
+    /// Raised when the connector updates the snapshot of a currently visible unit.
     UnitUpdated {
+        /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
-    /// You don't see the unit anymore.
+    /// Raised when a previously known visible unit leaves the local visibility mirror.
     UnitRemoved {
+        /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
-    /// This event informs about a unit that has been altered by an admin through map editing.
+    /// Raised when a previously known unit was changed by admin map editing.
+    /// This event is a cache invalidation hint, not a full replacement unit snapshot.
     UnitAlteredByAdmin {
         /// The cluster id of the altered unit.
         cluster: ClusterId,
@@ -828,7 +838,7 @@ pub enum FlattiverseEventKind {
     },
     /// You received a galaxy chat message.
     GalaxyChat {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The destination where this message was sent to.
         destination: Arc<Galaxy>,
@@ -837,7 +847,7 @@ pub enum FlattiverseEventKind {
     },
     /// You received a team chat message.
     TeamChat {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The destination where this message was sent to.
         destination: Arc<Player>,
@@ -846,7 +856,7 @@ pub enum FlattiverseEventKind {
     },
     /// You received a private message of a team member.
     PlayerChat {
-        /// The player this event handles.
+        /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The destination where this message was sent to.
         destination: Arc<Player>,
@@ -891,8 +901,10 @@ pub enum FlattiverseEventKind {
         /// Final closed state after the restore.
         closed: bool,
     },
-    /// The connection has been terminated.
+    /// Raised when the galaxy connection has terminated and no further protocol traffic will
+    /// arrive.
     ConnectionTerminated {
+        /// Optional close reason supplied by the local connector or the remote endpoint.
         message: Option<String>,
     },
     /// A tick happened.
@@ -900,10 +912,12 @@ pub enum FlattiverseEventKind {
         tick: u32,
     },
 
-    /// The galaxy settings have been updated.
+    /// Raised when the server initializes or updates the mirrored galaxy settings snapshot.
     GalaxySettingsUpdated {
         /// The updated [Galaxy].
         galaxy: Arc<Galaxy>,
+        /// Previous settings snapshot.
+        /// `None` when the connector receives the first settings snapshot after connect.
         before: Option<GalaxySettingsSnapshot>,
     },
 
@@ -989,7 +1003,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Flat damage reduction applied before the hull.
         reduction: f32,
@@ -1004,7 +1020,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The current stored amount
         current: f32,
@@ -1017,7 +1035,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Metal currently stored in cargo.
         current_metal: f32,
@@ -1038,7 +1058,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The amount collected during the current server tick.
         collected_this_tick: f32,
@@ -1049,9 +1071,11 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
-        /// Whether the scanner is active.
+        /// Whether the scanner was active during this server tick.
         active: bool,
         /// The current scanner width.
         current_width: f32,
@@ -1078,7 +1102,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The current applied engine vector.
         current: Vector,
@@ -1097,7 +1123,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The current hull integrity.
         current: f32,
@@ -1108,7 +1136,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Collector rate mirrored for the current server tick.
         rate: f32,
@@ -1129,7 +1159,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The direction processed in the current tick.
         direction: RailgunDirection,
@@ -1146,7 +1178,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Configured hull repair rate for the tick.
         rate: f32,
@@ -1165,7 +1199,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Configured mining rate for the tick.
         rate: f32,
@@ -1190,7 +1226,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The current shield integrity.
         current: f32,
@@ -1211,7 +1249,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Whether the fabricator was active for the tick.
         active: bool,
@@ -1230,7 +1270,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// Whether the fabricator was active for the tick.
         active: bool,
@@ -1249,7 +1291,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The shot movement processed for the current server tick.
         relative_movement: Vector,
@@ -1272,7 +1316,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The shot movement processed for the current server tick.
         relative_movement: Vector,
@@ -1295,7 +1341,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The currently stored shots.
         current_shots: f32,
@@ -1306,7 +1354,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
         slot: SubsystemSlot,
-        /// The status reported for the current server tick.
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
         status: SubsystemStatus,
         /// The currently stored shots.
         current_shots: f32,

@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{Galaxy, GameMode};
 
-/// SSnapshot of all server-driven galaxy setting values.
+/// Immutable snapshot of all server-driven galaxy setting values mirrored by the connector.
 #[derive(Debug, Clone)]
 pub struct GalaxySettingsSnapshot {
     /// Active game mode.
@@ -39,7 +39,7 @@ pub struct GalaxySettingsSnapshot {
     pub player_max_bases: u8,
     /// Maintenance mode flag.
     pub maintenance: bool,
-    /// Requires self-disclosure from regular player logins.
+    /// Whether regular player logins must provide runtime and build self-disclosure.
     pub requires_self_disclosure: bool,
 }
 

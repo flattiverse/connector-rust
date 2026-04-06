@@ -1,2 +1,5 @@
 * Impl `Display` for Units
 * `PacketReader` and `PacketWriter` should return `Result<T, GameError` or any kind of error type.
+    * Get rid of `catch_all` by returning a read error instead
+* `UnitFlattiverseEvent`: "The connector clones the unit when the event is created, so this object does not track later
+  live updates."

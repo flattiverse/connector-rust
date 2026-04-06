@@ -1,4 +1,4 @@
-/// Specifies why a PlayerUnit has been destroyed.
+/// Describes why a public controllable-registration entry died.
 #[repr(u8)]
 #[derive(
     Debug,
@@ -12,23 +12,23 @@
     strum::AsRefStr,
 )]
 pub enum PlayerUnitDestroyedReason {
-    /// PlayerUnit got destroyed due to server rules like when the player disconnects or the galaxy,
-    /// switched to maintenance mode.
+    /// Destroyed by global server rules, for example disconnect cleanup or maintenance transitions.
     ByRules = 0x00,
-    /// The player called kill().
+    /// Destroyed because the owner explicitly called <c>Suicide()</c>.
     Suicided = 0x10,
-    /// The PlayerUnit got destroyed because its cluster was removed.
+    /// Destroyed because the containing cluster was removed.
     ByClusterRemoval = 0x01,
-    /// The PlayerUnit collided with a neutral unit.
+    /// Destroyed by collision with a non-player unit.
     CollidedWithNeutralUnit = 0x20,
-    /// The PlayerUnit collided with an enemy PlayerUnit.
+    /// Destroyed by collision with an enemy player-controlled unit.
     CollidedWithEnemyPlayerUnit = 0x28,
-    /// the PlayerUnit collided with a friendly PlayerUnit.
+    /// Destroyed by collision with a friendly player-controlled unit.
     CollidedWithFriendlyPlayerUnit = 0x29,
-    /// The PlayerUnit has been shot by an enemy PlayerUnit.
+    /// Destroyed by hostile player-originated weapon damage.
     ShotByEnemyPlayerUnit = 0x38,
-    /// The PlayerUnit has been shot by a friendly PlayerUnit.
+    /// Destroyed by friendly-fire weapon damage.
     ShotByFriendlyPlayerUnit = 0x39,
+
     #[num_enum(catch_all)]
     Unknown(u8),
 }
