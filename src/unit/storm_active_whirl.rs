@@ -76,7 +76,12 @@ impl Unit for StormActiveWhirl {
     }
 }
 
-impl MobileUnitInternal for StormActiveWhirl {}
+impl MobileUnitInternal for StormActiveWhirl {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for StormActiveWhirl {}
 

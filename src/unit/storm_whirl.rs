@@ -83,7 +83,12 @@ impl Unit for AbstractStormWhirl {
     }
 }
 
-impl MobileUnitInternal for AbstractStormWhirl {}
+impl MobileUnitInternal for AbstractStormWhirl {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for AbstractStormWhirl {}
 

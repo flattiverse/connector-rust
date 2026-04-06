@@ -313,7 +313,12 @@ impl Unit for AbstractPlayerUnit {
     }
 }
 
-impl MobileUnitInternal for AbstractPlayerUnit {}
+impl MobileUnitInternal for AbstractPlayerUnit {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for AbstractPlayerUnit {}
 

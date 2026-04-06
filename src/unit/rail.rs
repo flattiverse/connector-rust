@@ -61,7 +61,12 @@ impl Unit for Rail {
     }
 }
 
-impl MobileUnitInternal for Rail {}
+impl MobileUnitInternal for Rail {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for Rail {}
 

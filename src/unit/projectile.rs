@@ -149,7 +149,12 @@ impl Unit for AbstractProjectile {
     }
 }
 
-impl MobileUnitInternal for AbstractProjectile {}
+impl MobileUnitInternal for AbstractProjectile {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for AbstractProjectile {}
 

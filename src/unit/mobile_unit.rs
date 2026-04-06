@@ -6,17 +6,26 @@ use crate::Vector;
 use std::sync::Arc;
 use std::sync::Weak;
 
-pub(crate) trait MobileUnitInternal {}
+pub(crate) trait MobileUnitInternal {
+    fn parent(&self) -> &dyn MobileUnit;
+}
 
 /// Base type for mobile visible units.
 #[allow(private_bounds)]
-pub trait MobileUnit: MobileUnitInternal + Unit {}
+pub trait MobileUnit: MobileUnitInternal + Unit {
+    #[inline]
+    fn angular_velocity(&self) -> f32 {
+        MobileUnitInternal::parent(self).angular_velocity()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct AbstractMobileUnit {
     parent: AbstractUnit,
     pub(crate) position: Atomic<Vector>,
     pub(crate) movement: Atomic<Vector>,
+    pub(crate) angle: Atomic<f32>,
+    pub(crate) angular_velocity: Atomic<f32>,
 }
 
 impl AbstractMobileUnit {
@@ -25,12 +34,16 @@ impl AbstractMobileUnit {
             parent: AbstractUnit::new(cluster, name),
             position: Atomic::default(),
             movement: Atomic::default(),
+            angle: Atomic::default(),
+            angular_velocity: Atomic::default(),
         }
     }
 
     pub(crate) fn read_position_and_movement(&self, reader: &mut dyn PacketReader) {
         self.position.read(reader);
         self.movement.read(reader);
+        self.angle.read(reader);
+        self.angular_velocity.read(reader);
     }
 }
 
@@ -70,7 +83,7 @@ impl Unit for AbstractMobileUnit {
 
     #[inline]
     fn angle(&self) -> f32 {
-        self.movement.load().angle()
+        self.angle.load()
     }
 
     #[inline]
@@ -80,7 +93,16 @@ impl Unit for AbstractMobileUnit {
 }
 
 #[forbid(clippy::missing_trait_methods)]
-impl MobileUnitInternal for AbstractMobileUnit {}
+impl MobileUnitInternal for AbstractMobileUnit {
+    fn parent(&self) -> &dyn MobileUnit {
+        unreachable!()
+    }
+}
 
 #[forbid(clippy::missing_trait_methods)]
-impl MobileUnit for AbstractMobileUnit {}
+impl MobileUnit for AbstractMobileUnit {
+    #[inline]
+    fn angular_velocity(&self) -> f32 {
+        self.angular_velocity.load()
+    }
+}

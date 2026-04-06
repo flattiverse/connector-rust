@@ -61,7 +61,12 @@ impl Unit for Shot {
     }
 }
 
-impl MobileUnitInternal for Shot {}
+impl MobileUnitInternal for Shot {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
 
 impl MobileUnit for Shot {}
 

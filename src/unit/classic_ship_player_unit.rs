@@ -323,7 +323,13 @@ impl Unit for ClassicShipPlayerUnit {
     }
 }
 
-impl MobileUnitInternal for ClassicShipPlayerUnit {}
+impl MobileUnitInternal for ClassicShipPlayerUnit {
+    #[inline]
+    fn parent(&self) -> &dyn MobileUnit {
+        &self.parent
+    }
+}
+
 impl MobileUnit for ClassicShipPlayerUnit {}
 
 impl PlayerUnitInternal for ClassicShipPlayerUnit {
