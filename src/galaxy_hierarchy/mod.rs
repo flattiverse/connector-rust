@@ -116,6 +116,9 @@ pub use nebula_collector_subsystem::*;
 mod railgun_subsystem;
 pub use railgun_subsystem::*;
 
+mod modern_railgun_subsystem;
+pub use modern_railgun_subsystem::*;
+
 mod repair_subsystem;
 pub use repair_subsystem::*;
 

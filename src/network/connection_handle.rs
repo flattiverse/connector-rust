@@ -823,6 +823,38 @@ impl ConnectionHandle {
         })
     }
 
+    /// Fires the railgun.
+    #[inline]
+    pub async fn modern_railgun_subsystem_fire(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.modern_railgun_subsystem_fire_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Fires the railgun.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn modern_railgun_subsystem_fire_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xAD, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Produces a crystal from nebula cargo.
     ///
     /// Returns `true` if a crystal was created; `false` if the nebula faded.
@@ -1927,13 +1959,18 @@ impl ConnectionHandle {
 
     /// Fires the railgun forward.
     #[inline]
-    pub async fn fire_railgun_front(&self, controllable: ControllableId) -> Result<(), GameError> {
-        self.fire_railgun_front_split(controllable).await?.await
+    pub async fn fire_railgun_subsystem_front(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.fire_railgun_subsystem_front_split(controllable)
+            .await?
+            .await
     }
 
     /// Fires the railgun forward.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn fire_railgun_front_split(
+    pub async fn fire_railgun_subsystem_front_split(
         &self,
         controllable: ControllableId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
@@ -1942,13 +1979,18 @@ impl ConnectionHandle {
 
     /// Fires the railgun backward.
     #[inline]
-    pub async fn fire_railgun_back(&self, controllable: ControllableId) -> Result<(), GameError> {
-        self.fire_railgun_back_split(controllable).await?.await
+    pub async fn fire_railgun_subsystem_back(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.fire_railgun_subsystem_back_split(controllable)
+            .await?
+            .await
     }
 
     /// Fires the railgun backward.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn fire_railgun_back_split(
+    pub async fn fire_railgun_subsystem_back_split(
         &self,
         controllable: ControllableId,
     ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
