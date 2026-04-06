@@ -691,6 +691,105 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the interceptor fabrication rate on the server.
+    #[inline]
+    pub async fn static_interceptor_fabricator_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.static_interceptor_fabricator_subsystem_set_split(controllable, slot, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the interceptor fabrication rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_interceptor_fabricator_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xAA, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(rate);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the interceptor fabricator on.
+    #[inline]
+    pub async fn static_interceptor_fabricator_subsystem_on(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_interceptor_fabricator_subsystem_on_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Turns the interceptor fabricator on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_interceptor_fabricator_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xAB, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the interceptor fabricator off.
+    #[inline]
+    pub async fn static_interceptor_fabricator_subsystem_off(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_interceptor_fabricator_subsystem_off_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Turns the interceptor fabricator off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_interceptor_fabricator_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xAC, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Produces a crystal from nebula cargo.
     ///
     /// Returns `true` if a crystal was created; `false` if the nebula faded.
