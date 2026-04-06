@@ -3,10 +3,9 @@ use crate::SubsystemStatus;
 
 /// Visible snapshot of a modern-ship engine subsystem on a scanned player unit.
 #[derive(Debug, Clone, Default)]
-pub struct ModernShipSubsystemInfo {
+pub struct ModernShipEngineSubsystemInfo {
     exists: Atomic<bool>,
-    maximum_forward_thrust: Atomic<f32>,
-    maximum_reverse_thrust: Atomic<f32>,
+    maximum_thrust: Atomic<f32>,
     maximum_thrust_change_per_tick: Atomic<f32>,
     current_thrust: Atomic<f32>,
     target_thrust: Atomic<f32>,
@@ -16,20 +15,25 @@ pub struct ModernShipSubsystemInfo {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl ModernShipSubsystemInfo {
+impl ModernShipEngineSubsystemInfo {
     #[inline]
     pub fn exists(&self) -> bool {
         self.exists.load()
     }
 
     #[inline]
+    pub fn maximum_thrust(&self) -> f32 {
+        self.maximum_thrust.load()
+    }
+
+    #[inline]
     pub fn maximum_forward_thrust(&self) -> f32 {
-        self.maximum_forward_thrust.load()
+        self.maximum_thrust()
     }
 
     #[inline]
     pub fn maximum_reverse_thrust(&self) -> f32 {
-        self.maximum_reverse_thrust.load()
+        self.maximum_thrust()
     }
 
     #[inline]
@@ -70,8 +74,7 @@ impl ModernShipSubsystemInfo {
     pub(crate) fn update(
         &self,
         exists: bool,
-        maximum_forward_thrust: f32,
-        maximum_reverse_thrust: f32,
+        maximum_thrust: f32,
         maximum_thrust_change_per_tick: f32,
         current_thrust: f32,
         target_thrust: f32,
@@ -82,8 +85,7 @@ impl ModernShipSubsystemInfo {
     ) {
         self.exists.store(exists);
         if exists {
-            self.maximum_forward_thrust.store(maximum_forward_thrust);
-            self.maximum_reverse_thrust.store(maximum_reverse_thrust);
+            self.maximum_thrust.store(maximum_thrust);
             self.maximum_thrust_change_per_tick
                 .store(maximum_thrust_change_per_tick);
             self.current_thrust.store(current_thrust);
@@ -95,8 +97,7 @@ impl ModernShipSubsystemInfo {
             self.consumed_neutrinos_this_tick
                 .store(consumed_neutrinos_this_tick);
         } else {
-            self.maximum_forward_thrust.store(0.0);
-            self.maximum_reverse_thrust.store(0.0);
+            self.maximum_thrust.store(0.0);
             self.maximum_thrust_change_per_tick.store(0.0);
             self.current_thrust.store(0.0);
             self.target_thrust.store(0.0);

@@ -4,7 +4,7 @@ use crate::SubsystemStatus;
 
 /// Visible snapshot of a railgun subsystem on a scanned player unit.
 #[derive(Debug, Clone, Default)]
-pub struct RailgunSubsystemInfo {
+pub struct ClassicRailgunSubsystemInfo {
     exists: Atomic<bool>,
     energy_cost: Atomic<f32>,
     metal_cost: Atomic<f32>,
@@ -15,7 +15,7 @@ pub struct RailgunSubsystemInfo {
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl RailgunSubsystemInfo {
+impl ClassicRailgunSubsystemInfo {
     /// Indicates whether the subsystem exists on the scanned unit.
     #[inline]
     pub fn exists(&self) -> bool {

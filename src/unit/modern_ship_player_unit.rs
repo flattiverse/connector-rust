@@ -2,12 +2,12 @@ use crate::galaxy_hierarchy::{Cluster, ModernShipGeometry, RailgunDirection};
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractPlayerUnit, DynamicInterceptorFabricatorSubsystemInfo,
-    DynamicInterceptorLauncherSubsystemInfo, DynamicInterceptorMagazineSubsystemInfo,
-    DynamicScannerSubsystemInfo, DynamicShotFabricatorSubsystemInfo,
-    DynamicShotLauncherSubsystemInfo, DynamicShotMagazineSubsystemInfo, JumpDriveSubsystemInfo,
-    MobileUnit, MobileUnitInternal, ModernShipSubsystemInfo, NebulaCollectorSubsystemInfo,
-    PlayerUnit, PlayerUnitInternal, RailgunSubsystemInfo, Unit, UnitCastTable, UnitHierarchy,
-    UnitInternal, UnitKind,
+    DynamicInterceptorLauncherSubsystemInfo, DynamicScannerSubsystemInfo,
+    DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo, JumpDriveSubsystemInfo,
+    MobileUnit, MobileUnitInternal, ModernRailgunSubsystemInfo, ModernShipEngineSubsystemInfo,
+    NebulaCollectorSubsystemInfo, PlayerUnit, PlayerUnitInternal,
+    StaticInterceptorMagazineSubsystemInfo, StaticShotMagazineSubsystemInfo, Unit, UnitCastTable,
+    UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Readable;
 use crate::{GameError, SubsystemStatus, Vector};
@@ -19,18 +19,18 @@ use std::sync::{Arc, Weak};
 pub struct ModernShipPlayerUnit {
     parent: AbstractPlayerUnit,
     nebula_collector: NebulaCollectorSubsystemInfo,
-    engines: [ModernShipSubsystemInfo; ModernShipGeometry::ENGINE_SLOTS.len()],
+    engines: [ModernShipEngineSubsystemInfo; ModernShipGeometry::ENGINE_SLOTS.len()],
     scanners: [DynamicScannerSubsystemInfo; ModernShipGeometry::SCANNER_SLOTS.len()],
     shot_launchers:
         [DynamicShotLauncherSubsystemInfo; ModernShipGeometry::SHOT_LAUNCHER_SLOTS.len()],
     shot_magazines:
-        [DynamicShotMagazineSubsystemInfo; ModernShipGeometry::SHOT_MAGAZINE_SLOTS.len()],
+        [StaticShotMagazineSubsystemInfo; ModernShipGeometry::SHOT_MAGAZINE_SLOTS.len()],
     shot_fabricators:
         [DynamicShotFabricatorSubsystemInfo; ModernShipGeometry::SHOT_FABRICATOR_SLOTS.len()],
     interceptor_launchers: [DynamicInterceptorLauncherSubsystemInfo; 2],
-    interceptor_magazines: [DynamicInterceptorMagazineSubsystemInfo; 2],
+    interceptor_magazines: [StaticInterceptorMagazineSubsystemInfo; 2],
     interceptor_fabricators: [DynamicInterceptorFabricatorSubsystemInfo; 2],
-    railguns: [RailgunSubsystemInfo; ModernShipGeometry::RAILGUN_SLOTS.len()],
+    railguns: [ModernRailgunSubsystemInfo; ModernShipGeometry::RAILGUN_SLOTS.len()],
     jump_drive: JumpDriveSubsystemInfo,
 }
 
@@ -62,7 +62,7 @@ impl ModernShipPlayerUnit {
     }
 
     #[inline]
-    pub fn engines(&self) -> &[ModernShipSubsystemInfo] {
+    pub fn engines(&self) -> &[ModernShipEngineSubsystemInfo] {
         &self.engines
     }
 
@@ -77,7 +77,7 @@ impl ModernShipPlayerUnit {
     }
 
     #[inline]
-    pub fn shot_magazines(&self) -> &[DynamicShotMagazineSubsystemInfo] {
+    pub fn shot_magazines(&self) -> &[StaticShotMagazineSubsystemInfo] {
         &self.shot_magazines
     }
 
@@ -92,7 +92,7 @@ impl ModernShipPlayerUnit {
     }
 
     #[inline]
-    pub fn interceptor_magazines(&self) -> &[DynamicInterceptorMagazineSubsystemInfo] {
+    pub fn interceptor_magazines(&self) -> &[StaticInterceptorMagazineSubsystemInfo] {
         &self.interceptor_magazines
     }
 
@@ -102,7 +102,7 @@ impl ModernShipPlayerUnit {
     }
 
     #[inline]
-    pub fn railguns(&self) -> &[RailgunSubsystemInfo] {
+    pub fn railguns(&self) -> &[ModernRailgunSubsystemInfo] {
         &self.railguns
     }
 
@@ -163,7 +163,6 @@ impl UnitInternal for ModernShipPlayerUnit {
                 reader.read_f32(),
                 reader.read_f32(),
                 reader.read_f32(),
-                reader.read_f32(),
                 SubsystemStatus::read(reader),
                 reader.read_f32(),
                 reader.read_f32(),
@@ -174,13 +173,18 @@ impl UnitInternal for ModernShipPlayerUnit {
         for ((launcher, magazine), fabricator) in self
             .shot_launchers
             .iter()
-            .zip(&self.shot_magazines)
+            .zip(self.shot_magazines.iter().map(Deref::deref))
             .zip(&self.shot_fabricators)
             .chain(
                 self.interceptor_launchers
                     .iter()
                     .map(Deref::deref)
-                    .zip(self.interceptor_magazines.iter().map(Deref::deref))
+                    .zip(
+                        self.interceptor_magazines
+                            .iter()
+                            .map(Deref::deref)
+                            .map(Deref::deref),
+                    )
                     .zip(self.interceptor_fabricators.iter().map(Deref::deref)),
             )
         {

@@ -1,12 +1,13 @@
 use crate::galaxy_hierarchy::{Cluster, RailgunDirection};
 use crate::network::PacketReader;
 use crate::unit::{
-    AbstractPlayerUnit, ClassicShipEngineSubsystemInfo, DynamicInterceptorFabricatorSubsystemInfo,
-    DynamicInterceptorLauncherSubsystemInfo, DynamicInterceptorMagazineSubsystemInfo,
-    DynamicScannerSubsystemInfo, DynamicShotFabricatorSubsystemInfo,
-    DynamicShotLauncherSubsystemInfo, DynamicShotMagazineSubsystemInfo, JumpDriveSubsystemInfo,
-    MobileUnit, MobileUnitInternal, NebulaCollectorSubsystemInfo, PlayerUnit, PlayerUnitInternal,
-    RailgunSubsystemInfo, Unit, UnitCastTable, UnitHierarchy, UnitInternal, UnitKind,
+    AbstractPlayerUnit, ClassicRailgunSubsystemInfo, ClassicShipEngineSubsystemInfo,
+    DynamicInterceptorFabricatorSubsystemInfo, DynamicInterceptorLauncherSubsystemInfo,
+    DynamicInterceptorMagazineSubsystemInfo, DynamicScannerSubsystemInfo,
+    DynamicShotFabricatorSubsystemInfo, DynamicShotLauncherSubsystemInfo,
+    DynamicShotMagazineSubsystemInfo, JumpDriveSubsystemInfo, MobileUnit, MobileUnitInternal,
+    NebulaCollectorSubsystemInfo, PlayerUnit, PlayerUnitInternal, Unit, UnitCastTable,
+    UnitHierarchy, UnitInternal, UnitKind,
 };
 use crate::utils::Readable;
 use crate::{GameError, SubsystemStatus, Vector};
@@ -28,7 +29,7 @@ pub struct ClassicShipPlayerUnit {
     interceptor_launcher: DynamicInterceptorLauncherSubsystemInfo,
     interceptor_magazine: DynamicInterceptorMagazineSubsystemInfo,
     interceptor_fabricator: DynamicInterceptorFabricatorSubsystemInfo,
-    railgun: RailgunSubsystemInfo,
+    railgun: ClassicRailgunSubsystemInfo,
     main_scanner: DynamicScannerSubsystemInfo,
     secondary_scanner: DynamicScannerSubsystemInfo,
     jump_drive: JumpDriveSubsystemInfo,
@@ -107,7 +108,7 @@ impl ClassicShipPlayerUnit {
 
     /// Visible snapshot of the railgun subsystem.
     #[inline]
-    pub fn railgun(&self) -> &RailgunSubsystemInfo {
+    pub fn railgun(&self) -> &ClassicRailgunSubsystemInfo {
         &self.railgun
     }
 

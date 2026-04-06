@@ -168,6 +168,9 @@ pub use dynamic_interceptor_launcher_subsystem_info::*;
 mod dynamic_interceptor_magazine_subsystem_info;
 pub use dynamic_interceptor_magazine_subsystem_info::*;
 
+mod static_interceptor_magazine_subsystem_info;
+pub use static_interceptor_magazine_subsystem_info::*;
+
 mod dynamic_scanner_subsystem_info;
 pub use dynamic_scanner_subsystem_info::*;
 
@@ -186,8 +189,11 @@ pub use resource_miner_subsystem_info::*;
 mod nebula_collector_subsystem_info;
 pub use nebula_collector_subsystem_info::*;
 
-mod railgun_subsystem_info;
-pub use railgun_subsystem_info::*;
+mod classic_railgun_subsystem_info;
+pub use classic_railgun_subsystem_info::*;
+
+mod modern_railgun_subsystem_info;
+pub use modern_railgun_subsystem_info::*;
 
 mod repair_subsystem_info;
 pub use repair_subsystem_info::*;
@@ -197,6 +203,9 @@ pub use shield_subsystem_info::*;
 
 mod dynamic_shot_magazine_subsystem_info;
 pub use dynamic_shot_magazine_subsystem_info::*;
+
+mod static_shot_magazine_subsystem_info;
+pub use static_shot_magazine_subsystem_info::*;
 
 mod dynamic_shot_fabricator_subsystem_info;
 pub use dynamic_shot_fabricator_subsystem_info::*;
