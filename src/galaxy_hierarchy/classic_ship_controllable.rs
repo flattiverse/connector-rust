@@ -3,7 +3,8 @@ use crate::galaxy_hierarchy::{
     Controls, DynamicInterceptorFabricatorSubsystem, DynamicInterceptorLauncherSubsystem,
     DynamicInterceptorMagazineSubsystem, DynamicScannerSubsystem, DynamicShotFabricatorSubsystem,
     DynamicShotLauncherSubsystem, DynamicShotMagazineSubsystem, JumpDriveSubsystem,
-    NebulaCollectorSubsystem, RailgunDirection, RailgunSubsystem, SubsystemBase,
+    ModernShipControllable, NebulaCollectorSubsystem, RailgunDirection, RailgunSubsystem,
+    SubsystemBase,
 };
 use crate::network::PacketReader;
 use crate::utils::Readable;
@@ -478,6 +479,7 @@ impl TryFrom<Arc<Controllable>> for Controls<ClassicShipControllable> {
             ControllableSpecialization::ClassicShip(p) => {
                 Ok(Controls::<ClassicShipControllable>::proven(p).control(controllable))
             }
+            _ => Err(controllable),
         }
     }
 }
@@ -487,6 +489,30 @@ impl Controls<ClassicShipControllable> {
     pub fn as_classic_ship_specialization(&self) -> &ClassicShipControllable {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(specialization) => specialization,
+            #[allow(unreachable_patterns)]
+            _ => unreachable!("This was previously proven"),
+        }
+    }
+}
+
+impl TryFrom<Arc<Controllable>> for Controls<ModernShipControllable> {
+    type Error = Arc<Controllable>;
+
+    fn try_from(controllable: Arc<Controllable>) -> Result<Self, Self::Error> {
+        match controllable.specialization() {
+            ControllableSpecialization::ModernShip(p) => {
+                Ok(Controls::<ModernShipControllable>::proven(p).control(controllable))
+            }
+            _ => Err(controllable),
+        }
+    }
+}
+
+impl Controls<ModernShipControllable> {
+    #[inline]
+    pub fn as_classic_ship_specialization(&self) -> &ModernShipControllable {
+        match self.specialization() {
+            ControllableSpecialization::ModernShip(specialization) => specialization,
             #[allow(unreachable_patterns)]
             _ => unreachable!("This was previously proven"),
         }

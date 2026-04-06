@@ -50,6 +50,9 @@ pub use classic_ship_controllable::*;
 mod modern_ship_geometry;
 pub use modern_ship_geometry::*;
 
+mod modern_ship_controllable;
+pub use modern_ship_controllable::*;
+
 mod range_tolerance;
 pub use range_tolerance::*;
 

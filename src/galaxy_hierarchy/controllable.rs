@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{
     ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
-    Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, RepairSubsystem,
-    ResourceMinerSubsystem, ShieldSubsystem,
+    Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, ModernShipControllable,
+    ModernShipGeometry, RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -119,7 +119,7 @@ impl Controllable {
                     ControllableSpecialization::ClassicShip(ClassicShipControllable::new())
                 }
                 UnitKind::ModernShipPlayerUnit => {
-                    todo!()
+                    ControllableSpecialization::ModernShip(ModernShipControllable::new())
                 }
                 _ => {
                     return Err(GameErrorKind::InvalidArgument {
@@ -133,9 +133,8 @@ impl Controllable {
         .also(|this| {
             this.read_initial_state(reader);
             match &mut this.specialization {
-                ControllableSpecialization::ClassicShip(c) => {
-                    c.read_initial_state(reader);
-                }
+                ControllableSpecialization::ClassicShip(ship) => ship.read_initial_state(reader),
+                ControllableSpecialization::ModernShip(ship) => ship.read_initial_state(reader),
             }
         })
         .r#let(Arc::new)
@@ -154,12 +153,17 @@ impl Controllable {
                 this.energy_cell.as_subsystem_base(),
                 this.ion_cell.as_subsystem_base(),
                 this.neutrino_cell.as_subsystem_base(),
-            ]
-            .into_iter()
-            .chain(match this.specialization() {
-                ControllableSpecialization::ClassicShip(c) => c.iter_subsystem_bases(),
-            }) {
+            ] {
                 subsystem.controllable.store(Arc::downgrade(this));
+            }
+
+            match this.specialization() {
+                ControllableSpecialization::ClassicShip(ship) => ship
+                    .iter_subsystem_bases()
+                    .for_each(|s| s.controllable.store(Arc::downgrade(this))),
+                ControllableSpecialization::ModernShip(ship) => ship
+                    .iter_subsystem_bases()
+                    .for_each(|s| s.controllable.store(Arc::downgrade(this))),
             }
         }))
     }
@@ -346,6 +350,7 @@ impl Controllable {
     pub fn gravity(&self) -> f32 {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(_) => 0.0012,
+            ControllableSpecialization::ModernShip(_) => 0.0012,
         }
     }
 
@@ -354,6 +359,7 @@ impl Controllable {
     pub fn size(&self) -> f32 {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(_) => 14.0,
+            ControllableSpecialization::ModernShip(_) => ModernShipGeometry::RADIUS,
         }
     }
 
@@ -652,12 +658,14 @@ impl Controllable {
 
         match self.specialization() {
             ControllableSpecialization::ClassicShip(s) => s.reset_runtime(),
+            ControllableSpecialization::ModernShip(s) => s.reset_runtime(),
         }
     }
 
     pub(crate) fn read_runtime(&self, reader: &mut dyn PacketReader) {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(s) => s.read_runtime(reader),
+            ControllableSpecialization::ModernShip(s) => s.read_runtime(reader),
         }
     }
 
@@ -685,6 +693,9 @@ impl Controllable {
         match self.specialization() {
             ControllableSpecialization::ClassicShip(specialization) => {
                 self.push_runtime_events(specialization.iter_runtime_events());
+            }
+            ControllableSpecialization::ModernShip(ship) => {
+                self.push_runtime_events(ship.iter_runtime_events())
             }
         }
     }
@@ -757,17 +768,16 @@ impl Controllable {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum ControllableSpecialization {
     ClassicShip(ClassicShipControllable),
+    ModernShip(ModernShipControllable),
 }
 
 pub(crate) struct Proven<T>(PhantomData<T>);
 
 impl<T> Proven<T> {
-    pub(crate) fn control(
-        self,
-        controllable: Arc<Controllable>,
-    ) -> Controls<ClassicShipControllable> {
+    pub(crate) fn control(self, controllable: Arc<Controllable>) -> Controls<T> {
         Controls {
             controllable,
             _specialization: PhantomData,

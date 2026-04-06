@@ -6,6 +6,7 @@ use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, Subsystem
 use std::sync::Weak;
 
 /// Static scanner subsystem of a modern ship.
+#[derive(Debug)]
 pub struct StaticScannerSubsystem {
     base: DynamicScannerSubsystem,
 }
@@ -14,7 +15,6 @@ impl StaticScannerSubsystem {
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
-        id: ScannerSubsystemId,
         exists: bool,
         maximum_width: f32,
         maximum_length: f32,
@@ -27,7 +27,7 @@ impl StaticScannerSubsystem {
             base: DynamicScannerSubsystem::new(
                 controllable,
                 name,
-                id,
+                ScannerSubsystemId(0),
                 exists,
                 maximum_width,
                 maximum_length,
