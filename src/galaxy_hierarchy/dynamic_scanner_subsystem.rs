@@ -187,7 +187,7 @@ impl DynamicScannerSubsystem {
         self.target_angle.load()
     }
 
-    /// Whether the scanner is active.
+    /// Whether the scanner is currently active on the server.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
