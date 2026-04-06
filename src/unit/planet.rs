@@ -102,6 +102,11 @@ impl UnitHierarchy for Planet {
 
 impl Unit for Planet {
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Planet
     }

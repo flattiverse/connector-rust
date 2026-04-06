@@ -74,6 +74,11 @@ impl UnitHierarchy for BlackHole {
 
 impl Unit for BlackHole {
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::BlackHole
     }

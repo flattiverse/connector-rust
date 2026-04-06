@@ -89,6 +89,11 @@ impl Unit for AbstractTargetUnit {
     }
 
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn team(&self) -> Weak<Team> {
         self.team.load_full()
     }

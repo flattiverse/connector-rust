@@ -100,6 +100,11 @@ impl UnitHierarchy for Moon {
 
 impl Unit for Moon {
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Moon
     }

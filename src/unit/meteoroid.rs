@@ -101,6 +101,11 @@ impl UnitHierarchy for Meteoroid {
 
 impl Unit for Meteoroid {
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Meteoroid
     }

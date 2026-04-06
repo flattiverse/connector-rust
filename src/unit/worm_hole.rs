@@ -131,6 +131,11 @@ impl Unit for WormHole {
     }
 
     #[inline]
+    fn can_be_edited(&self) -> bool {
+        true
+    }
+
+    #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::WormHole
     }
