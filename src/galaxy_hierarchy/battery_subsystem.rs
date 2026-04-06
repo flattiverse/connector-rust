@@ -73,7 +73,7 @@ impl BatterySubsystem {
         self.consumed_this_tick.load()
     }
 
-    pub(crate) fn set_maximum(&mut self, maximum: f32) {
+    pub(crate) fn set_maximum(&self, maximum: f32) {
         self.maximum
             .store(if self.base.exists() { maximum } else { 0.0 });
 

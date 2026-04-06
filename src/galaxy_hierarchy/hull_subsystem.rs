@@ -49,7 +49,7 @@ impl HullSubsystem {
         self.current.load()
     }
 
-    pub(crate) fn set_maximum(&mut self, maximum: f32) {
+    pub(crate) fn set_maximum(&self, maximum: f32) {
         self.maximum
             .store(if self.exists() { maximum } else { 0.0 });
 

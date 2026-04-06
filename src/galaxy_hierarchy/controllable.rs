@@ -1,12 +1,17 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, BatterySubsystem, ClassicShipControllable, Cluster, EnergyCellSubsystem,
-    HullSubsystem, Identifiable, Indexer, ShieldSubsystem,
+    ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
+    Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, RepairSubsystem,
+    ResourceMinerSubsystem, ShieldSubsystem,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
 use crate::utils::{Also, Atomic, Readable};
-use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, SubsystemStatus, Vector};
+use crate::{
+    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
+    SubsystemStatus, Vector,
+};
 use arc_swap::ArcSwapWeak;
+use std::future::Future;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
@@ -32,12 +37,23 @@ pub struct Controllable {
     movement: Atomic<Vector>,
     hull: HullSubsystem,
     shield: ShieldSubsystem,
+    armor: ArmorSubsystem,
+    repair: RepairSubsystem,
+    cargo: CargoSubsystem,
+    resource_miner: ResourceMinerSubsystem,
     energy_battery: BatterySubsystem,
     ion_battery: BatterySubsystem,
     neutrino_battery: BatterySubsystem,
     energy_cell: EnergyCellSubsystem,
     ion_cell: EnergyCellSubsystem,
     neutrino_cell: EnergyCellSubsystem,
+    environment_heat_this_tick: Atomic<f32>,
+    environment_heat_energy_cost_this_tick: Atomic<f32>,
+    environment_heat_energy_overflow_this_tick: Atomic<f32>,
+    environment_radiation_this_tick: Atomic<f32>,
+    environment_radiation_damage_before_armor_this_tick: Atomic<f32>,
+    environment_armor_blocked_damage_this_tick: Atomic<f32>,
+    environment_hull_damage_this_tick: Atomic<f32>,
     specialization: ControllableSpecialization,
 }
 
@@ -60,6 +76,12 @@ impl Controllable {
                 movement: Atomic::from_reader(reader),
                 hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
                 shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
+                armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
+                repair: RepairSubsystem::create_classic_ship_repair(Weak::default()),
+                cargo: CargoSubsystem::create_classic_ship_cargo(Weak::default()),
+                resource_miner: ResourceMinerSubsystem::create_classic_ship_resource_miner(
+                    Weak::default(),
+                ),
                 energy_battery: BatterySubsystem::create_classic_ship_energy_battery(
                     Weak::default(),
                 ),
@@ -84,6 +106,13 @@ impl Controllable {
                     "NeutrinoCell".to_string(),
                     SubsystemSlot::NeutrinoCell,
                 ),
+                environment_heat_this_tick: Default::default(),
+                environment_heat_energy_cost_this_tick: Default::default(),
+                environment_heat_energy_overflow_this_tick: Default::default(),
+                environment_radiation_this_tick: Default::default(),
+                environment_radiation_damage_before_armor_this_tick: Default::default(),
+                environment_armor_blocked_damage_this_tick: Default::default(),
+                environment_hull_damage_this_tick: Default::default(),
                 specialization: ControllableSpecialization::ClassicShip(
                     ClassicShipControllable::new(),
                 ),
@@ -93,6 +122,10 @@ impl Controllable {
                 for subsystem in [
                     this.hull.as_subsystem_base(),
                     this.shield.as_subsystem_base(),
+                    this.armor.as_subsystem_base(),
+                    this.repair.as_subsystem_base(),
+                    this.cargo.as_subsystem_base(),
+                    this.resource_miner.as_subsystem_base(),
                     this.energy_battery.as_subsystem_base(),
                     this.ion_battery.as_subsystem_base(),
                     this.neutrino_battery.as_subsystem_base(),
@@ -127,6 +160,12 @@ impl Controllable {
         &self.name
     }
 
+    /// Declared runtime unit kind that this controllable uses while it is alive in the world.
+    #[inline]
+    pub fn kind(&self) -> UnitKind {
+        UnitKind::ClassicShipPlayerUnit
+    }
+
     /// The cluster this unit currently is in.
     #[inline]
     pub fn cluster(&self) -> Arc<Cluster> {
@@ -155,6 +194,12 @@ impl Controllable {
     #[inline]
     pub fn shield(&self) -> &ShieldSubsystem {
         &self.shield
+    }
+
+    /// The armor subsystem of the controllable.
+    #[inline]
+    pub fn armor(&self) -> &ArmorSubsystem {
+        &self.armor
     }
 
     /// The energy battery subsystem of the controllable.
@@ -193,19 +238,82 @@ impl Controllable {
         &self.neutrino_cell
     }
 
-    /// true, if the unit is alive.
+    /// The repair subsystem of the controllable.
+    #[inline]
+    pub fn repair(&self) -> &RepairSubsystem {
+        &self.repair
+    }
+
+    /// The cargo subsystem of the controllable.
+    #[inline]
+    pub fn cargo(&self) -> &CargoSubsystem {
+        &self.cargo
+    }
+
+    /// The resource miner subsystem of the controllable.
+    #[inline]
+    pub fn resource_miner(&self) -> &ResourceMinerSubsystem {
+        &self.resource_miner
+    }
+
+    /// Aggregated environment heat applied during the current server tick.
+    #[inline]
+    pub fn environment_heat_this_tick(&self) -> f32 {
+        self.environment_heat_this_tick.load()
+    }
+
+    /// Energy drained by environment heat during the current server tick.
+    #[inline]
+    pub fn environment_heat_energy_cost_this_tick(&self) -> f32 {
+        self.environment_heat_energy_cost_this_tick.load()
+    }
+
+    /// Heat energy that could not be paid and overflowed into radiation during the current server
+    /// tick.
+    #[inline]
+    pub fn environment_heat_energy_overflow_this_tick(&self) -> f32 {
+        self.environment_heat_energy_overflow_this_tick.load()
+    }
+
+    /// Aggregated environment radiation applied during the current server tick.
+    #[inline]
+    pub fn environment_radiation_this_tick(&self) -> f32 {
+        self.environment_radiation_this_tick.load()
+    }
+
+    /// Radiation damage before armor reduction during the current server tick.
+    #[inline]
+    pub fn environment_radiation_damage_before_armor_this_tick(&self) -> f32 {
+        self.environment_radiation_damage_before_armor_this_tick
+            .load()
+    }
+
+    /// Environment damage blocked by armor during the current server tick.
+    #[inline]
+    pub fn environment_armor_blocked_damage_this_tick(&self) -> f32 {
+        self.environment_armor_blocked_damage_this_tick.load()
+    }
+
+    /// Environment damage that reached the hull during the current server tick.
+    #[inline]
+    pub fn environment_hull_damage_this_tick(&self) -> f32 {
+        self.environment_hull_damage_this_tick.load()
+    }
+
+    /// True while this controllable currently has an active in-world runtime.
     #[inline]
     pub fn alive(&self) -> bool {
         self.alive.load()
     }
 
-    /// true if this object still can be used. If the unit has been finally closed this is false.
+    /// True while this controllable still exists on the server and can still be addressed by
+    /// commands. After the final close, this becomes `false` permanently.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
     }
 
-    /// The gravity this controllable has.
+    /// Gravity emitted by the live runtime of this controllable.
     #[inline]
     pub fn gravity(&self) -> f32 {
         match self.specialization() {
@@ -213,7 +321,7 @@ impl Controllable {
         }
     }
 
-    /// The size (radius) of the controllable.
+    /// Collision radius of the live runtime of this controllable.
     #[inline]
     pub fn size(&self) -> f32 {
         match self.specialization() {
@@ -221,8 +329,24 @@ impl Controllable {
         }
     }
 
-    /// Call this to continue the game with this unit after you are dead or when you hve created the
-    /// unit.
+    /// Requests that this controllable enters the world again after initial registration or after a
+    /// previous death.
+    ///
+    /// In Flattiverse, owning a [`Controllable`] and currently flying it are different lifecycle
+    /// states. A newly registered ship exists as an owner-side controllable before it has an active
+    /// in-world runtime, and a dead controllable also remains registered until it is finally closed.
+    /// [`Controllable::r#continue`] is the command that asks the server to spawn or respawn that
+    /// registered controllable.
+    ///
+    /// Spawn cluster, spawn position, revived runtime values, and all subsystem state are chosen
+    /// authoritatively by the server. Do not infer the post-continue state locally. Instead, read
+    /// the updated owner-side mirror afterwards via properties such as [`Controllable::alive`],
+    /// [`Controllable::cluster`], [`Controllable::position`], and the subsystem objects on this
+    /// controllable.
+    ///
+    /// A dead controllable can usually be continued repeatedly until
+    /// [`Controllable::request_close`] has been issued and the server has performed the final
+    /// close. Calling this on an already alive controllable is invalid.
     pub async fn r#continue(&self) -> Result<(), GameError> {
         self.cluster()
             .galaxy()
@@ -237,7 +361,8 @@ impl Controllable {
         self.reset_runtime();
     }
 
-    /// Call this to suicide (=self destroy).
+    /// Requests self-destruction of the currently alive runtime of this controllable.
+    /// The registration itself remains available afterwards until it is explicitly closed.
     pub async fn suicide(&self) -> Result<(), GameError> {
         self.cluster()
             .galaxy()
@@ -246,14 +371,134 @@ impl Controllable {
             .await
     }
 
-    /// Call this to request closing the unit. The server may keep it alive for a grace period
-    /// before it is finally removed.
-    pub async fn request_close(&self) -> Result<(), GameError> {
+    /// Requests final closure of this controllable registration.
+    /// The server may keep the controllable alive for a grace period before it is actually removed.
+    ///
+    /// This request is fire-and-forget and therefore does not wait for a reply. Observe subsequent
+    /// events and [`Controllable::active`] to detect when the close has completed or await the
+    /// returned [`Future`].
+    pub async fn request_close(
+        &self,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
         self.cluster()
             .galaxy()
             .connection()
-            .request_controllable_close(self.id())
+            .request_controllable_close_split(self.id())
             .await
+    }
+
+    pub(crate) fn read_initial_state(
+        &self,
+        reader: &mut dyn PacketReader,
+    ) -> Result<(), GameError> {
+        let _energy_battery_exists = reader.read_byte();
+        self.energy_battery.set_maximum(reader.read_f32());
+        self.energy_battery.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        let _ion_battery_exists = reader.read_byte();
+        self.ion_battery.set_maximum(reader.read_f32());
+        self.ion_battery.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        let _neutrino_battery_exists = reader.read_byte();
+        self.neutrino_battery.set_maximum(reader.read_f32());
+        self.neutrino_battery.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        let _energy_cell_exists = reader.read_byte();
+        self.energy_cell.set_efficiency(reader.read_f32());
+        self.energy_cell
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+
+        let _ion_cell_exists = reader.read_byte();
+        self.ion_cell.set_efficiency(reader.read_f32());
+        self.ion_cell
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+
+        let _neutrino_cell_exists = reader.read_byte();
+        self.neutrino_cell.set_efficiency(reader.read_f32());
+        self.neutrino_cell
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+
+        let _hull_exists = reader.read_byte();
+        self.hull.set_maximum(reader.read_f32());
+        self.hull
+            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+
+        let _shield_exists = reader.read_byte();
+        self.shield.set_maximum(reader.read_f32());
+        self.shield.update_runtime(
+            reader.read_f32(),
+            reader.read_byte() != 0x00,
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        let _armor_exists = reader.read_byte();
+        self.armor.set_reduction(reader.read_f32());
+        self.armor.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        let _repair_exists = reader.read_byte();
+        let _repair_minimum_rate = reader.read_f32();
+        let _repair_maximum_rate = reader.read_f32();
+        self.repair.update_runtime(
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        let _cargo_exists = reader.read_byte();
+        let _cargo_maximum_metal = reader.read_f32();
+        let _cargo_maximum_carbon = reader.read_f32();
+        let _cargo_maximum_hydrogen = reader.read_f32();
+        let _cargo_maximum_silicon = reader.read_f32();
+        self.cargo.set_maximum_nebula(reader.read_f32());
+        self.cargo.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        let _resource_miner_exists = reader.read_byte();
+        let _resource_miner_minimum_rate = reader.read_f32();
+        let _resource_miner_maximum_rate = reader.read_f32();
+        self.resource_miner.update_runtime(
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        Ok(())
     }
 
     pub(crate) fn deceased(&self) {
@@ -263,7 +508,7 @@ impl Controllable {
         self.reset_runtime();
     }
 
-    pub(crate) fn update(&self, cluster: Arc<Cluster>, reader: &mut dyn PacketReader) {
+    pub(crate) fn update(self: &Arc<Self>, cluster: Arc<Cluster>, reader: &mut dyn PacketReader) {
         self.cluster.store(Arc::downgrade(&cluster));
         self.position.read(reader);
         self.movement.read(reader);
@@ -303,6 +548,52 @@ impl Controllable {
             reader.read_f32(),
         );
 
+        self.armor.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        self.repair.update_runtime(
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        self.cargo.update_runtime(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+        );
+
+        self.resource_miner.update_runtime(
+            reader.read_f32(),
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
+
+        self.environment_heat_this_tick.read(reader);
+        self.environment_heat_energy_cost_this_tick.read(reader);
+        self.environment_heat_energy_overflow_this_tick.read(reader);
+        self.environment_radiation_this_tick.read(reader);
+        self.environment_radiation_damage_before_armor_this_tick
+            .read(reader);
+        self.environment_armor_blocked_damage_this_tick.read(reader);
+        self.environment_hull_damage_this_tick.read(reader);
+
         self.read_runtime(reader);
         self.alive.store(true);
         self.emit_runtime_events();
@@ -317,6 +608,20 @@ impl Controllable {
         self.neutrino_cell.reset_runtime();
         self.hull.reset_runtime();
         self.shield.reset_runtime();
+        self.shield.reset_runtime();
+        self.repair.reset_runtime();
+        self.cargo.reset_runtime();
+        self.resource_miner.reset_runtime();
+        self.environment_heat_this_tick.store_default();
+        self.environment_heat_energy_cost_this_tick.store_default();
+        self.environment_heat_energy_overflow_this_tick
+            .store_default();
+        self.environment_radiation_this_tick.store_default();
+        self.environment_radiation_damage_before_armor_this_tick
+            .store_default();
+        self.environment_armor_blocked_damage_this_tick
+            .store_default();
+        self.environment_hull_damage_this_tick.store_default();
 
         match self.specialization() {
             ControllableSpecialization::ClassicShip(s) => s.reset_runtime(),
@@ -329,7 +634,7 @@ impl Controllable {
         }
     }
 
-    pub(crate) fn emit_runtime_events(&self) {
+    pub(crate) fn emit_runtime_events(self: &Arc<Self>) {
         self.push_runtime_events(
             [
                 self.energy_battery.create_runtime_event(),
@@ -340,6 +645,11 @@ impl Controllable {
                 self.neutrino_cell.create_runtime_event(),
                 self.hull.create_runtime_event(),
                 self.shield.create_runtime_event(),
+                self.armor.create_runtime_event(),
+                self.repair.create_runtime_event(),
+                self.cargo.create_runtime_event(),
+                self.resource_miner.create_runtime_event(),
+                Arc::clone(self).create_environment_runtime_event(),
             ]
             .into_iter()
             .flatten(),
@@ -364,6 +674,45 @@ impl Controllable {
             None => {
                 warn!("Can no longer push FlattiversEvents, Sender is gone!")
             }
+        }
+    }
+
+    pub(crate) fn create_environment_runtime_event(self: Arc<Self>) -> Option<FlattiverseEvent> {
+        let environment_heat_this_tick = self.environment_heat_this_tick();
+        let environment_heat_energy_cost_this_tick = self.environment_heat_energy_cost_this_tick();
+        let environment_heat_energy_overflow_this_tick =
+            self.environment_heat_energy_overflow_this_tick();
+        let environment_radiation_this_tick = self.environment_radiation_this_tick();
+        let environment_radiation_damage_before_armor_this_tick =
+            self.environment_radiation_damage_before_armor_this_tick();
+        let environment_armor_blocked_damage_this_tick =
+            self.environment_armor_blocked_damage_this_tick();
+        let environment_hull_damage_this_tick = self.environment_hull_damage_this_tick();
+
+        if environment_heat_this_tick == 0.0
+            && environment_heat_energy_cost_this_tick == 0.0
+            && environment_heat_energy_overflow_this_tick == 0.0
+            && environment_radiation_this_tick == 0.0
+            && environment_radiation_damage_before_armor_this_tick == 0.0
+            && environment_armor_blocked_damage_this_tick == 0.0
+            && environment_hull_damage_this_tick == 0.0
+        {
+            None
+        } else {
+            Some(
+                FlattiverseEventKind::EnvironmentDamage {
+                    controllable: self,
+                    heat: environment_heat_this_tick,
+                    heat_energy_cost: environment_heat_energy_cost_this_tick,
+                    heat_energy_overflow: environment_heat_energy_overflow_this_tick,
+                    radiation: environment_radiation_this_tick,
+                    radiation_damage_before_armor:
+                        environment_radiation_damage_before_armor_this_tick,
+                    armor_blocked_damage: environment_armor_blocked_damage_this_tick,
+                    hull_damage: environment_hull_damage_this_tick,
+                }
+                .into(),
+            )
         }
     }
 

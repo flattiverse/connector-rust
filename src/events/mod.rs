@@ -680,6 +680,9 @@ impl Display for FlattiverseEvent {
             }
 
             FlattiverseEventKind::CompiledWithMessage { message, .. } => write!(f, "{message}"),
+            FlattiverseEventKind::EnvironmentDamage { controllable, heat, heat_energy_cost, heat_energy_overflow, radiation, radiation_damage_before_armor, armor_blocked_damage, hull_damage } => {
+                write!(f, "Environment damage event: controllable={:?}, heat={heat}, heat_energy_cost={heat_energy_cost}, heat_energy_overflow={heat_energy_overflow}, radiation={radiation}, radiation_damage_before_armor={radiation_damage_before_armor}, armor_blocked_damage={armor_blocked_damage}, hull_damage={hull_damage}", controllable.name())
+            }
         }
     }
 }
@@ -1317,6 +1320,25 @@ pub enum FlattiverseEventKind {
         symbol: Arc<String>,
         /// A user-facing message describing the compile profile.
         message: String,
+    },
+    /// Owner-only runtime update about passive heat and radiation in the current tick.
+    EnvironmentDamage {
+        /// The affected controllable.
+        controllable: Arc<Controllable>,
+        /// Aggregated incoming heat of the tick.
+        heat: f32,
+        /// Energy drained by heat in the tick.
+        heat_energy_cost: f32,
+        /// Heat that could not be paid and therefore overflowed into radiation.
+        heat_energy_overflow: f32,
+        /// Aggregated incoming radiation of the tick before heat overflow is added.
+        radiation: f32,
+        /// Radiation damage before armor reduction.
+        radiation_damage_before_armor: f32,
+        /// Radiation damage blocked by armor.
+        armor_blocked_damage: f32,
+        /// Hull damage caused by the passive environment in the tick.
+        hull_damage: f32,
     },
 
     // ---------- local events below
