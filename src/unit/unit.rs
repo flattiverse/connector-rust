@@ -4,10 +4,10 @@ use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
     InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
-    MobileUnit, Mobility, Moon, Nebula, NeutrinoChargePowerUp, Planet, PlayerUnit, PowerUp,
-    Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp,
-    SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit,
-    UnitKind, WormHole,
+    MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet,
+    PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
+    SiliconCargoPowerUp, SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl, StormWhirl,
+    Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -219,6 +219,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_classic_ship(&self) -> Option<&ClassicShipPlayerUnit> {
         self.parent().as_classic_ship()
+    }
+
+    #[inline]
+    fn as_modern_ship(&self) -> Option<&ModernShipPlayerUnit> {
+        self.parent().as_modern_ship()
     }
 
     #[inline]
@@ -543,6 +548,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_classic_ship(&self) -> Option<&ClassicShipPlayerUnit> {
+        None
+    }
+
+    #[inline]
+    fn as_modern_ship(&self) -> Option<&ModernShipPlayerUnit> {
         None
     }
 

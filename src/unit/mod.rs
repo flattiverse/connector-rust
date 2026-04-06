@@ -75,6 +75,9 @@ pub use player_unit::*;
 mod classic_ship_player_unit;
 pub use classic_ship_player_unit::*;
 
+mod modern_ship_player_unit;
+pub use modern_ship_player_unit::*;
+
 mod power_up;
 pub use power_up::*;
 
@@ -212,8 +215,8 @@ mod internal {
         AbstractExplosion, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
         CurrentField, DominationPoint, EnergyChargePowerUp, Flag, HullRepairPowerUp,
         HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
-        MissionTarget, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp,
-        Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm, StormActiveWhirl,
+        MissionTarget, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail,
+        ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm, StormActiveWhirl,
         StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
@@ -255,6 +258,7 @@ mod internal {
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
             UnitKind::Rail => Rail::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
+            UnitKind::ModernShipPlayerUnit => ModernShipPlayerUnit::new(cluster, name, reader)?,
             UnitKind::InterceptorExplosion => InterceptorExplosion::new(cluster, name, reader)?,
             UnitKind::Explosion => AbstractExplosion::new(cluster, name, reader)?,
             // TODO this should not be necessary
