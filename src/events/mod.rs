@@ -611,6 +611,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::BatterySubsystem { controllable, slot, status, current, consumed_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, consumed={consumed_this_tick:?}", controllable.name())
             }
+            FlattiverseEventKind::CargoSubsystem { controllable, slot, status, current_metal, current_carbon, current_hydrogen, current_silicon, current_nebula, nebula_hue } => {
+                write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current_metal={current_metal}, current_carbon={current_carbon}, current_hydrogen={current_hydrogen}, current_silicon={current_silicon}, current_nebula={current_nebula}, nebula_hue={nebula_hue}", controllable.name())
+            }
             FlattiverseEventKind::EnergyCellSubsystem { controllable, slot, status, collected_this_tick } => {
                 write!(f, "Energy cell subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, collected={collected_this_tick:?}", controllable.name())
             }
@@ -986,6 +989,27 @@ pub enum FlattiverseEventKind {
         current: f32,
         /// The amount consumed during the current server tick.
         consumed_this_tick: f32,
+    },
+    /// Update of a cargo subsystem on your own controllable.
+    CargoSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// Metal currently stored in cargo.
+        current_metal: f32,
+        /// Carbon currently stored in cargo.
+        current_carbon: f32,
+        /// Hydrogen currently stored in cargo.
+        current_hydrogen: f32,
+        /// Silicon currently stored in cargo.
+        current_silicon: f32,
+        /// Nebula currently stored in cargo.
+        current_nebula: f32,
+        /// Average hue of the stored nebula.
+        nebula_hue: f32,
     },
     /// Update of an energy-cell subsystem on your own controllable.
     EnergyCellSubsystem {

@@ -47,27 +47,6 @@ pub use controllable::*;
 mod classic_ship_controllable;
 pub use classic_ship_controllable::*;
 
-mod classic_ship_engine_subsystem;
-pub use classic_ship_engine_subsystem::*;
-
-mod dynamic_scanner_subsystem;
-pub use dynamic_scanner_subsystem::*;
-
-mod hull_subsystem;
-pub use hull_subsystem::*;
-
-mod subsystem;
-pub use subsystem::*;
-
-mod subsystem_base;
-pub use subsystem_base::*;
-
-mod battery_subsystem;
-pub use battery_subsystem::*;
-
-mod energy_cell_subsystem;
-pub use energy_cell_subsystem::*;
-
 mod range_tolerance;
 pub use range_tolerance::*;
 
@@ -91,6 +70,33 @@ pub use build_disclosure_aspect::*;
 
 mod build_disclosure_level;
 pub use build_disclosure_level::*;
+
+mod armor_subsystem;
+pub use armor_subsystem::*;
+
+mod battery_subsystem;
+pub use battery_subsystem::*;
+
+mod cargo_subsystem;
+pub use cargo_subsystem::*;
+
+mod classic_ship_engine_subsystem;
+pub use classic_ship_engine_subsystem::*;
+
+mod dynamic_scanner_subsystem;
+pub use dynamic_scanner_subsystem::*;
+
+mod hull_subsystem;
+pub use hull_subsystem::*;
+
+mod subsystem;
+pub use subsystem::*;
+
+mod subsystem_base;
+pub use subsystem_base::*;
+
+mod energy_cell_subsystem;
+pub use energy_cell_subsystem::*;
 
 mod jump_drive_subsystem;
 pub use jump_drive_subsystem::*;
