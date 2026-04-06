@@ -35,6 +35,8 @@ pub struct Controllable {
     alive: Atomic<bool>,
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
+    angle: Atomic<f32>,
+    angular_velocity: Atomic<f32>,
     hull: HullSubsystem,
     shield: ShieldSubsystem,
     armor: ArmorSubsystem,
@@ -65,96 +67,101 @@ impl Controllable {
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Result<Arc<Self>, GameError> {
-        match kind {
-            UnitKind::ClassicShipPlayerUnit => Ok(Self {
-                name,
-                id,
-                cluster: ArcSwapWeak::new(Arc::downgrade(cluster)),
-                active: Atomic::from(true),
-                alive: Atomic::from(false),
-                position: Atomic::from_reader(reader),
-                movement: Atomic::from_reader(reader),
-                hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
-                shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
-                armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
-                repair: RepairSubsystem::create_classic_ship_repair(Weak::default()),
-                cargo: CargoSubsystem::create_classic_ship_cargo(Weak::default()),
-                resource_miner: ResourceMinerSubsystem::create_classic_ship_resource_miner(
-                    Weak::default(),
-                ),
-                energy_battery: BatterySubsystem::create_classic_ship_energy_battery(
-                    Weak::default(),
-                ),
-                ion_battery: BatterySubsystem::create_missing_battery(
-                    Weak::default(),
-                    "IonBattery".to_string(),
-                    SubsystemSlot::IonBattery,
-                ),
-                neutrino_battery: BatterySubsystem::create_missing_battery(
-                    Weak::default(),
-                    "NeutrinoBattery".to_string(),
-                    SubsystemSlot::NeutrinoBattery,
-                ),
-                energy_cell: EnergyCellSubsystem::create_classic_ship_energy_cell(Weak::default()),
-                ion_cell: EnergyCellSubsystem::create_missing_cell(
-                    Weak::default(),
-                    "IonCell".to_string(),
-                    SubsystemSlot::IonCell,
-                ),
-                neutrino_cell: EnergyCellSubsystem::create_missing_cell(
-                    Weak::default(),
-                    "NeutrinoCell".to_string(),
-                    SubsystemSlot::NeutrinoCell,
-                ),
-                environment_heat_this_tick: Default::default(),
-                environment_heat_energy_cost_this_tick: Default::default(),
-                environment_heat_energy_overflow_this_tick: Default::default(),
-                environment_radiation_this_tick: Default::default(),
-                environment_radiation_damage_before_armor_this_tick: Default::default(),
-                environment_armor_blocked_damage_this_tick: Default::default(),
-                environment_hull_damage_this_tick: Default::default(),
-                specialization: ControllableSpecialization::ClassicShip(
-                    ClassicShipControllable::new(),
-                ),
-            }
-            .also(|this| {
-                this.read_initial_state(reader);
-                match &mut this.specialization {
-                    ControllableSpecialization::ClassicShip(c) => {
-                        c.read_initial_state(reader);
+        Ok(Self {
+            name,
+            id,
+            cluster: ArcSwapWeak::new(Arc::downgrade(cluster)),
+            active: Atomic::from(true),
+            alive: Atomic::from(false),
+            position: Atomic::from_reader(reader),
+            movement: Atomic::from_reader(reader),
+            angle: Atomic::from_reader(reader),
+            angular_velocity: Atomic::from_reader(reader),
+            hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
+            shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
+            armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
+            repair: RepairSubsystem::create_classic_ship_repair(Weak::default()),
+            cargo: CargoSubsystem::create_classic_ship_cargo(Weak::default()),
+            resource_miner: ResourceMinerSubsystem::create_classic_ship_resource_miner(
+                Weak::default(),
+            ),
+            energy_battery: BatterySubsystem::create_classic_ship_energy_battery(Weak::default()),
+            ion_battery: BatterySubsystem::create_missing_battery(
+                Weak::default(),
+                "IonBattery".to_string(),
+                SubsystemSlot::IonBattery,
+            ),
+            neutrino_battery: BatterySubsystem::create_missing_battery(
+                Weak::default(),
+                "NeutrinoBattery".to_string(),
+                SubsystemSlot::NeutrinoBattery,
+            ),
+            energy_cell: EnergyCellSubsystem::create_classic_ship_energy_cell(Weak::default()),
+            ion_cell: EnergyCellSubsystem::create_missing_cell(
+                Weak::default(),
+                "IonCell".to_string(),
+                SubsystemSlot::IonCell,
+            ),
+            neutrino_cell: EnergyCellSubsystem::create_missing_cell(
+                Weak::default(),
+                "NeutrinoCell".to_string(),
+                SubsystemSlot::NeutrinoCell,
+            ),
+            environment_heat_this_tick: Default::default(),
+            environment_heat_energy_cost_this_tick: Default::default(),
+            environment_heat_energy_overflow_this_tick: Default::default(),
+            environment_radiation_this_tick: Default::default(),
+            environment_radiation_damage_before_armor_this_tick: Default::default(),
+            environment_armor_blocked_damage_this_tick: Default::default(),
+            environment_hull_damage_this_tick: Default::default(),
+            specialization: match kind {
+                UnitKind::ClassicShipPlayerUnit => {
+                    ControllableSpecialization::ClassicShip(ClassicShipControllable::new())
+                }
+                UnitKind::ModernShipPlayerUnit => {
+                    todo!()
+                }
+                _ => {
+                    return Err(GameErrorKind::InvalidArgument {
+                        reason: InvalidArgumentKind::Unknown(Default::default()),
+                        parameter: "kind".to_string(),
                     }
+                    .into())
                 }
-            })
-            .r#let(Arc::new)
-            .also(|this| {
-                // finish the initialization of cross-references
-                for subsystem in [
-                    this.hull.as_subsystem_base(),
-                    this.shield.as_subsystem_base(),
-                    this.armor.as_subsystem_base(),
-                    this.repair.as_subsystem_base(),
-                    this.cargo.as_subsystem_base(),
-                    this.resource_miner.as_subsystem_base(),
-                    this.energy_battery.as_subsystem_base(),
-                    this.ion_battery.as_subsystem_base(),
-                    this.neutrino_battery.as_subsystem_base(),
-                    this.energy_cell.as_subsystem_base(),
-                    this.ion_cell.as_subsystem_base(),
-                    this.neutrino_cell.as_subsystem_base(),
-                ]
-                .into_iter()
-                .chain(match this.specialization() {
-                    ControllableSpecialization::ClassicShip(c) => c.iter_subsystem_bases(),
-                }) {
-                    subsystem.controllable.store(Arc::downgrade(this));
-                }
-            })),
-            _ => Err(GameErrorKind::InvalidArgument {
-                reason: InvalidArgumentKind::Unknown(Default::default()),
-                parameter: "kind".to_string(),
-            }
-            .into()),
+            },
         }
+        .also(|this| {
+            this.read_initial_state(reader);
+            match &mut this.specialization {
+                ControllableSpecialization::ClassicShip(c) => {
+                    c.read_initial_state(reader);
+                }
+            }
+        })
+        .r#let(Arc::new)
+        .also(|this| {
+            // finish the initialization of cross-references
+            for subsystem in [
+                this.hull.as_subsystem_base(),
+                this.shield.as_subsystem_base(),
+                this.armor.as_subsystem_base(),
+                this.repair.as_subsystem_base(),
+                this.cargo.as_subsystem_base(),
+                this.resource_miner.as_subsystem_base(),
+                this.energy_battery.as_subsystem_base(),
+                this.ion_battery.as_subsystem_base(),
+                this.neutrino_battery.as_subsystem_base(),
+                this.energy_cell.as_subsystem_base(),
+                this.ion_cell.as_subsystem_base(),
+                this.neutrino_cell.as_subsystem_base(),
+            ]
+            .into_iter()
+            .chain(match this.specialization() {
+                ControllableSpecialization::ClassicShip(c) => c.iter_subsystem_bases(),
+            }) {
+                subsystem.controllable.store(Arc::downgrade(this));
+            }
+        }))
     }
 
     /// The id of the controllable.
@@ -191,6 +198,18 @@ impl Controllable {
     #[inline]
     pub fn movement(&self) -> Vector {
         self.movement.load()
+    }
+
+    /// The facing angle of the unit.
+    #[inline]
+    pub fn angle(&self) -> f32 {
+        self.angle.load()
+    }
+
+    /// The angular velocity of the unit.
+    #[inline]
+    pub fn angular_velocity(&self) -> f32 {
+        self.angular_velocity.load()
     }
 
     /// The hull subsystem of the controllable.
@@ -509,6 +528,8 @@ impl Controllable {
         self.alive.store(false);
         self.position.store_default();
         self.movement.store_default();
+        self.angle.store_default();
+        self.angular_velocity.store_default();
         self.reset_runtime();
     }
 
@@ -516,6 +537,8 @@ impl Controllable {
         self.cluster.store(Arc::downgrade(&cluster));
         self.position.read(reader);
         self.movement.read(reader);
+        self.angle.read(reader);
+        self.angular_velocity.read(reader);
 
         self.energy_battery.update_runtime(
             reader.read_f32(),
