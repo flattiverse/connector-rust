@@ -54,10 +54,20 @@ impl RangeTolerance {
         );
 
         let value = Self::validated_f32(value)?;
+        let tolerated_minimum = if minimum >= 0.0 {
+            minimum * Self::LOWER_FACTOR
+        } else {
+            minimum * Self::UPPER_FACTOR
+        };
+        let tolerated_maximum = if maximum >= 0.0 {
+            maximum * Self::UPPER_FACTOR
+        } else {
+            maximum * Self::LOWER_FACTOR
+        };
 
-        if value < minimum * Self::LOWER_FACTOR {
+        if value < tolerated_minimum {
             Err(InvalidArgumentKind::TooSmall)
-        } else if value > maximum * Self::UPPER_FACTOR {
+        } else if value > tolerated_maximum {
             Err(InvalidArgumentKind::TooLarge)
         } else if value < minimum {
             Ok(value)
