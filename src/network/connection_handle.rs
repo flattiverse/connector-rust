@@ -1222,6 +1222,53 @@ impl ConnectionHandle {
         })
     }
 
+    /// Requests one interceptor for the next server tick.
+    #[inline]
+    pub async fn dynamic_shot_interceptor_subsystem_shoot(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        self.dynamic_shot_interceptor_subsystem_shoot_split(
+            controllable,
+            relative_movement,
+            ticks,
+            load,
+            damage,
+        )
+        .await?
+        .await
+    }
+
+    /// Requests one interceptor for the next server tick.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn dynamic_shot_interceptor_subsystem_shoot_split(
+        &self,
+        controllable: ControllableId,
+        relative_movement: Vector,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x96, |writer| {
+                writer.write_byte(controllable.0);
+                relative_movement.write(writer);
+                writer.write_uint16(ticks);
+                writer.write_f32(load);
+                writer.write_f32(damage);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Sets the interceptor fabrication rate on the server.
     #[inline]
     pub async fn dynamic_interceptor_fabricator_subsystem_set(

@@ -620,9 +620,6 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::ClassicShipEngineSubsystem { controllable, slot, status, current, target, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
                 write!(f, "Classic ship engine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, target={target:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
-            FlattiverseEventKind::DynamicShotLauncherSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
-                write!(f, "Dynamic shot launcher subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
-            }
             FlattiverseEventKind::HullSubsystem { controllable, slot, status, current } => {
                 write!(f, "Hull subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
@@ -649,6 +646,12 @@ impl Display for FlattiverseEvent {
             }
             FlattiverseEventKind::DynamicInterceptorFabricatorSubsystem { controllable, slot, status, active, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
                 write!(f, "Dynamic interceptor fabricator subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, active={active}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            }
+            FlattiverseEventKind::DynamicShotLauncherSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Dynamic shot launcher subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
+            }
+            FlattiverseEventKind::DynamicInterceptorLauncherSubsystem { controllable, slot, status, relative_movement, ticks, load, damage, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Dynamic interceptor launcher subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, relative_movement={relative_movement:?}, ticks={ticks:?}, load={load:?}, damage={damage:?}, consumed_energy_this_tick={consumed_energy_this_tick:?}, consumed_ions_this_tick={consumed_ions_this_tick:?}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick:?}", controllable.name())
             }
 
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
@@ -1040,29 +1043,6 @@ pub enum FlattiverseEventKind {
         /// The neutrinos consumed during the current server tick.
         consumed_neutrinos_this_tick: f32,
     },
-    /// Update of a shot launcher subsystem on your own controllable.
-    DynamicShotLauncherSubsystem {
-        /// The controllable whose subsystem emitted this runtime event.
-        controllable: Arc<Controllable>,
-        /// The concrete subsystem slot on the controllable.
-        slot: SubsystemSlot,
-        /// The status reported for the current server tick.
-        status: SubsystemStatus,
-        /// The shot movement processed for the current server tick.
-        relative_movement: Vector,
-        /// The shot lifetime processed for the current server tick.
-        ticks: u16,
-        /// The shot load processed for the current server tick.
-        load: f32,
-        /// The shot damage processed for the current server tick.
-        damage: f32,
-        /// The energy consumed during the current server tick.
-        consumed_energy_this_tick: f32,
-        /// The ions consumed during the current server tick.
-        consumed_ions_this_tick: f32,
-        /// The neutrinos consumed during the current server tick.
-        consumed_neutrinos_this_tick: f32,
-    },
     /// Update of a hull subsystem on your own controllable
     HullSubsystem {
         /// The controllable whose subsystem emitted this runtime event.
@@ -1219,6 +1199,52 @@ pub enum FlattiverseEventKind {
         active: bool,
         /// The configured fabrication rate.
         rate: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Update of a shot launcher subsystem on your own controllable.
+    DynamicShotLauncherSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// The shot movement processed for the current server tick.
+        relative_movement: Vector,
+        /// The shot lifetime processed for the current server tick.
+        ticks: u16,
+        /// The shot load processed for the current server tick.
+        load: f32,
+        /// The shot damage processed for the current server tick.
+        damage: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Runtime update of a dynamic interceptor launcher subsystem on your own controllable.
+    DynamicInterceptorLauncherSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// The shot movement processed for the current server tick.
+        relative_movement: Vector,
+        /// The shot lifetime processed for the current server tick.
+        ticks: u16,
+        /// The shot load processed for the current server tick.
+        load: f32,
+        /// The shot damage processed for the current server tick.
+        damage: f32,
         /// The energy consumed during the current server tick.
         consumed_energy_this_tick: f32,
         /// The ions consumed during the current server tick.
