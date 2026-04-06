@@ -360,6 +360,64 @@ impl ConnectionHandle {
         })
     }
 
+    /// Creates a modern style ship with up to three equipped crystals.
+    #[inline]
+    pub async fn create_modern_style_ship(
+        &self,
+        name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
+    ) -> Result<ControllableId, GameError> {
+        self.create_modern_style_ship_split(name, crystal_0_name, crystal_1_name, crystal_2_name)
+            .await?
+            .await
+    }
+
+    /// Creates a modern style ship with up to three equipped crystals.
+    #[instrument(
+        level = "debug",
+        skip(
+            self,
+            name,
+            crystal_0_name,
+            crystal_1_name,
+            crystal_2_name
+        ),
+        fields(
+            name = name.as_ref(),
+            crystal_0_name = crystal_0_name.as_ref(),
+            crystal_1_name = crystal_1_name.as_ref(),
+            crystal_2_name = crystal_2_name.as_ref()
+        ),
+        err(Display, level = "warn")
+    )]
+    pub async fn create_modern_style_ship_split(
+        &self,
+        name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
+        check_name_or_err(name.as_ref())?;
+
+        let session = self
+            .send_command_with_payload(0x81, |writer| {
+                writer.write_string_with_len_prefix(name.as_ref());
+                writer.write_string_with_len_prefix(crystal_0_name.as_ref());
+                writer.write_string_with_len_prefix(crystal_1_name.as_ref());
+                writer.write_string_with_len_prefix(crystal_2_name.as_ref());
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                Ok(packet.read(|reader| ControllableId(reader.read_byte())))
+            })
+        })
+    }
+
     /// Requests the current account-wide crystal snapshot.
     #[inline]
     pub async fn request_crystals(&self) -> Result<Vec<Crystal>, GameError> {

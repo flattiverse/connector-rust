@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{
-    BuildDisclosure, Cluster, ClusterId, Controllable, ControllableId, ControllableInfo,
-    ControllableInfoId, Crystal, GameMode, Player, PlayerId, PlayerKind, RuntimeDisclosure, Team,
-    TeamId, Tournament, UniversalArcHolder,
+    BuildDisclosure, ClassicShipControllable, Cluster, ClusterId, Controllable, ControllableId,
+    ControllableInfo, ControllableInfoId, Controls, Crystal, GameMode, ModernShipControllable,
+    Player, PlayerId, PlayerKind, RuntimeDisclosure, Team, TeamId, Tournament, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::unit::UnitKind;
@@ -34,18 +34,15 @@ pub struct Galaxy {
 
     galaxy_max_total_ships: Atomic<u16>,
     galaxy_max_classic_ships: Atomic<u16>,
-    galaxy_max_new_ships: Atomic<u16>,
-    galaxy_max_bases: Atomic<u16>,
+    galaxy_max_modern_ships: Atomic<u16>,
 
     team_max_total_ships: Atomic<u16>,
     team_max_classic_ships: Atomic<u16>,
-    team_max_new_ships: Atomic<u16>,
-    team_max_bases: Atomic<u16>,
+    team_max_modern_ships: Atomic<u16>,
 
     player_max_total_ships: Atomic<u8>,
     player_max_classic_ships: Atomic<u8>,
-    player_max_new_ships: Atomic<u8>,
-    player_max_bases: Atomic<u8>,
+    player_max_modern_ships: Atomic<u8>,
 
     maintenance: Atomic<bool>,
     requires_self_disclosure: Atomic<bool>,
@@ -215,16 +212,13 @@ impl Galaxy {
                     max_spectators: Atomic::from(0),
                     galaxy_max_total_ships: Atomic::from(0),
                     galaxy_max_classic_ships: Atomic::from(0),
-                    galaxy_max_new_ships: Atomic::from(0),
-                    galaxy_max_bases: Atomic::from(0),
+                    galaxy_max_modern_ships: Atomic::from(0),
                     team_max_total_ships: Atomic::from(0),
                     team_max_classic_ships: Atomic::from(0),
-                    team_max_new_ships: Atomic::from(0),
-                    team_max_bases: Atomic::from(0),
+                    team_max_modern_ships: Atomic::from(0),
                     player_max_total_ships: Atomic::from(0),
                     player_max_classic_ships: Atomic::from(0),
-                    player_max_new_ships: Atomic::from(0),
-                    player_max_bases: Atomic::from(0),
+                    player_max_modern_ships: Atomic::from(0),
                     maintenance: Atomic::from(false),
                     requires_self_disclosure: Atomic::from(false),
                     active: Atomic::from(true),
@@ -290,7 +284,7 @@ impl Galaxy {
     pub async fn create_classic_ship(
         &self,
         name: impl AsRef<str>,
-    ) -> Result<Arc<Controllable>, GameError> {
+    ) -> Result<Controls<ClassicShipControllable>, GameError> {
         self.create_classic_ship_with_crystals(name, "", "", "")
             .await
     }
@@ -303,12 +297,38 @@ impl Galaxy {
         crystal_0_name: impl AsRef<str>,
         crystal_1_name: impl AsRef<str>,
         crystal_2_name: impl AsRef<str>,
-    ) -> Result<Arc<Controllable>, GameError> {
+    ) -> Result<Controls<ClassicShipControllable>, GameError> {
         let id = self
             .connection
             .create_classic_style_ship(name, crystal_0_name, crystal_1_name, crystal_2_name)
             .await?;
-        Ok(self.get_controllable(id))
+        Ok(Controls::try_from(self.get_controllable(id)).unwrap())
+    }
+
+    /// Creates a modern style ship.
+    #[inline]
+    pub async fn create_modern_ship(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<Controls<ModernShipControllable>, GameError> {
+        self.create_modern_ship_with_crystals(name, "", "", "")
+            .await
+    }
+
+    /// Creates a modern style ship with up to three equipped crystals.
+    #[inline]
+    pub async fn create_modern_ship_with_crystals(
+        &self,
+        name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
+    ) -> Result<Controls<ModernShipControllable>, GameError> {
+        let id = self
+            .connection
+            .create_classic_style_ship(name, crystal_0_name, crystal_1_name, crystal_2_name)
+            .await?;
+        Ok(Controls::try_from(self.get_controllable(id)).unwrap())
     }
 
     /// Requests the current account-wide crystal snapshot.
@@ -401,16 +421,13 @@ impl Galaxy {
         max_spectators: u16,
         galaxy_max_total_ships: u16,
         galaxy_max_classic_ships: u16,
-        galaxy_max_new_ships: u16,
-        galaxy_max_bases: u16,
+        galaxy_max_modern_ships: u16,
         team_max_total_ships: u16,
         team_max_classic_ships: u16,
-        team_max_new_ships: u16,
-        team_max_bases: u16,
+        team_max_modern_ships: u16,
         player_max_total_ships: u8,
         player_max_classic_ships: u8,
-        player_max_new_ships: u8,
-        player_max_bases: u8,
+        player_max_modern_ships: u8,
         maintenance: u8,
         requires_self_disclosure: u8,
     ) -> Result<(), GameError> {
@@ -429,17 +446,14 @@ impl Galaxy {
         self.galaxy_max_total_ships.store(galaxy_max_total_ships);
         self.galaxy_max_classic_ships
             .store(galaxy_max_classic_ships);
-        self.galaxy_max_new_ships.store(galaxy_max_new_ships);
-        self.galaxy_max_bases.store(galaxy_max_bases);
+        self.galaxy_max_modern_ships.store(galaxy_max_modern_ships);
         self.team_max_total_ships.store(team_max_total_ships);
         self.team_max_classic_ships.store(team_max_classic_ships);
-        self.team_max_new_ships.store(team_max_new_ships);
-        self.team_max_bases.store(team_max_bases);
+        self.team_max_modern_ships.store(team_max_modern_ships);
         self.player_max_total_ships.store(player_max_total_ships);
         self.player_max_classic_ships
             .store(player_max_classic_ships);
-        self.player_max_new_ships.store(player_max_new_ships);
-        self.player_max_bases.store(player_max_bases);
+        self.player_max_modern_ships.store(player_max_modern_ships);
         self.maintenance.store(maintenance != 0);
         self.requires_self_disclosure
             .store(requires_self_disclosure != 0);
@@ -1530,13 +1544,8 @@ impl Galaxy {
     }
 
     /// The maximum amount of new style ships allowed in the galaxy.
-    pub fn galaxy_max_new_ships(&self) -> u16 {
-        self.galaxy_max_new_ships.load()
-    }
-
-    /// The maximum amount of bases allowed in the galaxy.
-    pub fn galaxy_max_bases(&self) -> u16 {
-        self.galaxy_max_bases.load()
+    pub fn galaxy_max_modern_ships(&self) -> u16 {
+        self.galaxy_max_modern_ships.load()
     }
 
     /// The maximum amount of total hips allowed per team in the galaxy.
@@ -1550,13 +1559,8 @@ impl Galaxy {
     }
 
     /// The maximum amount of new style ships allowed per team in teh galaxy.
-    pub fn team_max_new_ships(&self) -> u16 {
-        self.team_max_new_ships.load()
-    }
-
-    /// The maximum amount of bases allowed per team in the galaxy.
-    pub fn team_max_bases(&self) -> u16 {
-        self.team_max_bases.load()
+    pub fn team_max_modern_ships(&self) -> u16 {
+        self.team_max_modern_ships.load()
     }
 
     /// The maximum amount of total ships allowed per player in the galaxy.
@@ -1570,13 +1574,8 @@ impl Galaxy {
     }
 
     /// The maximum amount of new style ships allowed per player in the galaxy.
-    pub fn player_max_new_ships(&self) -> u8 {
-        self.player_max_new_ships.load()
-    }
-
-    /// The maximum amount of bases allowed per player in the galaxy.
-    pub fn player_max_bases(&self) -> u8 {
-        self.player_max_bases.load()
+    pub fn player_max_modern_ships(&self) -> u8 {
+        self.player_max_modern_ships.load()
     }
 
     /// True while the underlying session and connection are still active.

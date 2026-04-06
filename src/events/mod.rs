@@ -235,16 +235,13 @@ impl Display for FlattiverseEvent {
                     log_change!(appended_at_least_one_change, galaxy, before, max_spectators);
                     log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_total_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_classic_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_new_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, galaxy_max_modern_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, team_max_total_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, team_max_classic_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, team_max_new_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, team_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, team_max_modern_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_total_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_classic_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, player_max_new_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, player_max_bases);
+                    log_change!(appended_at_least_one_change, galaxy, before, player_max_modern_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, maintenance);
                     log_change!(appended_at_least_one_change, galaxy, before, requires_self_disclosure);
 
@@ -254,7 +251,7 @@ impl Display for FlattiverseEvent {
                 } else {
                     write!(
                         f,
-                        "Galaxy settings initialized: game_mode={:?} name={:?},  description={:?},  max_players={:?},  max_spectators={:?},  galaxy_max_total_ships={:?},  galaxy_max_classic_ships={:?},  galaxy_max_new_ships={:?},  galaxy_max_bases={:?},  team_max_total_ships={:?},  team_max_classic_ships={:?},  team_max_new_ships={:?},  team_max_bases={:?},  player_max_total_ships={:?},  player_max_classic_ships={:?},  player_max_new_ships={:?},  player_max_bases={:?}",
+                        "Galaxy settings initialized: game_mode={:?} name={:?}, description={:?}, max_players={:?}, max_spectators={:?}, galaxy_max_total_ships={:?}, galaxy_max_classic_ships={:?}, galaxy_max_new_ships={:?}, team_max_total_ships={:?}, team_max_classic_ships={:?}, team_max_new_ships={:?}, player_max_total_ships={:?}, player_max_classic_ships={:?}, player_max_new_ships={:?}.",
                         galaxy.game_mode(),
                         &*galaxy.name(),
                         &*galaxy.description(),
@@ -262,16 +259,13 @@ impl Display for FlattiverseEvent {
                         galaxy.max_spectators(),
                         galaxy.galaxy_max_total_ships(),
                         galaxy.galaxy_max_classic_ships(),
-                        galaxy.galaxy_max_new_ships(),
-                        galaxy.galaxy_max_bases(),
+                        galaxy.galaxy_max_modern_ships(),
                         galaxy.team_max_total_ships(),
                         galaxy.team_max_classic_ships(),
-                        galaxy.team_max_new_ships(),
-                        galaxy.team_max_bases(),
+                        galaxy.team_max_modern_ships(),
                         galaxy.player_max_total_ships(),
                         galaxy.player_max_classic_ships(),
-                        galaxy.player_max_new_ships(),
-                        galaxy.player_max_bases(),
+                        galaxy.player_max_modern_ships(),
                     )?;
                 }
 
