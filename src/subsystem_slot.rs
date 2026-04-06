@@ -1,3 +1,7 @@
+use crate::network::{PacketReader, PacketWriter};
+use crate::utils::{Readable, Writable};
+use num_enum::FromPrimitive;
+
 /// Identifies the concrete subsystem slot within a controllable.
 #[repr(u8)]
 #[derive(
@@ -178,4 +182,18 @@ pub enum SubsystemSlot {
     /// The subsystem slot is unknown.
     #[num_enum(catch_all)]
     Unknown(u8),
+}
+
+impl Readable for SubsystemSlot {
+    #[inline]
+    fn read(reader: &mut dyn PacketReader) -> Self {
+        Self::from_primitive(reader.read_byte())
+    }
+}
+
+impl Writable for SubsystemSlot {
+    #[inline]
+    fn write(&self, writer: &mut dyn PacketWriter) {
+        writer.write_byte(u8::from(*self));
+    }
 }

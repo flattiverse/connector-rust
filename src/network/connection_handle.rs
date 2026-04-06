@@ -9,7 +9,7 @@ use crate::network::{
 };
 use crate::unit::UnitKind;
 use crate::utils::{check_name_or_err, Readable};
-use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, Vector};
+use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, SubsystemSlot, Vector};
 use async_channel::WeakSender;
 use serde::Serialize;
 use std::fmt::{Debug, Formatter};
@@ -378,6 +378,55 @@ impl ConnectionHandle {
             GameError::check(response, |mut packet| {
                 packet.read(|reader| Self::read_crystal_snapshot(reader))
             })
+        })
+    }
+
+    #[inline]
+    pub async fn static_shot_launcher_subsystem_shoot(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        relative_speed: f32,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        self.static_shot_launcher_subsystem_shoot_split(
+            controllable,
+            slot,
+            relative_speed,
+            ticks,
+            load,
+            damage,
+        )
+        .await?
+        .await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_shot_launcher_subsystem_shoot_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        relative_speed: f32,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA5, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(relative_speed);
+                writer.write_uint16(ticks);
+                writer.write_f32(load);
+                writer.write_f32(damage);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
         })
     }
 
