@@ -10,6 +10,9 @@ pub use cluster_snapshot::*;
 mod galaxy_settings_snapshot;
 pub use galaxy_settings_snapshot::*;
 
+mod gate_state_change;
+pub use gate_state_change::*;
+
 use crate::galaxy_hierarchy::{
     Cluster, ClusterId, Controllable, ControllableInfo, Galaxy, Player, RailgunDirection, Score,
     Team, Tournament,
@@ -211,6 +214,12 @@ impl Display for FlattiverseEvent {
             ),
             FlattiverseEventKind::TournamentMessage { message } => write!(f, "{message}"),
 
+            FlattiverseEventKind::PowerUpCollected { controllable, power_up_kind, power_up_name, amount, applied_amount } => write!(
+                f,
+                "PowerUp collected: {:?}, kind={power_up_kind:?}, name={power_up_name}, amount={amount}, applied_amount={applied_amount}",
+                controllable.name(),
+            ),
+
             FlattiverseEventKind::GalaxySettingsUpdated { galaxy, before } => {
                 if let Some(before) = before {
                     write!(f, "Galaxy settings updated: ")?;
@@ -355,6 +364,15 @@ impl Display for FlattiverseEvent {
                 destination.name(),
                 message
             ),
+            FlattiverseEventKind::MissionTargetHitChat {
+                player, controllable_info, mission_target_sequence
+            } => write!(
+                f,
+                "[SYSTEM] [{}] Ship {} of player {} hit mission target of sequence #{mission_target_sequence}.",
+                &*player.team().name(),
+                controllable_info.name(),
+                player.name(),
+            ),
             FlattiverseEventKind::FlagReactivatedChat {
                 flag_team, flag_name
             } => write!(
@@ -362,6 +380,38 @@ impl Display for FlattiverseEvent {
                 "[SYSTEM] Flag {flag_name:?} of team {} is active again.",
                 &*flag_team.name(),
             ),
+            FlattiverseEventKind::GateSwitched {
+                cluster, invoker_player, invoker_controllable_info, switch_name, gates
+            } => {
+                let gates = gates.iter().map(|g| g.to_string()).collect::<Vec<String>>().join(", ");
+                write!(
+                    f,
+                    "Switch {switch_name} in cluster {} changed {}",
+                    &*cluster.name(),
+                    if gates.is_empty() {
+                        "no linked gates"
+                    } else {
+                        &gates
+                    }
+                )?;
+                if let (Some(player), Some(controllable)) = (invoker_player, invoker_controllable_info) {
+                    write!(f, " by {} / {}.", player.name(), controllable.name())
+                } else {
+                    write!(f, ".")
+                }
+            },
+            FlattiverseEventKind::GateRestored { cluster, gate_name, closed } => {
+                write!(
+                    f,
+                    "Gate {gate_name} in cluster {} auto-restored to {}.",
+                    &*cluster.name(),
+                    if *closed {
+                        "closed"
+                    } else {
+                        "open"
+                    }
+                )
+            }
             FlattiverseEventKind::ControllableInfoRegistered {
                 player,
                 controllable,
@@ -785,12 +835,43 @@ pub enum FlattiverseEventKind {
         /// The message of the chat.
         message: String,
     },
+    /// Galaxy-wide system chat announcing that a ship hit the next mission target in sequence.
+    MissionTargetHitChat {
+        /// Player who hit the mission target.
+        player: Arc<Player>,
+        /// Controllable that hit the mission target.
+        controllable_info: Arc<ControllableInfo>,
+        /// Sequence number of the mission target that was hit.
+        mission_target_sequence: u16,
+    },
     /// Galaxy-wide system chat announcing that a flag became active again.
     FlagReactivatedChat {
         /// Team configured on the flag.
         flag_team: Arc<Team>,
         /// Name of the reactivated flag.
         flag_name: String,
+    },
+    /// Event emitted when a switch changes the state of one or more gates.
+    GateSwitched {
+        /// Cluster containing the switch and gates.
+        cluster: Arc<Cluster>,
+        /// Optional player who triggered the switch.
+        invoker_player: Option<Arc<Player>>,
+        /// Optional controllable that triggered the switch.
+        invoker_controllable_info: Option<Arc<ControllableInfo>>,
+        /// Name of the triggered switch.
+        switch_name: String,
+        /// Final states of the affected gates.
+        gates: Vec<GateStateChange>,
+    },
+    /// Event emitted when a gate auto-restores to its configured default state.
+    GateRestored {
+        /// Cluster containing the gate.
+        cluster: Arc<Cluster>,
+        /// Name of the restored gate.
+        gate_name: String,
+        /// Final closed state after the restore.
+        closed: bool,
     },
     /// The connection has been terminated.
     ConnectionTerminated {
@@ -868,6 +949,19 @@ pub enum FlattiverseEventKind {
     /// Server-originated tournament system chat message.
     TournamentMessage {
         message: String,
+    },
+    /// Your controllable has collected a power-up.
+    PowerUpCollected {
+        /// The controllable that collected the power-up.
+        controllable: Arc<Controllable>,
+        /// The kind of the collected power-up.
+        power_up_kind: UnitKind,
+        /// The configured unit name of the collected power-up.
+        power_up_name: String,
+        /// The configured amount carried by the power-up.
+        amount: f32,
+        /// The amount that was actually applied to the controllable.
+        applied_amount: f32,
     },
 
     // ------------------- ControllableSubsystemEvents -------------------

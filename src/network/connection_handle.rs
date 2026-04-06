@@ -1,12 +1,13 @@
 use crate::account::{Account, AccountId};
 use crate::galaxy_hierarchy::{
-    ClusterId, ControllableId, Galaxy, PlayerId, Region, RegionTeam, Regions, ScannerSubsystemId,
-    TeamId, TournamentConfiguration,
+    ClusterId, ControllableId, Crystal, CrystalGrade, Galaxy, PlayerId, Region, RegionTeam,
+    Regions, ScannerSubsystemId, TeamId, TournamentConfiguration,
 };
 use crate::network::{
-    ChunkedTransfer, InvalidArgumentKind, Packet, PacketWriter, Session, SessionHandler,
+    ChunkedTransfer, InvalidArgumentKind, Packet, PacketReader, PacketWriter, Session,
+    SessionHandler,
 };
-use crate::utils::check_name_or_err;
+use crate::utils::{check_name_or_err, Readable};
 use crate::{FlattiverseEvent, GameError, GameErrorKind, ProgressState, Vector};
 use async_channel::WeakSender;
 use serde::Serialize;
@@ -300,28 +301,55 @@ impl ConnectionHandle {
         })
     }
 
-    /// Create a classic style ship.
+    /// Creates a classic style ship with up to three equipped crystals.
     #[inline]
     pub async fn create_classic_style_ship(
         &self,
         name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
     ) -> Result<ControllableId, GameError> {
-        self.create_classic_style_ship_split(name).await?.await
+        self.create_classic_style_ship_split(name, crystal_0_name, crystal_1_name, crystal_2_name)
+            .await?
+            .await
     }
 
-    /// Create a classic style ship.
-    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
+    /// Creates a classic style ship with up to three equipped crystals.
+    #[instrument(
+        level = "debug",
+        skip(
+            self,
+            name,
+            crystal_0_name,
+            crystal_1_name,
+            crystal_2_name
+        ),
+        fields(
+            name = name.as_ref(),
+            crystal_0_name = crystal_0_name.as_ref(),
+            crystal_1_name = crystal_1_name.as_ref(),
+            crystal_2_name = crystal_2_name.as_ref()
+        ),
+        err(Display, level = "warn")
+    )]
     pub async fn create_classic_style_ship_split(
         &self,
         name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
     ) -> Result<impl Future<Output = Result<ControllableId, GameError>>, GameError> {
         check_name_or_err(name.as_ref())?;
 
-        let mut packet = Packet::default();
-        packet.header_mut().set_command(0x80);
-        packet.write(|writer| writer.write_string_with_len_prefix(name.as_ref()));
-
-        let session = self.send_packet_on_new_session(packet).await?;
+        let session = self
+            .send_command_with_payload(0x80, |writer| {
+                writer.write_string_with_len_prefix(name.as_ref());
+                writer.write_string_with_len_prefix(crystal_0_name.as_ref());
+                writer.write_string_with_len_prefix(crystal_1_name.as_ref());
+                writer.write_string_with_len_prefix(crystal_2_name.as_ref());
+            })
+            .await?;
 
         Ok(async move {
             let response = session.response().await?;
@@ -329,6 +357,167 @@ impl ConnectionHandle {
                 Ok(packet.read(|reader| ControllableId(reader.read_byte())))
             })
         })
+    }
+
+    /// Requests the current account-wide crystal snapshot.
+    #[inline]
+    pub async fn request_crystals(&self) -> Result<Vec<Crystal>, GameError> {
+        self.request_crystals_split().await?.await
+    }
+
+    /// Requests the current account-wide crystal snapshot.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn request_crystals_split(
+        &self,
+    ) -> Result<impl Future<Output = Result<Vec<Crystal>, GameError>>, GameError> {
+        let session = self.send_command_with_payload(0xA0, |_| {}).await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                packet.read(|reader| Self::read_crystal_snapshot(reader))
+            })
+        })
+    }
+
+    /// Produces a crystal from nebula cargo.
+    ///
+    /// Returns `true` if a crystal was created; `false` if the nebula faded.
+    #[inline]
+    pub async fn produce_crystal(
+        &self,
+        controllable_id: ControllableId,
+        name: impl AsRef<str>,
+    ) -> Result<(bool, Vec<Crystal>), GameError> {
+        self.produce_crystal_split(controllable_id, name)
+            .await?
+            .await
+    }
+
+    /// Produces a crystal from nebula cargo.
+    ///
+    /// Returns `true` if a crystal was created; `false` if the nebula faded.
+    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
+    pub async fn produce_crystal_split(
+        &self,
+        controllable_id: ControllableId,
+        name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<(bool, Vec<Crystal>), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x9D, |writer| {
+                writer.write_byte(controllable_id.0);
+                writer.write_string_with_len_prefix(name.as_ref());
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                packet.read(|reader| {
+                    let produced = reader.read_byte() != 0x00;
+                    let crystals = Self::read_crystal_snapshot(reader)?;
+                    Ok((produced, crystals))
+                })
+            })
+        })
+    }
+
+    /// Renames an account-wide crystal.
+    #[inline]
+    pub async fn rename_crystal(
+        &self,
+        old_name: impl AsRef<str>,
+        new_name: impl AsRef<str>,
+    ) -> Result<Vec<Crystal>, GameError> {
+        self.rename_crystal_split(old_name, new_name).await?.await
+    }
+
+    /// Renames an account-wide crystal.
+    #[instrument(
+        level = "debug",
+        skip(
+            self,
+            old_name,
+            new_name
+        ),
+        fields(
+            old_name = old_name.as_ref(),
+            new_name = new_name.as_ref()
+        ),
+        err(Display, level = "warn")
+    )]
+    pub async fn rename_crystal_split(
+        &self,
+        old_name: impl AsRef<str>,
+        new_name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<Vec<Crystal>, GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x9E, |writer| {
+                writer.write_string_with_len_prefix(old_name.as_ref());
+                writer.write_string_with_len_prefix(new_name.as_ref());
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                packet.read(|reader| Self::read_crystal_snapshot(reader))
+            })
+        })
+    }
+
+    /// Destroys an account-wide crystal.
+    #[inline]
+    pub async fn destroy_crystal(&self, name: impl AsRef<str>) -> Result<Vec<Crystal>, GameError> {
+        self.destroy_crystal_split(name).await?.await
+    }
+
+    /// Destroys an account-wide crystal.
+    #[instrument(level = "debug", skip(self, name), fields(name = name.as_ref()), err(Display, level = "warn"))]
+    pub async fn destroy_crystal_split(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<impl Future<Output = Result<Vec<Crystal>, GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x9F, |writer| {
+                writer.write_string_with_len_prefix(name.as_ref());
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check(response, |mut packet| {
+                packet.read(|reader| Self::read_crystal_snapshot(reader))
+            })
+        })
+    }
+
+    fn read_crystal_snapshot(reader: &mut dyn PacketReader) -> Result<Vec<Crystal>, GameError> {
+        let count = reader.read_byte();
+        let mut crystals = Vec::with_capacity(count as usize);
+
+        for _ in 0..count {
+            crystals.push(Crystal {
+                name: reader.read_string(),
+                hue: reader.read_f32(),
+                grade: CrystalGrade::read(reader),
+                energy_battery_multiplier: reader.read_f32(),
+                ions_battery_multiplier: reader.read_f32(),
+                neutrinos_battery_multiplier: reader.read_f32(),
+                hull_multiplier: reader.read_f32(),
+                shield_multiplier: reader.read_f32(),
+                armor_multiplier: reader.read_f32(),
+                energy_cell_multiplier: reader.read_f32(),
+                ions_cell_multiplier: reader.read_f32(),
+                neutrinos_cell_multiplier: reader.read_f32(),
+                shot_weapon_production_multiplier: reader.read_f32(),
+                interceptor_weapon_production_multiplier: reader.read_f32(),
+                crystal_cargo_limit_multiplier: reader.read_f32(),
+                locked: reader.read_byte() != 0x00,
+            });
+        }
+
+        Ok(crystals)
     }
 
     /// Creates or updates a region within the cluster:

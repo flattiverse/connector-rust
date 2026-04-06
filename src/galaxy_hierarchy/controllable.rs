@@ -6,6 +6,7 @@ use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
 use crate::utils::{Also, Atomic, Readable};
 use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, SubsystemStatus, Vector};
+use arc_swap::ArcSwapWeak;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
@@ -24,7 +25,7 @@ impl Indexer for ControllableId {
 pub struct Controllable {
     name: String,
     id: ControllableId,
-    cluster: Weak<Cluster>,
+    cluster: ArcSwapWeak<Cluster>,
     active: Atomic<bool>,
     alive: Atomic<bool>,
     position: Atomic<Vector>,
@@ -43,7 +44,7 @@ pub struct Controllable {
 impl Controllable {
     pub(crate) fn from_packet(
         kind: UnitKind,
-        cluster: Weak<Cluster>,
+        cluster: &Arc<Cluster>,
         id: ControllableId,
         name: String,
         reader: &mut dyn PacketReader,
@@ -52,7 +53,7 @@ impl Controllable {
             UnitKind::ClassicShipPlayerUnit => Ok(Arc::new(Self {
                 name,
                 id,
-                cluster,
+                cluster: ArcSwapWeak::new(Arc::downgrade(cluster)),
                 active: Atomic::from(true),
                 alive: Atomic::from(false),
                 position: Atomic::from_reader(reader),
@@ -129,7 +130,7 @@ impl Controllable {
     /// The cluster this unit currently is in.
     #[inline]
     pub fn cluster(&self) -> Arc<Cluster> {
-        self.cluster.upgrade().unwrap()
+        self.cluster.load().upgrade().unwrap()
     }
 
     /// The position of the unit.
@@ -262,7 +263,8 @@ impl Controllable {
         self.reset_runtime();
     }
 
-    pub(crate) fn update(&self, reader: &mut dyn PacketReader) {
+    pub(crate) fn update(&self, cluster: Arc<Cluster>, reader: &mut dyn PacketReader) {
+        self.cluster.store(Arc::downgrade(&cluster));
         self.position.read(reader);
         self.movement.read(reader);
 

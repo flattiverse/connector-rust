@@ -40,7 +40,7 @@ impl Default for SubsystemStatus {
 impl Readable for SubsystemStatus {
     #[inline]
     fn read(reader: &mut dyn PacketReader) -> Self {
-        SubsystemStatus::from_primitive(reader.read_byte())
+        Self::from_primitive(reader.read_byte())
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{
     BuildDisclosure, Cluster, ClusterId, Controllable, ControllableId, ControllableInfo,
-    ControllableInfoId, GameMode, Player, PlayerId, PlayerKind, RuntimeDisclosure, Team, TeamId,
-    Tournament, UniversalArcHolder,
+    ControllableInfoId, Crystal, GameMode, Player, PlayerId, PlayerKind, RuntimeDisclosure, Team,
+    TeamId, Tournament, UniversalArcHolder,
 };
 use crate::network::{ConnectError, ConnectionHandle, PacketReader};
 use crate::unit::UnitKind;
@@ -9,7 +9,7 @@ use crate::utils::GuardedArcStringDeref;
 use crate::utils::{Also, Atomic};
 use crate::{
     ClusterSnapshot, FlattiverseEvent, FlattiverseEventKind, GalaxySettingsSnapshot, GameError,
-    GameErrorKind, PlayerUnitDestroyedReason, TeamSnapshot,
+    GameErrorKind, GateStateChange, PlayerUnitDestroyedReason, TeamSnapshot,
 };
 use arc_swap::{ArcSwap, ArcSwapOption};
 use async_channel::{Receiver, TryRecvError};
@@ -19,6 +19,9 @@ use tracing::instrument;
 
 pub type EventSink = Vec<FlattiverseEvent>;
 
+/// Connected galaxy session with a local mirror of the current server state.
+/// The instance owns the websocket connection, the event queue, and the owner-side and visible
+/// runtime snapshots.
 #[derive(Debug)]
 pub struct Galaxy {
     name: ArcSwap<String>,
@@ -61,6 +64,7 @@ pub struct Galaxy {
     events: Receiver<FlattiverseEvent>,
 
     player: Atomic<PlayerId>,
+    crystals: ArcSwap<Vec<Crystal>>,
 
     // --- partial `tournament` >>>
     pub(crate) tournament: ArcSwapOption<Tournament>,
@@ -82,6 +86,35 @@ impl Galaxy {
     pub const TEAM_CAPACITY: usize = 13;
     pub const CLUSTER_CAPACITY: usize = 24;
 
+    /// Opens a websocket connection to a galaxy endpoint, completes the login handshake, and
+    /// returns a ready-to-use local mirror of the current galaxy state.
+    ///
+    /// * `galaxy` Galaxy id to connec to. The connector will then use the default base url and
+    ///   appends the galaxy id, its protocol version and login query parameters automatically.
+    /// * `auth` API key for a player or admin login. Pass `None` to join as spectator; the
+    ///   connector then sends the protocol's special all-zero key.
+    /// * `team` Requested team name for a normal player login. Pass `None` to let the server choose
+    ///   a team automatically. Outside tournaments this usually means the non-spectator team with
+    ///   the fewest connected normal players. During tournaments the server may instead force the
+    ///   account's configured tournament team.
+    /// * `runtime_disclosure` Optional runtime self-disclosure that is sent once during login.
+    ///   Some galaxies require this for regular player logins.
+    /// * `build_disclosure` Optional build-assistance self-disclosure that is sent once during
+    ///   login. Some galaxies require this for regular player logins.
+    ///
+    /// # Returns
+    ///
+    /// A fully initialized [`Galaxy`] instance.
+    /// When this method returns, the initial galaxy, team, cluster, player, controllable, and
+    /// visible-unit snapshots have already been processed, so properties such as
+    /// [`Galaxy::player`], [`Galaxy::iter_teams`], [`Galaxy::iter_clusters`],
+    /// [`Galaxy::iter_players`], and [`Galaxy::iter_controllables`] can be used immediately.
+    ///
+    /// # Remarks
+    ///
+    /// This method does more than opening the socket: it waits until the server has delivered the
+    /// initial state and the activation session reply. It therefore returns only after the
+    /// connector is ready for normal event processing via [`Galaxy::next_event`].
     #[inline]
     pub async fn connect(
         galaxy: u16,
@@ -122,7 +155,37 @@ impl Galaxy {
         }
     }
 
-    #[instrument(level = "trace", skip(auth, team))]
+    /// Opens a websocket connection to a galaxy endpoint, completes the login handshake, and
+    /// returns a ready-to-use local mirror of the current galaxy state.
+    ///
+    /// * `uri` Base websocket endpoint of the galaxy, for example
+    ///   `wss://www.flattiverse.com/galaxies/0/api`. The connector appends its protocol version and
+    ///   login query parameters automatically.
+    /// * `auth` API key for a player or admin login. Pass `None` to join as spectator; the
+    ///   connector then sends the protocol's special all-zero key.
+    /// * `team` Requested team name for a normal player login. Pass `None` to let the server choose
+    ///   a team automatically. Outside tournaments this usually means the non-spectator team with
+    ///   the fewest connected normal players. During tournaments the server may instead force the
+    ///   account's configured tournament team.
+    /// * `runtime_disclosure` Optional runtime self-disclosure that is sent once during login.
+    ///   Some galaxies require this for regular player logins.
+    /// * `build_disclosure` Optional build-assistance self-disclosure that is sent once during
+    ///   login. Some galaxies require this for regular player logins.
+    ///
+    /// # Returns
+    ///
+    /// A fully initialized [`Galaxy`] instance.
+    /// When this method returns, the initial galaxy, team, cluster, player, controllable, and
+    /// visible-unit snapshots have already been processed, so properties such as
+    /// [`Galaxy::player`], [`Galaxy::iter_teams`], [`Galaxy::iter_clusters`],
+    /// [`Galaxy::iter_players`], and [`Galaxy::iter_controllables`] can be used immediately.
+    ///
+    /// # Remarks
+    ///
+    /// This method does more than opening the socket: it waits until the server has delivered the
+    /// initial state and the activation session reply. It therefore returns only after the
+    /// connector is ready for normal event processing via [`Galaxy::next_event`].
+    #[instrument(level = "trace", skip(auth, team), err(Display, level = "warn"))]
     pub async fn connect_to(
         uri: &str,
         auth: impl Into<Option<&str>>,
@@ -176,6 +239,7 @@ impl Galaxy {
                     connection: handle,
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
+                    crystals: ArcSwap::default(),
                     tournament: ArcSwapOption::default(),
                 })
                 .also(|galaxy| {
@@ -227,8 +291,65 @@ impl Galaxy {
         &self,
         name: impl AsRef<str>,
     ) -> Result<Arc<Controllable>, GameError> {
-        let id = self.connection.create_classic_style_ship(name).await?;
+        self.create_classic_ship_with_crystals(name, "", "", "")
+            .await
+    }
+
+    /// Creates a classic style ship with up to three equipped crystals.
+    #[inline]
+    pub async fn create_classic_ship_with_crystals(
+        &self,
+        name: impl AsRef<str>,
+        crystal_0_name: impl AsRef<str>,
+        crystal_1_name: impl AsRef<str>,
+        crystal_2_name: impl AsRef<str>,
+    ) -> Result<Arc<Controllable>, GameError> {
+        let id = self
+            .connection
+            .create_classic_style_ship(name, crystal_0_name, crystal_1_name, crystal_2_name)
+            .await?;
         Ok(self.get_controllable(id))
+    }
+
+    /// Requests the current account-wide crystal snapshot.
+    pub async fn request_crystals(&self) -> Result<Arc<Vec<Crystal>>, GameError> {
+        let crystals = Arc::new(self.connection.request_crystals().await?);
+        self.crystals.store(crystals.clone());
+        Ok(crystals)
+    }
+
+    /// Produces a crystal from nebula cargo.
+    ///
+    /// Returns `true` if a crystal was created; `false` if the nebula faded.
+    pub async fn produce_crystal(
+        &self,
+        controllable: ControllableId,
+        name: impl AsRef<str>,
+    ) -> Result<bool, GameError> {
+        let (produced, crystals) = self.connection.produce_crystal(controllable, name).await?;
+        self.crystals.store(Arc::new(crystals));
+        Ok(produced)
+    }
+
+    /// Renames an account-wide crystal.
+    pub async fn rename_crystal(
+        &self,
+        old_name: impl AsRef<str>,
+        new_name: impl AsRef<str>,
+    ) -> Result<Arc<Vec<Crystal>>, GameError> {
+        let crystals = Arc::new(self.connection.rename_crystal(old_name, new_name).await?);
+        self.crystals.store(crystals.clone());
+        Ok(crystals)
+    }
+
+    /// Destroys an account-wide crystal.
+    pub async fn destroy_crystal(
+        &self,
+        name: impl AsRef<str>,
+    ) -> Result<Arc<Vec<Crystal>>, GameError> {
+        let crystals = Arc::new(self.connection.destroy_crystal(name).await?);
+        self.crystals.store(crystals.clone());
+        Ok(crystals)
     }
 
     /// Configures galaxy metadata, teams and clusters from an XML document.
@@ -247,6 +368,8 @@ impl Galaxy {
     /// Team id 12 (Spectators) must not be included.
     /// Team names must be unique.
     /// Removing a team fails if any remaining cluster still has regions referencing that team.
+    /// Removing a cluster fails if any remaining unit still references that cluster, for example
+    /// via a worm hole target.
     /// Galaxy/Team/Cluster names must be non-empty and at most 32 characters.
     /// Description must be at most 4096 characters.
     /// At least one cluster must end up with `Start="true"`.
@@ -255,7 +378,7 @@ impl Galaxy {
         self.connection.configure_galaxy(xml).await
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn ping_pong(
         &self,
         events: &mut EventSink,
@@ -267,7 +390,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_galaxy(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -334,7 +457,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_team(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -371,7 +494,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_team_score(
         &self,
         events: &mut EventSink,
@@ -404,7 +527,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn deactivate_team(
         &self,
         events: &mut EventSink,
@@ -424,7 +547,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_cluster(
         self: &Arc<Galaxy>,
         events: &mut EventSink,
@@ -460,7 +583,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn deactivate_cluster(
         &self,
         events: &mut EventSink,
@@ -480,7 +603,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
     pub(crate) fn create_player(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -557,7 +680,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_player(
         &self,
         events: &mut EventSink,
@@ -609,7 +732,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn update_player_score(
         &self,
         events: &mut EventSink,
@@ -642,7 +765,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn deactivate_player(
         &self,
         events: &mut EventSink,
@@ -663,7 +786,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_new(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -696,7 +819,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_alive(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -718,7 +841,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_dead_by_reason(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -742,7 +865,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_dead_by_neutral_collision(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -769,7 +892,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_dead_by_player_unit(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -800,7 +923,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_score_updated(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -841,7 +964,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_info_removed(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -868,29 +991,27 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
     pub(crate) fn controllable_new(
         self: &Arc<Self>,
         events: &mut EventSink,
         kind: UnitKind,
         id: ControllableId,
+        cluster: ClusterId,
         name: String,
         reader: &mut dyn PacketReader,
     ) -> Result<(), GameError> {
         let _ = events;
         debug!("New Controllable with {id:?} and name {name:?}");
-        self.controllables.populate(Controllable::from_packet(
-            kind,
-            Arc::downgrade(&self.clusters.get(ClusterId(0))), // TODO
-            id,
-            name,
-            reader,
-        )?);
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+        let cluster = self.clusters.get(cluster);
+        self.controllables
+            .populate(Controllable::from_packet(kind, &cluster, id, name, reader)?);
 
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_deceased(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -902,24 +1023,27 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
     pub(crate) fn controllable_updated(
         self: &Arc<Self>,
         events: &mut EventSink,
         id: ControllableId,
+        cluster: ClusterId,
         reader: &mut dyn PacketReader,
     ) -> Result<(), GameError> {
         let _ = events;
         debug!("Updating Controllable with {id:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+        let cluster = self.clusters.get(cluster);
         if let Some(controllable) = self.controllables.get_opt(id) {
-            controllable.update(reader);
+            controllable.update(cluster, reader);
         } else {
             error!("There is no Controllable for {id:?}");
         }
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn controllable_removed(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -931,7 +1055,38 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events, reader))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
+    pub(crate) fn power_up_collected(
+        &self,
+        events: &mut EventSink,
+        id: ControllableId,
+        power_up_kind: UnitKind,
+        power_up_name: String,
+        amount: f32,
+        applied_amount: f32,
+    ) -> Result<(), GameError> {
+        debug!("PowerUp collected: {id:?} {power_up_kind:?} {power_up_name:?} {amount:?}");
+        debug_assert!(self.controllables.has(id), "{id:?} does not exist.");
+
+        events.push(
+            FlattiverseEventKind::PowerUpCollected {
+                controllable: self.controllables.get(id),
+                power_up_kind,
+                power_up_name,
+                amount,
+                applied_amount,
+            }
+            .into(),
+        );
+
+        Ok(())
+    }
+
+    #[instrument(
+        level = "trace",
+        skip(self, events, reader),
+        err(Display, level = "warn")
+    )]
     pub(crate) fn unit_new(
         &self,
         events: &mut EventSink,
@@ -958,7 +1113,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
     pub(crate) fn unit_updated_movement(
         &self,
         events: &mut EventSink,
@@ -980,7 +1135,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, reader))]
+    #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
     pub(crate) fn unit_updated_state(
         &self,
         events: &mut EventSink,
@@ -1002,7 +1157,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn unit_updated_by_admin(
         &self,
         events: &mut EventSink,
@@ -1014,7 +1169,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn unit_removed(
         &self,
         events: &mut EventSink,
@@ -1034,7 +1189,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn compiled_with(
         &self,
         events: &mut EventSink,
@@ -1062,7 +1217,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn universe_tick(
         &self,
         events: &mut EventSink,
@@ -1073,7 +1228,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn flag_scored_chat(
         &self,
         events: &mut EventSink,
@@ -1099,7 +1254,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn domination_point_scored_chat(
         &self,
         events: &mut EventSink,
@@ -1118,7 +1273,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn own_flag_hit(
         &self,
         events: &mut EventSink,
@@ -1144,7 +1299,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn chat_galaxy(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -1164,7 +1319,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn chat_team(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -1184,7 +1339,7 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn chat_player(
         self: &Arc<Self>,
         events: &mut EventSink,
@@ -1204,7 +1359,36 @@ impl Galaxy {
         Ok(())
     }
 
-    #[instrument(level = "trace", skip(self, events))]
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
+    pub(crate) fn mission_target_hit_chat(
+        &self,
+        events: &mut EventSink,
+        player: PlayerId,
+        controllable: ControllableInfoId,
+        mission_target_sequence: u16,
+    ) -> Result<(), GameError> {
+        debug!("MissionTarget hit: {mission_target_sequence:?}");
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+        let player = self.players.get(player);
+        debug_assert!(
+            player.controllable_infos.has(controllable),
+            "{controllable:?} does not exist."
+        );
+        let controllable_info = player.get_controllable_info(controllable);
+
+        event!(
+            events,
+            MissionTargetHitChat {
+                player,
+                controllable_info,
+                mission_target_sequence
+            }
+        );
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn flag_reactivated_chat(
         &self,
         events: &mut EventSink,
@@ -1220,6 +1404,86 @@ impl Galaxy {
                 flag_name,
             }
         );
+        Ok(())
+    }
+
+    #[instrument(
+        level = "trace",
+        skip(self, events, reader),
+        err(Display, level = "warn")
+    )]
+    pub(crate) fn gate_switched(
+        &self,
+        events: &mut EventSink,
+        cluster: ClusterId,
+        reader: &mut dyn PacketReader,
+    ) -> Result<(), GameError> {
+        debug!("Gate switched in {cluster:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+        let cluster = self.clusters.get(cluster);
+        let has_invoker = reader.read_byte() != 0;
+
+        let (invoker_player, invoker_controllable_info) = if has_invoker {
+            let player = PlayerId(reader.read_byte());
+            debug_assert!(self.players.has(player), "{player:?} does not exist.");
+            let player = self.players.get(player);
+            let controllable_info = ControllableInfoId(reader.read_byte());
+            debug_assert!(
+                player.controllable_infos.has(controllable_info),
+                "{controllable_info:?} does not exist."
+            );
+            let controllable_info = player.controllable_infos.get(controllable_info);
+            (Some(player), Some(controllable_info))
+        } else {
+            (None, None)
+        };
+
+        let switch_name = reader.read_string();
+        let gate_count = reader.read_uint16();
+        let mut gates = Vec::with_capacity(gate_count as usize);
+
+        for _ in 0..gate_count {
+            gates.push(GateStateChange {
+                gate_name: reader.read_string(),
+                closed: reader.read_byte() != 0x00,
+            });
+        }
+
+        event!(
+            events,
+            GateSwitched {
+                cluster,
+                invoker_player,
+                invoker_controllable_info,
+                switch_name,
+                gates
+            }
+        );
+
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
+    pub fn gate_restored(
+        &self,
+        events: &mut EventSink,
+        cluster: ClusterId,
+        gate_name: String,
+        closed: u8,
+    ) -> Result<(), GameError> {
+        debug!("Gate restored in {cluster:?}");
+        debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
+        let cluster = self.clusters.get(cluster);
+
+        event!(
+            events,
+            GateRestored {
+                cluster,
+                gate_name,
+                closed: closed != 0x00,
+            }
+        );
+
         Ok(())
     }
 
@@ -1315,12 +1579,12 @@ impl Galaxy {
         self.player_max_bases.load()
     }
 
-    /// `false`, if you have been disconnected.
+    /// True while the underlying session and connection are still active.
     pub fn active(&self) -> bool {
         self.active.load()
     }
 
-    /// `true` if a galaxy admin has enabled maintenance mode. When maintenance mode is enabled, new
+    /// True if a galaxy admin has enabled maintenance mode. When maintenance mode is enabled, new
     /// players or spectators cannot connect, and existing players cannot register new ships or
     /// continue existing ships. Some things in the galaxy (such as the game mode) can only be
     /// changed when maintenance mode is enabled, in order to maintain a consistent player state.
@@ -1428,5 +1692,10 @@ impl Galaxy {
     #[inline]
     pub fn get_controllable_opt(&self, id: ControllableId) -> Option<Arc<Controllable>> {
         self.controllables.get_opt(id)
+    }
+
+    #[inline]
+    pub fn iter_crystals(&self) -> Arc<Vec<Crystal>> {
+        self.crystals.load_full()
     }
 }
