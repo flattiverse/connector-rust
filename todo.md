@@ -5,3 +5,4 @@
   live updates."
 * impl `Readable` and `Writable` for `*Id` types
 * impl `Readable` and `Writable` for all types? like `let x = 0.0; x.read(reader); x.write(writer);` ??? maybe
+* `Atomic::store_or_default(bool, T)` ??

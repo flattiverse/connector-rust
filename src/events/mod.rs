@@ -665,6 +665,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::DynamicInterceptorMagazineSubsystem { controllable, slot, status, current_shots } => {
                 write!(f, "Dynamic interceptor magazine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current_shots={current_shots}", controllable.name())
             }
+            FlattiverseEventKind::ModernShipEngineSubsystem { controllable, slot, status, current_thrust, target_thrust, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, } => {
+                write!(f, "Dynamic interceptor magazine subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current_thrust={current_thrust}, target_thrust={target_thrust}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            }
 
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
                 write!(
@@ -1360,6 +1363,22 @@ pub enum FlattiverseEventKind {
         status: SubsystemStatus,
         /// The currently stored shots.
         current_shots: f32,
+    },
+    /// Update of a dynamic interceptor magazine subsystem on your own controllable.
+    ModernShipEngineSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
+        status: SubsystemStatus,
+        current_thrust: f32,
+        target_thrust: f32,
+        consumed_energy_this_tick: f32,
+        consumed_ions_this_tick: f32,
+        consumed_neutrinos_this_tick: f32,
     },
     // ------------------- ControllableSubsystemEvents -------------------
     /// Is raised when the server announces the compile profile it was built with.

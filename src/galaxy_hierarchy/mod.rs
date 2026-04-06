@@ -86,6 +86,9 @@ pub use cargo_subsystem::*;
 mod classic_ship_engine_subsystem;
 pub use classic_ship_engine_subsystem::*;
 
+mod modern_ship_engine_subsystem;
+pub use modern_ship_engine_subsystem::*;
+
 mod dynamic_scanner_subsystem;
 pub use dynamic_scanner_subsystem::*;
 

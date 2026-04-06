@@ -381,6 +381,39 @@ impl ConnectionHandle {
         })
     }
 
+    #[inline]
+    pub async fn set_modern_ship_engine_subsystem_thrust(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        thrust: f32,
+    ) -> Result<(), GameError> {
+        self.set_modern_ship_engine_subsystem_thrust_split(controllable, slot, thrust)
+            .await?
+            .await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn set_modern_ship_engine_subsystem_thrust_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        thrust: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA1, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(thrust);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Set the target scanner configuration on the server.
     #[inline]
     pub async fn static_scanner_subsystem_set(
