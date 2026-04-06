@@ -446,6 +446,7 @@ impl Display for FlattiverseEvent {
                     PlayerUnitDestroyedReason::ByRules => "got destroyed due to applied rules",
                     PlayerUnitDestroyedReason::Suicided => "suicided",
                     PlayerUnitDestroyedReason::ByClusterRemoval => "got destroyed because its cluster was removed",
+                    PlayerUnitDestroyedReason::Rebuilding => "went offline for a subsystem rebuild",
                     _ => "got destroyed",
                 }
             ),
