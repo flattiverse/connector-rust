@@ -6,7 +6,9 @@ use crate::unit::UnitKind;
 use crate::{GameError, GameErrorKind};
 use std::sync::{Arc, Weak};
 
-/// Roster entry for one new-ship controllable of a player.
+/// Persistent roster entry for one player-owned controllable.
+/// This owner-side identity survives deaths and exists independently from the visible
+/// [`PlayerUnit`] mirror in a cluster.
 #[derive(Debug)]
 pub enum ControllableInfo {
     /// Roster entry for one classic-ship controllable of a player.
@@ -34,19 +36,19 @@ impl ControllableInfo {
         self.base().galaxy()
     }
 
-    /// The player this ControllableInfo belongs to.
+    /// The player who owns this controllable entry.
     #[inline]
     pub fn player(&self) -> Arc<Player> {
         self.base().player()
     }
 
-    /// true, if the corresponding PlayerUnit is alive.
+    /// True while this controllable currently has an alive in-world runtime.
     #[inline]
     pub fn alive(&self) -> bool {
         self.base().alive()
     }
 
-    /// true, if the corresponding PlayerUnit is still in use.
+    /// True while this controllable registration still exists on the server.
     #[inline]
     pub fn active(&self) -> bool {
         self.base().active()
@@ -58,7 +60,8 @@ impl ControllableInfo {
         self.base().score()
     }
 
-    /// Specifies the kind of the PlayerUnit.
+    /// Runtime unit kind this controllable uses while it is alive in the world.
+    #[inline]
     pub fn kind(&self) -> UnitKind {
         match self {
             ControllableInfo::Classic { .. } => UnitKind::ClassicShipPlayerUnit,
