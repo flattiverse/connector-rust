@@ -29,6 +29,9 @@ pub use crystal::*;
 mod crystal_grade;
 pub use crystal_grade::*;
 
+mod editable_unit_summary;
+pub use editable_unit_summary::*;
+
 mod cluster;
 pub use cluster::*;
 
