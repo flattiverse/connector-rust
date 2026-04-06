@@ -7,10 +7,11 @@ use crate::{
 };
 use std::sync::Weak;
 
-/// Dynamic shot fabricator subsystem of a controllable.
+/// Persistent shot-fabricator subsystem configuration and runtime state of a controllable.
 #[derive(Debug)]
 pub struct DynamicShotFabricatorSubsystem {
     base: SubsystemBase,
+    maximum_rate: Atomic<f32>,
     active: Atomic<bool>,
     rate: Atomic<f32>,
     consumed_energy_this_tick: Atomic<f32>,
@@ -20,7 +21,6 @@ pub struct DynamicShotFabricatorSubsystem {
 
 impl DynamicShotFabricatorSubsystem {
     const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const MAXIMUM_RATE_VALUE: f32 = 0.025;
     const ENERGY_SCALE: f32 = 32_000.0;
 
     pub(crate) fn new(
@@ -31,6 +31,7 @@ impl DynamicShotFabricatorSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
+            maximum_rate: Atomic::from(if exists { 0.025 } else { 0.0 }),
             active: Atomic::from(false),
             rate: Atomic::from(0.0),
             consumed_energy_this_tick: Atomic::from(0.0),
@@ -41,17 +42,17 @@ impl DynamicShotFabricatorSubsystem {
 
     /// The minimum configurable shot fabrication rate.
     #[inline]
-    pub fn minimum_rate(self) -> f32 {
+    pub fn minimum_rate(&self) -> f32 {
         Self::MINIMUM_RATE_VALUE
     }
 
     /// The maximum configurable shot fabrication rate.
     #[inline]
-    pub fn maximum_rate(self) -> f32 {
-        Self::MAXIMUM_RATE_VALUE
+    pub fn maximum_rate(&self) -> f32 {
+        self.maximum_rate.load()
     }
 
-    /// Whether the fabricator is active.
+    /// True when the fabricator was active during the latest reported server tick.
     #[inline]
     pub fn active(&self) -> bool {
         self.active.load()
@@ -81,16 +82,15 @@ impl DynamicShotFabricatorSubsystem {
         self.consumed_neutrinos_this_tick.load()
     }
 
+    /// Calculates the current placeholder resource costs for one fabrication tick at the specified
+    /// rate. The current model consumes only energy.
     pub fn calculate_cost(&self, rate: f32) -> Option<Cost> {
         if !self.exists() {
             None
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .ok()?;
+            let rate =
+                RangeTolerance::clamped_range(rate, Self::MINIMUM_RATE_VALUE, self.maximum_rate())
+                    .ok()?;
 
             Cost::default()
                 .with_energy(rate * rate * Self::ENERGY_SCALE)
@@ -107,15 +107,12 @@ impl DynamicShotFabricatorSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .map_err(|reason| GameErrorKind::InvalidArgument {
-                reason,
-                parameter: "rate".to_string(),
-            })?;
+            let rate =
+                RangeTolerance::clamped_range(rate, Self::MINIMUM_RATE_VALUE, self.maximum_rate())
+                    .map_err(|reason| GameErrorKind::InvalidArgument {
+                        reason,
+                        parameter: "rate".to_string(),
+                    })?;
 
             controllable
                 .cluster()
@@ -159,6 +156,19 @@ impl DynamicShotFabricatorSubsystem {
                 .connection()
                 .dynamic_shot_fabricator_subsystem_off(controllable.id())
                 .await
+        }
+    }
+
+    pub(crate) fn set_maximum_rate(&self, maximum_rate: f32) {
+        let maximum_rate = if self.exists() {
+            self.maximum_rate.store(maximum_rate);
+            maximum_rate
+        } else {
+            0.0
+        };
+
+        if self.rate() > maximum_rate {
+            self.rate.store(maximum_rate);
         }
     }
 
