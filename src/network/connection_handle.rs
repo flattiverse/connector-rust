@@ -539,20 +539,20 @@ impl ConnectionHandle {
 
     /// Sets the shot fabrication rate on the server.
     #[inline]
-    pub async fn static_shot_fabricator_set(
+    pub async fn static_shot_fabricator_subsystem_set(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
         rate: f32,
     ) -> Result<(), GameError> {
-        self.static_shot_fabricator_set_split(controllable, slot, rate)
+        self.static_shot_fabricator_subsystem_set_split(controllable, slot, rate)
             .await?
             .await
     }
 
     /// Sets the shot fabrication rate on the server.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn static_shot_fabricator_set_split(
+    pub async fn static_shot_fabricator_subsystem_set_split(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
@@ -574,19 +574,19 @@ impl ConnectionHandle {
 
     /// Turns the shot fabricator on.
     #[inline]
-    pub async fn static_shot_fabricator_on(
+    pub async fn static_shot_fabricator_subsystem_on(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
     ) -> Result<(), GameError> {
-        self.static_shot_fabricator_on_split(controllable, slot)
+        self.static_shot_fabricator_subsystem_on_split(controllable, slot)
             .await?
             .await
     }
 
     /// Turns the shot fabricator on.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn static_shot_fabricator_on_split(
+    pub async fn static_shot_fabricator_subsystem_on_split(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
@@ -606,19 +606,19 @@ impl ConnectionHandle {
 
     /// Turns the shot fabricator off.
     #[inline]
-    pub async fn static_shot_fabricator_off(
+    pub async fn static_shot_fabricator_subsystem_off(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
     ) -> Result<(), GameError> {
-        self.static_shot_fabricator_off_split(controllable, slot)
+        self.static_shot_fabricator_subsystem_off_split(controllable, slot)
             .await?
             .await
     }
 
     /// Turns the shot fabricator off.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
-    pub async fn static_shot_fabricator_off_split(
+    pub async fn static_shot_fabricator_subsystem_off_split(
         &self,
         controllable: ControllableId,
         slot: SubsystemSlot,
@@ -627,6 +627,61 @@ impl ConnectionHandle {
             .send_command_with_payload(0xA8, |writer| {
                 writer.write_byte(controllable.0);
                 writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Requests one shot for the next server tick.
+    #[inline]
+    pub async fn static_interceptor_launcher_subsystem_shoot(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        relative_speed: f32,
+        angle_offset: f32,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<(), GameError> {
+        self.static_interceptor_launcher_subsystem_shoot_split(
+            controllable,
+            slot,
+            relative_speed,
+            angle_offset,
+            ticks,
+            load,
+            damage,
+        )
+        .await?
+        .await
+    }
+
+    /// Requests one shot for the next server tick.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_interceptor_launcher_subsystem_shoot_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        relative_speed: f32,
+        angle_offset: f32,
+        ticks: u16,
+        load: f32,
+        damage: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA9, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(relative_speed);
+                writer.write_f32(angle_offset);
+                writer.write_uint16(ticks);
+                writer.write_f32(load);
+                writer.write_f32(damage);
             })
             .await?;
 

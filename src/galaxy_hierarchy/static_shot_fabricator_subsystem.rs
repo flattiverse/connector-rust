@@ -90,7 +90,7 @@ impl StaticShotFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .static_shot_fabricator_set(controllable.id(), self.slot(), rate)
+                .static_shot_fabricator_subsystem_set(controllable.id(), self.slot(), rate)
                 .await
         }
     }
@@ -108,7 +108,7 @@ impl StaticShotFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .static_shot_fabricator_on(controllable.id(), self.slot())
+                .static_shot_fabricator_subsystem_on(controllable.id(), self.slot())
                 .await
         }
     }
@@ -126,7 +126,7 @@ impl StaticShotFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .static_shot_fabricator_off(controllable.id(), self.slot())
+                .static_shot_fabricator_subsystem_off(controllable.id(), self.slot())
                 .await
         }
     }

@@ -1,21 +1,18 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, Controllable, Cost, DynamicShotLauncherSubsystem, RangeTolerance,
+    Controllable, Cost, DynamicInterceptorLauncherSubsystem, ModernShipGeometry, RangeTolerance,
     SubsystemBase, SubsystemExt,
 };
 use crate::network::InvalidArgumentKind;
-use crate::{
-    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
-    SubsystemStatus, Vector,
-};
+use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, SubsystemStatus, Vector};
 use std::sync::Weak;
 
-/// Dynamic interceptor launcher subsystem of a controllable.
+/// Static interceptor launcher subsystem of a modern ship.
 #[derive(Debug)]
-pub struct DynamicInterceptorLauncherSubsystem {
-    base: DynamicShotLauncherSubsystem,
+pub struct StaticInterceptorLauncherSubsystem {
+    base: DynamicInterceptorLauncherSubsystem,
 }
 
-impl DynamicInterceptorLauncherSubsystem {
+impl StaticInterceptorLauncherSubsystem {
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
@@ -23,7 +20,7 @@ impl DynamicInterceptorLauncherSubsystem {
         slot: SubsystemSlot,
     ) -> Self {
         Self {
-            base: DynamicShotLauncherSubsystem::new(controllable, name, exists, slot),
+            base: DynamicInterceptorLauncherSubsystem::new(controllable, name, exists, slot),
         }
     }
 
@@ -117,23 +114,35 @@ impl DynamicInterceptorLauncherSubsystem {
         self.base.consumed_neutrinos_this_tick()
     }
 
+    #[inline]
+    pub fn relative_speed(&self) -> f32 {
+        self.base.relative_movement().length()
+    }
+
     /// Calculates the resource costs for one dynamic shot request.
     #[inline]
     pub fn calculate_cost(
         &self,
-        relative_movement: Vector,
+        relative_speed: f32,
         ticks: u16,
         load: f32,
         damage: f32,
     ) -> Option<Cost> {
-        self.base
-            .calculate_cost(relative_movement, ticks, load, damage)
+        self.base.calculate_cost(
+            Vector::from_angle_length(0.0, relative_speed),
+            ticks,
+            load,
+            damage,
+        )
     }
 
-    /// Requests one interceptor for the next server tick.
+    /// Requests one shot for the next server tick.
+    /// The vector length, load, and damage values are clipped if they are only slightly outside
+    /// the configured range. The tick count is not clipped.
     pub async fn shoot(
         &self,
-        relative_movement: Vector,
+        relative_speed: f32,
+        angle_offset: f32,
         ticks: u16,
         load: f32,
         damage: f32,
@@ -142,34 +151,44 @@ impl DynamicInterceptorLauncherSubsystem {
 
         if !controllable.active() || !self.exists() {
             Err(GameErrorKind::SpecifiedElementNotFound.into())
-        } else if !controllable.alive() {
+        } else if !controllable.active() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let relative_movement = RangeTolerance::clamped_range_vector(
-                relative_movement,
+            let relative_speed = RangeTolerance::clamped_range(
+                relative_speed,
                 self.minimum_relative_movement(),
                 self.maximum_relative_movement(),
             )
             .map_err(|reason| GameErrorKind::InvalidArgument {
                 reason,
-                parameter: "relative_movement".to_string(),
+                parameter: "relative_speed".to_string(),
             })?;
 
-            if ticks < self.minimum_ticks() {
+            let angle_offset = RangeTolerance::clamped_range(
+                angle_offset,
+                -ModernShipGeometry::INTERCEPTOR_MAXIMUM_ANGLE_OFFSET,
+                ModernShipGeometry::INTERCEPTOR_MAXIMUM_ANGLE_OFFSET,
+            )
+            .map_err(|reason| GameErrorKind::InvalidArgument {
+                reason,
+                parameter: "angle_offset".to_string(),
+            })?;
+
+            let ticks = if ticks < self.minimum_ticks() {
                 return Err(GameErrorKind::InvalidArgument {
                     reason: InvalidArgumentKind::TooSmall,
                     parameter: "ticks".to_string(),
                 }
                 .into());
-            }
-
-            if ticks > self.maximum_ticks() {
+            } else if ticks > self.maximum_ticks() {
                 return Err(GameErrorKind::InvalidArgument {
                     reason: InvalidArgumentKind::TooLarge,
                     parameter: "ticks".to_string(),
                 }
                 .into());
-            }
+            } else {
+                ticks
+            };
 
             let load =
                 RangeTolerance::clamped_range(load, self.minimum_load(), self.maximum_load())
@@ -189,9 +208,11 @@ impl DynamicInterceptorLauncherSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .dynamic_shot_interceptor_subsystem_shoot(
+                .static_interceptor_launcher_subsystem_shoot(
                     controllable.id(),
-                    relative_movement,
+                    self.slot(),
+                    relative_speed,
+                    angle_offset,
                     ticks,
                     load,
                     damage,
@@ -229,30 +250,13 @@ impl DynamicInterceptorLauncherSubsystem {
         );
     }
 
+    #[inline]
     pub(crate) fn create_runtime_event(&self) -> Option<FlattiverseEvent> {
-        if !self.exists() || !self.as_subsystem_base().should_emit_runtime_event() {
-            None
-        } else {
-            Some(
-                FlattiverseEventKind::DynamicInterceptorLauncherSubsystem {
-                    controllable: self.controllable(),
-                    slot: self.slot(),
-                    status: self.status(),
-                    relative_movement: self.relative_movement(),
-                    ticks: self.ticks(),
-                    load: self.load(),
-                    damage: self.damage(),
-                    consumed_energy_this_tick: self.consumed_energy_this_tick(),
-                    consumed_ions_this_tick: self.consumed_ions_this_tick(),
-                    consumed_neutrinos_this_tick: self.consumed_neutrinos_this_tick(),
-                }
-                .into(),
-            )
-        }
+        self.base.create_runtime_event()
     }
 }
 
-impl AsRef<SubsystemBase> for DynamicInterceptorLauncherSubsystem {
+impl AsRef<SubsystemBase> for StaticInterceptorLauncherSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         self.base.as_ref()
