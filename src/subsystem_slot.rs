@@ -42,6 +42,8 @@ pub enum SubsystemSlot {
     ResourceMiner = 0x51,
     /// Nebula collector slot.
     NebulaCollector = 0x52,
+    /// Structure optimizer slot.
+    StructureOptimizer = 0x53,
     /// Primary scanner slot.
     PrimaryScanner = 0x20,
     /// Secondary scanner slot.
