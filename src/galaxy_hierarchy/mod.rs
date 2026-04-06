@@ -89,6 +89,9 @@ pub use classic_ship_engine_subsystem::*;
 mod dynamic_scanner_subsystem;
 pub use dynamic_scanner_subsystem::*;
 
+mod static_scanner_subsystem;
+pub use static_scanner_subsystem::*;
+
 mod hull_subsystem;
 pub use hull_subsystem::*;
 
@@ -137,11 +140,11 @@ pub use dynamic_interceptor_launcher_subsystem::*;
 mod dynamic_interceptor_magazine_subsystem;
 pub use dynamic_interceptor_magazine_subsystem::*;
 
-mod static_shot_launcher_subsystem;
-pub use static_shot_launcher_subsystem::*;
-
 mod static_shot_fabricator_subsystem;
 pub use static_shot_fabricator_subsystem::*;
+
+mod static_shot_launcher_subsystem;
+pub use static_shot_launcher_subsystem::*;
 
 mod cost;
 pub use cost::*;

@@ -381,6 +381,112 @@ impl ConnectionHandle {
         })
     }
 
+    /// Set the target scanner configuration on the server.
+    #[inline]
+    pub async fn static_scanner_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        width: f32,
+        length: f32,
+        angle_offset: f32,
+    ) -> Result<(), GameError> {
+        self.static_scanner_subsystem_set_split(controllable, slot, width, length, angle_offset)
+            .await?
+            .await
+    }
+
+    /// Set the target scanner configuration on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_scanner_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        width: f32,
+        length: f32,
+        angle_offset: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA2, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(width);
+                writer.write_f32(length);
+                writer.write_f32(angle_offset);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the scanner on.
+    #[inline]
+    pub async fn static_scanner_subsystem_on(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_scanner_subsystem_on_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Turns the scanner on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_scanner_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA3, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the scanner off.
+    #[inline]
+    pub async fn static_scanner_subsystem_off(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_scanner_subsystem_off_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Turns the scanner off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_scanner_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA4, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Requests one shot for the next server tick.
     #[inline]
     pub async fn static_shot_launcher_subsystem_shoot(
         &self,
@@ -403,6 +509,7 @@ impl ConnectionHandle {
         .await
     }
 
+    /// Requests one shot for the next server tick.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn static_shot_launcher_subsystem_shoot_split(
         &self,
@@ -430,6 +537,7 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the shot fabrication rate on the server.
     #[inline]
     pub async fn static_shot_fabricator_set(
         &self,
@@ -442,6 +550,7 @@ impl ConnectionHandle {
             .await
     }
 
+    /// Sets the shot fabrication rate on the server.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn static_shot_fabricator_set_split(
         &self,
@@ -463,6 +572,7 @@ impl ConnectionHandle {
         })
     }
 
+    /// Turns the shot fabricator on.
     #[inline]
     pub async fn static_shot_fabricator_on(
         &self,
@@ -474,6 +584,7 @@ impl ConnectionHandle {
             .await
     }
 
+    /// Turns the shot fabricator on.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn static_shot_fabricator_on_split(
         &self,
@@ -493,6 +604,7 @@ impl ConnectionHandle {
         })
     }
 
+    /// Turns the shot fabricator off.
     #[inline]
     pub async fn static_shot_fabricator_off(
         &self,
@@ -504,6 +616,7 @@ impl ConnectionHandle {
             .await
     }
 
+    /// Turns the shot fabricator off.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn static_shot_fabricator_off_split(
         &self,

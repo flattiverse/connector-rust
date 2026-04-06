@@ -135,6 +135,9 @@ impl StaticShotLauncherSubsystem {
         )
     }
 
+    /// Requests one shot for the next server tick.
+    /// The vector length, load, and damage values are clipped if they are only slightly outside
+    /// the configured range. The tick count is not clipped.
     pub async fn shoot(
         &self,
         relative_speed: f32,

@@ -70,6 +70,7 @@ impl StaticShotFabricatorSubsystem {
         self.base.calculate_cost(rate)
     }
 
+    /// Sets the shot fabrication rate on the server.
     pub async fn set(&self, rate: f32) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -94,6 +95,7 @@ impl StaticShotFabricatorSubsystem {
         }
     }
 
+    /// Turns the shot fabricator on.
     pub async fn on(&self) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -111,6 +113,7 @@ impl StaticShotFabricatorSubsystem {
         }
     }
 
+    /// Turns the shot fabricator off.
     pub async fn off(&self) -> Result<(), GameError> {
         let controllable = self.controllable();
 
