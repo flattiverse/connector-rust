@@ -1222,6 +1222,96 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sets the interceptor fabrication rate on the server.
+    #[inline]
+    pub async fn dynamic_interceptor_fabricator_subsystem_set(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.dynamic_interceptor_fabricator_subsystem_set_split(controllable, rate)
+            .await?
+            .await
+    }
+
+    /// Sets the interceptor fabrication rate on the server.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn dynamic_interceptor_fabricator_subsystem_set_split(
+        &self,
+        controllable: ControllableId,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x97, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_f32(rate);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the interceptor fabricator on.
+    #[inline]
+    pub async fn dynamic_interceptor_fabricator_subsystem_on(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.dynamic_interceptor_fabricator_subsystem_on_split(controllable)
+            .await?
+            .await
+    }
+
+    /// Turns the interceptor fabricator on.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn dynamic_interceptor_fabricator_subsystem_on_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x98, |writer| {
+                writer.write_byte(controllable.0);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    /// Turns the interceptor fabricator off.
+    #[inline]
+    pub async fn dynamic_interceptor_fabricator_subsystem_off(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<(), GameError> {
+        self.dynamic_interceptor_fabricator_subsystem_off_split(controllable)
+            .await?
+            .await
+    }
+
+    /// Turns the interceptor fabricator off.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn dynamic_interceptor_fabricator_subsystem_off_split(
+        &self,
+        controllable: ControllableId,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0x99, |writer| {
+                writer.write_byte(controllable.0);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Sets the shot fabrication rate on the server.
     #[inline]
     pub async fn dynamic_shot_fabricator_subsystem_set(

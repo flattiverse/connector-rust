@@ -50,9 +50,6 @@ pub use classic_ship_controllable::*;
 mod classic_ship_engine_subsystem;
 pub use classic_ship_engine_subsystem::*;
 
-mod dynamic_shot_launcher_subsystem;
-pub use dynamic_shot_launcher_subsystem::*;
-
 mod dynamic_scanner_subsystem;
 pub use dynamic_scanner_subsystem::*;
 
@@ -113,11 +110,17 @@ pub use resource_miner_subsystem::*;
 mod shield_subsystem;
 pub use shield_subsystem::*;
 
+mod dynamic_shot_fabricator_subsystem;
+pub use dynamic_shot_fabricator_subsystem::*;
+
+mod dynamic_shot_launcher_subsystem;
+pub use dynamic_shot_launcher_subsystem::*;
+
 mod dynamic_shot_magazine_subsystem;
 pub use dynamic_shot_magazine_subsystem::*;
 
-mod dynamic_shot_fabricator_subsystem;
-pub use dynamic_shot_fabricator_subsystem::*;
+mod dynamic_interceptor_fabricator_subsystem;
+pub use dynamic_interceptor_fabricator_subsystem::*;
 
 mod cost;
 pub use cost::*;

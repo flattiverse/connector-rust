@@ -647,6 +647,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::DynamicShotFabricatorSubsystem { controllable, slot, status, active, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
                 write!(f, "Dynamic shot fabricator subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, active={active}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
             }
+            FlattiverseEventKind::DynamicInterceptorFabricatorSubsystem { controllable, slot, status, active, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
+                write!(f, "Dynamic interceptor fabricator subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, active={active}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            }
 
             FlattiverseEventKind::PlayerScoreUpdated { player, before } => {
                 write!(
@@ -1187,6 +1190,25 @@ pub enum FlattiverseEventKind {
     },
     /// Update of a dynamic shot fabricator subsystem on your own controllable.
     DynamicShotFabricatorSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// Whether the fabricator was active for the tick.
+        active: bool,
+        /// The configured fabrication rate.
+        rate: f32,
+        /// The energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// The ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// The neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Runtime update of a dynamic interceptor fabricator subsystem on your own controllable.
+    DynamicInterceptorFabricatorSubsystem {
         /// The controllable whose subsystem emitted this runtime event.
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.
