@@ -608,6 +608,9 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::UnitAlteredByAdmin { cluster, name } => write!(f, "Unit altered by admin: {cluster:?}, name={name:?}"),
 
 
+            FlattiverseEventKind::ArmorSubsystem { controllable, slot, status, reduction, blocked_direct_damage_this_tick, blocked_radiation_damage_this_tick } => {
+                write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, reduction={reduction}, blocked_direct_damage_this_tick={blocked_direct_damage_this_tick}, blocked_radiation_damage_this_tick={blocked_radiation_damage_this_tick}", controllable.name())
+            }
             FlattiverseEventKind::BatterySubsystem { controllable, slot, status, current, consumed_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}, consumed={consumed_this_tick:?}", controllable.name())
             }
@@ -977,6 +980,21 @@ pub enum FlattiverseEventKind {
     },
 
     // ------------------- ControllableSubsystemEvents -------------------
+    /// Update of an armor subsystem on your own controllable.
+    ArmorSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// The status reported for the current server tick.
+        status: SubsystemStatus,
+        /// Flat damage reduction applied before the hull.
+        reduction: f32,
+        /// Direct damage blocked during the current tick.
+        blocked_direct_damage_this_tick: f32,
+        /// Radiation damage blocked during the current tick.
+        blocked_radiation_damage_this_tick: f32,
+    },
     /// Update of a battery subsystem on your own controllable.
     BatterySubsystem {
         /// The controllable whose subsystem emitted this runtime event.
