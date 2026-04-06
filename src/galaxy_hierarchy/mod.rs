@@ -140,6 +140,9 @@ pub use dynamic_interceptor_magazine_subsystem::*;
 mod static_shot_launcher_subsystem;
 pub use static_shot_launcher_subsystem::*;
 
+mod static_shot_fabricator_subsystem;
+pub use static_shot_fabricator_subsystem::*;
+
 mod cost;
 pub use cost::*;
 

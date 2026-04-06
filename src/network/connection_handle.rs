@@ -430,6 +430,99 @@ impl ConnectionHandle {
         })
     }
 
+    #[inline]
+    pub async fn static_shot_fabricator_set(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        rate: f32,
+    ) -> Result<(), GameError> {
+        self.static_shot_fabricator_set_split(controllable, slot, rate)
+            .await?
+            .await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_shot_fabricator_set_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+        rate: f32,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA6, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+                writer.write_f32(rate);
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    #[inline]
+    pub async fn static_shot_fabricator_on(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_shot_fabricator_on_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_shot_fabricator_on_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA7, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
+    #[inline]
+    pub async fn static_shot_fabricator_off(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.static_shot_fabricator_off_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn static_shot_fabricator_off_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        let session = self
+            .send_command_with_payload(0xA8, |writer| {
+                writer.write_byte(controllable.0);
+                writer.write_byte(u8::from(slot));
+            })
+            .await?;
+
+        Ok(async move {
+            let response = session.response().await?;
+            GameError::check_ok(response)
+        })
+    }
+
     /// Produces a crystal from nebula cargo.
     ///
     /// Returns `true` if a crystal was created; `false` if the nebula faded.

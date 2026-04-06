@@ -1,20 +1,15 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, Controllable, Cost, DynamicShotFabricatorSubsystem, RangeTolerance,
-    SubsystemBase, SubsystemExt,
+    Controllable, Cost, DynamicShotFabricatorSubsystem, RangeTolerance, SubsystemBase, SubsystemExt,
 };
-use crate::{
-    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
-    SubsystemStatus,
-};
+use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, SubsystemStatus};
 use std::sync::Weak;
 
-/// Dynamic interceptor fabricator subsystem of a controllable.
 #[derive(Debug)]
-pub struct DynamicInterceptorFabricatorSubsystem {
+pub struct StaticShotFabricatorSubsystem {
     base: DynamicShotFabricatorSubsystem,
 }
 
-impl DynamicInterceptorFabricatorSubsystem {
+impl StaticShotFabricatorSubsystem {
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
@@ -75,7 +70,6 @@ impl DynamicInterceptorFabricatorSubsystem {
         self.base.calculate_cost(rate)
     }
 
-    /// Sets the interceptor fabrication rate on the server.
     pub async fn set(&self, rate: f32) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -95,12 +89,11 @@ impl DynamicInterceptorFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .dynamic_interceptor_fabricator_subsystem_set(controllable.id(), rate)
+                .static_shot_fabricator_set(controllable.id(), self.slot(), rate)
                 .await
         }
     }
 
-    /// Turns the interceptor fabricator on.
     pub async fn on(&self) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -113,12 +106,11 @@ impl DynamicInterceptorFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .dynamic_interceptor_fabricator_subsystem_on(controllable.id())
+                .static_shot_fabricator_on(controllable.id(), self.slot())
                 .await
         }
     }
 
-    /// Turns the interceptor fabricator off.
     pub async fn off(&self) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -131,7 +123,7 @@ impl DynamicInterceptorFabricatorSubsystem {
                 .cluster()
                 .galaxy()
                 .connection()
-                .dynamic_interceptor_fabricator_subsystem_off(controllable.id())
+                .static_shot_fabricator_off(controllable.id(), self.slot())
                 .await
         }
     }
@@ -166,28 +158,13 @@ impl DynamicInterceptorFabricatorSubsystem {
         );
     }
 
+    #[inline]
     pub(crate) fn create_runtime_event(&self) -> Option<FlattiverseEvent> {
-        if !self.exists() || !self.as_subsystem_base().should_emit_runtime_event() {
-            None
-        } else {
-            Some(
-                FlattiverseEventKind::DynamicInterceptorFabricatorSubsystem {
-                    controllable: self.controllable(),
-                    slot: self.slot(),
-                    status: self.status(),
-                    active: self.active(),
-                    rate: self.rate(),
-                    consumed_energy_this_tick: self.consumed_energy_this_tick(),
-                    consumed_ions_this_tick: self.consumed_ions_this_tick(),
-                    consumed_neutrinos_this_tick: self.consumed_neutrinos_this_tick(),
-                }
-                .into(),
-            )
-        }
+        self.base.create_runtime_event()
     }
 }
 
-impl AsRef<SubsystemBase> for DynamicInterceptorFabricatorSubsystem {
+impl AsRef<SubsystemBase> for StaticShotFabricatorSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         self.base.as_ref()
