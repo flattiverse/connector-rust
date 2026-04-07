@@ -150,6 +150,10 @@ pub enum GameErrorKind {
     PlayerAccessRestricted,
     /// Thrown when an admin login is denied by the galaxy admin ACL.
     AdminAccessRestricted,
+    /// The galaxy is currently rebuilding its static segment data.
+    StaticMapRebuildInProgress,
+    /// Static segment rebuilding is currently blocked by tournament state.
+    StaticMapRebuildLocked,
     /// Thrown when one subsystem-metadata usage evaluation receives the same component kind more
     /// than once.
     DuplicateSubsystemComponentValue {
@@ -241,6 +245,8 @@ impl Display for GameErrorKind {
             GameErrorKind::TournamentModeNotAllowed => "[0x39] Tournaments are not allowed for the current galaxy game mode.",
             GameErrorKind::PlayerAccessRestricted =>  "[0x3A] Player access to this galaxy is restricted by ACL.",
             GameErrorKind::AdminAccessRestricted =>  "[0x3B] Admin access to this galaxy is restricted by ACL.",
+            GameErrorKind::StaticMapRebuildInProgress =>  "[0x3C] The galaxy is currently rebuilding its static map data.",
+            GameErrorKind::StaticMapRebuildLocked =>  "[0x3D] Static map rebuilding is currently blocked by the tournament state.",
             GameErrorKind::DuplicateSubsystemComponentValue {component_kind} => return write!(f, "[0x40] The subsystem component \"{component_kind:?}\" was supplied more than once."),
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
@@ -297,6 +303,8 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x39 => GameErrorKind::TournamentModeNotAllowed,
             0x3A => GameErrorKind::PlayerAccessRestricted,
             0x3B => GameErrorKind::AdminAccessRestricted,
+            0x3C => GameErrorKind::StaticMapRebuildInProgress,
+            0x3D => GameErrorKind::StaticMapRebuildLocked,
             0x40 => GameErrorKind::DuplicateSubsystemComponentValue {
                 component_kind: SubsystemComponentKind::from_primitive(reader.read_byte()),
             },

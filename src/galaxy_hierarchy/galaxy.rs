@@ -1246,9 +1246,36 @@ impl Galaxy {
         &self,
         events: &mut EventSink,
         number: u32,
+        scan_ms: f32,
+        steady_ms: f32,
+        gravity_ms: f32,
+        engines_ms: f32,
+        limit_ms: f32,
+        movement_ms: f32,
+        collisions_ms: f32,
+        actions_ms: f32,
+        visibility_ms: f32,
+        total_ms: f32,
+        remaining_static_segments: i32,
     ) -> Result<(), GameError> {
         debug!("Universe tick with #{number}");
-        event!(events, GalaxyTick { tick: number });
+        event!(
+            events,
+            GalaxyTick {
+                tick: number,
+                scan_ms,
+                steady_ms,
+                gravity_ms,
+                engines_ms,
+                limit_ms,
+                movement_ms,
+                collisions_ms,
+                actions_ms,
+                visibility_ms,
+                total_ms,
+                remaining_static_segments,
+            }
+        );
         Ok(())
     }
 
@@ -1409,6 +1436,16 @@ impl Galaxy {
             }
         );
 
+        Ok(())
+    }
+
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
+    pub(crate) fn system_message(
+        &self,
+        events: &mut EventSink,
+        message: String,
+    ) -> Result<(), GameError> {
+        event!(events, SystemMessage { message });
         Ok(())
     }
 

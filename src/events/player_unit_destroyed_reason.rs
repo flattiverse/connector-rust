@@ -18,6 +18,8 @@ pub enum PlayerUnitDestroyedReason {
     Suicided = 0x10,
     /// Destroyed because the containing cluster was removed.
     ByClusterRemoval = 0x01,
+    /// Destroyed after leaving the activated map area and getting lost in deep space.
+    LostInDeepSpace = 0x02,
     /// Destroyed by collision with a non-player unit.
     CollidedWithNeutralUnit = 0x20,
     /// Destroyed by collision with an enemy player-controlled unit.

@@ -111,9 +111,9 @@ impl Display for FlattiverseEvent {
                 None => write!(f, "Connection terminated."),
                 Some(message) => write!(f, "Connection terminated: {}", message),
             },
-            FlattiverseEventKind::GalaxyTick { tick } => write!(
+            FlattiverseEventKind::GalaxyTick { tick, total_ms, remaining_static_segments, .. } => write!(
                 f,
-                "Tick/Tack #{}", tick
+                "Tick/Tack #{tick} total={total_ms:.2}ms remainingStaticSegments={remaining_static_segments}.",
             ),
             FlattiverseEventKind::PingMeasured(ping) => write!(
                 f,
@@ -377,6 +377,9 @@ impl Display for FlattiverseEvent {
                 "[SYSTEM] Flag {flag_name:?} of team {} is active again.",
                 &*flag_team.name(),
             ),
+            FlattiverseEventKind::SystemMessage { message } => {
+                write!(f, "{message}")
+            }
             FlattiverseEventKind::GateSwitched {
                 cluster, invoker_player, invoker_controllable_info, switch_name, gates
             } => {
@@ -446,6 +449,7 @@ impl Display for FlattiverseEvent {
                     PlayerUnitDestroyedReason::ByRules => "got destroyed due to applied rules",
                     PlayerUnitDestroyedReason::Suicided => "suicided",
                     PlayerUnitDestroyedReason::ByClusterRemoval => "got destroyed because its cluster was removed",
+                    PlayerUnitDestroyedReason::LostInDeepSpace => "was lost in deep space",
                     PlayerUnitDestroyedReason::Rebuilding => "went offline for a subsystem rebuild",
                     _ => "got destroyed",
                 }
@@ -880,6 +884,10 @@ pub enum FlattiverseEventKind {
         /// Name of the reactivated flag.
         flag_name: String,
     },
+    /// Generic server-originated system message.
+    SystemMessage {
+        message: String,
+    },
     /// Event emitted when a switch changes the state of one or more gates.
     GateSwitched {
         /// Cluster containing the switch and gates.
@@ -908,9 +916,21 @@ pub enum FlattiverseEventKind {
         /// Optional close reason supplied by the local connector or the remote endpoint.
         message: Option<String>,
     },
-    /// A tick happened.
+    /// Event that is raised when the server has processed a tick.
     GalaxyTick {
+        /// Tick number processed by the server.
         tick: u32,
+        scan_ms: f32,
+        steady_ms: f32,
+        gravity_ms: f32,
+        engines_ms: f32,
+        limit_ms: f32,
+        movement_ms: f32,
+        collisions_ms: f32,
+        actions_ms: f32,
+        visibility_ms: f32,
+        total_ms: f32,
+        remaining_static_segments: i32,
     },
 
     /// Raised when the server initializes or updates the mirrored galaxy settings snapshot.

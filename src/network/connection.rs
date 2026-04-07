@@ -290,7 +290,21 @@ impl Connection {
                 galaxy.unit_removed(events, ClusterId(reader.read_byte()), reader.read_string())
             }
             0x0B => galaxy.compiled_with(events, reader.read_byte(), reader.read_string()),
-            0xC0 => galaxy.universe_tick(events, reader.read_uint32()),
+            0xC0 => galaxy.universe_tick(
+                events,
+                reader.read_uint32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_int32(),
+            ),
             0xC1 => galaxy.flag_scored_chat(
                 events,
                 PlayerId(reader.read_byte()),
@@ -319,6 +333,7 @@ impl Connection {
                 ControllableInfoId(reader.read_byte()),
                 reader.read_uint16(),
             ),
+            0xC8 => galaxy.system_message(events, reader.read_string()),
             0xC9 => galaxy.flag_reactivated_chat(
                 events,
                 TeamId(reader.read_byte()),
