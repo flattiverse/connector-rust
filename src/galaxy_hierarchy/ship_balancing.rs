@@ -50,4 +50,20 @@ impl ShipBalancing {
             full_cost * curve
         }
     }
+
+    pub fn calculate_repair_energy(tier: u8, rate: f32, maximum_rate: f32) -> f32 {
+        if rate <= 0.0 || maximum_rate <= 0.0 {
+            0.0
+        } else {
+            let power01 = rate / maximum_rate;
+            match tier {
+                1 => 18.0 * power01.powf(0.35) + 7.0 * power01 * power01 * power01,
+                2 => 24.0 * power01.powf(0.35) + 12.0 * power01 * power01 * power01,
+                3 => 32.0 * power01.powf(0.35) + 20.0 * power01 * power01 * power01,
+                4 => 44.0 * power01.powf(0.35) + 32.0 * power01 * power01 * power01,
+                5 => 58.0 * power01.powf(0.35) + 50.0 * power01 * power01 * power01,
+                _ => 0.0,
+            }
+        }
+    }
 }
