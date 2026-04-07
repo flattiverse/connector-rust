@@ -3,7 +3,6 @@ use crate::unit::UnitKind;
 use crate::utils::Atomic;
 use crate::{SubsystemSlot, SubsystemStatus};
 use arc_swap::ArcSwapWeak;
-use std::future::Future;
 use std::sync::{Arc, Weak};
 
 /// Base type for persistent controllable subsystems.

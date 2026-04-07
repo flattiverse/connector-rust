@@ -167,6 +167,9 @@ pub use static_shot_fabricator_subsystem::*;
 mod static_shot_launcher_subsystem;
 pub use static_shot_launcher_subsystem::*;
 
+mod structure_optimizer_subsystem;
+pub use structure_optimizer_subsystem::*;
+
 mod cost;
 pub use cost::*;
 
