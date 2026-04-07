@@ -913,6 +913,60 @@ impl ConnectionHandle {
         })
     }
 
+    /// Starts one upgrade step for this subsystem slot.
+    #[inline]
+    pub async fn subsystem_upgrade(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.subsystem_upgrade_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Starts one upgrade step for this subsystem slot.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn subsystem_upgrade_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.send_command_with_payload(0xAE, |writer| {
+            writer.write_byte(controllable.0);
+            writer.write_byte(u8::from(slot));
+        })
+        .await
+        .map(GameError::check_response_ok)
+    }
+
+    /// Starts one downgrade step for this subsystem slot.
+    #[inline]
+    pub async fn subsystem_downgrade(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<(), GameError> {
+        self.subsystem_downgrade_split(controllable, slot)
+            .await?
+            .await
+    }
+
+    /// Starts one downgrade step for this subsystem slot.
+    #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
+    pub async fn subsystem_downgrade_split(
+        &self,
+        controllable: ControllableId,
+        slot: SubsystemSlot,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.send_command_with_payload(0xAF, |writer| {
+            writer.write_byte(controllable.0);
+            writer.write_byte(u8::from(slot));
+        })
+        .await
+        .map(GameError::check_response_ok)
+    }
+
     /// Produces a crystal from nebula cargo.
     ///
     /// Returns `true` if a crystal was created; `false` if the nebula faded.

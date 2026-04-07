@@ -1,7 +1,9 @@
-use crate::galaxy_hierarchy::{Controllable, SubsystemExt};
+use crate::galaxy_hierarchy::{Controllable, SubsystemExt, SubsystemKind, SubsystemTierInfo};
+use crate::unit::UnitKind;
 use crate::utils::Atomic;
 use crate::{SubsystemSlot, SubsystemStatus};
 use arc_swap::ArcSwapWeak;
+use std::future::Future;
 use std::sync::{Arc, Weak};
 
 /// Base type for persistent controllable subsystems.
@@ -9,8 +11,9 @@ use std::sync::{Arc, Weak};
 pub struct SubsystemBase {
     pub(crate) controllable: ArcSwapWeak<Controllable>,
     name: String,
-    exists: bool,
+    exists: Atomic<bool>,
     slot: SubsystemSlot,
+    tier: Atomic<u8>,
     status: Atomic<SubsystemStatus>,
     hast_last_emitted_status: Atomic<bool>,
     last_emitted_status: Atomic<SubsystemStatus>,
@@ -26,18 +29,57 @@ impl SubsystemBase {
         Self {
             controllable: ArcSwapWeak::new(controllable),
             name,
-            exists,
+            exists: Atomic::from(exists),
             slot,
+            tier: Atomic::from(if exists { 1u8 } else { 0 }),
             status: Atomic::default(),
             hast_last_emitted_status: Atomic::default(),
             last_emitted_status: Atomic::default(),
         }
     }
 
+    pub(crate) fn modern_ship(&self) -> bool {
+        self.controllable
+            .load()
+            .upgrade()
+            .map(|controllable| controllable.kind() == UnitKind::ModernShipPlayerUnit)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn static_tier_infos(&self) -> &'static [SubsystemTierInfo] {
+        todo!()
+    }
+
+    pub(crate) fn current_structural_load(&self) -> f32 {
+        todo!()
+    }
+
     pub(crate) fn reset_runtime_status(&self) {
         self.status.store(SubsystemStatus::Off);
         self.hast_last_emitted_status.store(false);
         self.last_emitted_status.store(SubsystemStatus::Off);
+    }
+
+    pub(crate) fn set_exists(&self, exists: bool) {
+        self.exists.store(exists);
+
+        // TODO refresh_tier()
+
+        if !exists {
+            self.reset_runtime_status()
+        }
+    }
+
+    pub(crate) fn set_tier(&self, tier: u8) {
+        self.tier.store(tier);
+    }
+
+    pub(crate) fn set_reported_tier(&self, tier: u8) {
+        self.tier.store(tier);
+    }
+
+    pub(crate) fn matches(left: f32, right: f32) -> bool {
+        (left - right).abs() <= 0.0001
     }
 
     pub(crate) fn update_runtime_status(&self, status: SubsystemStatus) {
@@ -102,20 +144,51 @@ impl<T: AsSubsystemBase> SubsystemExt for T {
         &self.as_subsystem_base().name
     }
 
-    /// True if this controllable actually has the subsystem installed in this slot.
-    /// Missing subsystems keep reporting default values and cannot be commanded.
     #[inline]
     fn exists(&self) -> bool {
-        self.as_subsystem_base().exists
+        self.as_subsystem_base().exists.load()
     }
 
-    /// The concrete slot this subsystem occupies.
     #[inline]
     fn slot(&self) -> SubsystemSlot {
         self.as_subsystem_base().slot
     }
 
-    /// The latest status reported by the server.
+    #[inline]
+    fn kind(&self) -> SubsystemKind {
+        todo!()
+    }
+
+    #[inline]
+    fn tier(&self) -> u8 {
+        self.as_subsystem_base().tier.load()
+    }
+
+    #[inline]
+    fn target_tier(&self) -> u8 {
+        todo!()
+    }
+
+    #[inline]
+    fn remaining_tier_change_ticks(&self) -> i32 {
+        todo!()
+    }
+
+    #[inline]
+    fn tier_infos(&self) -> Arc<Vec<SubsystemTierInfo>> {
+        todo!()
+    }
+
+    #[inline]
+    fn tier_info(&self) -> &SubsystemTierInfo {
+        todo!()
+    }
+
+    #[inline]
+    fn target_tier_info(&self) -> &SubsystemTierInfo {
+        todo!()
+    }
+
     #[inline]
     fn status(&self) -> SubsystemStatus {
         self.as_subsystem_base().status.load()

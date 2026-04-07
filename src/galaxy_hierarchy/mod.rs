@@ -101,6 +101,12 @@ pub use static_scanner_subsystem::*;
 mod hull_subsystem;
 pub use hull_subsystem::*;
 
+mod subsystem_kind;
+pub use subsystem_kind::*;
+
+mod subsystem_metadata;
+pub use subsystem_metadata::*;
+
 mod subsystem;
 pub use subsystem::*;
 
