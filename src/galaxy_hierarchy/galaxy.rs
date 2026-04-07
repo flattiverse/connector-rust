@@ -398,6 +398,11 @@ impl Galaxy {
         self.connection.configure_galaxy(xml).await
     }
 
+    // TODO QueryAclAccounts
+    // TODO AddAclAccount
+    // TODO RemoveAclAccount
+    // TODO ValidateAclKind
+
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
     pub(crate) fn ping_pong(
         &self,

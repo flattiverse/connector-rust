@@ -202,3 +202,6 @@ pub use tournament_team_configuration::*;
 
 mod ship_balancing;
 pub use ship_balancing::*;
+
+mod galaxy_acl_kind;
+pub use galaxy_acl_kind::*;
