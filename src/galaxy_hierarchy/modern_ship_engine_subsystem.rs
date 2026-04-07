@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -10,8 +12,7 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct ModernShipEngineSubsystem {
     base: SubsystemBase,
-    maximum_forward_thrust: Atomic<f32>,
-    maximum_reverse_thrust: Atomic<f32>,
+    maximum_thrust: Atomic<f32>,
     maximum_thrust_change_per_tick: Atomic<f32>,
     current_thrust: Atomic<f32>,
     target_thrust: Atomic<f32>,
@@ -29,8 +30,7 @@ impl ModernShipEngineSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
-            maximum_forward_thrust: Atomic::from(0.0),
-            maximum_reverse_thrust: Atomic::from(0.0),
+            maximum_thrust: Atomic::from(0.0),
             maximum_thrust_change_per_tick: Atomic::from(0.0),
             current_thrust: Atomic::from(0.0),
             target_thrust: Atomic::from(0.0),
@@ -41,13 +41,20 @@ impl ModernShipEngineSubsystem {
     }
 
     #[inline]
+    pub fn maximum_thrust(&self) -> f32 {
+        self.maximum_thrust.load()
+    }
+
+    // TODO fn tier_infos(&self) -> Arc<Vec<SubsystemTierInfo>> { todo!() }
+
+    #[inline]
     pub fn maximum_forward_thrust(&self) -> f32 {
-        self.maximum_forward_thrust.load()
+        self.maximum_thrust()
     }
 
     #[inline]
     pub fn maximum_reverse_thrust(&self) -> f32 {
-        self.maximum_reverse_thrust.load()
+        self.maximum_thrust()
     }
 
     #[inline]
@@ -84,17 +91,22 @@ impl ModernShipEngineSubsystem {
         if !self.exists() {
             None
         } else {
+            let maximum_thrust = self.maximum_thrust();
             let thrust = RangeTolerance::clamped_range(
                 thrust,
-                -self.maximum_reverse_thrust(),
-                self.maximum_forward_thrust(),
+                -self.maximum_thrust(),
+                self.maximum_thrust(),
             )
             .ok()?;
 
             let absolut_thrust = thrust.abs();
 
             Cost::default()
-                .with_energy(absolut_thrust * absolut_thrust * absolut_thrust * 20_000.0)
+                .with_energy(ShipBalancing::calculate_engine_energy(
+                    absolut_thrust,
+                    maximum_thrust,
+                    Self::full_cost_maximum_thrust(maximum_thrust),
+                ))
                 .into_values_checked()
         }
     }
@@ -109,8 +121,8 @@ impl ModernShipEngineSubsystem {
         } else {
             let thrust = RangeTolerance::clamped_range(
                 thrust,
-                -self.maximum_reverse_thrust(),
-                self.maximum_forward_thrust(),
+                -self.maximum_thrust(),
+                self.maximum_thrust(),
             )
             .map_err(|reason| GameErrorKind::InvalidArgument {
                 reason,
@@ -137,15 +149,30 @@ impl ModernShipEngineSubsystem {
         maximum_reverse_thrust: f32,
         maximum_thrust_change_per_tick: f32,
     ) {
+        debug_assert!(
+            (maximum_forward_thrust - maximum_reverse_thrust).abs() < 0.0001,
+            "Modern engine capabilities are expected to be symetric."
+        );
         if self.exists() {
-            self.maximum_forward_thrust.store(maximum_forward_thrust);
-            self.maximum_reverse_thrust.store(maximum_reverse_thrust);
+            self.maximum_thrust
+                .store(maximum_forward_thrust.max(maximum_reverse_thrust));
             self.maximum_thrust_change_per_tick
                 .store(maximum_thrust_change_per_tick);
         } else {
-            self.maximum_forward_thrust.store_default();
-            self.maximum_reverse_thrust.store_default();
-            self.maximum_thrust_change_per_tick.store_default();
+            self.maximum_thrust.store(0.0);
+            self.maximum_thrust_change_per_tick.store(0.0);
+        }
+    }
+
+    pub(crate) const fn full_cost_maximum_thrust(maximum_thrust: f32) -> f32 {
+        if maximum_thrust <= 0.0161 {
+            3.8
+        } else if maximum_thrust <= 0.0231 {
+            5.6
+        } else if maximum_thrust <= 0.0311 {
+            7.2
+        } else {
+            10.0
         }
     }
 
@@ -196,6 +223,10 @@ impl ModernShipEngineSubsystem {
             )
         }
     }
+
+    // TODO pub(crate) fn  refresh_tier(&self) {}
+
+    // TODO pub(crate) fn ReplaceMaximumThrust
 }
 
 impl AsRef<SubsystemBase> for ModernShipEngineSubsystem {
