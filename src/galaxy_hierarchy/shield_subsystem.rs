@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -11,6 +13,8 @@ use std::sync::Weak;
 pub struct ShieldSubsystem {
     base: SubsystemBase,
     maximum: Atomic<f32>,
+    minimum_rate: Atomic<f32>,
+    maximum_rate: Atomic<f32>,
     current: Atomic<f32>,
     active: Atomic<bool>,
     rate: Atomic<f32>,
@@ -20,11 +24,6 @@ pub struct ShieldSubsystem {
 }
 
 impl ShieldSubsystem {
-    const MAXIMUM_VALUE: f32 = 20.0;
-    const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const MAXIMUM_RATE_VALUE: f32 = 0.125;
-    const ENERGY_SCALE: f32 = 1600.0;
-
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
@@ -33,7 +32,9 @@ impl ShieldSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
-            maximum: Atomic::from(if exists { Self::MAXIMUM_VALUE } else { 0.0 }),
+            maximum: Atomic::from(if exists { 20.0 } else { 0.0 }),
+            minimum_rate: Atomic::from(0.0),
+            maximum_rate: Atomic::from(0.125),
             current: Default::default(),
             active: Default::default(),
             rate: Default::default(),
@@ -68,16 +69,15 @@ impl ShieldSubsystem {
     /// The minimum configurable shield load rate.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
-        Self::MINIMUM_RATE_VALUE
+        self.minimum_rate.load()
     }
 
     /// The maximum configurable shield load rate.
     #[inline]
     pub fn maximum_rate(&self) -> f32 {
-        Self::MAXIMUM_RATE_VALUE
+        self.maximum_rate.load()
     }
 
-    #[inline]
     pub(crate) fn set_maximum(&self, maximum: f32) {
         let maximum = if self.exists() {
             self.maximum.store(maximum);
@@ -87,9 +87,23 @@ impl ShieldSubsystem {
             0.0
         };
 
+        // TODO self.refresh_tier();
+
         if self.current() > maximum {
             self.current.store(maximum);
         }
+    }
+
+    pub(crate) fn set_rate_capabilities(&self, minimum_rate: f32, maximum_rate: f32) {
+        if !self.exists() {
+            self.minimum_rate.store(minimum_rate);
+            self.maximum_rate.store(maximum_rate);
+        } else {
+            self.minimum_rate.store(0.0);
+            self.maximum_rate.store(0.0);
+        }
+
+        // TODO self.refresh_tier();
     }
 
     /// Whether shield loading is active.
@@ -127,16 +141,51 @@ impl ShieldSubsystem {
         if !self.exists() {
             None
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .ok()?;
+            let maximum = self.maximum();
+            let maximum_rate = self.maximum_rate();
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), maximum_rate).ok()?;
 
-            Cost::default()
-                .with_energy(rate * rate * Self::ENERGY_SCALE)
-                .into_values_checked()
+            if Self::rate_to_tier(maximum, maximum_rate) == 5 {
+                Cost::default().with_ions(if maximum_rate > 0.0 {
+                    0.9 * rate / maximum_rate
+                } else {
+                    0.0
+                })
+            } else {
+                Cost::default().with_energy(ShipBalancing::calculate_shield_energy(
+                    Self::rate_to_tier(maximum, maximum_rate),
+                    rate,
+                    maximum_rate,
+                    Self::full_cost_from_capabilities(maximum, maximum_rate),
+                ))
+            }
+            .into_values_checked()
+        }
+    }
+
+    pub(crate) fn rate_to_tier(maximum: f32, maximum_rate: f32) -> u8 {
+        if maximum <= 20.5 && maximum_rate <= 0.101 {
+            1
+        } else if maximum <= 35.5 && maximum_rate <= 0.141 {
+            2
+        } else if maximum <= 50.5 && maximum_rate <= 0.181 {
+            3
+        } else if maximum <= 65.5 && maximum_rate <= 0.231 {
+            4
+        } else {
+            5
+        }
+    }
+
+    pub(crate) fn full_cost_from_capabilities(maximum: f32, maximum_rate: f32) -> f32 {
+        match Self::rate_to_tier(maximum, maximum_rate) {
+            1 => 16.0,
+            2 => 26.0,
+            3 => 39.0,
+            4 => 58.0,
+            5 => 82.0,
+            _ => 0.0,
         }
     }
 
@@ -149,15 +198,12 @@ impl ShieldSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .map_err(|reason| GameErrorKind::InvalidArgument {
-                reason,
-                parameter: "rate".to_string(),
-            })?;
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), self.maximum_rate())
+                    .map_err(|reason| GameErrorKind::InvalidArgument {
+                        reason,
+                        parameter: "rate".to_string(),
+                    })?;
 
             controllable
                 .cluster()
@@ -255,6 +301,8 @@ impl ShieldSubsystem {
             )
         }
     }
+
+    // TODO pub(crate) fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for ShieldSubsystem {

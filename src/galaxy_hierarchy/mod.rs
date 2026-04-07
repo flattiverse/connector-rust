@@ -199,3 +199,6 @@ pub use tournament_team::*;
 
 mod tournament_team_configuration;
 pub use tournament_team_configuration::*;
+
+mod ship_balancing;
+pub use ship_balancing::*;

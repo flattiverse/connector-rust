@@ -11,6 +11,11 @@ impl Cost {
         self
     }
 
+    pub fn with_ions(mut self, ions: f32) -> Self {
+        self.ions = ions;
+        self
+    }
+
     pub fn into_values_checked(self) -> Option<Self> {
         if self.energy.is_nan()
             || self.energy.is_infinite()
