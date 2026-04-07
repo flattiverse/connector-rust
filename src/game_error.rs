@@ -146,6 +146,10 @@ pub enum GameErrorKind {
     /// Thrown when tournament configuration is attempted in a galaxy game mode that does not allow
     /// tournaments.
     TournamentModeNotAllowed,
+    /// Thrown when a normal player login is denied by the galaxy player ACL.
+    PlayerAccessRestricted,
+    /// Thrown when an admin login is denied by the galaxy admin ACL.
+    AdminAccessRestricted,
     /// Thrown when one subsystem-metadata usage evaluation receives the same component kind more
     /// than once.
     DuplicateSubsystemComponentValue {
@@ -235,6 +239,8 @@ impl Display for GameErrorKind {
             GameErrorKind::TournamentSpectatingForbidden => "[0x37] Spectating is forbidden in the current tournament stage.",
             GameErrorKind::TournamentTeamMismatch => "[0x38] This account is assigned to a different tournament team.",
             GameErrorKind::TournamentModeNotAllowed => "[0x39] Tournaments are not allowed for the current galaxy game mode.",
+            GameErrorKind::PlayerAccessRestricted =>  "[0x3A] Player access to this galaxy is restricted by ACL.",
+            GameErrorKind::AdminAccessRestricted =>  "[0x3B] Admin access to this galaxy is restricted by ACL.",
             GameErrorKind::DuplicateSubsystemComponentValue {component_kind} => return write!(f, "[0x40] The subsystem component \"{component_kind:?}\" was supplied more than once."),
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
@@ -289,6 +295,8 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x37 => GameErrorKind::TournamentSpectatingForbidden,
             0x38 => GameErrorKind::TournamentTeamMismatch,
             0x39 => GameErrorKind::TournamentModeNotAllowed,
+            0x3A => GameErrorKind::PlayerAccessRestricted,
+            0x3B => GameErrorKind::AdminAccessRestricted,
             0x40 => GameErrorKind::DuplicateSubsystemComponentValue {
                 component_kind: SubsystemComponentKind::from_primitive(reader.read_byte()),
             },
