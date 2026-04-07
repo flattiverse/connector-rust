@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -10,6 +12,8 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct NebulaCollectorSubsystem {
     base: SubsystemBase,
+    minimum_rate: Atomic<f32>,
+    maximum_rate: Atomic<f32>,
     rate: Atomic<f32>,
     consumed_energy_this_tick: Atomic<f32>,
     consumed_ions_this_tick: Atomic<f32>,
@@ -19,19 +23,17 @@ pub struct NebulaCollectorSubsystem {
 }
 
 impl NebulaCollectorSubsystem {
-    const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const MAXIMUM_RATE_VALUE: f32 = 0.1;
-    const ENERGY_SCALE: f32 = 1_600.0;
-
     pub(crate) fn new(controllable: Weak<Controllable>, exists: bool, slot: SubsystemSlot) -> Self {
         Self {
             base: SubsystemBase::new(controllable, "NebulaCollector".to_string(), exists, slot),
-            rate: Default::default(),
-            consumed_energy_this_tick: Default::default(),
-            consumed_ions_this_tick: Default::default(),
-            consumed_neutrinos_this_tick: Default::default(),
-            collected_this_tick: Default::default(),
-            collected_hue_this_tick: Default::default(),
+            minimum_rate: Atomic::from(0.0),
+            maximum_rate: Atomic::from(0.1),
+            rate: Atomic::from(0.0),
+            consumed_energy_this_tick: Atomic::from(0.0),
+            consumed_ions_this_tick: Atomic::from(0.0),
+            consumed_neutrinos_this_tick: Atomic::from(0.0),
+            collected_this_tick: Atomic::from(0.0),
+            collected_hue_this_tick: Atomic::from(0.0),
         }
     }
 
@@ -44,13 +46,24 @@ impl NebulaCollectorSubsystem {
     /// `0` means the collector is off.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
-        Self::MINIMUM_RATE_VALUE
+        self.minimum_rate.load()
     }
 
     /// Maximum configurable collection rate supported by the current controllable kind.
     #[inline]
     pub fn maximum_rate(&self) -> f32 {
-        Self::MAXIMUM_RATE_VALUE
+        self.maximum_rate.load()
+    }
+
+    pub(crate) fn set_capabilities(&self, minimum_rate: f32, maximum_rate: f32) {
+        if self.exists() {
+            self.minimum_rate.store(minimum_rate);
+            self.maximum_rate.store(maximum_rate);
+        } else {
+            self.minimum_rate.store(0.0);
+            self.maximum_rate.store(0.0);
+        }
+        // TODO self.refresh_tier();
     }
 
     /// Rate currently mirrored from the server.
@@ -96,16 +109,31 @@ impl NebulaCollectorSubsystem {
         if !self.exists() {
             None
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .ok()?;
+            let maximum_rate = self.maximum_rate();
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), maximum_rate).ok()?;
 
             Cost::default()
-                .with_energy(rate * rate * Self::ENERGY_SCALE)
+                .with_energy(ShipBalancing::calculate_engine_energy(
+                    rate,
+                    maximum_rate,
+                    Self::full_cost_from_maximum_rate(maximum_rate),
+                ))
                 .into_values_checked()
+        }
+    }
+
+    pub(crate) const fn full_cost_from_maximum_rate(maximum_rate: f32) -> f32 {
+        if maximum_rate <= 0.0166 {
+            6.0
+        } else if maximum_rate <= 0.0243 {
+            9.0
+        } else if maximum_rate <= 0.0342 {
+            14.0
+        } else if maximum_rate <= 0.0463 {
+            22.0
+        } else {
+            34.0
         }
     }
 
@@ -123,15 +151,12 @@ impl NebulaCollectorSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .map_err(|reason| GameErrorKind::InvalidArgument {
-                reason,
-                parameter: "rate".to_string(),
-            })?;
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), self.maximum_rate())
+                    .map_err(|reason| GameErrorKind::InvalidArgument {
+                        reason,
+                        parameter: "rate".to_string(),
+                    })?;
 
             controllable
                 .cluster()
@@ -199,6 +224,8 @@ impl NebulaCollectorSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for NebulaCollectorSubsystem {
