@@ -1,7 +1,34 @@
 pub struct ShipBalancing;
 
 impl ShipBalancing {
-    pub fn calculate_shield_energy(tier: u8, rate: f32, maximum_rate: f32, full_cost: f32) -> f32 {
+    pub const fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {
+        debug_assert!(
+            value.is_normal() && value >= 0.0,
+            "Invalid engine value specified."
+        );
+        debug_assert!(
+            maximum.is_normal() && maximum >= 0.0,
+            "Invalid engine maximum specified."
+        );
+        debug_assert!(
+            full_cost.is_normal() && full_cost >= 0.0,
+            "Invalid engine full cost specified."
+        );
+
+        if maximum <= 0.0 || value <= 0.0 || full_cost == 0.0 {
+            0.0
+        } else {
+            let power01 = value / maximum;
+            full_cost * (0.30 * power01 + 0.70 * power01 * power01 * power01)
+        }
+    }
+
+    pub const fn calculate_shield_energy(
+        tier: u8,
+        rate: f32,
+        maximum_rate: f32,
+        full_cost: f32,
+    ) -> f32 {
         debug_assert!(
             maximum_rate >= 0.0,
             "Invalid shield maximum rate specified."

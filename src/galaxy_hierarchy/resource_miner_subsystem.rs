@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -9,6 +11,8 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct ResourceMinerSubsystem {
     base: SubsystemBase,
+    minimum_rate: Atomic<f32>,
+    maximum_rate: Atomic<f32>,
     rate: Atomic<f32>,
     consumed_energy_this_tick: Atomic<f32>,
     consumed_ions_this_tick: Atomic<f32>,
@@ -20,13 +24,11 @@ pub struct ResourceMinerSubsystem {
 }
 
 impl ResourceMinerSubsystem {
-    const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const MAXIMUM_RATE_VALUE: f32 = 0.01;
-    const ENERGY_SCALE: f32 = 160_000.0;
-
     pub(crate) fn new(controllable: Weak<Controllable>, exists: bool, slot: SubsystemSlot) -> Self {
         Self {
             base: SubsystemBase::new(controllable, "ResourceMiner".to_string(), exists, slot),
+            minimum_rate: Atomic::from(0.0),
+            maximum_rate: Atomic::from(0.1),
             rate: Default::default(),
             consumed_energy_this_tick: Default::default(),
             consumed_ions_this_tick: Default::default(),
@@ -45,13 +47,24 @@ impl ResourceMinerSubsystem {
     /// Minimum configurable mining rate.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
-        Self::MINIMUM_RATE_VALUE
+        self.minimum_rate.load()
     }
 
     /// Maximum configurable mining rate.
     #[inline]
     pub fn maximum_rate(&self) -> f32 {
-        Self::MAXIMUM_RATE_VALUE
+        self.maximum_rate.load()
+    }
+
+    pub(crate) fn set_capabilities(&self, minimum_rate: f32, maximum_rate: f32) {
+        if self.exists() {
+            self.minimum_rate.store(minimum_rate);
+            self.maximum_rate.store(maximum_rate);
+        } else {
+            self.minimum_rate.store(0.0);
+            self.maximum_rate.store(0.0);
+        }
+        // TODO self.refresh_tier();
     }
 
     /// Configured mining rate for the tick.
@@ -107,16 +120,31 @@ impl ResourceMinerSubsystem {
         if !self.exists() {
             None
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .ok()?;
+            let maximum_rate = self.maximum_rate();
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), maximum_rate).ok()?;
 
             Cost::default()
-                .with_energy(rate * rate * Self::ENERGY_SCALE)
+                .with_energy(ShipBalancing::calculate_engine_energy(
+                    rate,
+                    maximum_rate,
+                    Self::full_cost_from_max_rate(maximum_rate),
+                ))
                 .into_values_checked()
+        }
+    }
+
+    pub(crate) const fn full_cost_from_max_rate(maximum_rate: f32) -> f32 {
+        if maximum_rate <= 0.00221 {
+            10.0
+        } else if maximum_rate <= 0.00331 {
+            14.0
+        } else if maximum_rate <= 0.00461 {
+            20.0
+        } else if maximum_rate <= 0.00611 {
+            30.0
+        } else {
+            44.0
         }
     }
 
@@ -129,15 +157,12 @@ impl ResourceMinerSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let rate = RangeTolerance::clamped_range(
-                rate,
-                Self::MINIMUM_RATE_VALUE,
-                Self::MAXIMUM_RATE_VALUE,
-            )
-            .map_err(|reason| GameErrorKind::InvalidArgument {
-                reason,
-                parameter: "rate".to_string(),
-            })?;
+            let rate =
+                RangeTolerance::clamped_range(rate, self.minimum_rate(), self.maximum_rate())
+                    .map_err(|reason| GameErrorKind::InvalidArgument {
+                        reason,
+                        parameter: "rate".to_string(),
+                    })?;
 
             controllable
                 .cluster()
@@ -214,6 +239,8 @@ impl ResourceMinerSubsystem {
             )
         }
     }
+
+    // TODO pub(crate) fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for ResourceMinerSubsystem {

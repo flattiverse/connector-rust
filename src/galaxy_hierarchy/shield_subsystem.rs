@@ -164,7 +164,7 @@ impl ShieldSubsystem {
         }
     }
 
-    pub(crate) fn rate_to_tier(maximum: f32, maximum_rate: f32) -> u8 {
+    pub(crate) const fn rate_to_tier(maximum: f32, maximum_rate: f32) -> u8 {
         if maximum <= 20.5 && maximum_rate <= 0.101 {
             1
         } else if maximum <= 35.5 && maximum_rate <= 0.141 {
@@ -178,7 +178,7 @@ impl ShieldSubsystem {
         }
     }
 
-    pub(crate) fn full_cost_from_capabilities(maximum: f32, maximum_rate: f32) -> f32 {
+    pub(crate) const fn full_cost_from_capabilities(maximum: f32, maximum_rate: f32) -> f32 {
         match Self::rate_to_tier(maximum, maximum_rate) {
             1 => 16.0,
             2 => 26.0,
