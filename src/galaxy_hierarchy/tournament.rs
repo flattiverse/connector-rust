@@ -59,7 +59,9 @@ impl Tournament {
         &self.match_history
     }
 
-    /// Number of the current or next live match, derived as `match_history().len() + 1`.
+    /// Number of the currently live match while the tournament is commencing or running.
+    /// During preparation this already points at the next match to start, derived as
+    /// [`Self::match_history`]`().len() + 1.
     #[inline]
     pub fn current_match_number(&self) -> i32 {
         self.match_history.len() as i32 + 1

@@ -50,6 +50,7 @@ impl RepairSubsystem {
     }
 
     /// The minimum configurable repair rate.
+    /// `0` means the repair subsystem is off.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
         self.minimum_rate.load()
@@ -72,7 +73,8 @@ impl RepairSubsystem {
         // TODO self.refresh_tier();
     }
 
-    /// The configured hull repair rate per tick.
+    /// The repair rate currently mirrored from the server.
+    /// The server may clear this value back to `0`, for example after movement.
     #[inline]
     pub fn rate(&self) -> f32 {
         self.rate.load()
@@ -136,6 +138,12 @@ impl RepairSubsystem {
     }
 
     /// Sets the repair rate on the server.
+    ///
+    /// # Remarks
+    ///
+    /// The current classic ship uses `rate in [0; 0.1]` with placeholder tick cost
+    /// `energy = 1600 * rate^2`. The server executes repair authoritatively: it only repairs hull
+    /// and may clear the mirrored rate back to `0` when the ship movement reaches `>= 0.1.
     pub async fn set(&self, rate: f32) -> Result<(), GameError> {
         let controllable = self.controllable();
 
@@ -158,6 +166,12 @@ impl RepairSubsystem {
                 .repair_subsystem_set(controllable.id(), rate)
                 .await
         }
+    }
+
+    /// Convenience wrapper for [`Self::set`]`(0.0)`.
+    #[inline]
+    pub async fn off(&self) -> Result<(), GameError> {
+        self.set(0.0).await
     }
 
     pub(crate) fn reset_runtime(&self) {

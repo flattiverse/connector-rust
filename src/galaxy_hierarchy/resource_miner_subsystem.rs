@@ -45,6 +45,7 @@ impl ResourceMinerSubsystem {
     }
 
     /// Minimum configurable mining rate.
+    /// `0` means the miner is off.
     #[inline]
     pub fn minimum_rate(&self) -> f32 {
         self.minimum_rate.load()
@@ -149,6 +150,12 @@ impl ResourceMinerSubsystem {
     }
 
     /// Sets the mining rate on the server.
+    ///
+    /// # Remarks
+    /// The current classic ship uses `rate in [0; 0.01]` with placeholder tick cost
+    /// `energy = 160000 * rate^2`. The server executes mining authoritatively: it requires low
+    /// movement, mines in-range body resources, and may clear the mirrored rate back to `0` after
+    /// movement or a paid zero-yield tick.
     pub async fn set(&self, rate: f32) -> Result<(), GameError> {
         let controllable = self.controllable();
 
