@@ -46,6 +46,7 @@ pub struct Galaxy {
 
     maintenance: Atomic<bool>,
     requires_self_disclosure: Atomic<bool>,
+    required_achievement: ArcSwapOption<String>,
     active: Atomic<bool>,
     received_compiled_with: Atomic<bool>,
     received_galaxy_settings: Atomic<bool>,
@@ -221,6 +222,7 @@ impl Galaxy {
                     player_max_modern_ships: Atomic::from(0),
                     maintenance: Atomic::from(false),
                     requires_self_disclosure: Atomic::from(false),
+                    required_achievement: ArcSwapOption::default(),
                     active: Atomic::from(true),
                     received_compiled_with: Atomic::from(false),
                     received_galaxy_settings: Atomic::from(false),
@@ -435,6 +437,7 @@ impl Galaxy {
         player_max_modern_ships: u8,
         maintenance: u8,
         requires_self_disclosure: u8,
+        required_achievement: String,
     ) -> Result<(), GameError> {
         debug!("Updating galaxy");
         let before = if self.received_galaxy_settings.load() {
@@ -462,6 +465,13 @@ impl Galaxy {
         self.maintenance.store(maintenance != 0);
         self.requires_self_disclosure
             .store(requires_self_disclosure != 0);
+
+        if required_achievement.is_empty() {
+            self.required_achievement.store(None);
+        } else {
+            self.required_achievement
+                .store(Some(Arc::new(required_achievement)));
+        }
 
         self.received_galaxy_settings.store(true);
 
@@ -1641,6 +1651,11 @@ impl Galaxy {
     /// Whether this galaxy requires self-disclosure for regular player logins.
     pub fn requires_self_disclosure(&self) -> bool {
         self.requires_self_disclosure.load()
+    }
+
+    /// Optional achievement key required for regular player logins.
+    pub fn required_achievement(&self) -> Option<Arc<String>> {
+        self.required_achievement.load_full()
     }
 
     /// The maximum amount of players the server binary has been compiled to support.

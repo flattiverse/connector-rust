@@ -1,4 +1,5 @@
 use crate::galaxy_hierarchy::{Galaxy, GameMode};
+use std::sync::Arc;
 
 /// Immutable snapshot of all server-driven galaxy setting values mirrored by the connector.
 #[derive(Debug, Clone)]
@@ -35,6 +36,8 @@ pub struct GalaxySettingsSnapshot {
     pub maintenance: bool,
     /// Whether regular player logins must provide runtime and build self-disclosure.
     pub requires_self_disclosure: bool,
+    /// Optional achievement key required for regular player logins.
+    pub required_achievement: Option<Arc<String>>,
 }
 
 impl From<&Galaxy> for GalaxySettingsSnapshot {
@@ -56,6 +59,7 @@ impl From<&Galaxy> for GalaxySettingsSnapshot {
             player_max_modern_ships: galaxy.player_max_modern_ships(),
             maintenance: galaxy.maintenance(),
             requires_self_disclosure: galaxy.requires_self_disclosure(),
+            required_achievement: galaxy.required_achievement(),
         }
     }
 }

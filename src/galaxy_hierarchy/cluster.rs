@@ -176,8 +176,8 @@ impl Cluster {
     /// Creates or updates a single editable map unit in this cluster.
     /// Root node must be the unit type itself, for example `<Sun />`.
     /// For `<Buoy />` an optional message attribute is supported (max 384 characters).
-    /// For `<MissionTarget />` the team is required and child nodes `<Vector X="..." Y="..." />`
-    /// are supported.
+    /// For `<MissionTarget />` the team is required, Achievement is optional and child nodes
+    /// `<Vector X="..." Y="..." />` are supported.
     #[inline]
     pub async fn set_unit(&self, xml: impl AsRef<str>) -> Result<(), GameError> {
         self.galaxy()

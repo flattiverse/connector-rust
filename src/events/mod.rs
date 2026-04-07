@@ -245,6 +245,15 @@ impl Display for FlattiverseEvent {
                     log_change!(appended_at_least_one_change, galaxy, before, maintenance);
                     log_change!(appended_at_least_one_change, galaxy, before, requires_self_disclosure);
 
+                    // Error[internal]: left behind trailing whitespace
+                    if before.required_achievement != galaxy.required_achievement() {
+                        if appended_at_least_one_change {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "required_achievement={:?}=>{:?}", before.required_achievement, galaxy.required_achievement())?;
+                        appended_at_least_one_change = true;
+                    }
+
                     if !appended_at_least_one_change {
                         write!(f, ", without effective field changes.")?;
                     }
@@ -399,7 +408,7 @@ impl Display for FlattiverseEvent {
                 } else {
                     write!(f, ".")
                 }
-            },
+            }
             FlattiverseEventKind::GateRestored { cluster, gate_name, closed } => {
                 write!(
                     f,
@@ -608,7 +617,6 @@ impl Display for FlattiverseEvent {
                 }
             }
             FlattiverseEventKind::UnitAlteredByAdmin { cluster, name } => write!(f, "Unit altered by admin: {cluster:?}, name={name:?}"),
-
 
             FlattiverseEventKind::ArmorSubsystem { controllable, slot, status, reduction, blocked_direct_damage_this_tick, blocked_radiation_damage_this_tick } => {
                 write!(f, "Battery subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, reduction={reduction}, blocked_direct_damage_this_tick={blocked_direct_damage_this_tick}, blocked_radiation_damage_this_tick={blocked_radiation_damage_this_tick}", controllable.name())

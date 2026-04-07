@@ -119,6 +119,10 @@ pub enum GameErrorKind {
     YouNeedToDieFirst,
     /// Thrown, if a call to `continue()` fails, because there is no space for you.
     AllStartLocationsAreOvercrowded,
+    /// Thrown when a normal player login is denied because a required galaxy achievement is missing.
+    MissingAchievementGameException {
+        achievement_name: String,
+    },
     /// Thrown, if you try to shoo too often.
     CanOnlyShootOncePerTick,
 
@@ -233,6 +237,7 @@ impl Display for GameErrorKind {
             GameErrorKind::YouNeedToContinueFirst => "[0x20] This controllable is dead. You need to Continue() first.",
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
+            GameErrorKind::MissingAchievementGameException { achievement_name} => return write!(f, "[0x23] Missing required achievement {achievement_name:?}."),
             GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] Please, only shoot once a tick with the same unit.",
             GameErrorKind::TournamentNotConfigured => "[0x31] No tournament is configured.",
             GameErrorKind::TournamentAlreadyConfigured => "[0x32] A tournament is already configured.",
@@ -291,6 +296,9 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x20 => GameErrorKind::YouNeedToContinueFirst,
             0x21 => GameErrorKind::YouNeedToDieFirst,
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
+            0x23 => GameErrorKind::MissingAchievementGameException {
+                achievement_name: reader.read_string(),
+            },
             0x30 => GameErrorKind::CanOnlyShootOncePerTick,
             0x31 => GameErrorKind::TournamentNotConfigured,
             0x32 => GameErrorKind::TournamentAlreadyConfigured,
