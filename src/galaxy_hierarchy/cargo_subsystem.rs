@@ -8,10 +8,10 @@ use std::sync::Weak;
 pub struct CargoSubsystem {
     base: SubsystemBase,
 
-    maximum_metal: f32,
-    maximum_carbon: f32,
-    maximum_hydrogen: f32,
-    maximum_silicon: f32,
+    maximum_metal: Atomic<f32>,
+    maximum_carbon: Atomic<f32>,
+    maximum_hydrogen: Atomic<f32>,
+    maximum_silicon: Atomic<f32>,
 
     maximum_nebula: Atomic<f32>,
 
@@ -24,11 +24,11 @@ pub struct CargoSubsystem {
 }
 
 impl CargoSubsystem {
-    const CLASSIC_SHIP_MAXIMUM_METAL: f32 = 20.0;
-    const CLASSIC_SHIP_MAXIMUM_CARBON: f32 = 20.0;
-    const CLASSIC_SHIP_MAXIMUM_HYDROGEN: f32 = 20.0;
-    const CLASSIC_SHIP_MAXIMUM_SILICON: f32 = 20.0;
-    const CLASSIC_SHIP_MAXIMUM_NEBULA: f32 = 24.0;
+    const CLASSIC_SHIP_MAXIMUM_METAL: f32 = 250.0;
+    const CLASSIC_SHIP_MAXIMUM_CARBON: f32 = 12.0;
+    const CLASSIC_SHIP_MAXIMUM_HYDROGEN: f32 = 12.0;
+    const CLASSIC_SHIP_MAXIMUM_SILICON: f32 = 12.0;
+    const CLASSIC_SHIP_MAXIMUM_NEBULA: f32 = 16.0;
 
     pub(crate) fn new(
         controllable: Weak<Controllable>,
@@ -42,10 +42,10 @@ impl CargoSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, "Cargo".to_string(), exists, slot),
-            maximum_metal: if exists { maximum_metal } else { 0.0 },
-            maximum_carbon: if exists { maximum_carbon } else { 0.0 },
-            maximum_hydrogen: if exists { maximum_hydrogen } else { 0.0 },
-            maximum_silicon: if exists { maximum_silicon } else { 0.0 },
+            maximum_metal: Atomic::from(if exists { maximum_metal } else { 0.0 }),
+            maximum_carbon: Atomic::from(if exists { maximum_carbon } else { 0.0 }),
+            maximum_hydrogen: Atomic::from(if exists { maximum_hydrogen } else { 0.0 }),
+            maximum_silicon: Atomic::from(if exists { maximum_silicon } else { 0.0 }),
             maximum_nebula: Atomic::from(if exists { maximum_nebula } else { 0.0 }),
             current_metal: Atomic::default(),
             current_carbon: Atomic::default(),
@@ -73,25 +73,70 @@ impl CargoSubsystem {
     /// Maximum metal capacity.
     #[inline]
     pub fn maximum_metal(&self) -> f32 {
-        self.maximum_metal
+        self.maximum_metal.load()
     }
 
     /// Maximum carbon capacity.
     #[inline]
     pub fn maximum_carbon(&self) -> f32 {
-        self.maximum_carbon
+        self.maximum_carbon.load()
     }
 
     /// Maximum hydrogen capacity.
     #[inline]
     pub fn maximum_hydrogen(&self) -> f32 {
-        self.maximum_hydrogen
+        self.maximum_hydrogen.load()
     }
 
     /// Maximum silicon capacity.
     #[inline]
     pub fn maximum_silicon(&self) -> f32 {
-        self.maximum_silicon
+        self.maximum_silicon.load()
+    }
+
+    pub(crate) fn set_maximums(
+        &self,
+        maximum_metal: f32,
+        maximum_carbon: f32,
+        maximum_hydrogen: f32,
+        maximum_silicon: f32,
+        maximum_nebula: f32,
+    ) {
+        if self.exists() {
+            self.maximum_metal.store(maximum_metal);
+            self.maximum_carbon.store(maximum_carbon);
+            self.maximum_hydrogen.store(maximum_hydrogen);
+            self.maximum_silicon.store(maximum_silicon);
+            self.maximum_nebula.store(maximum_nebula);
+        } else {
+            self.maximum_metal.store(0.0);
+            self.maximum_carbon.store(0.0);
+            self.maximum_hydrogen.store(0.0);
+            self.maximum_silicon.store(0.0);
+            self.maximum_nebula.store(0.0);
+        }
+
+        // TODO self.refresh_tier();
+
+        if self.current_metal() > maximum_metal {
+            self.current_metal.store(maximum_metal);
+        }
+
+        if self.current_carbon() > maximum_carbon {
+            self.current_carbon.store(maximum_carbon);
+        }
+
+        if self.current_hydrogen() > maximum_hydrogen {
+            self.current_hydrogen.store(maximum_hydrogen);
+        }
+
+        if self.current_silicon() > maximum_silicon {
+            self.current_silicon.store(maximum_silicon);
+        }
+
+        if self.current_nebula() > maximum_nebula {
+            self.current_nebula.store(maximum_nebula);
+        }
     }
 
     /// Maximum nebula capacity.
@@ -143,6 +188,8 @@ impl CargoSubsystem {
         } else {
             0.0
         };
+
+        // TODO self.refresh_tier();
 
         if maximum_nebula > self.current_nebula() {
             self.current_nebula.store(maximum_nebula);
@@ -198,6 +245,8 @@ impl CargoSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for CargoSubsystem {

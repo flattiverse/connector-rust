@@ -1019,6 +1019,11 @@ impl Galaxy {
         debug!("New Controllable with {id:?} and name {name:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
         let cluster = self.clusters.get(cluster);
+
+        if let Some(controllable) = self.controllables.remove_opt(id) {
+            controllable.deactivate();
+        }
+
         self.controllables
             .populate(Controllable::from_packet(kind, &cluster, id, name, reader)?);
 

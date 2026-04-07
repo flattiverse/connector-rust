@@ -122,8 +122,8 @@ pub use jump_drive_subsystem::*;
 mod nebula_collector_subsystem;
 pub use nebula_collector_subsystem::*;
 
-mod railgun_subsystem;
-pub use railgun_subsystem::*;
+mod classic_railgun_subsystem;
+pub use classic_railgun_subsystem::*;
 
 mod modern_railgun_subsystem;
 pub use modern_railgun_subsystem::*;

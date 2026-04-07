@@ -1,5 +1,5 @@
 use crate::account::AccountStatus;
-use crate::galaxy_hierarchy::PlayerKind;
+use crate::galaxy_hierarchy::{PlayerKind, SubsystemComponentKind};
 use crate::network::{InvalidArgumentKind, Packet, PacketReader, Session};
 use num_enum::{FromPrimitive, TryFromPrimitive, TryFromPrimitiveError};
 use std::fmt::{Display, Formatter};
@@ -146,6 +146,12 @@ pub enum GameErrorKind {
     /// Thrown when tournament configuration is attempted in a galaxy game mode that does not allow
     /// tournaments.
     TournamentModeNotAllowed,
+    /// Thrown when one subsystem-metadata usage evaluation receives the same component kind more
+    /// than once.
+    DuplicateSubsystemComponentValue {
+        /// The duplicated component kind.
+        component_kind: SubsystemComponentKind,
+    },
 
     // TODO local only
     InvalidPrimitiveValue {
@@ -229,6 +235,7 @@ impl Display for GameErrorKind {
             GameErrorKind::TournamentSpectatingForbidden => "[0x37] Spectating is forbidden in the current tournament stage.",
             GameErrorKind::TournamentTeamMismatch => "[0x38] This account is assigned to a different tournament team.",
             GameErrorKind::TournamentModeNotAllowed => "[0x39] Tournaments are not allowed for the current galaxy game mode.",
+            GameErrorKind::DuplicateSubsystemComponentValue {component_kind} => return write!(f, "[0x40] The subsystem component \"{component_kind:?}\" was supplied more than once."),
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
     }
@@ -282,6 +289,9 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x37 => GameErrorKind::TournamentSpectatingForbidden,
             0x38 => GameErrorKind::TournamentTeamMismatch,
             0x39 => GameErrorKind::TournamentModeNotAllowed,
+            0x40 => GameErrorKind::DuplicateSubsystemComponentValue {
+                component_kind: SubsystemComponentKind::from_primitive(reader.read_byte()),
+            },
             code => GameErrorKind::Unknown(code),
         }
     }

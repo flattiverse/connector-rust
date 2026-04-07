@@ -66,4 +66,54 @@ impl ShipBalancing {
             }
         }
     }
+
+    pub fn calculate_scanner_energy(width: f32, length: f32) -> f32 {
+        debug_assert!(
+            width.is_normal() && width >= 0.0,
+            "Invalid scanner width specified."
+        );
+        debug_assert!(
+            length.is_normal() && length >= 0.0,
+            "Invalid scanner length specified."
+        );
+
+        if width <= 0.0 || length <= 0.0 {
+            0.0
+        } else {
+            #[allow(clippy::approx_constant)]
+            let length_cost =
+                0.3926 * length.powf(0.5) + 2.76e-10 * length * length * length * length - 0.617;
+            let width_cost = 0.141176 * width - 0.705882;
+            let energy = length_cost + width_cost;
+
+            if energy > 0.0 {
+                energy
+            } else {
+                0.0
+            }
+        }
+    }
+
+    pub fn calculate_shot_launch_energy(speed: f32, ticks: u16, load: f32, damage: f32) -> f32 {
+        debug_assert!(
+            speed.is_normal() && speed >= 0.0,
+            "Invalid shot speed specified"
+        );
+        debug_assert!(
+            load.is_normal() && load >= 0.0,
+            "Invalid shot load specified."
+        );
+        debug_assert!(
+            damage.is_normal() && damage >= 0.0,
+            "Invalid shot damage specified."
+        );
+
+        let energy = 20.0 + 60.0 * speed + 3.0 * f32::from(ticks) + 15.0 * load + 20.0 * damage;
+
+        if energy.is_normal() {
+            energy
+        } else {
+            0.0
+        }
+    }
 }

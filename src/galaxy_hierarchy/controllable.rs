@@ -2,6 +2,7 @@ use crate::galaxy_hierarchy::{
     ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
     Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, ModernShipControllable,
     ModernShipGeometry, RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem,
+    StructureOptimizerSubsystem, SystemExtIntern,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -33,6 +34,10 @@ pub struct Controllable {
     cluster: ArcSwapWeak<Cluster>,
     active: Atomic<bool>,
     alive: Atomic<bool>,
+    tier_change_pending: Atomic<bool>,
+    tier_change_slot: Atomic<SubsystemSlot>,
+    tier_change_target_tier: Atomic<u8>,
+    remaining_tier_change_ticks: Atomic<i32>,
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
     angle: Atomic<f32>,
@@ -43,6 +48,7 @@ pub struct Controllable {
     repair: RepairSubsystem,
     cargo: CargoSubsystem,
     resource_miner: ResourceMinerSubsystem,
+    structure_optimizer: StructureOptimizerSubsystem,
     energy_battery: BatterySubsystem,
     ion_battery: BatterySubsystem,
     neutrino_battery: BatterySubsystem,
@@ -72,11 +78,15 @@ impl Controllable {
             id,
             cluster: ArcSwapWeak::new(Arc::downgrade(cluster)),
             active: Atomic::from(true),
-            alive: Atomic::from(false),
             position: Atomic::from_reader(reader),
             movement: Atomic::from_reader(reader),
             angle: Atomic::from_reader(reader),
             angular_velocity: Atomic::from_reader(reader),
+            alive: Atomic::from(reader.read_byte() != 0x00),
+            tier_change_pending: Atomic::from(reader.read_byte() != 0x00),
+            tier_change_slot: Atomic::from_reader(reader),
+            tier_change_target_tier: Atomic::from(reader.read_byte()),
+            remaining_tier_change_ticks: Atomic::from(reader.read_int32()),
             hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
             shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
             armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
@@ -85,6 +95,7 @@ impl Controllable {
             resource_miner: ResourceMinerSubsystem::create_classic_ship_resource_miner(
                 Weak::default(),
             ),
+            structure_optimizer: StructureOptimizerSubsystem::new(Weak::default(), false, 0.0),
             energy_battery: BatterySubsystem::create_classic_ship_energy_battery(Weak::default()),
             ion_battery: BatterySubsystem::create_missing_battery(
                 Weak::default(),
@@ -147,6 +158,7 @@ impl Controllable {
                 this.repair.as_subsystem_base(),
                 this.cargo.as_subsystem_base(),
                 this.resource_miner.as_subsystem_base(),
+                this.structure_optimizer.as_subsystem_base(),
                 this.energy_battery.as_subsystem_base(),
                 this.ion_battery.as_subsystem_base(),
                 this.neutrino_battery.as_subsystem_base(),
@@ -288,6 +300,11 @@ impl Controllable {
         &self.resource_miner
     }
 
+    #[inline]
+    pub fn structure_optimizer(&self) -> &StructureOptimizerSubsystem {
+        &self.structure_optimizer
+    }
+
     /// Aggregated environment heat applied during the current server tick.
     #[inline]
     pub fn environment_heat_this_tick(&self) -> f32 {
@@ -344,6 +361,31 @@ impl Controllable {
     pub fn active(&self) -> bool {
         self.active.load()
     }
+
+    // TODO
+    // pub(crate) fn get_tier_change_target_tier(&self, slot: SubsystemSlot, current_tier: u8) -> u8 {
+    //     if self.tier_change_pending.load() && self.tier_change_slot.load() == slot {
+    //         self.tier_change_target_tier.load()
+    //     } else {
+    //         current_tier
+    //     }
+    // }
+
+    // TODO
+    // pub(crate) fn get_remaining_tier_change_ticks(&self, slot: SubsystemSlot) -> i32 {
+    //     if self.tier_change_pending.load() && self.tier_change_slot.load() == slot {
+    //         self.remaining_tier_change_ticks.load()
+    //     } else {
+    //         0
+    //     }
+    // }
+
+    // TODO GetTierChangeTargetTier
+    // TODO GetRemainingTierChangeTicks
+    // TODO CalculateProjectedEffectiveStructuralLoad
+    // TODO GetCommonProjectedStructuralLoad
+    // TODO StructuralLoadFor
+    // TODO GetProjectedRawStructuralLoad
 
     /// Gravity emitted by the live runtime of this controllable.
     #[inline]
@@ -422,52 +464,70 @@ impl Controllable {
     }
 
     pub(crate) fn read_initial_state(&self, reader: &mut dyn PacketReader) {
-        let _energy_battery_exists = reader.read_byte();
+        self.energy_battery.set_exists(reader.read_byte() != 0x00);
+        let energy_battery_tier = reader.read_byte();
         self.energy_battery.set_maximum(reader.read_f32());
         self.energy_battery.update_runtime(
             reader.read_f32(),
             reader.read_f32(),
             SubsystemStatus::read(reader),
         );
+        self.energy_battery.set_reported_tier(energy_battery_tier);
 
-        let _ion_battery_exists = reader.read_byte();
+        self.ion_battery.set_exists(reader.read_byte() != 0x00);
+        let ion_battery_tier = reader.read_byte();
         self.ion_battery.set_maximum(reader.read_f32());
         self.ion_battery.update_runtime(
             reader.read_f32(),
             reader.read_f32(),
             SubsystemStatus::read(reader),
         );
+        self.ion_battery.set_reported_tier(ion_battery_tier);
 
-        let _neutrino_battery_exists = reader.read_byte();
+        self.neutrino_battery.set_exists(reader.read_byte() != 0x00);
+        let neutrino_battery_tier = reader.read_byte();
         self.neutrino_battery.set_maximum(reader.read_f32());
         self.neutrino_battery.update_runtime(
             reader.read_f32(),
             reader.read_f32(),
             SubsystemStatus::read(reader),
         );
+        self.neutrino_battery
+            .set_reported_tier(neutrino_battery_tier);
 
-        let _energy_cell_exists = reader.read_byte();
+        self.energy_cell.set_exists(reader.read_byte() != 0x00);
+        let energy_cell_tier = reader.read_byte();
         self.energy_cell.set_efficiency(reader.read_f32());
         self.energy_cell
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.energy_cell.set_reported_tier(energy_cell_tier);
 
-        let _ion_cell_exists = reader.read_byte();
+        self.ion_cell.set_exists(reader.read_byte() != 0x00);
+        let ion_cell_tier = reader.read_byte();
         self.ion_cell.set_efficiency(reader.read_f32());
         self.ion_cell
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.ion_cell.set_reported_tier(ion_cell_tier);
 
-        let _neutrino_cell_exists = reader.read_byte();
+        self.neutrino_cell.set_exists(reader.read_byte() != 0x00);
+        let neutrino_cell_tier = reader.read_byte();
         self.neutrino_cell.set_efficiency(reader.read_f32());
         self.neutrino_cell
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.neutrino_cell.set_reported_tier(neutrino_cell_tier);
 
-        let _hull_exists = reader.read_byte();
+        self.hull.set_exists(reader.read_byte() != 0x00);
+        let hull_tier = reader.read_byte();
         self.hull.set_maximum(reader.read_f32());
         self.hull
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.hull.set_reported_tier(hull_tier);
 
-        let _shield_exists = reader.read_byte();
+        self.shield.set_exists(reader.read_byte() != 0x00);
+        let shield_tier = reader.read_byte();
         self.shield.set_maximum(reader.read_f32());
+        self.shield
+            .set_rate_capabilities(reader.read_f32(), reader.read_f32());
         self.shield.update_runtime(
             reader.read_f32(),
             reader.read_byte() != 0x00,
@@ -477,18 +537,22 @@ impl Controllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.shield.set_reported_tier(shield_tier);
 
-        let _armor_exists = reader.read_byte();
+        self.armor.set_exists(reader.read_byte() != 0x00);
+        let armor_tier = reader.read_byte();
         self.armor.set_reduction(reader.read_f32());
         self.armor.update_runtime(
             reader.read_f32(),
             reader.read_f32(),
             SubsystemStatus::read(reader),
         );
+        self.armor.set_reported_tier(armor_tier);
 
-        let _repair_exists = reader.read_byte();
-        let _repair_minimum_rate = reader.read_f32();
-        let _repair_maximum_rate = reader.read_f32();
+        self.repair.set_exists(reader.read_byte() != 0x00);
+        let repair_tier = reader.read_byte();
+        self.repair
+            .set_capabilities(reader.read_f32(), reader.read_f32());
         self.repair.update_runtime(
             reader.read_f32(),
             SubsystemStatus::read(reader),
@@ -497,13 +561,17 @@ impl Controllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.repair.set_reported_tier(repair_tier);
 
-        let _cargo_exists = reader.read_byte();
-        let _cargo_maximum_metal = reader.read_f32();
-        let _cargo_maximum_carbon = reader.read_f32();
-        let _cargo_maximum_hydrogen = reader.read_f32();
-        let _cargo_maximum_silicon = reader.read_f32();
-        self.cargo.set_maximum_nebula(reader.read_f32());
+        self.cargo.set_exists(reader.read_byte() != 0x00);
+        let cargo_tier = reader.read_byte();
+        self.cargo.set_maximums(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.cargo.update_runtime(
             reader.read_f32(),
             reader.read_f32(),
@@ -513,10 +581,12 @@ impl Controllable {
             reader.read_f32(),
             SubsystemStatus::read(reader),
         );
+        self.cargo.set_reported_tier(cargo_tier);
 
-        let _resource_miner_exists = reader.read_byte();
-        let _resource_miner_minimum_rate = reader.read_f32();
-        let _resource_miner_maximum_rate = reader.read_f32();
+        self.resource_miner.set_exists(reader.read_byte() != 0x00);
+        let resource_miner_tier = reader.read_byte();
+        self.resource_miner
+            .set_capabilities(reader.read_f32(), reader.read_f32());
         self.resource_miner.update_runtime(
             reader.read_f32(),
             SubsystemStatus::read(reader),
@@ -528,6 +598,17 @@ impl Controllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.resource_miner.set_reported_tier(resource_miner_tier);
+
+        let structure_optimizer_exists = reader.read_byte() != 0x00;
+        let structure_optimizer_tier = reader.read_byte();
+        let structure_optimizer_reduction_percentage = reader.read_f32();
+        self.structure_optimizer
+            .set_exists(structure_optimizer_exists);
+        self.structure_optimizer
+            .set_reduction_percentage(structure_optimizer_reduction_percentage);
+        self.structure_optimizer
+            .set_reported_tier(structure_optimizer_tier);
     }
 
     pub(crate) fn deceased(&self) {
@@ -545,6 +626,12 @@ impl Controllable {
         self.movement.read(reader);
         self.angle.read(reader);
         self.angular_velocity.read(reader);
+
+        self.alive.store(reader.read_byte() != 0x00);
+        self.tier_change_pending.store(reader.read_byte() != 0x00);
+        self.tier_change_slot.read(reader);
+        self.tier_change_target_tier.store(reader.read_byte());
+        self.remaining_tier_change_ticks.store(reader.read_int32());
 
         self.energy_battery.update_runtime(
             reader.read_f32(),
@@ -617,6 +704,11 @@ impl Controllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+
+        self.structure_optimizer
+            .set_exists(reader.read_byte() != 0x00);
+        self.structure_optimizer
+            .set_reduction_percentage(reader.read_f32());
 
         self.environment_heat_this_tick.read(reader);
         self.environment_heat_energy_cost_this_tick.read(reader);
@@ -790,6 +882,13 @@ impl<T> Proven<T> {
 pub struct Controls<T> {
     controllable: Arc<Controllable>,
     _specialization: PhantomData<T>,
+}
+
+impl<T> Controls<T> {
+    #[inline]
+    pub fn controllable(&self) -> &Arc<Controllable> {
+        &self.controllable
+    }
 }
 
 impl<T> Clone for Controls<T> {

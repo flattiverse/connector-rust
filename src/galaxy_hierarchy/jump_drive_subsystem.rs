@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{Controllable, Cost, SubsystemBase, SubsystemExt};
 use crate::utils::Atomic;
-use crate::{GameError, GameErrorKind, SubsystemSlot};
+use crate::{GameError, GameErrorKind, SubsystemSlot, SubsystemStatus};
 use std::sync::Weak;
 
 /// Jump-drive subsystem of a controllable.
@@ -8,6 +8,9 @@ use std::sync::Weak;
 pub struct JumpDriveSubsystem {
     base: SubsystemBase,
     energy_cost: Atomic<f32>,
+    consumed_energy_this_tick: Atomic<f32>,
+    consumed_ions_this_tick: Atomic<f32>,
+    consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
 impl JumpDriveSubsystem {
@@ -19,7 +22,10 @@ impl JumpDriveSubsystem {
                 exists,
                 SubsystemSlot::JumpDrive,
             ),
-            energy_cost: Atomic::from(if exists { 1_000.0 } else { 0.0 }),
+            energy_cost: Atomic::from(if exists { 6_000.0 } else { 0.0 }),
+            consumed_energy_this_tick: Atomic::from(0.0),
+            consumed_ions_this_tick: Atomic::from(0.0),
+            consumed_neutrinos_this_tick: Atomic::from(0.0),
         }
     }
 
@@ -27,6 +33,24 @@ impl JumpDriveSubsystem {
     #[inline]
     pub fn energy_cost(&self) -> f32 {
         self.energy_cost.load()
+    }
+
+    /// Standard energy consumed by the jump drive during the current tick.
+    #[inline]
+    pub fn consumed_energy_this_tick(&self) -> f32 {
+        self.consumed_energy_this_tick.load()
+    }
+
+    /// Ions consumed by the jump drive during the current tick.
+    #[inline]
+    pub fn consumed_ions_this_tick(&self) -> f32 {
+        self.consumed_ions_this_tick.load()
+    }
+
+    /// Neutrinos consumed by the jump drive during the current tick.
+    #[inline]
+    pub fn consumed_neutrinos_this_tick(&self) -> f32 {
+        self.consumed_neutrinos_this_tick.load()
     }
 
     /// Calculates the current fixed jump cost.
@@ -61,7 +85,25 @@ impl JumpDriveSubsystem {
     }
 
     pub(crate) fn reset_runtime(&self) {
+        self.consumed_energy_this_tick.store(0.0);
+        self.consumed_ions_this_tick.store(0.0);
+        self.consumed_neutrinos_this_tick.store(0.0);
         self.base.reset_runtime_status();
+    }
+
+    pub(crate) fn update_runtime(
+        &self,
+        status: SubsystemStatus,
+        consumed_energy_this_tick: f32,
+        consumed_ions_this_tick: f32,
+        consumed_neutrinos_this_tick: f32,
+    ) {
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
+        self.base.update_runtime_status(status);
     }
 
     pub(crate) fn set_energy_cost(&self, energy_cost: f32) {
@@ -70,7 +112,11 @@ impl JumpDriveSubsystem {
         } else {
             self.energy_cost.store(0.0)
         }
+
+        // TODO self.refresh_tier();
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for JumpDriveSubsystem {

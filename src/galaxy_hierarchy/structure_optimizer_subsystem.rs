@@ -13,13 +13,17 @@ pub struct StructureOptimizerSubsystem {
 impl StructureOptimizerSubsystem {
     pub(crate) fn new(
         controllable: Weak<Controllable>,
-        name: String,
         exists: bool,
-        slot: SubsystemSlot,
+        reduction_percentage: f32,
     ) -> Self {
         Self {
-            base: SubsystemBase::new(controllable, name, exists, slot),
-            reduction_percentage: Atomic::default(),
+            base: SubsystemBase::new(
+                controllable,
+                "StructureOptimizer".to_string(),
+                exists,
+                SubsystemSlot::StructureOptimizer,
+            ),
+            reduction_percentage: Atomic::from(reduction_percentage),
         }
     }
 
@@ -29,7 +33,7 @@ impl StructureOptimizerSubsystem {
         self.reduction_percentage.load()
     }
 
-    pub(crate) fn set_reduction_percentage(&mut self, reduction_percentage: f32) {
+    pub(crate) fn set_reduction_percentage(&self, reduction_percentage: f32) {
         self.reduction_percentage.store(if self.exists() {
             reduction_percentage
         } else {

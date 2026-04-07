@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::{Also, Atomic};
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -15,11 +17,11 @@ pub struct DynamicScannerSubsystem {
     base: SubsystemBase,
 
     id: ScannerSubsystemId,
-    maximum_width: f32,
-    maximum_length: f32,
-    width_speed: f32,
-    length_speed: f32,
-    angle_speed: f32,
+    maximum_width: Atomic<f32>,
+    maximum_length: Atomic<f32>,
+    width_speed: Atomic<f32>,
+    length_speed: Atomic<f32>,
+    angle_speed: Atomic<f32>,
 
     current_width: Atomic<f32>,
     current_length: Atomic<f32>,
@@ -36,7 +38,6 @@ pub struct DynamicScannerSubsystem {
 }
 
 impl DynamicScannerSubsystem {
-    const ENERGY_SCALE: f32 = 0.000282943;
     const MINIMUM_WIDTH_VALUE: f32 = 5.0;
     const MINIMUM_LENGTH_VALUE: f32 = 20.0;
 
@@ -55,11 +56,11 @@ impl DynamicScannerSubsystem {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
             id,
-            maximum_width: if exists { maximum_width } else { 0.0 },
-            maximum_length: if exists { maximum_length } else { 0.0 },
-            width_speed: if exists { width_speed } else { 0.0 },
-            length_speed: if exists { length_speed } else { 0.0 },
-            angle_speed: if exists { angle_speed } else { 0.0 },
+            maximum_width: Atomic::from(if exists { maximum_width } else { 0.0 }),
+            maximum_length: Atomic::from(if exists { maximum_length } else { 0.0 }),
+            width_speed: Atomic::from(if exists { width_speed } else { 0.0 }),
+            length_speed: Atomic::from(if exists { length_speed } else { 0.0 }),
+            angle_speed: Atomic::from(if exists { angle_speed } else { 0.0 }),
             current_width: Default::default(),
             current_length: Default::default(),
             current_angle: Default::default(),
@@ -124,31 +125,56 @@ impl DynamicScannerSubsystem {
     /// The maximum configurable scan width in degree.
     #[inline]
     pub fn maximum_width(&self) -> f32 {
-        self.maximum_width
+        self.maximum_width.load()
     }
 
     /// The maximum configurable scan length.
     #[inline]
     pub fn maximum_length(&self) -> f32 {
-        self.maximum_length
+        self.maximum_length.load()
     }
 
     /// The maximum width change per tick in degree.
     #[inline]
     pub fn width_speed(&self) -> f32 {
-        self.width_speed
+        self.width_speed.load()
     }
 
     /// The maximum length change per tick.
     #[inline]
     pub fn length_speed(&self) -> f32 {
-        self.length_speed
+        self.length_speed.load()
     }
 
     /// The maximum angle change per tick in degree.
     #[inline]
     pub fn angle_speed(&self) -> f32 {
-        self.angle_speed
+        self.angle_speed.load()
+    }
+
+    pub(crate) fn set_capabilities(
+        &self,
+        maximum_width: f32,
+        maximum_length: f32,
+        width_speed: f32,
+        length_speed: f32,
+        angle_speed: f32,
+    ) {
+        if self.exists() {
+            self.maximum_width.store(maximum_width);
+            self.maximum_length.store(maximum_length);
+            self.width_speed.store(width_speed);
+            self.length_speed.store(length_speed);
+            self.angle_speed.store(angle_speed);
+        } else {
+            self.maximum_width.store(0.0);
+            self.maximum_length.store(0.0);
+            self.width_speed.store(0.0);
+            self.length_speed.store(0.0);
+            self.angle_speed.store(0.0);
+        }
+
+        // TODO self.refresh_tier();
     }
 
     /// The currently configured scan width in degree.
@@ -222,14 +248,16 @@ impl DynamicScannerSubsystem {
         if !self.exists() {
             None
         } else {
-            let width = RangeTolerance::clamped_maximum(width, self.maximum_width).ok()?;
-            let length = RangeTolerance::clamped_maximum(length, self.maximum_length).ok()?;
+            let width = RangeTolerance::clamped_maximum(width, self.maximum_width()).ok()?;
+            let length = RangeTolerance::clamped_maximum(length, self.maximum_length()).ok()?;
 
-            Cost::default()
-                .with_energy(
-                    std::f32::consts::PI * length * length * width / 360.0 * Self::ENERGY_SCALE,
-                )
-                .into_values_checked()
+            if self.maximum_length() > 430.0 {
+                Cost::default()
+                    .with_neutrinos(ShipBalancing::calculate_scanner_energy(width, length) / 100.0)
+            } else {
+                Cost::default().with_energy(ShipBalancing::calculate_scanner_energy(width, length))
+            }
+            .into_values_checked()
         }
     }
 
@@ -244,17 +272,20 @@ impl DynamicScannerSubsystem {
         } else if !controllable.alive() {
             Err(GameErrorKind::YouNeedToContinueFirst.into())
         } else {
-            let width =
-                RangeTolerance::clamped_range(width, Self::MINIMUM_WIDTH_VALUE, self.maximum_width)
-                    .map_err(|reason| GameErrorKind::InvalidArgument {
-                        reason,
-                        parameter: "width".to_string(),
-                    })?;
+            let width = RangeTolerance::clamped_range(
+                width,
+                Self::MINIMUM_WIDTH_VALUE,
+                self.maximum_width(),
+            )
+            .map_err(|reason| GameErrorKind::InvalidArgument {
+                reason,
+                parameter: "width".to_string(),
+            })?;
 
             let length = RangeTolerance::clamped_range(
                 length,
                 Self::MINIMUM_LENGTH_VALUE,
-                self.maximum_length,
+                self.maximum_length(),
             )
             .map_err(|reason| GameErrorKind::InvalidArgument {
                 reason,
@@ -380,6 +411,8 @@ impl DynamicScannerSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for DynamicScannerSubsystem {

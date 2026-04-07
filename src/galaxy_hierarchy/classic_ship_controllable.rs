@@ -1,10 +1,10 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, ClassicShipEngineSubsystem, Controllable, ControllableSpecialization,
-    Controls, DynamicInterceptorFabricatorSubsystem, DynamicInterceptorLauncherSubsystem,
-    DynamicInterceptorMagazineSubsystem, DynamicScannerSubsystem, DynamicShotFabricatorSubsystem,
-    DynamicShotLauncherSubsystem, DynamicShotMagazineSubsystem, JumpDriveSubsystem,
-    ModernShipControllable, NebulaCollectorSubsystem, RailgunDirection, RailgunSubsystem,
-    SubsystemBase,
+    AsSubsystemBase, ClassicRailgunSubsystem, ClassicShipEngineSubsystem, Controllable,
+    ControllableSpecialization, Controls, DynamicInterceptorFabricatorSubsystem,
+    DynamicInterceptorLauncherSubsystem, DynamicInterceptorMagazineSubsystem,
+    DynamicScannerSubsystem, DynamicShotFabricatorSubsystem, DynamicShotLauncherSubsystem,
+    DynamicShotMagazineSubsystem, JumpDriveSubsystem, ModernShipControllable,
+    NebulaCollectorSubsystem, RailgunDirection, SubsystemBase, SystemExtIntern,
 };
 use crate::network::PacketReader;
 use crate::utils::Readable;
@@ -22,7 +22,7 @@ pub struct ClassicShipControllable {
     pub(crate) interceptor_launcher: DynamicInterceptorLauncherSubsystem,
     pub(crate) interceptor_magazine: DynamicInterceptorMagazineSubsystem,
     pub(crate) interceptor_fabricator: DynamicInterceptorFabricatorSubsystem,
-    pub(crate) railgun: RailgunSubsystem,
+    pub(crate) railgun: ClassicRailgunSubsystem,
     pub(crate) main_scanner: DynamicScannerSubsystem,
     pub(crate) secondary_scanner: DynamicScannerSubsystem,
     pub(crate) jump_drive: JumpDriveSubsystem,
@@ -72,7 +72,7 @@ impl ClassicShipControllable {
                 true,
                 SubsystemSlot::DynamicInterceptorMagazine,
             ),
-            railgun: RailgunSubsystem::new(
+            railgun: ClassicRailgunSubsystem::new(
                 Weak::default(),
                 "Railgun".to_string(),
                 true,
@@ -90,9 +90,10 @@ impl ClassicShipControllable {
     }
 
     pub(crate) fn read_initial_state(&mut self, reader: &mut dyn PacketReader) {
-        let _nebula_collector_exists = reader.read_byte();
-        let _nebula_collector_minimum_rate = reader.read_f32();
-        let _nebula_collector_maximum_rate = reader.read_f32();
+        self.nebula_collector.set_exists(reader.read_byte() != 0x00);
+        let nebula_collector_tier = reader.read_byte();
+        self.nebula_collector
+            .set_capabilities(reader.read_f32(), reader.read_f32());
         self.nebula_collector.update_runtime(
             reader.read_f32(),
             SubsystemStatus::read(reader),
@@ -102,13 +103,18 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.nebula_collector
+            .set_reported_tier(nebula_collector_tier);
 
-        let _main_scanner_exists = reader.read_byte();
-        let _main_scanner_maximum_width = reader.read_f32();
-        let _main_scanner_maximum_length = reader.read_f32();
-        let _main_scanner_width_speed = reader.read_f32();
-        let _main_scanner_length_speed = reader.read_f32();
-        let _main_scanner_angle_speed = reader.read_f32();
+        self.main_scanner.set_exists(reader.read_byte() != 0x00);
+        let main_scanner_tier = reader.read_byte();
+        self.main_scanner.set_capabilities(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.main_scanner.update_runtime(
             reader.read_byte() != 0x00,
             reader.read_f32(),
@@ -122,13 +128,18 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.main_scanner.set_reported_tier(main_scanner_tier);
 
-        let _secondary_scanner_exists = reader.read_byte();
-        let _secondary_scanner_maximum_width = reader.read_f32();
-        let _secondary_scanner_maximum_length = reader.read_f32();
-        let _secondary_scanner_width_speed = reader.read_f32();
-        let _secondary_scanner_length_speed = reader.read_f32();
-        let _secondary_scanner_angle_speed = reader.read_f32();
+        self.secondary_scanner
+            .set_exists(reader.read_byte() != 0x00);
+        let secondary_scanner_tier = reader.read_byte();
+        self.secondary_scanner.set_capabilities(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.secondary_scanner.update_runtime(
             reader.read_byte() != 0x00,
             reader.read_f32(),
@@ -142,9 +153,12 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.secondary_scanner
+            .set_reported_tier(secondary_scanner_tier);
 
-        let _engine_exists = reader.read_byte();
-        let _engine_maximum = reader.read_f32();
+        self.engine.set_exists(reader.read_byte() != 0x00);
+        let engine_tier = reader.read_byte();
+        self.engine.set_maximum(reader.read_f32());
         self.engine.update_runtime(
             Vector::from_read(reader),
             Vector::from_read(reader),
@@ -153,16 +167,20 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.engine.set_reported_tier(engine_tier);
 
-        let _shot_launcher_exists = reader.read_byte();
-        let _shot_launcher_minimum_relative_movement = reader.read_f32();
-        let _shot_launcher_maximum_relative_movement = reader.read_f32();
-        let _shot_launcher_minimum_ticks = reader.read_uint16();
-        let _shot_launcher_maximum_ticks = reader.read_uint16();
-        let _shot_launcher_minimum_load = reader.read_f32();
-        let _shot_launcher_maximum_load = reader.read_f32();
-        let _shot_launcher_minimum_damage = reader.read_f32();
-        let _shot_launcher_maximum_damage = reader.read_f32();
+        self.shot_launcher.set_exists(reader.read_byte() != 0x00);
+        let shot_launcher_tier = reader.read_byte();
+        self.shot_launcher.set_capabilities(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_uint16(),
+            reader.read_uint16(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.shot_launcher.update_runtime(
             Vector::from_read(reader),
             reader.read_uint16(),
@@ -173,14 +191,17 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.shot_launcher.set_reported_tier(shot_launcher_tier);
 
-        let _shot_magazine_exists = reader.read_byte();
-        let _shot_magazine_maximum_shots = reader.read_f32();
+        self.shot_magazine.set_exists(reader.read_byte() != 0x00);
+        let shot_magazine_tier = reader.read_byte();
+        self.shot_magazine.set_maximum_shots(reader.read_f32());
         self.shot_magazine
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.shot_magazine.set_reported_tier(shot_magazine_tier);
 
-        let _shot_fabricator_exists = reader.read_byte();
-        let _shot_fabricator_minimum_rate = reader.read_f32();
+        self.shot_fabricator.set_exists(reader.read_byte() != 0x00);
+        let shot_fabricator_tier = reader.read_byte();
         self.shot_fabricator.set_maximum_rate(reader.read_f32());
         self.shot_fabricator.update_runtime(
             reader.read_byte() != 0x00,
@@ -190,16 +211,21 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.shot_fabricator.set_reported_tier(shot_fabricator_tier);
 
-        let _interceptor_launcher_exists = reader.read_byte();
-        let _interceptor_launcher_minimum_relative_movement = reader.read_f32();
-        let _interceptor_launcher_maximum_relative_movement = reader.read_f32();
-        let _interceptor_launcher_minimum_ticks = reader.read_uint16();
-        let _interceptor_launcher_maximum_ticks = reader.read_uint16();
-        let _interceptor_launcher_minimum_load = reader.read_f32();
-        let _interceptor_launcher_maximum_load = reader.read_f32();
-        let _interceptor_launcher_minimum_damage = reader.read_f32();
-        let _interceptor_launcher_maximum_damage = reader.read_f32();
+        self.interceptor_launcher
+            .set_exists(reader.read_byte() != 0x00);
+        let interceptor_launcher_tier = reader.read_byte();
+        self.interceptor_launcher.set_capabilities(
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_uint16(),
+            reader.read_uint16(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.interceptor_launcher.update_runtime(
             Vector::from_read(reader),
             reader.read_uint16(),
@@ -210,14 +236,22 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.interceptor_launcher
+            .set_reported_tier(interceptor_launcher_tier);
 
-        let _interceptor_magazine_exists = reader.read_byte();
-        let _interceptor_magazine_maximum_shots = reader.read_f32();
+        self.interceptor_magazine
+            .set_exists(reader.read_byte() != 0x00);
+        let interceptor_magazine_tier = reader.read_byte();
+        self.interceptor_magazine
+            .set_maximum_shots(reader.read_f32());
         self.interceptor_magazine
             .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        self.interceptor_magazine
+            .set_reported_tier(interceptor_magazine_tier);
 
-        let _interceptor_fabricator_exists = reader.read_byte();
-        let _interceptor_fabricator_minimum_rate = reader.read_f32();
+        self.interceptor_fabricator
+            .set_exists(reader.read_byte() != 0x00);
+        let interceptor_fabricator_tier = reader.read_byte();
         self.interceptor_fabricator
             .set_maximum_rate(reader.read_f32());
         self.interceptor_fabricator.update_runtime(
@@ -228,10 +262,17 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.interceptor_fabricator
+            .set_reported_tier(interceptor_fabricator_tier);
 
-        let _railgun_exists = reader.read_byte();
-        let _railgun_energy_cost = reader.read_f32();
-        let _railgun_metal_cost = reader.read_f32();
+        self.railgun.set_exists(reader.read_byte() != 0x00);
+        let rail_gun_tier = reader.read_byte();
+        self.railgun.set_capabilities(
+            reader.read_f32(),
+            reader.read_uint16(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
         self.railgun.update_runtime(
             RailgunDirection::read(reader),
             SubsystemStatus::read(reader),
@@ -239,9 +280,12 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.railgun.set_reported_tier(rail_gun_tier);
 
-        let _jump_drive_exists = reader.read_byte();
+        self.jump_drive.set_exists(reader.read_byte() != 0x00);
+        let jump_drive_tier = reader.read_byte();
         self.jump_drive.set_energy_cost(reader.read_f32());
+        self.jump_drive.set_reported_tier(jump_drive_tier);
 
         self.equipped_crystals[0] = reader.read_string();
         self.equipped_crystals[1] = reader.read_string();
@@ -292,7 +336,7 @@ impl ClassicShipControllable {
 
     /// The railgun subsystem of the classic ship.
     #[inline]
-    pub fn railgun(&self) -> &RailgunSubsystem {
+    pub fn railgun(&self) -> &ClassicRailgunSubsystem {
         &self.railgun
     }
 
@@ -432,6 +476,12 @@ impl ClassicShipControllable {
             reader.read_f32(),
             reader.read_f32(),
         );
+        self.jump_drive.update_runtime(
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        )
     }
 
     pub(crate) fn iter_subsystem_bases(&self) -> impl Iterator<Item = &SubsystemBase> + '_ {

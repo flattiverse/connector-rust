@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, SubsystemExt, SubsystemKind, SubsystemTierInfo};
+use crate::galaxy_hierarchy::{
+    Controllable, SubsystemExt, SubsystemKind, SubsystemTierInfo, SystemExtIntern,
+};
 use crate::unit::UnitKind;
 use crate::utils::Atomic;
 use crate::{SubsystemSlot, SubsystemStatus};
@@ -59,24 +61,6 @@ impl SubsystemBase {
         self.last_emitted_status.store(SubsystemStatus::Off);
     }
 
-    pub(crate) fn set_exists(&self, exists: bool) {
-        self.exists.store(exists);
-
-        // TODO refresh_tier()
-
-        if !exists {
-            self.reset_runtime_status()
-        }
-    }
-
-    pub(crate) fn set_tier(&self, tier: u8) {
-        self.tier.store(tier);
-    }
-
-    pub(crate) fn set_reported_tier(&self, tier: u8) {
-        self.tier.store(tier);
-    }
-
     pub(crate) fn matches(left: f32, right: f32) -> bool {
         (left - right).abs() <= 0.0001
     }
@@ -125,6 +109,27 @@ impl<T: AsRef<SubsystemBase>> AsSubsystemBase for T {
     #[inline]
     fn as_subsystem_base(&self) -> &SubsystemBase {
         AsRef::<SubsystemBase>::as_ref(self)
+    }
+}
+
+impl<T: AsSubsystemBase> SystemExtIntern for T {
+    fn set_exists(&self, exists: bool) {
+        self.as_subsystem_base().exists.store(exists);
+
+        // TODO refresh_tier()
+
+        if !exists {
+            self.as_subsystem_base().reset_runtime_status()
+        }
+    }
+
+    #[inline]
+    fn set_tier(&self, tier: u8) {
+        self.as_subsystem_base().tier.store(tier);
+    }
+
+    fn set_reported_tier(&self, tier: u8) {
+        self.as_subsystem_base().tier.store(tier);
     }
 }
 

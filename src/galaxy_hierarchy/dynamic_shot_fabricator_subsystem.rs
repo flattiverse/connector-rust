@@ -1,5 +1,7 @@
 use crate::galaxy_hierarchy::cost::Cost;
-use crate::galaxy_hierarchy::{Controllable, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -21,7 +23,6 @@ pub struct DynamicShotFabricatorSubsystem {
 
 impl DynamicShotFabricatorSubsystem {
     const MINIMUM_RATE_VALUE: f32 = 0.0;
-    const ENERGY_SCALE: f32 = 32_000.0;
 
     pub(crate) fn new(
         controllable: Weak<Controllable>,
@@ -88,13 +89,41 @@ impl DynamicShotFabricatorSubsystem {
         if !self.exists() {
             None
         } else {
+            let maximum_rate = self.maximum_rate();
             let rate =
-                RangeTolerance::clamped_range(rate, Self::MINIMUM_RATE_VALUE, self.maximum_rate())
-                    .ok()?;
+                RangeTolerance::clamped_range(rate, Self::MINIMUM_RATE_VALUE, maximum_rate).ok()?;
 
             Cost::default()
-                .with_energy(rate * rate * Self::ENERGY_SCALE)
+                .with_energy(ShipBalancing::calculate_engine_energy(
+                    rate,
+                    maximum_rate,
+                    Self::full_cost_from_maximum_rate(maximum_rate),
+                ))
                 .into_values_checked()
+        }
+    }
+
+    pub(crate) const fn full_cost_from_maximum_rate(maximum_rate: f32) -> f32 {
+        if maximum_rate <= 0.00331 {
+            2.64
+        } else if maximum_rate <= 0.00496 {
+            3.76
+        } else if maximum_rate <= 0.00688 {
+            5.50
+        } else if maximum_rate <= 0.00908 {
+            8.62
+        } else if maximum_rate <= 0.01156 {
+            13.86
+        } else if maximum_rate <= 0.0121 {
+            8.0
+        } else if maximum_rate <= 0.0181 {
+            11.0
+        } else if maximum_rate <= 0.0251 {
+            16.0
+        } else if maximum_rate <= 0.0331 {
+            25.0
+        } else {
+            39.0
         }
     }
 
@@ -170,6 +199,8 @@ impl DynamicShotFabricatorSubsystem {
         if self.rate() > maximum_rate {
             self.rate.store(maximum_rate);
         }
+
+        // TODO self.refresh_tier();
     }
 
     pub(crate) fn reset_runtime(&self) {
@@ -219,6 +250,8 @@ impl DynamicShotFabricatorSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for DynamicShotFabricatorSubsystem {

@@ -628,10 +628,13 @@ impl Display for FlattiverseEvent {
                 write!(f, "Hull subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, current={current:?}", controllable.name())
             }
             FlattiverseEventKind::NebulaCollectorSubsystem { controllable, slot, status, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, collected_this_tick, collected_hue_this_tick } => {
-                write!(f, "Railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, collected_this_tick={collected_this_tick}, collected_hue_this_tick={collected_hue_this_tick}", controllable.name())
+                write!(f, "Nebula collector subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, collected_this_tick={collected_this_tick}, collected_hue_this_tick={collected_hue_this_tick}", controllable.name())
             }
-            FlattiverseEventKind::RailgunSubsystem { controllable, slot, status, direction, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
-                write!(f, "Railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, direction={direction:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            FlattiverseEventKind::ClassicRailgunSubsystem { controllable, slot, status, direction, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
+                write!(f, "Classic railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, direction={direction:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
+            }
+            FlattiverseEventKind::ModernRailgunSubsystem { controllable, slot, status, direction, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick } => {
+                write!(f, "Modern railgun subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, direction={direction:?}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}", controllable.name())
             }
             FlattiverseEventKind::RepairSubsystem { controllable, slot, status, rate, consumed_energy_this_tick, consumed_ions_this_tick, consumed_neutrinos_this_tick, repaired_hull_this_tick } => {
                 write!(f, "Repair subsystem event: controllable={:?}, slot={slot:?}, status={status:?}, rate={rate}, consumed_energy_this_tick={consumed_energy_this_tick}, consumed_ions_this_tick={consumed_ions_this_tick}, consumed_neutrinos_this_tick={consumed_neutrinos_this_tick}, repaired_hull_this_tick={repaired_hull_this_tick}", controllable.name())
@@ -1152,7 +1155,26 @@ pub enum FlattiverseEventKind {
         collected_hue_this_tick: f32,
     },
     /// Update of a railgun subsystem on your own controllable.
-    RailgunSubsystem {
+    ClassicRailgunSubsystem {
+        /// The controllable whose subsystem emitted this runtime event.
+        controllable: Arc<Controllable>,
+        /// The concrete subsystem slot on the controllable.
+        slot: SubsystemSlot,
+        /// Runtime status reported for the current server tick.
+        /// This status is independent from configuration flags such as [`Controllable::active`] on
+        /// specific subsystem types.
+        status: SubsystemStatus,
+        /// The direction processed in the current tick.
+        direction: RailgunDirection,
+        /// Energy consumed during the current server tick.
+        consumed_energy_this_tick: f32,
+        /// Ions consumed during the current server tick.
+        consumed_ions_this_tick: f32,
+        /// Neutrinos consumed during the current server tick.
+        consumed_neutrinos_this_tick: f32,
+    },
+    /// Runtime update of a modern railgun subsystem on your own controllable.
+    ModernRailgunSubsystem {
         /// The controllable whose subsystem emitted this runtime event.
         controllable: Arc<Controllable>,
         /// The concrete subsystem slot on the controllable.

@@ -6,12 +6,11 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct DynamicShotMagazineSubsystem {
     base: SubsystemBase,
+    maximum_shots: Atomic<f32>,
     current_shots: Atomic<f32>,
 }
 
 impl DynamicShotMagazineSubsystem {
-    const MAXIMUM_SHOTS_VALUE: f32 = 5.0;
-
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
@@ -20,14 +19,15 @@ impl DynamicShotMagazineSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
-            current_shots: Atomic::default(),
+            maximum_shots: Atomic::from(0.0),
+            current_shots: Atomic::from(0.0),
         }
     }
 
     /// The magazine capacity in shots.
     #[inline]
     pub fn maximum_shots(&self) -> f32 {
-        Self::MAXIMUM_SHOTS_VALUE
+        self.maximum_shots.load()
     }
 
     /// The currently stored shots.
@@ -39,6 +39,12 @@ impl DynamicShotMagazineSubsystem {
     pub(crate) fn reset_runtime(&self) {
         self.current_shots.store_default();
         self.base.reset_runtime_status();
+    }
+
+    pub(crate) fn set_maximum_shots(&self, max_shots: f32) {
+        self.maximum_shots
+            .store(if self.exists() { max_shots } else { 0.0 });
+        // TODO self.refresh_tier();
     }
 
     pub(crate) fn update_runtime(&self, current_shots: f32, status: SubsystemStatus) {
@@ -61,6 +67,8 @@ impl DynamicShotMagazineSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for DynamicShotMagazineSubsystem {

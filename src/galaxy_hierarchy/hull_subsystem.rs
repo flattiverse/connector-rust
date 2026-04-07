@@ -56,6 +56,8 @@ impl HullSubsystem {
         if self.current() > maximum {
             self.current.store(maximum)
         }
+
+        // TODO self.refresh_tier();
     }
 
     pub(crate) fn reset_runtime(&self) {
@@ -83,6 +85,8 @@ impl HullSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for HullSubsystem {

@@ -77,6 +77,8 @@ impl BatterySubsystem {
         self.maximum
             .store(if self.base.exists() { maximum } else { 0.0 });
 
+        // TODO self.refresh_tier();
+
         let current = self.current.load();
         let maximum = self.maximum.load();
 
@@ -118,6 +120,8 @@ impl BatterySubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for BatterySubsystem {

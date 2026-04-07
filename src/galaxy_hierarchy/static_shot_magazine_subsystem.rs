@@ -36,6 +36,10 @@ impl StaticShotMagazineSubsystem {
         self.base.reset_runtime()
     }
 
+    pub(crate) fn set_maximum_shots(&self, maximum_shots: f32) {
+        self.base.set_maximum_shots(maximum_shots);
+    }
+
     pub(crate) fn update_runtime(&self, current_shots: f32, status: SubsystemStatus) {
         self.base.update_runtime(current_shots, status);
     }

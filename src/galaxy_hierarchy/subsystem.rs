@@ -3,7 +3,14 @@ use crate::{GameError, GameErrorKind, SubsystemSlot, SubsystemStatus};
 use std::future::Future;
 use std::sync::Arc;
 
-pub trait SubsystemExt {
+pub(crate) trait SystemExtIntern {
+    fn set_exists(&self, exists: bool);
+    fn set_tier(&self, tier: u8);
+    fn set_reported_tier(&self, tier: u8);
+}
+
+#[allow(private_bounds)]
+pub trait SubsystemExt: SystemExtIntern {
     /// The [Controllable] this subsystem belongs to.
     fn controllable(&self) -> Arc<Controllable>;
 

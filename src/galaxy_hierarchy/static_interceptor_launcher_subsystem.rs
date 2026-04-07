@@ -66,6 +66,30 @@ impl StaticInterceptorLauncherSubsystem {
         self.base.minimum_damage()
     }
 
+    #[inline]
+    pub(crate) fn set_capabilities(
+        &self,
+        minimum_relative_movement: f32,
+        maximum_relative_movement: f32,
+        minimum_ticks: u16,
+        maximum_ticks: u16,
+        minimum_load: f32,
+        maximum_load: f32,
+        minimum_damage: f32,
+        maximum_damage: f32,
+    ) {
+        self.base.set_capabilities(
+            minimum_relative_movement,
+            maximum_relative_movement,
+            minimum_ticks,
+            maximum_ticks,
+            minimum_load,
+            maximum_load,
+            minimum_damage,
+            maximum_damage,
+        )
+    }
+
     /// The maximum allowed shot damage.
     #[inline]
     pub fn maximum_damage(&self) -> f32 {

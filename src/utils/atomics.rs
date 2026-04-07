@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{GameMode, PlayerId, RailgunDirection, TeamId};
 use crate::network::{PacketReader, PacketWriter};
 use crate::unit::{CurrentFieldMode, SwitchMode};
-use crate::{SubsystemStatus, Vector};
+use crate::{SubsystemSlot, SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{
     AtomicBool, AtomicI16, AtomicI32, AtomicI64, AtomicI8, AtomicU16, AtomicU32, AtomicU64,
@@ -260,6 +260,7 @@ impl_atomar_for_primitive!(
     u8,
     GameMode,
     SubsystemStatus,
+    SubsystemSlot,
     SwitchMode,
     RailgunDirection,
     CurrentFieldMode

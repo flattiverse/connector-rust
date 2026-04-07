@@ -8,20 +8,19 @@ use std::sync::Weak;
 
 /// Railgun subsystem of a controllable.
 #[derive(Debug)]
-pub struct RailgunSubsystem {
+pub struct ClassicRailgunSubsystem {
     base: SubsystemBase,
+    projectile_speed: Atomic<f32>,
+    projectile_lifetime: Atomic<u16>,
+    energy_cost: Atomic<f32>,
+    metal_cost: Atomic<f32>,
     direction: Atomic<RailgunDirection>,
     consumed_energy_this_tick: Atomic<f32>,
     consumed_ions_this_tick: Atomic<f32>,
     consumed_neutrinos_this_tick: Atomic<f32>,
 }
 
-impl RailgunSubsystem {
-    const PROJECTILE_SPEED_VALUE: f32 = 4.0;
-    const PROJECTILE_LIFETIME_VALUE: f32 = 250.0;
-    const ENERGY_COST_VALUE: f32 = 300.0;
-    const METAL_COST_VALUE: f32 = 1.0;
-
+impl ClassicRailgunSubsystem {
     pub(crate) fn new(
         controllable: Weak<Controllable>,
         name: String,
@@ -30,6 +29,10 @@ impl RailgunSubsystem {
     ) -> Self {
         Self {
             base: SubsystemBase::new(controllable, name, exists, slot),
+            projectile_speed: Atomic::from(4.0),
+            projectile_lifetime: Atomic::from(250),
+            energy_cost: Atomic::from(300.0),
+            metal_cost: Atomic::from(1.0),
             direction: Default::default(),
             consumed_energy_this_tick: Default::default(),
             consumed_ions_this_tick: Default::default(),
@@ -40,25 +43,47 @@ impl RailgunSubsystem {
     /// Rail projectile relative speed.
     #[inline]
     pub fn projectile_speed(&self) -> f32 {
-        Self::PROJECTILE_SPEED_VALUE
+        self.projectile_speed.load()
     }
 
     /// Rail projectile lifetime in ticks.
     #[inline]
-    pub fn projectile_lifetime(&self) -> f32 {
-        Self::PROJECTILE_LIFETIME_VALUE
+    pub fn projectile_lifetime(&self) -> u16 {
+        self.projectile_lifetime.load()
     }
 
     /// Energy consumed by one rail shot.
     #[inline]
     pub fn energy_cost(&self) -> f32 {
-        Self::ENERGY_COST_VALUE
+        self.energy_cost.load()
     }
 
     /// Metal consumed by one rail shot.
     #[inline]
     pub fn metal_cost(&self) -> f32 {
-        Self::METAL_COST_VALUE
+        self.metal_cost.load()
+    }
+
+    pub(crate) fn set_capabilities(
+        &self,
+        projectile_speed: f32,
+        projectile_lifetime: u16,
+        energy_cost: f32,
+        metal_cost: f32,
+    ) {
+        if self.exists() {
+            self.projectile_speed.store(projectile_speed);
+            self.projectile_lifetime.store(projectile_lifetime);
+            self.energy_cost.store(energy_cost);
+            self.metal_cost.store(metal_cost);
+        } else {
+            self.projectile_speed.store(0.0);
+            self.projectile_lifetime.store(0);
+            self.energy_cost.store(0.0);
+            self.metal_cost.store(0.0);
+        }
+
+        // TODO self.refresh_tier();
     }
 
     /// The direction processed during the current server tick.
@@ -91,7 +116,7 @@ impl RailgunSubsystem {
             None
         } else {
             Some(Cost {
-                energy: Self::ENERGY_COST_VALUE,
+                energy: self.energy_cost(),
                 ions: 0.0,
                 neutrinos: 0.0,
             })
@@ -164,7 +189,7 @@ impl RailgunSubsystem {
             None
         } else {
             Some(
-                FlattiverseEventKind::RailgunSubsystem {
+                FlattiverseEventKind::ClassicRailgunSubsystem {
                     controllable: self.controllable(),
                     slot: self.slot(),
                     status: self.status(),
@@ -179,7 +204,7 @@ impl RailgunSubsystem {
     }
 }
 
-impl AsRef<SubsystemBase> for RailgunSubsystem {
+impl AsRef<SubsystemBase> for ClassicRailgunSubsystem {
     #[inline]
     fn as_ref(&self) -> &SubsystemBase {
         &self.base

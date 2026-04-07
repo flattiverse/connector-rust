@@ -1,4 +1,6 @@
-use crate::galaxy_hierarchy::{Controllable, Cost, RangeTolerance, SubsystemBase, SubsystemExt};
+use crate::galaxy_hierarchy::{
+    Controllable, Cost, RangeTolerance, ShipBalancing, SubsystemBase, SubsystemExt,
+};
 use crate::utils::Atomic;
 use crate::{
     FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
@@ -10,7 +12,7 @@ use std::sync::Weak;
 #[derive(Debug)]
 pub struct ClassicShipEngineSubsystem {
     base: SubsystemBase,
-    maximum: f32,
+    maximum: Atomic<f32>,
     current: Atomic<Vector>,
     target: Atomic<Vector>,
     consumed_energy_this_tick: Atomic<f32>,
@@ -27,7 +29,7 @@ impl ClassicShipEngineSubsystem {
                 true,
                 SubsystemSlot::PrimaryEngine,
             ),
-            maximum: 0.1,
+            maximum: Atomic::from(0.1),
             current: Atomic::default(),
             target: Atomic::default(),
             consumed_energy_this_tick: Atomic::default(),
@@ -39,7 +41,15 @@ impl ClassicShipEngineSubsystem {
     /// The maximum configurable movement vector length.
     #[inline]
     pub fn maximum(&self) -> f32 {
+        self.maximum.load()
+    }
+
+    // TODO self.tier_infos()
+
+    pub(crate) fn set_maximum(&self, maximum: f32) {
         self.maximum
+            .store(if self.exists() { maximum } else { 0.0 });
+        // TODO self.refresh_tier();
     }
 
     /// The current server-applied movement impulse.
@@ -80,11 +90,30 @@ impl ClassicShipEngineSubsystem {
         if !self.exists() {
             None
         } else {
-            let clamped = RangeTolerance::clamped_maximum_vector(movement, self.maximum()).ok()?;
+            let maximum = self.maximum();
+            let clamped = RangeTolerance::clamped_maximum_vector(movement, maximum).ok()?;
 
             Cost::default()
-                .with_energy(clamped.length() * clamped.length() * clamped.length() * 12_000_f32)
+                .with_energy(ShipBalancing::calculate_engine_energy(
+                    clamped.length(),
+                    maximum,
+                    Self::full_cost_from_maximum(maximum),
+                ))
                 .into_values_checked()
+        }
+    }
+
+    pub(crate) const fn full_cost_from_maximum(maximum: f32) -> f32 {
+        if maximum <= 0.0381 {
+            8.0
+        } else if maximum <= 0.0551 {
+            13.0
+        } else if maximum <= 0.0731 {
+            18.0
+        } else if maximum <= 0.0921 {
+            25.0
+        } else {
+            35.0
         }
     }
 
@@ -165,6 +194,10 @@ impl ClassicShipEngineSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
+
+    // TODO pub(crate) fn ReplaceMaximumThrust
 }
 
 impl AsRef<SubsystemBase> for ClassicShipEngineSubsystem {

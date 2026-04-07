@@ -62,6 +62,7 @@ impl EnergyCellSubsystem {
     pub(crate) fn set_efficiency(&self, efficiency: f32) {
         self.efficiency
             .store(if self.base.exists() { efficiency } else { 0.0 });
+        // TODO self.refresh_tier();
     }
 
     pub(crate) fn reset_runtime(&self) {
@@ -89,6 +90,8 @@ impl EnergyCellSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for EnergyCellSubsystem {

@@ -16,6 +16,11 @@ impl Cost {
         self
     }
 
+    pub fn with_neutrinos(mut self, neutrinos: f32) -> Self {
+        self.neutrinos = neutrinos;
+        self
+    }
+
     pub fn into_values_checked(self) -> Option<Self> {
         if self.energy.is_nan()
             || self.energy.is_infinite()

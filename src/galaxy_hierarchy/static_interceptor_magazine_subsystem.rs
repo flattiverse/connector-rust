@@ -32,14 +32,22 @@ impl StaticInterceptorMagazineSubsystem {
         self.base.current_shots()
     }
 
+    #[inline]
     pub(crate) fn reset_runtime(&self) {
         self.base.reset_runtime()
     }
 
+    #[inline]
+    pub(crate) fn set_maximum_shots(&self, max_shots: f32) {
+        self.base.set_maximum_shots(max_shots);
+    }
+
+    #[inline]
     pub(crate) fn update_runtime(&self, current_shots: f32, status: SubsystemStatus) {
         self.base.update_runtime(current_shots, status);
     }
 
+    #[inline]
     pub(crate) fn create_runtime_event(&self) -> Option<FlattiverseEvent> {
         self.base.create_runtime_event()
     }

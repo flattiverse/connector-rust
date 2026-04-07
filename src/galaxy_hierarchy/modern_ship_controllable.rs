@@ -1,9 +1,9 @@
 use crate::galaxy_hierarchy::{
-    AsSubsystemBase, DynamicInterceptorMagazineSubsystem, DynamicShotMagazineSubsystem,
-    JumpDriveSubsystem, ModernRailgunSubsystem, ModernShipEngineSubsystem, ModernShipGeometry,
-    NebulaCollectorSubsystem, RailgunDirection, StaticInterceptorFabricatorSubsystem,
-    StaticInterceptorLauncherSubsystem, StaticScannerSubsystem, StaticShotFabricatorSubsystem,
-    StaticShotLauncherSubsystem, SubsystemBase,
+    AsSubsystemBase, JumpDriveSubsystem, ModernRailgunSubsystem, ModernShipEngineSubsystem,
+    ModernShipGeometry, NebulaCollectorSubsystem, RailgunDirection,
+    StaticInterceptorFabricatorSubsystem, StaticInterceptorLauncherSubsystem,
+    StaticInterceptorMagazineSubsystem, StaticScannerSubsystem, StaticShotFabricatorSubsystem,
+    StaticShotLauncherSubsystem, StaticShotMagazineSubsystem, SubsystemBase, SystemExtIntern,
 };
 use crate::network::PacketReader;
 use crate::utils::{Also, Readable};
@@ -17,10 +17,10 @@ pub struct ModernShipControllable {
     pub(crate) engines: Vec<ModernShipEngineSubsystem>,
     pub(crate) scanners: Vec<StaticScannerSubsystem>,
     pub(crate) shot_launchers: Vec<StaticShotLauncherSubsystem>,
-    pub(crate) shot_magazines: Vec<DynamicShotMagazineSubsystem>,
+    pub(crate) shot_magazines: Vec<StaticShotMagazineSubsystem>,
     pub(crate) shot_fabricators: Vec<StaticShotFabricatorSubsystem>,
     pub(crate) interceptor_launchers: Vec<StaticInterceptorLauncherSubsystem>,
-    pub(crate) interceptor_magazines: Vec<DynamicInterceptorMagazineSubsystem>,
+    pub(crate) interceptor_magazines: Vec<StaticInterceptorMagazineSubsystem>,
     pub(crate) interceptor_fabricators: Vec<StaticInterceptorFabricatorSubsystem>,
     pub(crate) railguns: Vec<ModernRailgunSubsystem>,
     pub(crate) jump_drive: JumpDriveSubsystem,
@@ -83,7 +83,8 @@ impl ModernShipControllable {
             .map(|slot| RailgunState::read(reader).init(slot))
             .collect();
 
-        let _jump_drive_exists = reader.read_byte() != 0x00;
+        self.jump_drive.set_exists(reader.read_byte() != 0x00);
+        self.jump_drive.set_reported_tier(reader.read_byte());
         self.jump_drive.set_energy_cost(reader.read_f32());
 
         self.equipped_crystals[0] = reader.read_string();
@@ -149,7 +150,7 @@ impl ModernShipControllable {
     }
 
     #[inline]
-    pub fn shot_magazines(&self) -> &[DynamicShotMagazineSubsystem] {
+    pub fn shot_magazines(&self) -> &[StaticShotMagazineSubsystem] {
         &self.shot_magazines
     }
 
@@ -284,42 +285,42 @@ impl ModernShipControllable {
     }
 
     #[inline]
-    pub fn shot_magazine_n(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_n(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[0]
     }
 
     #[inline]
-    pub fn shot_magazine_ne(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_ne(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[1]
     }
 
     #[inline]
-    pub fn shot_magazine_e(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_e(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[2]
     }
 
     #[inline]
-    pub fn shot_magazine_se(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_se(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[3]
     }
 
     #[inline]
-    pub fn shot_magazine_s(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_s(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[4]
     }
 
     #[inline]
-    pub fn shot_magazine_sw(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_sw(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[5]
     }
 
     #[inline]
-    pub fn shot_magazine_w(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_w(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[6]
     }
 
     #[inline]
-    pub fn shot_magazine_nw(&self) -> &DynamicShotMagazineSubsystem {
+    pub fn shot_magazine_nw(&self) -> &StaticShotMagazineSubsystem {
         &self.shot_magazines[7]
     }
 
@@ -374,12 +375,12 @@ impl ModernShipControllable {
     }
 
     #[inline]
-    pub fn interceptor_magazine_e(&self) -> &DynamicInterceptorMagazineSubsystem {
+    pub fn interceptor_magazine_e(&self) -> &StaticInterceptorMagazineSubsystem {
         &self.interceptor_magazines[0]
     }
 
     #[inline]
-    pub fn interceptor_magazine_w(&self) -> &DynamicInterceptorMagazineSubsystem {
+    pub fn interceptor_magazine_w(&self) -> &StaticInterceptorMagazineSubsystem {
         &self.interceptor_magazines[1]
     }
 
@@ -432,6 +433,8 @@ impl ModernShipControllable {
     pub fn railgun_nw(&self) -> &ModernRailgunSubsystem {
         &self.railguns[7]
     }
+
+    // TODO pub fn get_projected_raw_structural_load()
 
     pub(crate) fn reset_runtime(&self) {
         self.nebula_collector.reset_runtime();
@@ -487,6 +490,13 @@ impl ModernShipControllable {
         for railgun in &self.railguns {
             RailgunState::read(reader).update_runtime(railgun);
         }
+
+        self.jump_drive.update_runtime(
+            SubsystemStatus::read(reader),
+            reader.read_f32(),
+            reader.read_f32(),
+            reader.read_f32(),
+        );
     }
 
     pub(crate) fn iter_runtime_events(&self) -> impl Iterator<Item = FlattiverseEvent> + '_ {
@@ -523,6 +533,7 @@ impl ModernShipControllable {
 
 struct NebulaCollectorState {
     exists: bool,
+    tier: u8,
     minimum_rate: f32,
     maximum_rate: f32,
     rate: f32,
@@ -536,8 +547,10 @@ struct NebulaCollectorState {
 
 impl NebulaCollectorState {
     fn update_runtime(self, collector: &NebulaCollectorSubsystem) {
+        collector.set_exists(self.exists);
+        collector.set_capabilities(self.minimum_rate, self.maximum_rate);
         collector.update_runtime(
-            self.minimum_rate,
+            self.rate,
             self.status,
             self.consumed_energy_this_tick,
             self.consumed_ions_this_tick,
@@ -545,6 +558,7 @@ impl NebulaCollectorState {
             self.collected_this_tick,
             self.collected_hue_this_tick,
         );
+        collector.set_reported_tier(self.tier);
     }
 }
 
@@ -552,6 +566,7 @@ impl Readable for NebulaCollectorState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             minimum_rate: reader.read_f32(),
             maximum_rate: reader.read_f32(),
             rate: reader.read_f32(),
@@ -567,6 +582,7 @@ impl Readable for NebulaCollectorState {
 
 struct ScannerState {
     exists: bool,
+    tier: u8,
     maximum_width: f32,
     maximum_length: f32,
     width_speed: f32,
@@ -616,6 +632,7 @@ impl ScannerState {
             self.consumed_ions_this_tick,
             self.consumed_neutrinos_this_tick,
         );
+        scanner.set_reported_tier(self.tier);
     }
 }
 
@@ -623,6 +640,7 @@ impl Readable for ScannerState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             maximum_width: reader.read_f32(),
             maximum_length: reader.read_f32(),
             width_speed: reader.read_f32(),
@@ -645,6 +663,7 @@ impl Readable for ScannerState {
 
 struct EngineState {
     exists: bool,
+    tier: u8,
     maximum_forward_thrust: f32,
     maximum_reverse_thrust: f32,
     maximum_thrust_change_per_tick: f32,
@@ -683,6 +702,7 @@ impl EngineState {
             self.consumed_ions_this_tick,
             self.consumed_neutrinos_this_tick,
         );
+        engine.set_reported_tier(self.tier);
     }
 }
 
@@ -690,6 +710,7 @@ impl Readable for EngineState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             maximum_forward_thrust: reader.read_f32(),
             maximum_reverse_thrust: reader.read_f32(),
             maximum_thrust_change_per_tick: reader.read_f32(),
@@ -705,6 +726,7 @@ impl Readable for EngineState {
 
 struct LauncherState {
     exists: bool,
+    tier: u8,
     minimum_relative_movement: f32,
     maximum_relative_movement: f32,
     minimum_ticks: u16,
@@ -755,12 +777,19 @@ impl LauncherState {
 
     #[inline]
     fn update_shot_runtime(&self, launcher: &StaticShotLauncherSubsystem) {
-        self.update_runtime(launcher, StaticShotLauncherSubsystem::update_runtime)
+        self.update_capabilities(launcher, StaticShotLauncherSubsystem::set_capabilities);
+        self.update_runtime(launcher, StaticShotLauncherSubsystem::update_runtime);
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
     fn update_interceptor_runtime(&self, launcher: &StaticInterceptorLauncherSubsystem) {
-        self.update_runtime(launcher, StaticInterceptorLauncherSubsystem::update_runtime)
+        self.update_capabilities(
+            launcher,
+            StaticInterceptorLauncherSubsystem::set_capabilities,
+        );
+        self.update_runtime(launcher, StaticInterceptorLauncherSubsystem::update_runtime);
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
@@ -781,12 +810,32 @@ impl LauncherState {
             self.consumed_neutrinos_this_tick,
         );
     }
+
+    #[inline]
+    fn update_capabilities<T>(
+        &self,
+        it: &T,
+        capabilities_fn: impl Fn(&T, f32, f32, u16, u16, f32, f32, f32, f32),
+    ) {
+        capabilities_fn(
+            it,
+            self.minimum_relative_movement,
+            self.maximum_relative_movement,
+            self.minimum_ticks,
+            self.maximum_ticks,
+            self.minimum_load,
+            self.maximum_load,
+            self.minimum_damage,
+            self.maximum_damage,
+        )
+    }
 }
 
 impl Readable for LauncherState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             minimum_relative_movement: reader.read_f32(),
             maximum_relative_movement: reader.read_f32(),
             minimum_ticks: reader.read_uint16(),
@@ -809,15 +858,16 @@ impl Readable for LauncherState {
 
 struct MagazineState {
     exists: bool,
+    tier: u8,
     maximum_shots: f32,
     current_shots: f32,
     status: SubsystemStatus,
 }
 
 impl MagazineState {
-    fn init_shot(self, index: usize) -> DynamicShotMagazineSubsystem {
+    fn init_shot(self, index: usize) -> StaticShotMagazineSubsystem {
         let slot = ModernShipGeometry::SHOT_MAGAZINE_SLOTS[index];
-        DynamicShotMagazineSubsystem::new(
+        StaticShotMagazineSubsystem::new(
             Weak::default(),
             format!("ShotMagazine{}", slot_suffix(slot)),
             self.exists,
@@ -828,12 +878,12 @@ impl MagazineState {
         })
     }
 
-    fn init_interceptor(self, index: usize) -> DynamicInterceptorMagazineSubsystem {
+    fn init_interceptor(self, index: usize) -> StaticInterceptorMagazineSubsystem {
         let slot = [
             SubsystemSlot::StaticInterceptorMagazineE,
             SubsystemSlot::StaticInterceptorMagazineW,
         ][index];
-        DynamicInterceptorMagazineSubsystem::new(
+        StaticInterceptorMagazineSubsystem::new(
             Weak::default(),
             format!("InterceptorMagazine{}", slot_suffix(slot)),
             self.exists,
@@ -845,21 +895,29 @@ impl MagazineState {
     }
 
     #[inline]
-    fn update_shot_runtime(&self, launcher: &DynamicShotMagazineSubsystem) {
-        self.update_runtime(launcher, DynamicShotMagazineSubsystem::update_runtime)
+    fn update_shot_runtime(&self, launcher: &StaticShotMagazineSubsystem) {
+        self.update_maximum_shots(launcher, StaticShotMagazineSubsystem::set_maximum_shots);
+        self.update_runtime(launcher, StaticShotMagazineSubsystem::update_runtime);
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
-    fn update_interceptor_runtime(&self, launcher: &DynamicInterceptorMagazineSubsystem) {
-        self.update_runtime(
+    fn update_interceptor_runtime(&self, launcher: &StaticInterceptorMagazineSubsystem) {
+        self.update_maximum_shots(
             launcher,
-            DynamicInterceptorMagazineSubsystem::update_runtime,
-        )
+            StaticInterceptorMagazineSubsystem::set_maximum_shots,
+        );
+        self.update_runtime(launcher, StaticInterceptorMagazineSubsystem::update_runtime);
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
     fn update_runtime<T>(&self, it: &T, update_fn: impl Fn(&T, f32, SubsystemStatus)) {
         update_fn(it, self.current_shots, self.status);
+    }
+
+    fn update_maximum_shots<T>(&self, it: &T, set_fn: impl Fn(&T, f32)) {
+        set_fn(it, self.maximum_shots);
     }
 }
 
@@ -867,6 +925,7 @@ impl Readable for MagazineState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             maximum_shots: reader.read_f32(),
             current_shots: reader.read_f32(),
             status: SubsystemStatus::read(reader),
@@ -876,6 +935,7 @@ impl Readable for MagazineState {
 
 struct FabricatorState {
     exists: bool,
+    tier: u8,
     minimum_rate: f32,
     maximum_rate: f32,
     active: bool,
@@ -920,7 +980,8 @@ impl FabricatorState {
 
     #[inline]
     fn update_shot_runtime(&self, launcher: &StaticShotFabricatorSubsystem) {
-        self.update_runtime(launcher, StaticShotFabricatorSubsystem::update_runtime)
+        self.update_runtime(launcher, StaticShotFabricatorSubsystem::update_runtime);
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
@@ -928,7 +989,8 @@ impl FabricatorState {
         self.update_runtime(
             launcher,
             StaticInterceptorFabricatorSubsystem::update_runtime,
-        )
+        );
+        launcher.set_reported_tier(self.tier);
     }
 
     #[inline]
@@ -953,6 +1015,7 @@ impl Readable for FabricatorState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
             minimum_rate: reader.read_f32(),
             maximum_rate: reader.read_f32(),
             active: reader.read_byte() != 0x00,
@@ -967,6 +1030,9 @@ impl Readable for FabricatorState {
 
 struct RailgunState {
     exists: bool,
+    tier: u8,
+    projectile_speed: f32,
+    projectile_lifetime: u16,
     energy_cost: f32,
     metal_cost: f32,
     direction: RailgunDirection,
@@ -990,6 +1056,12 @@ impl RailgunState {
     }
 
     fn update_runtime(&self, railgun: &ModernRailgunSubsystem) {
+        railgun.set_capabilities(
+            self.projectile_speed,
+            self.projectile_lifetime,
+            self.energy_cost,
+            self.metal_cost,
+        );
         railgun.update_runtime(
             self.direction,
             self.status,
@@ -997,6 +1069,7 @@ impl RailgunState {
             self.consumed_ions_this_tick,
             self.consumed_neutrinos_this_tick,
         );
+        railgun.set_reported_tier(self.tier);
     }
 }
 
@@ -1004,6 +1077,9 @@ impl Readable for RailgunState {
     fn read(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
+            tier: reader.read_byte(),
+            projectile_speed: reader.read_f32(),
+            projectile_lifetime: reader.read_uint16(),
             energy_cost: reader.read_f32(),
             metal_cost: reader.read_f32(),
             direction: RailgunDirection::read(reader),

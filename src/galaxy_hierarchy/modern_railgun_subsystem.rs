@@ -1,13 +1,17 @@
 use crate::galaxy_hierarchy::{
-    Controllable, Cost, RailgunDirection, RailgunSubsystem, SubsystemBase, SubsystemExt,
+    AsSubsystemBase, ClassicRailgunSubsystem, Controllable, Cost, RailgunDirection, SubsystemBase,
+    SubsystemExt,
 };
-use crate::{FlattiverseEvent, GameError, GameErrorKind, SubsystemSlot, SubsystemStatus};
+use crate::{
+    FlattiverseEvent, FlattiverseEventKind, GameError, GameErrorKind, SubsystemSlot,
+    SubsystemStatus,
+};
 use std::sync::Weak;
 
 /// Railgun subsystem of a modern ship.
 #[derive(Debug)]
 pub struct ModernRailgunSubsystem {
-    base: RailgunSubsystem,
+    base: ClassicRailgunSubsystem,
 }
 
 impl ModernRailgunSubsystem {
@@ -18,7 +22,7 @@ impl ModernRailgunSubsystem {
         slot: SubsystemSlot,
     ) -> Self {
         Self {
-            base: RailgunSubsystem::new(controllable, name, exists, slot),
+            base: ClassicRailgunSubsystem::new(controllable, name, exists, slot),
         }
     }
 
@@ -30,7 +34,7 @@ impl ModernRailgunSubsystem {
 
     /// Rail projectile lifetime in ticks.
     #[inline]
-    pub fn projectile_lifetime(&self) -> f32 {
+    pub fn projectile_lifetime(&self) -> u16 {
         self.base.projectile_lifetime()
     }
 
@@ -44,6 +48,22 @@ impl ModernRailgunSubsystem {
     #[inline]
     pub fn metal_cost(&self) -> f32 {
         self.base.metal_cost()
+    }
+
+    #[inline]
+    pub(crate) fn set_capabilities(
+        &self,
+        projectile_speed: f32,
+        projectile_lifetime: u16,
+        energy_cost: f32,
+        metal_cost: f32,
+    ) {
+        self.base.set_capabilities(
+            projectile_speed,
+            projectile_lifetime,
+            energy_cost,
+            metal_cost,
+        );
     }
 
     /// The direction processed during the current server tick.
@@ -119,8 +139,25 @@ impl ModernRailgunSubsystem {
 
     #[inline]
     pub(crate) fn create_runtime_event(&self) -> Option<FlattiverseEvent> {
-        self.base.create_runtime_event()
+        if !self.exists() || !self.as_subsystem_base().should_emit_runtime_event() {
+            None
+        } else {
+            Some(
+                FlattiverseEventKind::ModernRailgunSubsystem {
+                    controllable: self.controllable(),
+                    slot: self.slot(),
+                    status: self.status(),
+                    direction: self.direction(),
+                    consumed_energy_this_tick: self.consumed_energy_this_tick(),
+                    consumed_ions_this_tick: self.consumed_ions_this_tick(),
+                    consumed_neutrinos_this_tick: self.consumed_neutrinos_this_tick(),
+                }
+                .into(),
+            )
+        }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for ModernRailgunSubsystem {

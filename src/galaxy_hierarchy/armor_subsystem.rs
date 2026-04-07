@@ -63,6 +63,8 @@ impl ArmorSubsystem {
     pub(crate) fn set_reduction(&self, reduction: f32) {
         self.reduction
             .store(if self.exists() { reduction } else { 0.0 });
+
+        // TODO self.refresh_tier();
     }
 
     pub(crate) fn reset_runtime(&self) {
@@ -101,6 +103,8 @@ impl ArmorSubsystem {
             )
         }
     }
+
+    // TODO pub fn refresh_tier(&self) {}
 }
 
 impl AsRef<SubsystemBase> for ArmorSubsystem {
