@@ -41,6 +41,11 @@ impl UnitHierarchy for AiTurret {
     fn as_npc_unit(&self) -> Option<&dyn NpcUnit> {
         Some(self)
     }
+
+    #[inline]
+    fn as_ai_turret(&self) -> Option<&AiTurret> {
+        Some(self)
+    }
 }
 
 impl Unit for AiTurret {
