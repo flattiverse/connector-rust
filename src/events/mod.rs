@@ -137,6 +137,7 @@ impl Display for FlattiverseEvent {
                 log_change!(appended_at_least_one_change, team, before, red);
                 log_change!(appended_at_least_one_change, team, before, green);
                 log_change!(appended_at_least_one_change, team, before, blue);
+                log_change!(appended_at_least_one_change, team, before, playable);
 
                 if !appended_at_least_one_change {
                     write!(f, ", without effective field changes.")?;

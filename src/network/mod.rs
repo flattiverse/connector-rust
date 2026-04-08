@@ -1,4 +1,4 @@
-pub const PROTOCOL_VERSION: &str = "25";
+pub const PROTOCOL_VERSION: &str = "26";
 
 #[cfg(all(
     any(target_arch = "wasm32", target_arch = "wasm64"),

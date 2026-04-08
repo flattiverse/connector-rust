@@ -13,6 +13,8 @@ pub struct TeamSnapshot {
     pub green: u8,
     /// Blue color component.
     pub blue: u8,
+    /// True if regular players may join this team.
+    pub playable: bool,
 }
 
 impl From<&Team> for TeamSnapshot {
@@ -23,6 +25,7 @@ impl From<&Team> for TeamSnapshot {
             red: team.red(),
             green: team.green(),
             blue: team.blue(),
+            playable: team.playable(),
         }
     }
 }

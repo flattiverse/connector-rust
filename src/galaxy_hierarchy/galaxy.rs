@@ -246,6 +246,7 @@ impl Galaxy {
                         128,
                         128,
                         128,
+                        false,
                     ));
                 })
             },
@@ -382,7 +383,7 @@ impl Galaxy {
     /// ```xml
     /// <Galaxy Name="New Name">
     ///   <Team Id="0" />
-    ///   <Team Id="1" Name="Green" ColorR="64" ColorG="255" ColorB="64" />
+    ///   <Team Id="1" Name="Green" ColorR="64" ColorG="255" ColorB="64" Playable="true" />
     ///   <Cluster Id="0" Name="Playground" Start="true" Respawn="false" />
     /// </Galaxy>
     /// ```
@@ -496,6 +497,7 @@ impl Galaxy {
         red: u8,
         green: u8,
         blue: u8,
+        playable: bool,
         name: String,
     ) -> Result<(), GameError> {
         debug!("Updating team with {id:?}");
@@ -503,7 +505,7 @@ impl Galaxy {
         match self.teams.get_opt(id) {
             Some(team) => {
                 let before = TeamSnapshot::from(&*team);
-                team.update(name, red, green, blue);
+                team.update(name, red, green, blue, playable);
                 event!(events, TeamUpdated { team, before });
             }
             None => {
@@ -517,6 +519,7 @@ impl Galaxy {
                             red,
                             green,
                             blue,
+                            playable,
                         ))
                     }
                 );

@@ -25,6 +25,7 @@ pub struct Team {
     red: Atomic<u8>,
     green: Atomic<u8>,
     blue: Atomic<u8>,
+    playable: Atomic<bool>,
     score: Score,
     active: Atomic<bool>,
 }
@@ -37,6 +38,7 @@ impl Team {
         red: u8,
         green: u8,
         blue: u8,
+        playable: bool,
     ) -> Team {
         Self {
             galaxy,
@@ -46,6 +48,7 @@ impl Team {
             green: Atomic::from(green),
             blue: Atomic::from(blue),
             score: Score::default(),
+            playable: Atomic::from(playable),
             active: Atomic::from(true),
         }
     }
@@ -61,11 +64,12 @@ impl Team {
             .await
     }
 
-    pub fn update(&self, name: String, red: u8, green: u8, blue: u8) {
+    pub fn update(&self, name: String, red: u8, green: u8, blue: u8, playable: bool) {
         self.name.store(Arc::new(name));
         self.red.store(red);
         self.green.store(green);
         self.blue.store(blue);
+        self.playable.store(playable);
     }
 
     pub fn deactivate(&self) {
@@ -111,6 +115,12 @@ impl Team {
     #[inline]
     pub fn score(&self) -> &Score {
         &self.score
+    }
+
+    /// True if regular players may join this team.
+    #[inline]
+    pub fn playable(&self) -> bool {
+        self.playable.load()
     }
 
     /// True as long as the team is active.

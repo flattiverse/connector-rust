@@ -123,6 +123,11 @@ pub enum GameErrorKind {
     MissingAchievementGameException {
         achievement_name: String,
     },
+    /// Thrown, if the requested team exists but is not playable for regular player logins.
+    TeamNotPlayable {
+        /// Team name received from the server.
+        team_name: String,
+    },
     /// Thrown, if you try to shoo too often.
     CanOnlyShootOncePerTick,
 
@@ -241,6 +246,7 @@ impl Display for GameErrorKind {
             GameErrorKind::YouNeedToDieFirst => "[0x21] This controllable is alive. The controllable needs to die first.",
             GameErrorKind::AllStartLocationsAreOvercrowded => "[0x22] All start locations are currently overcrowded.",
             GameErrorKind::MissingAchievementGameException { achievement_name} => return write!(f, "[0x23] Missing required achievement {achievement_name:?}."),
+            GameErrorKind::TeamNotPlayable { team_name} => return write!(f, "[0x24] The requested team {team_name:?} is not playable."),
             GameErrorKind::CanOnlyShootOncePerTick =>  "[0x30] Please, only shoot once a tick with the same unit.",
             GameErrorKind::TournamentNotConfigured => "[0x31] No tournament is configured.",
             GameErrorKind::TournamentAlreadyConfigured => "[0x32] A tournament is already configured.",
@@ -302,6 +308,9 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x22 => GameErrorKind::AllStartLocationsAreOvercrowded,
             0x23 => GameErrorKind::MissingAchievementGameException {
                 achievement_name: reader.read_string(),
+            },
+            0x24 => GameErrorKind::TeamNotPlayable {
+                team_name: reader.read_string(),
             },
             0x30 => GameErrorKind::CanOnlyShootOncePerTick,
             0x31 => GameErrorKind::TournamentNotConfigured,

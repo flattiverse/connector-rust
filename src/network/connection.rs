@@ -117,6 +117,7 @@ impl Connection {
                 reader.read_byte(),
                 reader.read_byte(),
                 reader.read_byte(),
+                reader.read_byte() != 0x00,
                 reader.read_string(),
             ),
             0x03 => galaxy.deactivate_team(events, TeamId(reader.read_byte())),
