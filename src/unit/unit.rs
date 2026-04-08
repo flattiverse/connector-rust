@@ -4,8 +4,8 @@ use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
     EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp, HydrogenCargoPowerUp,
     InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
-    MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet,
-    PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
+    MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, NpcUnit,
+    Planet, PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
     SiliconCargoPowerUp, SpaceJellyFish, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl,
     StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
@@ -74,6 +74,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_explosion(&self) -> Option<&dyn Explosion> {
         self.parent().as_explosion()
+    }
+
+    #[inline]
+    fn as_npc_unit(&self) -> Option<&dyn NpcUnit> {
+        self.parent().as_npc_unit()
     }
 
     #[inline]
@@ -422,6 +427,11 @@ impl UnitHierarchy for AbstractUnit {
     }
 
     #[inline]
+    fn as_npc_unit(&self) -> Option<&dyn NpcUnit> {
+        None
+    }
+
+    #[inline]
     fn as_sun(&self) -> Option<&Sun> {
         None
     }
@@ -707,6 +717,11 @@ pub(crate) trait UnitCastTable {
 
     #[inline]
     fn explosion_cast_fn(&self) -> CastFn<dyn Explosion> {
+        cast_none()
+    }
+
+    #[inline]
+    fn npc_unit_cast_fn(&self) -> CastFn<dyn NpcUnit> {
         cast_none()
     }
 }

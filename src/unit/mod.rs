@@ -126,6 +126,9 @@ pub use switch_mode::*;
 mod gate;
 pub use gate::*;
 
+mod npc_unit;
+pub use npc_unit::*;
+
 mod space_jelly_fish;
 pub use space_jelly_fish::*;
 
