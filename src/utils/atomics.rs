@@ -1,6 +1,6 @@
 use crate::galaxy_hierarchy::{GameMode, PlayerId, RailgunDirection, TeamId};
 use crate::network::{PacketReader, PacketWriter};
-use crate::unit::{CurrentFieldMode, SwitchMode};
+use crate::unit::{CurrentFieldMode, SwitchMode, UnitKind};
 use crate::{SubsystemSlot, SubsystemStatus, Vector};
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{
@@ -252,6 +252,42 @@ macro_rules! impl_atomar_for_primitive {
                     <$ty>::from_primitive(container.load(ordering))
                 }
             }
+
+            impl Atomar for Option<$ty> {
+                type Container = AtomicU16;
+
+                #[inline]
+                fn into_container(self) -> Self::Container {
+                    let container = Self::Container::default();
+                    self.store(&container, Ordering::Relaxed);
+                    container
+                }
+
+                #[inline]
+                fn store(self, container: &Self::Container, ordering: Ordering) {
+                    container.store(
+                        match self {
+                            None => u16::MAX,
+                            Some(value) => u16::from_be_bytes([
+                                0x00,
+                                u8::from(value)
+                            ])
+                        },
+                        ordering,
+                    )
+                }
+
+                #[inline]
+                fn load(container: &Self::Container, ordering: Ordering) -> Self {
+                    use num_enum::FromPrimitive;
+                    let value = container.load(ordering);
+                    if value == u16::MAX {
+                        None
+                    } else {
+                        Some(<$ty>::from_primitive(value.to_be_bytes()[1]))
+                    }
+                }
+            }
         )+
     };
 }
@@ -263,7 +299,8 @@ impl_atomar_for_primitive!(
     SubsystemSlot,
     SwitchMode,
     RailgunDirection,
-    CurrentFieldMode
+    CurrentFieldMode,
+    UnitKind
 );
 
 macro_rules! impl_atomar_for_id {
