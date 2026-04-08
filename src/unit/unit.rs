@@ -6,7 +6,7 @@ use crate::unit::{
     InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
     MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet,
     PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
-    SiliconCargoPowerUp, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl,
+    SiliconCargoPowerUp, SpaceJellyFish, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl,
     StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
@@ -209,6 +209,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_gate(&self) -> Option<&Gate> {
         self.parent().as_gate()
+    }
+
+    #[inline]
+    fn as_space_jelly_fish(&self) -> Option<&SpaceJellyFish> {
+        self.parent().as_space_jelly_fish()
     }
 
     #[inline]
@@ -548,6 +553,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_gate(&self) -> Option<&Gate> {
+        None
+    }
+
+    #[inline]
+    fn as_space_jelly_fish(&self) -> Option<&SpaceJellyFish> {
         None
     }
 

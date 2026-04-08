@@ -126,6 +126,9 @@ pub use switch_mode::*;
 mod gate;
 pub use gate::*;
 
+mod space_jelly_fish;
+pub use space_jelly_fish::*;
+
 mod space_jelly_fish_slime;
 pub use space_jelly_fish_slime::*;
 
@@ -231,8 +234,9 @@ mod internal {
         CurrentField, DominationPoint, EnergyChargePowerUp, Flag, Gate, HullRepairPowerUp,
         HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
         MissionTarget, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail,
-        ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SpaceJellyFishSlime,
-        Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
+        ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SpaceJellyFish,
+        SpaceJellyFishSlime, Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit,
+        UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -271,6 +275,7 @@ mod internal {
             UnitKind::ShotChargePowerUp => ShotChargePowerUp::new(cluster, name, reader)?,
             UnitKind::Switch => Switch::new(cluster, name, reader)?,
             UnitKind::Gate => Gate::new(cluster, name, reader)?,
+            UnitKind::SpaceJellyFish => SpaceJellyFish::new(cluster, name, reader)?,
             UnitKind::SpaceJellyFishSlime => SpaceJellyFishSlime::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
             UnitKind::Rail => Rail::new(cluster, name, reader)?,
