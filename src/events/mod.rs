@@ -486,7 +486,7 @@ impl Display for FlattiverseEvent {
                 colliders_name,
             } => write!(
                 f,
-                "Player {:?} of Team {:?} controllable {:?} of type {:?} collided with a {:?} named {:?}.",
+                "Player {:?} of Team {:?} controllable {:?} of type {:?} was destroyed by {:?} named {:?}.",
                 player.name(),
                 &*player.team().name(),
                 controllable.name(),
@@ -777,9 +777,9 @@ pub enum FlattiverseEventKind {
         controllable: Arc<ControllableInfo>,
         /// Reason the referenced controllable was destroyed.
         reason: PlayerUnitDestroyedReason,
-        /// Unit kind of the neutral collider.
+        /// Unit kind of the non-player destroyer.
         colliders_kind: UnitKind,
-        /// Name of the neutral collider.
+        /// Name of the non-player destroyer.
         colliders_name: String,
     },
     /// A PlayerUnit got destroyed by collision with a neutral unit.
