@@ -63,6 +63,8 @@ pub struct Galaxy {
 
     player: Atomic<PlayerId>,
     crystals: ArcSwap<Vec<Crystal>>,
+    heartbeat_challenge: Atomic<u16>,
+    has_heartbeat_challenge: Atomic<bool>,
 
     // --- partial `tournament` >>>
     pub(crate) tournament: ArcSwapOption<Tournament>,
@@ -236,6 +238,8 @@ impl Galaxy {
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
                     crystals: ArcSwap::default(),
+                    heartbeat_challenge: Atomic::from(0),
+                    has_heartbeat_challenge: Atomic::from(false),
                     tournament: ArcSwapOption::default(),
                 })
                 .also(|galaxy| {
@@ -415,6 +419,22 @@ impl Galaxy {
         self.connection.respond_to_ping(challenge)?;
         events.push(FlattiverseEventKind::RespondedToPingMeasurement { challenge }.into());
         Ok(())
+    }
+
+    /// Sends the most recently received ping challenge back to the galaxy.
+    /// Call this periodically from long-lived clients so the server continues to see inbound client
+    /// traffic. If no challenge has been received yet or the connection is already inactive, the
+    /// call does nothing.
+    pub fn send_heartbeat(&self) -> Result<(), GameError> {
+        if !self.active()
+            || !self.has_heartbeat_challenge.load()
+            || !self.connection.sender.is_closed()
+        {
+            Ok(())
+        } else {
+            let challenge = self.heartbeat_challenge.load();
+            self.connection.respond_to_ping(challenge)
+        }
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
