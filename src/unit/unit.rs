@@ -1,7 +1,7 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
-    AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
+    AiBase, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
     CurrentField, DominationPoint, EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp,
     HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
     MissionTarget, MobileNpcUnit, MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula,
@@ -229,6 +229,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_space_jelly_fish_slime(&self) -> Option<&SpaceJellyFishSlime> {
         self.parent().as_space_jelly_fish_slime()
+    }
+
+    #[inline]
+    fn as_ai_base(&self) -> Option<&AiBase> {
+        self.parent().as_ai_base()
     }
 
     #[inline]
@@ -598,6 +603,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_space_jelly_fish_slime(&self) -> Option<&SpaceJellyFishSlime> {
+        None
+    }
+
+    #[inline]
+    fn as_ai_base(&self) -> Option<&AiBase> {
         None
     }
 

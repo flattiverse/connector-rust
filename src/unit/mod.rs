@@ -135,6 +135,9 @@ pub use ai_ship::*;
 mod ai_probe;
 pub use ai_probe::*;
 
+mod ai_base;
+pub use ai_base::*;
+
 mod ai_turret;
 pub use ai_turret::*;
 
@@ -245,7 +248,7 @@ mod internal {
     use crate::galaxy_hierarchy::Cluster;
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
-        AbstractExplosion, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp,
+        AbstractExplosion, AiBase, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp,
         ClassicShipPlayerUnit, CurrentField, DominationPoint, EnergyChargePowerUp, Flag, Gate,
         HullRepairPowerUp, HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp,
         MetalCargoPowerUp, Meteoroid, MissionTarget, ModernShipPlayerUnit, Moon, Nebula,
@@ -292,6 +295,7 @@ mod internal {
             UnitKind::Gate => Gate::new(cluster, name, reader)?,
             UnitKind::SpaceJellyFish => SpaceJellyFish::new(cluster, name, reader)?,
             UnitKind::SpaceJellyFishSlime => SpaceJellyFishSlime::new(cluster, name, reader)?,
+            UnitKind::AiBase => AiBase::new(cluster, name, reader)?,
             UnitKind::AiTurret => AiTurret::new(cluster, name, reader)?,
             UnitKind::AiShip => AiShip::new(cluster, name, reader)?,
             UnitKind::AiProbe => AiProbe::new(cluster, name, reader)?,

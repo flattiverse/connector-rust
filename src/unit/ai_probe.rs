@@ -7,7 +7,7 @@ use crate::unit::{
 use crate::GameError;
 use std::sync::{Arc, Weak};
 
-/// Mobile NPC ship.
+/// Mobile NPC probe without weapons.
 #[derive(Debug)]
 pub struct AiProbe {
     parent: AbstractMobileNpcUnit,
