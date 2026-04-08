@@ -202,6 +202,7 @@ impl ClassicShipControllable {
 
         self.shot_fabricator.set_exists(reader.read_byte() != 0x00);
         let shot_fabricator_tier = reader.read_byte();
+        let shot_fabricator_minimum_rate = reader.read_f32();
         self.shot_fabricator.set_maximum_rate(reader.read_f32());
         self.shot_fabricator.update_runtime(
             reader.read_byte() != 0x00,
@@ -252,6 +253,7 @@ impl ClassicShipControllable {
         self.interceptor_fabricator
             .set_exists(reader.read_byte() != 0x00);
         let interceptor_fabricator_tier = reader.read_byte();
+        let interceptor_fabricator_minimum_rate = reader.read_f32();
         self.interceptor_fabricator
             .set_maximum_rate(reader.read_f32());
         self.interceptor_fabricator.update_runtime(

@@ -542,10 +542,13 @@ impl Controllable {
         self.armor.set_exists(reader.read_byte() != 0x00);
         let armor_tier = reader.read_byte();
         self.armor.set_reduction(reader.read_f32());
+        let armor_status = SubsystemStatus::read(reader);
+        let armor_blocked_direct_damage_this_tick = reader.read_f32();
+        let armor_blocked_radiation_damage_this_tick = reader.read_f32();
         self.armor.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
+            armor_blocked_direct_damage_this_tick,
+            armor_blocked_radiation_damage_this_tick,
+            armor_status,
         );
         self.armor.set_reported_tier(armor_tier);
 
