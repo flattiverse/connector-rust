@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
     BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
-    EnergyChargePowerUp, Explosion, Flag, HullRepairPowerUp, HydrogenCargoPowerUp,
+    EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp, HydrogenCargoPowerUp,
     InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
     MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet,
     PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
@@ -204,6 +204,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_switch(&self) -> Option<&Switch> {
         self.parent().as_switch()
+    }
+
+    #[inline]
+    fn as_gate(&self) -> Option<&Gate> {
+        self.parent().as_gate()
     }
 
     #[inline]
@@ -533,6 +538,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_switch(&self) -> Option<&Switch> {
+        None
+    }
+
+    #[inline]
+    fn as_gate(&self) -> Option<&Gate> {
         None
     }
 

@@ -70,6 +70,20 @@ pub enum UnitKind {
     Switch = 0x60,
     /// Represents a gate that can open and close.
     Gate = 0x61,
+    /// Represents a space jellyfish NPC.
+    SpaceJellyFish = 0x90,
+    /// Represents a space jellyfish slime projectile.
+    SpaceJellyFishSlime = 0x91,
+    /// Represents an AI-controlled base.
+    AiBase = 0x92,
+    /// Represents an AI-controlled turret.
+    AiTurret = 0x93,
+    /// Represents an AI-controlled freighter.
+    AiFreighter = 0x94,
+    /// Represents an AI-controlled ship.
+    AiShip = 0x95,
+    /// Represents an AI-controlled probe.
+    AiProbe = 0x96,
     /// Represents a shot.
     Shot = 0xE0,
     /// Represents an interceptor projectile.

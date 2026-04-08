@@ -123,6 +123,9 @@ pub use switch::*;
 mod switch_mode;
 pub use switch_mode::*;
 
+mod gate;
+pub use gate::*;
+
 mod projectile;
 pub use projectile::*;
 
@@ -222,7 +225,7 @@ mod internal {
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
         AbstractExplosion, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
-        CurrentField, DominationPoint, EnergyChargePowerUp, Flag, HullRepairPowerUp,
+        CurrentField, DominationPoint, EnergyChargePowerUp, Flag, Gate, HullRepairPowerUp,
         HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
         MissionTarget, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail,
         ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, Storm, StormActiveWhirl,
@@ -264,6 +267,7 @@ mod internal {
             UnitKind::HullRepairPowerUp => HullRepairPowerUp::new(cluster, name, reader)?,
             UnitKind::ShotChargePowerUp => ShotChargePowerUp::new(cluster, name, reader)?,
             UnitKind::Switch => Switch::new(cluster, name, reader)?,
+            UnitKind::Gate => Gate::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
             UnitKind::Rail => Rail::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
