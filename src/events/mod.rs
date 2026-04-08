@@ -377,8 +377,8 @@ impl Display for FlattiverseEvent {
             } => {
                 write!(f, "<[{}]{}->{}> 0x", &*player.team().name(), player.name(), destination.name())?;
                 let preview_length = 16.min(message.len());
-                for i in 0..preview_length {
-                    write!(f, "{:02X}", message[i])?;
+                for byte in message.iter().take(preview_length) {
+                    write!(f, "{byte:02X}")?;
                 }
                 if message.len() > preview_length {
                     write!(f, "...")?;
