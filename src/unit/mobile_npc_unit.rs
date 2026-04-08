@@ -13,6 +13,7 @@ pub(crate) trait MobileNpcUnitInternal {
 }
 
 /// Base type for visible mobile NPC units.
+#[allow(private_bounds)]
 pub trait MobileNpcUnit: MobileNpcUnitInternal + MobileUnit {
     #[inline]
     fn hull(&self) -> f32 {

@@ -1,8 +1,8 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
-    AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField,
-    DominationPoint, EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp,
+    AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
+    CurrentField, DominationPoint, EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp,
     HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
     MissionTarget, MobileNpcUnit, MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula,
     NeutrinoChargePowerUp, NpcUnit, Planet, PlayerUnit, PowerUp, Projectile, Rail,
@@ -239,6 +239,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_ai_ship(&self) -> Option<&AiShip> {
         self.parent().as_ai_ship()
+    }
+
+    #[inline]
+    fn as_ai_probe(&self) -> Option<&AiProbe> {
+        self.parent().as_ai_probe()
     }
 
     #[inline]
@@ -607,6 +612,11 @@ impl UnitHierarchy for AbstractUnit {
     }
 
     #[inline]
+    fn as_ai_probe(&self) -> Option<&AiProbe> {
+        None
+    }
+
+    #[inline]
     fn as_shot(&self) -> Option<&Shot> {
         None
     }
@@ -800,6 +810,16 @@ impl dyn Unit {
     #[inline]
     pub fn into_explosion(self: Arc<dyn Unit>) -> Option<Arc<dyn Explosion>> {
         self.explosion_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_npc_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn NpcUnit>> {
+        self.npc_unit_cast_fn()(self)
+    }
+
+    #[inline]
+    pub fn into_mobile_npc_unit(self: Arc<dyn Unit>) -> Option<Arc<dyn MobileNpcUnit>> {
+        self.mobile_npc_unit_cast_fn()(self)
     }
 }
 

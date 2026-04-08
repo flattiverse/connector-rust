@@ -10,6 +10,7 @@ pub(crate) trait NpcUnitInternal {
 }
 
 /// Base type for stationary visible NPC units.
+#[allow(private_bounds)]
 pub trait NpcUnit: NpcUnitInternal + Unit {
     /// Current hull value.
     #[inline]
