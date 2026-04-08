@@ -141,6 +141,9 @@ pub use ai_base::*;
 mod ai_turret;
 pub use ai_turret::*;
 
+mod ai_freighter;
+pub use ai_freighter::*;
+
 mod mobile_npc_unit;
 pub use mobile_npc_unit::*;
 
@@ -248,13 +251,14 @@ mod internal {
     use crate::galaxy_hierarchy::Cluster;
     use crate::network::{InvalidArgumentKind, PacketReader};
     use crate::unit::{
-        AbstractExplosion, AiBase, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp,
-        ClassicShipPlayerUnit, CurrentField, DominationPoint, EnergyChargePowerUp, Flag, Gate,
-        HullRepairPowerUp, HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp,
-        MetalCargoPowerUp, Meteoroid, MissionTarget, ModernShipPlayerUnit, Moon, Nebula,
-        NeutrinoChargePowerUp, Planet, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
-        SiliconCargoPowerUp, SpaceJellyFish, SpaceJellyFishSlime, Storm, StormActiveWhirl,
-        StormCommencingWhirl, Sun, Switch, Unit, UnitKind, WormHole,
+        AbstractExplosion, AiBase, AiFreighter, AiProbe, AiShip, AiTurret, BlackHole, Buoy,
+        CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
+        EnergyChargePowerUp, Flag, Gate, HullRepairPowerUp, HydrogenCargoPowerUp,
+        InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
+        ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail,
+        ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SpaceJellyFish,
+        SpaceJellyFishSlime, Storm, StormActiveWhirl, StormCommencingWhirl, Sun, Switch, Unit,
+        UnitKind, WormHole,
     };
     use crate::{GameError, GameErrorKind};
     use std::sync::{Arc, Weak};
@@ -297,6 +301,7 @@ mod internal {
             UnitKind::SpaceJellyFishSlime => SpaceJellyFishSlime::new(cluster, name, reader)?,
             UnitKind::AiBase => AiBase::new(cluster, name, reader)?,
             UnitKind::AiTurret => AiTurret::new(cluster, name, reader)?,
+            UnitKind::AiFreighter => AiFreighter::new(cluster, name, reader)?,
             UnitKind::AiShip => AiShip::new(cluster, name, reader)?,
             UnitKind::AiProbe => AiProbe::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,

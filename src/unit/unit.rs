@@ -1,14 +1,14 @@
 use crate::galaxy_hierarchy::{Cluster, Team};
 use crate::network::PacketReader;
 use crate::unit::{
-    AiBase, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp, ClassicShipPlayerUnit,
-    CurrentField, DominationPoint, EnergyChargePowerUp, Explosion, Flag, Gate, HullRepairPowerUp,
-    HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid,
-    MissionTarget, MobileNpcUnit, MobileUnit, Mobility, ModernShipPlayerUnit, Moon, Nebula,
-    NeutrinoChargePowerUp, NpcUnit, Planet, PlayerUnit, PowerUp, Projectile, Rail,
-    ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SpaceJellyFish,
-    SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl, StormWhirl,
-    Sun, Switch, TargetUnit, UnitKind, WormHole,
+    AiBase, AiFreighter, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp,
+    ClassicShipPlayerUnit, CurrentField, DominationPoint, EnergyChargePowerUp, Explosion, Flag,
+    Gate, HullRepairPowerUp, HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp,
+    MetalCargoPowerUp, Meteoroid, MissionTarget, MobileNpcUnit, MobileUnit, Mobility,
+    ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, NpcUnit, Planet, PlayerUnit,
+    PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp,
+    SpaceJellyFish, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl,
+    StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -239,6 +239,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_ai_turret(&self) -> Option<&AiTurret> {
         self.parent().as_ai_turret()
+    }
+
+    #[inline]
+    fn as_ai_freighter(&self) -> Option<&AiFreighter> {
+        self.parent().as_ai_freighter()
     }
 
     #[inline]
@@ -613,6 +618,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_ai_turret(&self) -> Option<&AiTurret> {
+        None
+    }
+
+    #[inline]
+    fn as_ai_freighter(&self) -> Option<&AiFreighter> {
         None
     }
 
