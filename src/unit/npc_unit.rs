@@ -2,13 +2,14 @@ use crate::galaxy_hierarchy::{Cluster, Team, TeamId};
 use crate::network::PacketReader;
 use crate::unit::{AbstractUnit, Unit, UnitCastTable, UnitHierarchy, UnitInternal};
 use crate::utils::Atomic;
-use crate::Vector;
+use crate::{GameError, Vector};
 use std::sync::{Arc, Weak};
 
-pub trait NpcUnitInternal {
+pub(crate) trait NpcUnitInternal {
     fn parent(&self) -> &dyn NpcUnit;
 }
 
+/// Base type for stationary visible NPC units.
 pub trait NpcUnit: NpcUnitInternal + Unit {
     /// Current hull value.
     #[inline]
@@ -24,7 +25,7 @@ pub trait NpcUnit: NpcUnitInternal + Unit {
 }
 
 #[derive(Debug, Clone)]
-pub struct AbstractNpcUnit {
+pub(crate) struct AbstractNpcUnit {
     parent: AbstractUnit,
     team: Weak<Team>,
     position: Atomic<Vector>,
@@ -34,16 +35,20 @@ pub struct AbstractNpcUnit {
 }
 
 impl AbstractNpcUnit {
-    pub(crate) fn new(cluster: Weak<Cluster>, name: String, reader: &mut dyn PacketReader) -> Self {
+    pub(crate) fn new(
+        cluster: Weak<Cluster>,
+        name: String,
+        reader: &mut dyn PacketReader,
+    ) -> Result<Self, GameError> {
         let galaxy = cluster.upgrade().unwrap().galaxy();
-        Self {
+        Ok(Self {
             parent: AbstractUnit::new(cluster, name),
             team: Arc::downgrade(&galaxy.get_team(TeamId(reader.read_byte()))),
             position: Atomic::from_reader(reader),
             radius: Atomic::from_reader(reader),
             hull: Atomic::from(0.0),
             hull_maximum: Atomic::from(0.0),
-        }
+        })
     }
 }
 
