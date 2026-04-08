@@ -126,6 +126,28 @@ impl Player {
             .await
     }
 
+    /// Sends one private binary chat message to the player.
+    /// The first binary message opens the channel; further binary messages require a binary reply
+    /// from the target player.
+    #[inline]
+    pub async fn chat_binary(&self, binary: impl AsRef<[u8]>) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .chat_player_binary(self.id, binary)
+            .await
+    }
+
+    /// Sends up to 32 private binary chat messages in one protocol packet.
+    /// Bulk sending is only allowed after the target player has acknowledged the binary channel
+    /// with a binary reply.
+    #[inline]
+    pub async fn chat_binary32(&self, binary: Vec<Vec<u8>>) -> Result<(), GameError> {
+        self.galaxy()
+            .connection()
+            .chat_player_binary_32(self.id, binary)
+            .await
+    }
+
     /// Downloads the player's cached small avatar image bytes.
     #[inline]
     pub async fn download_small_avatar(

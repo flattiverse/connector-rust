@@ -13,6 +13,7 @@ pub trait PacketWriter {
     fn write_boolean(&mut self, value: bool);
     fn write_string_with_len_prefix(&mut self, text: &str);
     fn write_string_without_len(&mut self, text: &str);
+    fn write_bytes_without_len_prefix(&mut self, bytes: &[u8]);
     fn write_nullable_byte(&mut self, value: Option<u8>);
 }
 
@@ -84,6 +85,11 @@ impl PacketWriter for BytesMut {
     #[inline]
     fn write_string_without_len(&mut self, text: &str) {
         self.put_slice(text.as_bytes())
+    }
+
+    #[inline]
+    fn write_bytes_without_len_prefix(&mut self, bytes: &[u8]) {
+        self.put_slice(bytes)
     }
 
     fn write_nullable_byte(&mut self, value: Option<u8>) {

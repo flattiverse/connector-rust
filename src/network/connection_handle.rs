@@ -77,6 +77,65 @@ impl ConnectionHandle {
         })
     }
 
+    /// Sends one private binary chat message to the player.
+    #[inline]
+    pub async fn chat_player_binary(
+        &self,
+        player: PlayerId,
+        message: impl AsRef<[u8]>,
+    ) -> Result<(), GameError> {
+        self.chat_player_binary_split(player, message).await?.await
+    }
+
+    /// Sends one private binary chat message to the player.
+    #[instrument(level = "debug", skip(self, message), fields(message = message.as_ref()), err(Display, level = "warn"))]
+    pub async fn chat_player_binary_split(
+        &self,
+        player: PlayerId,
+        message: impl AsRef<[u8]>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.send_command_with_payload(0xCC, |writer| {
+            let message = message.as_ref();
+            writer.write_byte(player.0);
+            writer.write_uint16(message.len() as u16);
+            writer.write_bytes_without_len_prefix(message);
+        })
+        .await
+        .map(GameError::check_response_ok)
+    }
+
+    /// Sends up to 32 private binary chat messages in one protocol packet.
+    #[inline]
+    pub async fn chat_player_binary_32(
+        &self,
+        player: PlayerId,
+        messages: Vec<Vec<u8>>,
+    ) -> Result<(), GameError> {
+        self.chat_player_binary_32_split(player, messages)
+            .await?
+            .await
+    }
+
+    /// Sends up to 32 private binary chat messages in one protocol packet.
+    #[instrument(level = "debug", skip(self, messages), err(Display, level = "warn"))]
+    pub async fn chat_player_binary_32_split(
+        &self,
+        player: PlayerId,
+        messages: Vec<Vec<u8>>,
+    ) -> Result<impl Future<Output = Result<(), GameError>>, GameError> {
+        self.send_command_with_payload(0xCD, |writer| {
+            writer.write_byte(player.0);
+            writer.write_uint16(messages.len() as u16);
+
+            for message in messages {
+                writer.write_uint16(message.len() as u16);
+                writer.write_bytes_without_len_prefix(&message);
+            }
+        })
+        .await
+        .map(GameError::check_response_ok)
+    }
+
     /// Downloads the player's cached small avatar image bytes.
     #[instrument(level = "debug", skip(self), err(Display, level = "warn"))]
     pub async fn download_player_small_avatar(

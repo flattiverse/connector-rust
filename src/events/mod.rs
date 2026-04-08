@@ -370,6 +370,21 @@ impl Display for FlattiverseEvent {
                 destination.name(),
                 message
             ),
+            FlattiverseEventKind::BinaryPlayerChat {
+                player,
+                destination,
+                message ,
+            } => {
+                write!(f, "<[{}]{}->{}> 0x", &*player.team().name(), player.name(), destination.name())?;
+                let preview_length = 16.min(message.len());
+                for i in 0..preview_length {
+                    write!(f, "{:02X}", message[i])?;
+                }
+                if message.len() > preview_length {
+                    write!(f, "...")?;
+                }
+                Ok(())
+            },
             FlattiverseEventKind::MissionTargetHitChat {
                 player, controllable_info, mission_target_sequence
             } => write!(
@@ -875,6 +890,15 @@ pub enum FlattiverseEventKind {
         destination: Arc<Player>,
         /// The message of the chat.
         message: String,
+    },
+    /// Represents one private binary chat message from another player to you.
+    BinaryPlayerChat {
+        /// Player snapshot this event refers to.
+        player: Arc<Player>,
+        /// The destination where this message was sent to.
+        destination: Arc<Player>,
+        /// Raw binary message payload.
+        message: Vec<u8>,
     },
     /// Galaxy-wide system chat announcing that a ship hit the next mission target in sequence.
     MissionTargetHitChat {

@@ -63,8 +63,6 @@ pub struct Galaxy {
 
     player: Atomic<PlayerId>,
     crystals: ArcSwap<Vec<Crystal>>,
-    heartbeat_challenge: Atomic<u16>,
-    has_heartbeat_challenge: Atomic<bool>,
 
     // --- partial `tournament` >>>
     pub(crate) tournament: ArcSwapOption<Tournament>,
@@ -238,8 +236,6 @@ impl Galaxy {
                     events: event_receiver,
                     player: Atomic::from(PlayerId(0)),
                     crystals: ArcSwap::default(),
-                    heartbeat_challenge: Atomic::from(0),
-                    has_heartbeat_challenge: Atomic::from(false),
                     tournament: ArcSwapOption::default(),
                 })
                 .also(|galaxy| {
@@ -416,25 +412,11 @@ impl Galaxy {
         challenge: u16,
     ) -> Result<(), GameError> {
         debug!("Responding to ping with challenge={challenge:#04x}");
-        self.connection.respond_to_ping(challenge)?;
+        if self.active() && !self.connection.sender.is_closed() {
+            self.connection.respond_to_ping(challenge)?;
+        }
         events.push(FlattiverseEventKind::RespondedToPingMeasurement { challenge }.into());
         Ok(())
-    }
-
-    /// Sends the most recently received ping challenge back to the galaxy.
-    /// Call this periodically from long-lived clients so the server continues to see inbound client
-    /// traffic. If no challenge has been received yet or the connection is already inactive, the
-    /// call does nothing.
-    pub fn send_heartbeat(&self) -> Result<(), GameError> {
-        if !self.active()
-            || !self.has_heartbeat_challenge.load()
-            || !self.connection.sender.is_closed()
-        {
-            Ok(())
-        } else {
-            let challenge = self.heartbeat_challenge.load();
-            self.connection.respond_to_ping(challenge)
-        }
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1576,6 +1558,44 @@ impl Galaxy {
         );
 
         Ok(())
+    }
+
+    #[instrument(
+        level = "trace",
+        skip(self, events, reader),
+        err(Display, level = "warn")
+    )]
+    pub fn binary_chat_player(
+        &self,
+        events: &mut EventSink,
+        player: PlayerId,
+        reader: &mut dyn PacketReader,
+    ) -> Result<(), GameError> {
+        debug_assert!(self.players.has(player), "{player:?} does not exist.");
+
+        let message_length = reader.read_uint16();
+
+        if message_length == 0 || message_length > 1024 {
+            Err(GameErrorKind::InvalidData {
+                message: Some(format!(
+                    "Server did send a binary player chat with invalid length {message_length}."
+                )),
+            }
+            .into())
+        } else {
+            let message = reader.read_bytes(usize::from(message_length));
+
+            event!(
+                events,
+                BinaryPlayerChat {
+                    player: self.players.get(player),
+                    message,
+                    destination: self.players.get(self.player.load()),
+                }
+            );
+
+            Ok(())
+        }
     }
 
     /// Yourself.

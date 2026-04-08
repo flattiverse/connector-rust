@@ -347,6 +347,7 @@ impl Connection {
                 reader.read_string(),
                 reader.read_byte(),
             ),
+            0xCC => galaxy.binary_chat_player(events, PlayerId(reader.read_byte()), reader),
             0xD0 => galaxy.tournament_upsert(events, reader),
             0xD1 => galaxy.tournament_removed(events),
             0xD2 => galaxy.tournament_message(events, reader.read_string()),
