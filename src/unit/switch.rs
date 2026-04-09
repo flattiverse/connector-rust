@@ -16,8 +16,8 @@ pub struct Switch {
     team: ArcSwapWeak<Team>,
     link_id: Atomic<u16>,
     range: Atomic<f32>,
-    cooldown_ticks: Atomic<i32>,
-    cooldown_remaining_ticks: Atomic<i32>,
+    cooldown_ticks: Atomic<u16>,
+    cooldown_remaining_ticks: Atomic<u16>,
     mode: Atomic<SwitchMode>,
     switched: Atomic<bool>,
 }
@@ -76,13 +76,13 @@ impl Switch {
 
     /// Configured switch cooldown in ticks.
     #[inline]
-    pub fn cooldown_ticks(&self) -> i32 {
+    pub fn cooldown_ticks(&self) -> u16 {
         self.cooldown_ticks.load()
     }
 
     /// Remaining runtime cooldown in ticks.
     #[inline]
-    pub fn cooldown_remaining_ticks(&self) -> i32 {
+    pub fn cooldown_remaining_ticks(&self) -> u16 {
         self.cooldown_remaining_ticks.load()
     }
 
