@@ -82,6 +82,8 @@ impl AbstractProjectile {
                 (Weak::default(), Weak::default())
             };
 
+            parent.read_position_and_movement(reader);
+
             Ok(Self {
                 parent,
                 player,

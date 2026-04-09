@@ -1134,7 +1134,7 @@ impl Galaxy {
         kind: UnitKind,
         reader: &mut dyn PacketReader,
     ) -> Result<(), GameError> {
-        debug!("Adding unit {name:?}");
+        debug!("Adding unit {name:?} / {kind:?}");
         debug_assert!(self.clusters.has(cluster), "{cluster:?} does not exist.");
 
         let cluster = self.clusters.get(cluster);
