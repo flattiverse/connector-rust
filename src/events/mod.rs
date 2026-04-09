@@ -374,7 +374,7 @@ impl Display for FlattiverseEvent {
             FlattiverseEventKind::PlayerBinaryChat {
                 player,
                 destination,
-                message ,
+                message,
             } => {
                 write!(f, "<[{}]{}->{}> 0x", &*player.team().name(), player.name(), destination.name())?;
                 let preview_length = 16.min(message.len());
@@ -385,7 +385,7 @@ impl Display for FlattiverseEvent {
                     write!(f, "...")?;
                 }
                 Ok(())
-            },
+            }
             FlattiverseEventKind::MissionTargetHitChat {
                 player, controllable_info, mission_target_sequence
             } => write!(
@@ -404,6 +404,20 @@ impl Display for FlattiverseEvent {
             ),
             FlattiverseEventKind::SystemMessage { message } => {
                 write!(f, "{message}")
+            }
+            FlattiverseEventKind::MotdMessage { message } => {
+                let lines = message.lines();
+                let mut first = true;
+
+                for line in lines {
+                    if !first {
+                        writeln!(f)?;
+                        write!(f, "              ")?;
+                    }
+                    write!(f, "[MOTD] {line}")?;
+                    first = false;
+                }
+                Ok(())
             }
             FlattiverseEventKind::GateSwitched {
                 cluster, invoker_player, invoker_controllable_info, switch_name, gates
@@ -929,6 +943,10 @@ pub enum FlattiverseEventKind {
     },
     /// Generic server-originated system message.
     SystemMessage {
+        message: String,
+    },
+    /// Server-originated message of the day shown during login.
+    MotdMessage {
         message: String,
     },
     /// Event emitted when a switch changes the state of one or more gates.

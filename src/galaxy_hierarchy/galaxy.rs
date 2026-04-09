@@ -1540,7 +1540,7 @@ impl Galaxy {
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
-    pub fn gate_restored(
+    pub(crate) fn gate_restored(
         &self,
         events: &mut EventSink,
         cluster: ClusterId,
@@ -1563,12 +1563,22 @@ impl Galaxy {
         Ok(())
     }
 
+    #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
+    pub(crate) fn motd_message(
+        &self,
+        events: &mut EventSink,
+        message: String,
+    ) -> Result<(), GameError> {
+        event!(events, MotdMessage { message });
+        Ok(())
+    }
+
     #[instrument(
         level = "trace",
         skip(self, events, reader),
         err(Display, level = "warn")
     )]
-    pub fn binary_chat_player(
+    pub(crate) fn binary_chat_player(
         &self,
         events: &mut EventSink,
         player: PlayerId,
@@ -1631,6 +1641,11 @@ impl Galaxy {
     /// The maximum number of spectators allowed to connect to the galaxy. If this value is 0 no spectators are allowed.
     pub fn max_spectators(&self) -> u16 {
         self.max_spectators.load()
+    }
+
+    /// The expected amount of simulation ticks the galaxy advances per second.
+    pub fn expected_ticks_per_second(&self) -> i32 {
+        10
     }
 
     /// The maximum amount of total ships allowed in the galaxy.
