@@ -3,7 +3,8 @@ use crate::galaxy_hierarchy::{
     ModernShipGeometry, NebulaCollectorSubsystem, RailgunDirection,
     StaticInterceptorFabricatorSubsystem, StaticInterceptorLauncherSubsystem,
     StaticInterceptorMagazineSubsystem, StaticScannerSubsystem, StaticShotFabricatorSubsystem,
-    StaticShotLauncherSubsystem, StaticShotMagazineSubsystem, SubsystemBase, SystemExtIntern,
+    StaticShotLauncherSubsystem, StaticShotMagazineSubsystem, SubsystemBase, SubsystemExt,
+    SystemExtIntern,
 };
 use crate::network::PacketReader;
 use crate::utils::{Also, Readable};
@@ -48,44 +49,50 @@ impl ModernShipControllable {
     }
 
     pub(crate) fn read_initial_state(&mut self, reader: &mut dyn PacketReader) {
-        NebulaCollectorState::read(reader).update_runtime(&self.nebula_collector);
+        NebulaCollectorState::from_reader(reader).update_runtime(&self.nebula_collector);
 
         self.scanners = ModernShipGeometry::SCANNER_SLOTS
             .into_iter()
-            .map(|slot| ScannerState::read(reader).init(slot))
+            .map(|slot| ScannerState::from_reader(reader).init(slot))
             .collect();
 
         self.engines = ModernShipGeometry::ENGINE_SLOTS
             .into_iter()
-            .map(|slot| EngineState::read(reader).init(slot))
+            .map(|slot| EngineState::from_reader(reader).init(slot))
             .collect();
 
         for index in 0..ModernShipGeometry::SHOT_LAUNCHER_SLOTS.len() {
             self.shot_launchers
-                .push(LauncherState::read(reader).init_shot(index));
+                .push(LauncherState::from_reader(reader).init_shot(index));
             self.shot_magazines
-                .push(MagazineState::read(reader).init_shot(index));
+                .push(MagazineState::from_reader(reader).init_shot(index));
             self.shot_fabricators
-                .push(FabricatorState::read(reader).init_shot(index));
+                .push(FabricatorState::from_reader(reader).init_shot(index));
         }
 
         for index in 0..2 {
             self.interceptor_launchers
-                .push(LauncherState::read(reader).init_interceptor(index));
+                .push(LauncherState::from_reader(reader).init_interceptor(index));
             self.interceptor_magazines
-                .push(MagazineState::read(reader).init_interceptor(index));
+                .push(MagazineState::from_reader(reader).init_interceptor(index));
             self.interceptor_fabricators
-                .push(FabricatorState::read(reader).init_interceptor(index));
+                .push(FabricatorState::from_reader(reader).init_interceptor(index));
         }
 
         self.railguns = ModernShipGeometry::RAILGUN_SLOTS
             .into_iter()
-            .map(|slot| RailgunState::read(reader).init(slot))
+            .map(|slot| RailgunState::from_reader(reader).init(slot))
             .collect();
 
-        self.jump_drive.set_exists(reader.read_byte() != 0x00);
-        self.jump_drive.set_reported_tier(reader.read_byte());
-        self.jump_drive.set_energy_cost(reader.read_f32());
+        if reader.read_byte() != 0x00 {
+            self.jump_drive.set_exists(true);
+            self.jump_drive.set_reported_tier(reader.read_byte());
+            self.jump_drive.set_energy_cost(reader.read_f32());
+        } else {
+            self.jump_drive.set_exists(false);
+            self.jump_drive.set_reported_tier(0);
+            self.jump_drive.set_energy_cost(0.0);
+        }
 
         self.equipped_crystals[0] = reader.read_string();
         self.equipped_crystals[1] = reader.read_string();
@@ -462,33 +469,57 @@ impl ModernShipControllable {
     }
 
     pub(crate) fn read_runtime(&self, reader: &mut dyn PacketReader) {
-        NebulaCollectorState::read(reader).update_runtime(&self.nebula_collector);
+        if self.nebula_collector.exists() {
+            NebulaCollectorState::from_reader_after_exists(reader)
+                .update_runtime(&self.nebula_collector);
+        }
 
         for scanner in &self.scanners {
-            ScannerState::read(reader).update_runtime(scanner);
+            if scanner.exists() {
+                ScannerState::from_reader_after_exists(reader).update_runtime(scanner);
+            }
         }
 
         for engine in &self.engines {
-            EngineState::read(reader).update_runtime(engine);
+            if engine.exists() {
+                EngineState::from_reader_after_exists(reader).update_runtime(engine);
+            }
         }
 
         for index in 0..ModernShipGeometry::SHOT_LAUNCHER_SLOTS.len() {
-            LauncherState::read(reader).update_shot_runtime(&self.shot_launchers[index]);
-            MagazineState::read(reader).update_shot_runtime(&self.shot_magazines[index]);
-            FabricatorState::read(reader).update_shot_runtime(&self.shot_fabricators[index])
+            if self.shot_launchers[index].exists() {
+                LauncherState::from_reader_after_exists(reader)
+                    .update_shot_runtime(&self.shot_launchers[index]);
+            }
+            if self.shot_magazines[index].exists() {
+                MagazineState::from_reader_after_exists(reader)
+                    .update_shot_runtime(&self.shot_magazines[index]);
+            }
+            if self.shot_fabricators[index].exists() {
+                FabricatorState::from_reader_after_exists(reader)
+                    .update_shot_runtime(&self.shot_fabricators[index])
+            }
         }
 
         for index in 0..2 {
-            LauncherState::read(reader)
-                .update_interceptor_runtime(&self.interceptor_launchers[index]);
-            MagazineState::read(reader)
-                .update_interceptor_runtime(&self.interceptor_magazines[index]);
-            FabricatorState::read(reader)
-                .update_interceptor_runtime(&self.interceptor_fabricators[index])
+            if self.interceptor_launchers[index].exists() {
+                LauncherState::from_reader_after_exists(reader)
+                    .update_interceptor_runtime(&self.interceptor_launchers[index]);
+            }
+            if self.interceptor_magazines[index].exists() {
+                MagazineState::from_reader_after_exists(reader)
+                    .update_interceptor_runtime(&self.interceptor_magazines[index]);
+            }
+            if self.interceptor_fabricators[index].exists() {
+                FabricatorState::from_reader_after_exists(reader)
+                    .update_interceptor_runtime(&self.interceptor_fabricators[index])
+            }
         }
 
         for railgun in &self.railguns {
-            RailgunState::read(reader).update_runtime(railgun);
+            if railgun.exists() {
+                RailgunState::from_reader_after_exists(reader).update_runtime(railgun);
+            }
         }
 
         self.jump_drive.update_runtime(
@@ -531,6 +562,7 @@ impl ModernShipControllable {
     }
 }
 
+#[derive(Default)]
 struct NebulaCollectorState {
     exists: bool,
     tier: u8,
@@ -560,12 +592,18 @@ impl NebulaCollectorState {
         );
         collector.set_reported_tier(self.tier);
     }
-}
 
-impl Readable for NebulaCollectorState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             minimum_rate: reader.read_f32(),
             maximum_rate: reader.read_f32(),
@@ -580,6 +618,7 @@ impl Readable for NebulaCollectorState {
     }
 }
 
+#[derive(Default)]
 struct ScannerState {
     exists: bool,
     tier: u8,
@@ -634,12 +673,18 @@ impl ScannerState {
         );
         scanner.set_reported_tier(self.tier);
     }
-}
 
-impl Readable for ScannerState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             maximum_width: reader.read_f32(),
             maximum_length: reader.read_f32(),
@@ -661,6 +706,7 @@ impl Readable for ScannerState {
     }
 }
 
+#[derive(Default)]
 struct EngineState {
     exists: bool,
     tier: u8,
@@ -704,12 +750,18 @@ impl EngineState {
         );
         engine.set_reported_tier(self.tier);
     }
-}
 
-impl Readable for EngineState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             maximum_forward_thrust: reader.read_f32(),
             maximum_reverse_thrust: reader.read_f32(),
@@ -724,6 +776,7 @@ impl Readable for EngineState {
     }
 }
 
+#[derive(Default)]
 struct LauncherState {
     exists: bool,
     tier: u8,
@@ -829,12 +882,18 @@ impl LauncherState {
             self.maximum_damage,
         )
     }
-}
 
-impl Readable for LauncherState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             minimum_relative_movement: reader.read_f32(),
             maximum_relative_movement: reader.read_f32(),
@@ -856,6 +915,7 @@ impl Readable for LauncherState {
     }
 }
 
+#[derive(Default)]
 struct MagazineState {
     exists: bool,
     tier: u8,
@@ -919,12 +979,18 @@ impl MagazineState {
     fn update_maximum_shots<T>(&self, it: &T, set_fn: impl Fn(&T, f32)) {
         set_fn(it, self.maximum_shots);
     }
-}
 
-impl Readable for MagazineState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             maximum_shots: reader.read_f32(),
             current_shots: reader.read_f32(),
@@ -933,6 +999,7 @@ impl Readable for MagazineState {
     }
 }
 
+#[derive(Default)]
 struct FabricatorState {
     exists: bool,
     tier: u8,
@@ -1009,12 +1076,18 @@ impl FabricatorState {
             self.consumed_neutrinos_this_tick,
         );
     }
-}
 
-impl Readable for FabricatorState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
-            exists: reader.read_byte() != 0x00,
+            exists: true,
             tier: reader.read_byte(),
             minimum_rate: reader.read_f32(),
             maximum_rate: reader.read_f32(),
@@ -1028,6 +1101,7 @@ impl Readable for FabricatorState {
     }
 }
 
+#[derive(Default)]
 struct RailgunState {
     exists: bool,
     tier: u8,
@@ -1071,10 +1145,16 @@ impl RailgunState {
         );
         railgun.set_reported_tier(self.tier);
     }
-}
 
-impl Readable for RailgunState {
-    fn read(reader: &mut dyn PacketReader) -> Self {
+    fn from_reader(reader: &mut dyn PacketReader) -> Self {
+        if reader.read_byte() != 0x00 {
+            Self::from_reader_after_exists(reader)
+        } else {
+            Self::default()
+        }
+    }
+
+    fn from_reader_after_exists(reader: &mut dyn PacketReader) -> Self {
         Self {
             exists: reader.read_byte() != 0x00,
             tier: reader.read_byte(),
