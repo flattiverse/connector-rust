@@ -1166,7 +1166,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_movement(reader);
-            event!(events, UnitUpdated { unit });
+            event!(events, UnitAppeared { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
         }
@@ -1188,7 +1188,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_state(reader);
-            event!(events, UnitUpdated { unit });
+            event!(events, UnitAppeared { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
         }
@@ -1590,7 +1590,7 @@ impl Galaxy {
 
             event!(
                 events,
-                BinaryPlayerChat {
+                PlayerBinaryChat {
                     player: self.players.get(player),
                     message,
                     destination: self.players.get(self.player.load()),

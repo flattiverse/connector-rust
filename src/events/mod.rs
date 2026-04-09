@@ -371,7 +371,7 @@ impl Display for FlattiverseEvent {
                 destination.name(),
                 message
             ),
-            FlattiverseEventKind::BinaryPlayerChat {
+            FlattiverseEventKind::PlayerBinaryChat {
                 player,
                 destination,
                 message ,
@@ -600,7 +600,7 @@ impl Display for FlattiverseEvent {
                     }
                 }
             }
-            FlattiverseEventKind::UnitUpdated { unit } => {
+            FlattiverseEventKind::UnitAppeared { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -722,6 +722,16 @@ impl Display for FlattiverseEvent {
 /// Connector-side classification of [`FlattiverseEvent`].
 /// These values are meant for application-side dispatch and do not directly mirror wire-protocol
 /// packet opcodes.
+///
+/// # Naming rule
+/// Lifecycle and change categories use `<Object><PastParticiple>`, for example
+/// [`FlattiverseEventKind::PlayerJoined`] or [`FlattiverseEventKind::UnitAppeared`]; category,
+/// signal, and runtime-status categories use a plain domain name, for example
+/// [`FlattiverseEventKind::SystemMessage`], [`FlattiverseEventKind::GalaxyTick`], or
+/// [`FlattiverseEventKind::BatterySubsystem`].
+///
+/// Concrete event types follow the same domain meaning, but their CLR names may invert verb and
+/// object or add payload-specific specialization.
 #[derive(Debug)]
 pub enum FlattiverseEventKind {
     /// Raised when a player snapshot becomes known to the connector.
@@ -819,7 +829,7 @@ pub enum FlattiverseEventKind {
         unit: Arc<dyn Unit>,
     },
     /// Raised when the connector updates the snapshot of a currently visible unit.
-    UnitUpdated {
+    UnitAppeared {
         /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
@@ -893,7 +903,7 @@ pub enum FlattiverseEventKind {
         message: String,
     },
     /// Represents one private binary chat message from another player to you.
-    BinaryPlayerChat {
+    PlayerBinaryChat {
         /// Player snapshot this event refers to.
         player: Arc<Player>,
         /// The destination where this message was sent to.
