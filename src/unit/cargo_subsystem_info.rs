@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a cargo subsystem on a scanned player unit.
@@ -100,6 +101,42 @@ impl CargoSubsystemInfo {
         self.status.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                SubsystemStatus::Off,
+            );
+        }
+    }
+
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -117,32 +154,17 @@ impl CargoSubsystemInfo {
         status: SubsystemStatus,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.maximum_metal.store(maximum_metal);
-            self.maximum_carbon.store(maximum_carbon);
-            self.maximum_hydrogen.store(maximum_hydrogen);
-            self.maximum_silicon.store(maximum_silicon);
-            self.maximum_nebula.store(maximum_nebula);
-            self.current_metal.store(current_metal);
-            self.current_carbon.store(current_carbon);
-            self.current_hydrogen.store(current_hydrogen);
-            self.current_silicon.store(current_silicon);
-            self.current_nebula.store(current_nebula);
-            self.nebula_hue.store(nebula_hue);
-            self.status.store(status);
-        } else {
-            self.maximum_metal.store(0.0);
-            self.maximum_carbon.store(0.0);
-            self.maximum_hydrogen.store(0.0);
-            self.maximum_silicon.store(0.0);
-            self.maximum_nebula.store(0.0);
-            self.current_metal.store(0.0);
-            self.current_carbon.store(0.0);
-            self.current_hydrogen.store(0.0);
-            self.current_silicon.store(0.0);
-            self.current_nebula.store(0.0);
-            self.nebula_hue.store(0.0);
-            self.status.store(SubsystemStatus::Off);
-        }
+        self.maximum_metal.store(maximum_metal);
+        self.maximum_carbon.store(maximum_carbon);
+        self.maximum_hydrogen.store(maximum_hydrogen);
+        self.maximum_silicon.store(maximum_silicon);
+        self.maximum_nebula.store(maximum_nebula);
+        self.current_metal.store(current_metal);
+        self.current_carbon.store(current_carbon);
+        self.current_hydrogen.store(current_hydrogen);
+        self.current_silicon.store(current_silicon);
+        self.current_nebula.store(current_nebula);
+        self.nebula_hue.store(nebula_hue);
+        self.status.store(status);
     }
 }

@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of an energy-cell
@@ -35,6 +36,19 @@ impl EnergyCellSubsystemInfo {
         self.status.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        } else {
+            self.update(false, 0.0, 0.0, SubsystemStatus::Off)
+        }
+    }
+
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -43,14 +57,8 @@ impl EnergyCellSubsystemInfo {
         status: SubsystemStatus,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.efficiency.store(efficiency);
-            self.collected_this_tick.store(collected_this_tick);
-            self.status.store(status);
-        } else {
-            self.efficiency.store_default();
-            self.collected_this_tick.store_default();
-            self.status.store_default();
-        }
+        self.efficiency.store(efficiency);
+        self.collected_this_tick.store(collected_this_tick);
+        self.status.store(status);
     }
 }

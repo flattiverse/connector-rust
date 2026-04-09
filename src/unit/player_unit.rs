@@ -176,116 +176,20 @@ impl UnitInternal for AbstractPlayerUnit {
     fn update_state(&self, reader: &mut dyn PacketReader) {
         self.parent.update_state(reader);
 
-        self.energy_battery.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.ion_battery.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.neutrino_battery.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
+        self.energy_battery.update_from_reader(reader);
+        self.ion_battery.update_from_reader(reader);
+        self.neutrino_battery.update_from_reader(reader);
 
-        self.energy_cell.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.ion_cell.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.neutrino_cell.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
+        self.energy_cell.update_from_reader(reader);
+        self.ion_cell.update_from_reader(reader);
+        self.neutrino_cell.update_from_reader(reader);
 
-        self.hull.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-
-        self.shield.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.armor.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.repair.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.cargo.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-
-        self.resource_miner.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        self.hull.update_from_reader(reader);
+        self.shield.update_from_reader(reader);
+        self.armor.update_from_reader(reader);
+        self.repair.update_from_reader(reader);
+        self.cargo.update_from_reader(reader);
+        self.resource_miner.update_from_reader(reader);
     }
 }
 

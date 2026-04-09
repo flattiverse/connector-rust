@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of an armor subsystem on a scanned player unit.
@@ -43,6 +44,20 @@ impl ArmorSubsystemInfo {
         self.blocked_radiation_damage_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(false, 0.0, SubsystemStatus::Off, 0.0, 0.0);
+        }
+    }
+
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -52,18 +67,11 @@ impl ArmorSubsystemInfo {
         blocked_radiation_damage_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.reduction.store(reduction);
-            self.status.store(status);
-            self.blocked_direct_damage_this_tick
-                .store(blocked_direct_damage_this_tick);
-            self.blocked_radiation_damage_this_tick
-                .store(blocked_radiation_damage_this_tick);
-        } else {
-            self.reduction.store(0.0);
-            self.status.store(SubsystemStatus::Off);
-            self.blocked_direct_damage_this_tick.store(0.0);
-            self.blocked_radiation_damage_this_tick.store(0.0);
-        }
+        self.reduction.store(reduction);
+        self.status.store(status);
+        self.blocked_direct_damage_this_tick
+            .store(blocked_direct_damage_this_tick);
+        self.blocked_radiation_damage_this_tick
+            .store(blocked_radiation_damage_this_tick);
     }
 }

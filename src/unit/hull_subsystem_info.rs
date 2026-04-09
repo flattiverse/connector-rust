@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a hull subsystem on a scanned player unit.
@@ -35,11 +36,23 @@ impl HullSubsystemInfo {
         self.status.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        } else {
+            self.update(false, 0.0, 0.0, SubsystemStatus::Off)
+        }
+    }
+
     pub(crate) fn update(&self, exists: bool, maximum: f32, current: f32, status: SubsystemStatus) {
         self.exists.store(exists);
-        self.maximum.store(if exists { maximum } else { 0.0 });
-        self.current.store(if exists { current } else { 0.0 });
-        self.status
-            .store(if exists { status } else { SubsystemStatus::Off });
+        self.maximum.store(maximum);
+        self.current.store(current);
+        self.status.store(status);
     }
 }

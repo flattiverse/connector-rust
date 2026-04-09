@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a shield subsystem on a scanned player unit.
@@ -73,6 +74,34 @@ impl ShieldSubsystemInfo {
         self.consumed_neutrinos_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                false,
+                0.0,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+    }
+
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -86,23 +115,15 @@ impl ShieldSubsystemInfo {
         consumed_neutrinos_this_tick: f32,
     ) {
         self.exists.store(exists);
-        self.maximum.store(if exists { maximum } else { 0.0 });
-        self.current.store(if exists { current } else { 0.0 });
-        self.active.store(exists && active);
-        self.rate.store(if exists { rate } else { 0.0 });
-        self.status
-            .store(if exists { status } else { SubsystemStatus::Off });
-        self.consumed_energy_this_tick.store(if exists {
-            consumed_energy_this_tick
-        } else {
-            0.0
-        });
-        self.consumed_ions_this_tick
-            .store(if exists { consumed_ions_this_tick } else { 0.0 });
-        self.consumed_neutrinos_this_tick.store(if exists {
-            consumed_neutrinos_this_tick
-        } else {
-            0.0
-        });
+        self.maximum.store(maximum);
+        self.current.store(current);
+        self.active.store(active);
+        self.rate.store(rate);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
     }
 }

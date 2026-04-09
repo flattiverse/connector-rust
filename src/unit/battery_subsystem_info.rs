@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a battery subsystem on a scanned player unit.
@@ -42,6 +43,20 @@ impl BatterySubsystemInfo {
         self.status.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        } else {
+            self.update(false, 0.0, 0.0, 0.0, SubsystemStatus::Off);
+        }
+    }
+
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -51,16 +66,9 @@ impl BatterySubsystemInfo {
         status: SubsystemStatus,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.maximum.store(maximum);
-            self.current.store(current);
-            self.consumed_this_tick.store(consumed_this_tick);
-            self.status.store(status);
-        } else {
-            self.maximum.store_default();
-            self.current.store_default();
-            self.consumed_this_tick.store_default();
-            self.status.store_default();
-        }
+        self.maximum.store(maximum);
+        self.current.store(current);
+        self.consumed_this_tick.store(consumed_this_tick);
+        self.status.store(status);
     }
 }

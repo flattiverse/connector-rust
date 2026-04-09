@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a resource miner subsystem on a scanned player unit.
@@ -91,6 +92,40 @@ impl ResourceMinerSubsystemInfo {
     #[inline]
     pub fn mined_silicon_this_tick(&self) -> f32 {
         self.mined_silicon_this_tick.load()
+    }
+
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                0.0,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
     }
 
     pub(crate) fn update(
