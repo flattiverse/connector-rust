@@ -64,7 +64,7 @@ impl ClassicRailgunSubsystem {
         self.metal_cost.load()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_capabilities(
         &self,
         projectile_speed: f32,
@@ -160,7 +160,7 @@ impl ClassicRailgunSubsystem {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.direction.store_default();
         self.consumed_energy_this_tick.store_default();
@@ -169,7 +169,7 @@ impl ClassicRailgunSubsystem {
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         direction: RailgunDirection,

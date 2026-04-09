@@ -30,7 +30,7 @@ impl JumpDriveSubsystemInfo {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update(&self, exists: bool, energy_cost: f32) {
         self.exists.store(exists);
         self.energy_cost.store(energy_cost);

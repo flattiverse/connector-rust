@@ -55,7 +55,7 @@ impl SubsystemBase {
         todo!()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime_status(&self) {
         self.status.store(SubsystemStatus::Off);
         self.hast_last_emitted_status.store(false);
@@ -66,7 +66,7 @@ impl SubsystemBase {
         (left - right).abs() <= 0.0001
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime_status(&self, status: SubsystemStatus) {
         if self.exists() {
             self.status.store(status);
@@ -115,7 +115,7 @@ impl<T: AsRef<SubsystemBase>> AsSubsystemBase for T {
 }
 
 impl<T: AsSubsystemBase> SystemExtIntern for T {
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     fn set_exists(&self, exists: bool) {
         self.as_subsystem_base().exists.store(exists);
 

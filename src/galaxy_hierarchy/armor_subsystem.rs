@@ -60,7 +60,7 @@ impl ArmorSubsystem {
         self.blocked_direct_damage_this_tick() + self.blocked_radiation_damage_this_tick()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_reduction(&self, reduction: f32) {
         self.reduction
             .store(if self.exists() { reduction } else { 0.0 });
@@ -68,14 +68,14 @@ impl ArmorSubsystem {
         // TODO self.refresh_tier();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.blocked_direct_damage_this_tick.store_default();
         self.blocked_radiation_damage_this_tick.store_default();
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         blocked_direct_damage_this_tick: f32,

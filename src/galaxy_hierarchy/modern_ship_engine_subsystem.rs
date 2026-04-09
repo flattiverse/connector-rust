@@ -143,7 +143,7 @@ impl ModernShipEngineSubsystem {
         self.set_thrust(0.0).await
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_capabilities(
         &self,
         maximum_forward_thrust: f32,
@@ -177,7 +177,7 @@ impl ModernShipEngineSubsystem {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current_thrust.store_default();
         self.target_thrust.store_default();
@@ -187,7 +187,7 @@ impl ModernShipEngineSubsystem {
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         current_thrust: f32,

@@ -32,17 +32,17 @@ impl StaticShotMagazineSubsystem {
         self.base.current_shots()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.base.reset_runtime()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_maximum_shots(&self, maximum_shots: f32) {
         self.base.set_maximum_shots(maximum_shots);
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(&self, current_shots: f32, status: SubsystemStatus) {
         self.base.update_runtime(current_shots, status);
     }

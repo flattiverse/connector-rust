@@ -1750,7 +1750,7 @@ impl Galaxy {
 
     /// Returns the underlying [`ConnectionHandle`] to the server.
     #[inline]
-    pub(crate) fn connection(&self) -> &ConnectionHandle {
+    pub fn connection(&self) -> &ConnectionHandle {
         &self.connection
     }
 

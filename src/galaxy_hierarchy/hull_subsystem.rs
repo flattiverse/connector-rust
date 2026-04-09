@@ -49,7 +49,7 @@ impl HullSubsystem {
         self.current.load()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_maximum(&self, maximum: f32) {
         self.maximum
             .store(if self.exists() { maximum } else { 0.0 });
@@ -61,13 +61,13 @@ impl HullSubsystem {
         // TODO self.refresh_tier();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current.store(0.0);
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(&self, current: f32, status: SubsystemStatus) {
         self.current.store(current);
         self.base.update_runtime_status(status);

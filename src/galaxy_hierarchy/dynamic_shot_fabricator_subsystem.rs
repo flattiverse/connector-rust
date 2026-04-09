@@ -188,7 +188,7 @@ impl DynamicShotFabricatorSubsystem {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_maximum_rate(&self, maximum_rate: f32) {
         let maximum_rate = if self.exists() {
             self.maximum_rate.store(maximum_rate);
@@ -204,7 +204,7 @@ impl DynamicShotFabricatorSubsystem {
         // TODO self.refresh_tier();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.active.store(false);
         self.rate.store(0.0);
@@ -214,7 +214,7 @@ impl DynamicShotFabricatorSubsystem {
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         active: bool,

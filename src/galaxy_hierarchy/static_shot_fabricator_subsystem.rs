@@ -132,19 +132,19 @@ impl StaticShotFabricatorSubsystem {
     }
 
     #[inline]
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_maximum_rate(&self, maximum_rate: f32) {
         self.base.set_maximum_rate(maximum_rate);
     }
 
     #[inline]
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.base.reset_runtime()
     }
 
     #[inline]
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         active: bool,

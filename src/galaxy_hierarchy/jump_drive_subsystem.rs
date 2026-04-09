@@ -84,7 +84,7 @@ impl JumpDriveSubsystem {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.consumed_energy_this_tick.store(0.0);
         self.consumed_ions_this_tick.store(0.0);
@@ -92,7 +92,7 @@ impl JumpDriveSubsystem {
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         status: SubsystemStatus,
@@ -108,7 +108,7 @@ impl JumpDriveSubsystem {
         self.base.update_runtime_status(status);
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_energy_cost(&self, energy_cost: f32) {
         if self.exists() {
             self.energy_cost.store(energy_cost);

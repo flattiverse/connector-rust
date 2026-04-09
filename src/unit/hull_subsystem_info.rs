@@ -49,7 +49,7 @@ impl HullSubsystemInfo {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update(&self, exists: bool, maximum: f32, current: f32, status: SubsystemStatus) {
         self.exists.store(exists);
         self.maximum.store(maximum);

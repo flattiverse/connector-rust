@@ -102,7 +102,7 @@ impl RepairSubsystemInfo {
         }
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,

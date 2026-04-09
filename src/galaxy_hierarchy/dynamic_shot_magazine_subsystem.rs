@@ -36,20 +36,20 @@ impl DynamicShotMagazineSubsystem {
         self.current_shots.load()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current_shots.store_default();
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_maximum_shots(&self, max_shots: f32) {
         self.maximum_shots
             .store(if self.exists() { max_shots } else { 0.0 });
         // TODO self.refresh_tier();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(&self, current_shots: f32, status: SubsystemStatus) {
         self.current_shots.store(current_shots);
         self.base.update_runtime_status(status);

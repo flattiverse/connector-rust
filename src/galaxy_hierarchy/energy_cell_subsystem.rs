@@ -59,20 +59,20 @@ impl EnergyCellSubsystem {
         self.collected_this_tick.load()
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn set_efficiency(&self, efficiency: f32) {
         self.efficiency
             .store(if self.base.exists() { efficiency } else { 0.0 });
         // TODO self.refresh_tier();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.collected_this_tick.store(0.0);
         self.base.reset_runtime_status();
     }
 
-    #[instrument(level = "debug", skip(self))]
+    #[instrument(level = "trace", skip(self))]
     pub(crate) fn update_runtime(&self, collected_this_tick: f32, status: SubsystemStatus) {
         self.collected_this_tick.store(collected_this_tick);
         self.base.update_runtime_status(status);
