@@ -152,6 +152,7 @@ impl DynamicScannerSubsystem {
         self.angle_speed.load()
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn set_capabilities(
         &self,
         maximum_width: f32,
@@ -344,6 +345,7 @@ impl DynamicScannerSubsystem {
         }
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current_width.store_default();
         self.current_length.store_default();
@@ -358,6 +360,7 @@ impl DynamicScannerSubsystem {
         self.base.reset_runtime_status();
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         active: bool,

@@ -51,6 +51,7 @@ impl ModernRailgunSubsystem {
     }
 
     #[inline]
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn set_capabilities(
         &self,
         projectile_speed: f32,
@@ -115,11 +116,13 @@ impl ModernRailgunSubsystem {
     }
 
     #[inline]
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.base.reset_runtime()
     }
 
     #[inline]
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         direction: RailgunDirection,

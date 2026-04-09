@@ -410,102 +410,136 @@ impl ClassicShipControllable {
     }
 
     pub(crate) fn read_runtime(&self, reader: &mut dyn PacketReader) {
-        self.nebula_collector.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.main_scanner.update_runtime(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.secondary_scanner.update_runtime(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.engine.update_runtime(
-            Vector::from_read(reader),
-            Vector::from_read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_launcher.update_runtime(
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_magazine
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.shot_fabricator.update_runtime(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.interceptor_launcher.update_runtime(
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.interceptor_magazine
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.interceptor_fabricator.update_runtime(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.railgun.update_runtime(
-            RailgunDirection::read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.jump_drive.update_runtime(
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        )
+        if self.nebula_collector.exists() {
+            self.nebula_collector.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.main_scanner.exists() {
+            self.main_scanner.update_runtime(
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.secondary_scanner.exists() {
+            self.secondary_scanner.update_runtime(
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.engine.exists() {
+            self.engine.update_runtime(
+                Vector::from_read(reader),
+                Vector::from_read(reader),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.shot_launcher.exists() {
+            self.shot_launcher.update_runtime(
+                Vector::from_read(reader),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.shot_magazine.exists() {
+            self.shot_magazine
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
+
+        if self.shot_fabricator.exists() {
+            self.shot_fabricator.update_runtime(
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+        if self.interceptor_launcher.exists() {
+            self.interceptor_launcher.update_runtime(
+                Vector::from_read(reader),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.interceptor_magazine.exists() {
+            self.interceptor_magazine
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
+
+        if self.interceptor_fabricator.exists() {
+            self.interceptor_fabricator.update_runtime(
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.railgun.exists() {
+            self.railgun.update_runtime(
+                RailgunDirection::read(reader),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+
+        if self.jump_drive.exists() {
+            self.jump_drive.update_runtime(
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
     }
 
     pub(crate) fn iter_subsystem_bases(&self) -> impl Iterator<Item = &SubsystemBase> + '_ {

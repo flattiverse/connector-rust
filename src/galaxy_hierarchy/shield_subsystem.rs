@@ -250,6 +250,7 @@ impl ShieldSubsystem {
         }
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current.store(0.0);
         self.active.store(false);
@@ -260,6 +261,7 @@ impl ShieldSubsystem {
         self.base.reset_runtime_status();
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         current: f32,

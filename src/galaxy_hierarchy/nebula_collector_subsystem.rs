@@ -55,6 +55,7 @@ impl NebulaCollectorSubsystem {
         self.maximum_rate.load()
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn set_capabilities(&self, minimum_rate: f32, maximum_rate: f32) {
         if self.exists() {
             self.minimum_rate.store(minimum_rate);
@@ -173,6 +174,7 @@ impl NebulaCollectorSubsystem {
         self.set(0.0).await
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.rate.store_default();
         self.consumed_energy_this_tick.store_default();
@@ -183,6 +185,7 @@ impl NebulaCollectorSubsystem {
         self.base.reset_runtime_status();
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         rate: f32,

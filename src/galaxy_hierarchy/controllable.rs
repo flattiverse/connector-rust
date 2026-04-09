@@ -661,82 +661,98 @@ impl Controllable {
         self.tier_change_target_tier.store(reader.read_byte());
         self.remaining_tier_change_ticks.store(reader.read_uint16());
 
-        self.energy_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.ion_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.neutrino_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
+        if self.energy_battery.exists() {
+            self.energy_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        }
+        if self.ion_battery.exists() {
+            self.ion_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        }
+        if self.neutrino_battery.exists() {
+            self.neutrino_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        }
 
-        self.energy_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.ion_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.neutrino_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        if self.energy_cell.exists() {
+            self.energy_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
+        if self.ion_cell.exists() {
+            self.ion_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
+        if self.neutrino_cell.exists() {
+            self.neutrino_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
 
-        self.hull
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.shield.update_runtime(
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        if self.hull.exists() {
+            self.hull
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+        }
+        if self.shield.exists() {
+            self.shield.update_runtime(
+                reader.read_f32(),
+                reader.read_byte() != 0,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
 
-        self.armor.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-
-        self.repair.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.cargo.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-
-        self.resource_miner.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.structure_optimizer
-            .set_exists(reader.read_byte() != 0x00);
-        self.structure_optimizer
-            .set_reduction_percentage(reader.read_f32());
+        if self.armor.exists() {
+            self.armor.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        }
+        if self.repair.exists() {
+            self.repair.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
+        if self.cargo.exists() {
+            self.cargo.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        }
+        if self.resource_miner.exists() {
+            self.resource_miner.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        }
 
         self.environment_heat_this_tick.read(reader);
         self.environment_heat_energy_cost_this_tick.read(reader);

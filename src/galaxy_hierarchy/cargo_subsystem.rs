@@ -181,6 +181,7 @@ impl CargoSubsystem {
         self.nebula_hue.load()
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.current_metal.store_default();
         self.current_carbon.store_default();
@@ -191,6 +192,7 @@ impl CargoSubsystem {
         self.base.reset_runtime_status();
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         current_metal: f32,

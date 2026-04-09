@@ -105,6 +105,7 @@ impl DynamicShotLauncherSubsystem {
         self.maximum_damage.load()
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn set_capabilities(
         &self,
         minimum_relative_movement: f32,
@@ -285,6 +286,7 @@ impl DynamicShotLauncherSubsystem {
         }
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn reset_runtime(&self) {
         self.relative_movement.store_default();
         self.ticks.store_default();
@@ -296,6 +298,7 @@ impl DynamicShotLauncherSubsystem {
         self.base.reset_runtime_status();
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update_runtime(
         &self,
         relative_movement: Vector,
