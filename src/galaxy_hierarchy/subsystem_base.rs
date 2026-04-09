@@ -127,10 +127,6 @@ impl<T: AsSubsystemBase> SystemExtIntern for T {
     fn set_tier(&self, tier: u8) {
         self.as_subsystem_base().tier.store(tier);
     }
-
-    fn set_reported_tier(&self, tier: u8) {
-        self.as_subsystem_base().tier.store(tier);
-    }
 }
 
 impl<T: AsSubsystemBase> SubsystemExt for T {
@@ -174,7 +170,7 @@ impl<T: AsSubsystemBase> SubsystemExt for T {
     }
 
     #[inline]
-    fn remaining_tier_change_ticks(&self) -> i32 {
+    fn remaining_tier_change_ticks(&self) -> u16 {
         todo!()
     }
 

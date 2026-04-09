@@ -6,7 +6,9 @@ use std::sync::Arc;
 pub(crate) trait SystemExtIntern {
     fn set_exists(&self, exists: bool);
     fn set_tier(&self, tier: u8);
-    fn set_reported_tier(&self, tier: u8);
+    fn set_reported_tier(&self, tier: u8) {
+        self.set_tier(tier);
+    }
 }
 
 #[allow(private_bounds)]
@@ -36,7 +38,7 @@ pub trait SubsystemExt: SystemExtIntern {
 
     /// Remaining ticks of the currently running upgrade or downgrade affecting this slot.
     /// Returns 0 when no tier change is pending.
-    fn remaining_tier_change_ticks(&self) -> i32;
+    fn remaining_tier_change_ticks(&self) -> u16;
 
     /// Full static tier catalog for this subsystem family on the current ship type.
     fn tier_infos(&self) -> Arc<Vec<SubsystemTierInfo>>;
