@@ -1147,7 +1147,7 @@ impl Galaxy {
         };
 
         cluster.add_unit(Arc::clone(&unit));
-        event!(events, UnitAdded { unit });
+        event!(events, UnitAppeared { unit });
 
         Ok(())
     }
@@ -1166,7 +1166,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_movement(reader);
-            event!(events, UnitAppeared { unit });
+            event!(events, UnitUpdated { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
         }
@@ -1188,7 +1188,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
         if let Some(unit) = cluster.get_unit(&name) {
             unit.update_state(reader);
-            event!(events, UnitAppeared { unit });
+            event!(events, UnitUpdated { unit });
         } else {
             error!("Failed to find unit with name {name:?}");
         }

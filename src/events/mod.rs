@@ -584,7 +584,7 @@ impl Display for FlattiverseEvent {
                 controllable.name(),
                 controllable.kind()
             ),
-            FlattiverseEventKind::UnitAdded { unit } => {
+            FlattiverseEventKind::UnitAppeared { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -600,7 +600,7 @@ impl Display for FlattiverseEvent {
                     }
                 }
             }
-            FlattiverseEventKind::UnitAppeared { unit } => {
+            FlattiverseEventKind::UnitUpdated { unit } => {
                 let cluster = unit.cluster();
                 let cluster = &*cluster.name();
                 let kind = unit.kind();
@@ -725,7 +725,7 @@ impl Display for FlattiverseEvent {
 ///
 /// # Naming rule
 /// Lifecycle and change categories use `<Object><PastParticiple>`, for example
-/// [`FlattiverseEventKind::PlayerJoined`] or [`FlattiverseEventKind::UnitAppeared`]; category,
+/// [`FlattiverseEventKind::PlayerJoined`] or [`FlattiverseEventKind::UnitUpdated`]; category,
 /// signal, and runtime-status categories use a plain domain name, for example
 /// [`FlattiverseEventKind::SystemMessage`], [`FlattiverseEventKind::GalaxyTick`], or
 /// [`FlattiverseEventKind::BatterySubsystem`].
@@ -824,12 +824,12 @@ pub enum FlattiverseEventKind {
         controllable: Arc<ControllableInfo>,
     },
     /// Raised when a visible unit becomes newly known to the local visibility mirror.
-    UnitAdded {
+    UnitAppeared {
         /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
     /// Raised when the connector updates the snapshot of a currently visible unit.
-    UnitAppeared {
+    UnitUpdated {
         /// Snapshot copy of the visible unit this event is about.
         unit: Arc<dyn Unit>,
     },
