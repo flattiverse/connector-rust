@@ -181,21 +181,6 @@ impl CargoSubsystem {
         self.nebula_hue.load()
     }
 
-    pub(crate) fn set_maximum_nebula(&self, maximum_nebula: f32) {
-        let maximum_nebula = if self.exists() {
-            self.maximum_nebula.store(maximum_nebula);
-            maximum_nebula
-        } else {
-            0.0
-        };
-
-        // TODO self.refresh_tier();
-
-        if maximum_nebula > self.current_nebula() {
-            self.current_nebula.store(maximum_nebula);
-        }
-    }
-
     pub(crate) fn reset_runtime(&self) {
         self.current_metal.store_default();
         self.current_carbon.store_default();
