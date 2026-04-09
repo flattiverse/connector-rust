@@ -1003,7 +1003,6 @@ impl MagazineState {
 struct FabricatorState {
     exists: bool,
     tier: u8,
-    minimum_rate: f32,
     maximum_rate: f32,
     active: bool,
     rate: f32,
@@ -1089,7 +1088,6 @@ impl FabricatorState {
         Self {
             exists: true,
             tier: reader.read_byte(),
-            minimum_rate: reader.read_f32(),
             maximum_rate: reader.read_f32(),
             active: reader.read_byte() != 0x00,
             rate: reader.read_f32(),

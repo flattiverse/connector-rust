@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
     Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, ModernShipControllable,
     ModernShipGeometry, RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem,
-    StructureOptimizerSubsystem, SystemExtIntern,
+    StructureOptimizerSubsystem, SubsystemExt, SystemExtIntern,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -37,7 +37,7 @@ pub struct Controllable {
     tier_change_pending: Atomic<bool>,
     tier_change_slot: Atomic<SubsystemSlot>,
     tier_change_target_tier: Atomic<u8>,
-    remaining_tier_change_ticks: Atomic<i32>,
+    remaining_tier_change_ticks: Atomic<u16>,
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
     angle: Atomic<f32>,
@@ -86,7 +86,7 @@ impl Controllable {
             tier_change_pending: Atomic::from(reader.read_byte() != 0x00),
             tier_change_slot: Atomic::from_reader(reader),
             tier_change_target_tier: Atomic::from(reader.read_byte()),
-            remaining_tier_change_ticks: Atomic::from(reader.read_int32()),
+            remaining_tier_change_ticks: Atomic::from(reader.read_uint16()),
             hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
             shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
             armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
@@ -465,153 +465,178 @@ impl Controllable {
 
     pub(crate) fn read_initial_state(&self, reader: &mut dyn PacketReader) {
         self.energy_battery.set_exists(reader.read_byte() != 0x00);
-        let energy_battery_tier = reader.read_byte();
-        self.energy_battery.set_maximum(reader.read_f32());
-        self.energy_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.energy_battery.set_reported_tier(energy_battery_tier);
+        if self.energy_battery.exists() {
+            let energy_battery_tier = reader.read_byte();
+            self.energy_battery.set_maximum(reader.read_f32());
+            self.energy_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+            self.energy_battery.set_reported_tier(energy_battery_tier);
+        }
 
         self.ion_battery.set_exists(reader.read_byte() != 0x00);
-        let ion_battery_tier = reader.read_byte();
-        self.ion_battery.set_maximum(reader.read_f32());
-        self.ion_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.ion_battery.set_reported_tier(ion_battery_tier);
+        if self.ion_battery.exists() {
+            let ion_battery_tier = reader.read_byte();
+            self.ion_battery.set_maximum(reader.read_f32());
+            self.ion_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+            self.ion_battery.set_reported_tier(ion_battery_tier);
+        }
 
         self.neutrino_battery.set_exists(reader.read_byte() != 0x00);
-        let neutrino_battery_tier = reader.read_byte();
-        self.neutrino_battery.set_maximum(reader.read_f32());
-        self.neutrino_battery.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.neutrino_battery
-            .set_reported_tier(neutrino_battery_tier);
+        if self.neutrino_battery.exists() {
+            let neutrino_battery_tier = reader.read_byte();
+            self.neutrino_battery.set_maximum(reader.read_f32());
+            self.neutrino_battery.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+            self.neutrino_battery
+                .set_reported_tier(neutrino_battery_tier);
+        }
 
         self.energy_cell.set_exists(reader.read_byte() != 0x00);
-        let energy_cell_tier = reader.read_byte();
-        self.energy_cell.set_efficiency(reader.read_f32());
-        self.energy_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.energy_cell.set_reported_tier(energy_cell_tier);
+        if self.energy_cell.exists() {
+            let energy_cell_tier = reader.read_byte();
+            self.energy_cell.set_efficiency(reader.read_f32());
+            self.energy_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.energy_cell.set_reported_tier(energy_cell_tier);
+        }
 
         self.ion_cell.set_exists(reader.read_byte() != 0x00);
-        let ion_cell_tier = reader.read_byte();
-        self.ion_cell.set_efficiency(reader.read_f32());
-        self.ion_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.ion_cell.set_reported_tier(ion_cell_tier);
+        if self.ion_cell.exists() {
+            let ion_cell_tier = reader.read_byte();
+            self.ion_cell.set_efficiency(reader.read_f32());
+            self.ion_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.ion_cell.set_reported_tier(ion_cell_tier);
+        }
 
         self.neutrino_cell.set_exists(reader.read_byte() != 0x00);
-        let neutrino_cell_tier = reader.read_byte();
-        self.neutrino_cell.set_efficiency(reader.read_f32());
-        self.neutrino_cell
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.neutrino_cell.set_reported_tier(neutrino_cell_tier);
+        if self.neutrino_cell.exists() {
+            let neutrino_cell_tier = reader.read_byte();
+            self.neutrino_cell.set_efficiency(reader.read_f32());
+            self.neutrino_cell
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.neutrino_cell.set_reported_tier(neutrino_cell_tier);
+        }
 
         self.hull.set_exists(reader.read_byte() != 0x00);
-        let hull_tier = reader.read_byte();
-        self.hull.set_maximum(reader.read_f32());
-        self.hull
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.hull.set_reported_tier(hull_tier);
+        if self.hull.exists() {
+            let hull_tier = reader.read_byte();
+            self.hull.set_maximum(reader.read_f32());
+            self.hull
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.hull.set_reported_tier(hull_tier);
+        }
 
         self.shield.set_exists(reader.read_byte() != 0x00);
-        let shield_tier = reader.read_byte();
-        self.shield.set_maximum(reader.read_f32());
-        self.shield
-            .set_rate_capabilities(reader.read_f32(), reader.read_f32());
-        self.shield.update_runtime(
-            reader.read_f32(),
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shield.set_reported_tier(shield_tier);
+        if self.shield.exists() {
+            let shield_tier = reader.read_byte();
+            self.shield.set_maximum(reader.read_f32());
+            self.shield
+                .set_rate_capabilities(reader.read_f32(), reader.read_f32());
+            self.shield.update_runtime(
+                reader.read_f32(),
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.shield.set_reported_tier(shield_tier);
+        }
 
         self.armor.set_exists(reader.read_byte() != 0x00);
-        let armor_tier = reader.read_byte();
-        self.armor.set_reduction(reader.read_f32());
-        let armor_status = SubsystemStatus::read(reader);
-        let armor_blocked_direct_damage_this_tick = reader.read_f32();
-        let armor_blocked_radiation_damage_this_tick = reader.read_f32();
-        self.armor.update_runtime(
-            armor_blocked_direct_damage_this_tick,
-            armor_blocked_radiation_damage_this_tick,
-            armor_status,
-        );
-        self.armor.set_reported_tier(armor_tier);
+        if self.armor.exists() {
+            let armor_tier = reader.read_byte();
+            self.armor.set_reduction(reader.read_f32());
+            let armor_status = SubsystemStatus::read(reader);
+            let armor_blocked_direct_damage_this_tick = reader.read_f32();
+            let armor_blocked_radiation_damage_this_tick = reader.read_f32();
+            self.armor.update_runtime(
+                armor_blocked_direct_damage_this_tick,
+                armor_blocked_radiation_damage_this_tick,
+                armor_status,
+            );
+            self.armor.set_reported_tier(armor_tier);
+        }
 
         self.repair.set_exists(reader.read_byte() != 0x00);
-        let repair_tier = reader.read_byte();
-        self.repair
-            .set_capabilities(reader.read_f32(), reader.read_f32());
-        self.repair.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.repair.set_reported_tier(repair_tier);
+        if self.repair.exists() {
+            let repair_tier = reader.read_byte();
+            self.repair
+                .set_capabilities(reader.read_f32(), reader.read_f32());
+            self.repair.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.repair.set_reported_tier(repair_tier);
+        }
 
         self.cargo.set_exists(reader.read_byte() != 0x00);
-        let cargo_tier = reader.read_byte();
-        self.cargo.set_maximums(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.cargo.update_runtime(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.cargo.set_reported_tier(cargo_tier);
+        if self.cargo.exists() {
+            let cargo_tier = reader.read_byte();
+            self.cargo.set_maximums(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.cargo.update_runtime(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+            self.cargo.set_reported_tier(cargo_tier);
+        }
 
         self.resource_miner.set_exists(reader.read_byte() != 0x00);
-        let resource_miner_tier = reader.read_byte();
-        self.resource_miner
-            .set_capabilities(reader.read_f32(), reader.read_f32());
-        self.resource_miner.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.resource_miner.set_reported_tier(resource_miner_tier);
+        if self.resource_miner.exists() {
+            let resource_miner_tier = reader.read_byte();
+            self.resource_miner
+                .set_capabilities(reader.read_f32(), reader.read_f32());
+            self.resource_miner.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.resource_miner.set_reported_tier(resource_miner_tier);
+        }
 
-        let structure_optimizer_exists = reader.read_byte() != 0x00;
-        let structure_optimizer_tier = reader.read_byte();
-        let structure_optimizer_reduction_percentage = reader.read_f32();
         self.structure_optimizer
-            .set_exists(structure_optimizer_exists);
-        self.structure_optimizer
-            .set_reduction_percentage(structure_optimizer_reduction_percentage);
-        self.structure_optimizer
-            .set_reported_tier(structure_optimizer_tier);
+            .set_exists(reader.read_byte() != 0x00);
+        if self.structure_optimizer.exists() {
+            let structure_optimizer_tier = reader.read_byte();
+            let structure_optimizer_reduction_percentage = reader.read_f32();
+            self.structure_optimizer
+                .set_reduction_percentage(structure_optimizer_reduction_percentage);
+            self.structure_optimizer
+                .set_reported_tier(structure_optimizer_tier);
+        }
     }
 
     pub(crate) fn deceased(&self) {
@@ -634,7 +659,7 @@ impl Controllable {
         self.tier_change_pending.store(reader.read_byte() != 0x00);
         self.tier_change_slot.read(reader);
         self.tier_change_target_tier.store(reader.read_byte());
-        self.remaining_tier_change_ticks.store(reader.read_int32());
+        self.remaining_tier_change_ticks.store(reader.read_uint16());
 
         self.energy_battery.update_runtime(
             reader.read_f32(),

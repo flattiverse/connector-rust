@@ -4,7 +4,7 @@ use crate::galaxy_hierarchy::{
     DynamicInterceptorLauncherSubsystem, DynamicInterceptorMagazineSubsystem,
     DynamicScannerSubsystem, DynamicShotFabricatorSubsystem, DynamicShotLauncherSubsystem,
     DynamicShotMagazineSubsystem, JumpDriveSubsystem, ModernShipControllable,
-    NebulaCollectorSubsystem, RailgunDirection, SubsystemBase, SystemExtIntern,
+    NebulaCollectorSubsystem, RailgunDirection, SubsystemBase, SubsystemExt, SystemExtIntern,
 };
 use crate::network::PacketReader;
 use crate::utils::Readable;
@@ -91,203 +91,225 @@ impl ClassicShipControllable {
 
     pub(crate) fn read_initial_state(&mut self, reader: &mut dyn PacketReader) {
         self.nebula_collector.set_exists(reader.read_byte() != 0x00);
-        let nebula_collector_tier = reader.read_byte();
-        self.nebula_collector
-            .set_capabilities(reader.read_f32(), reader.read_f32());
-        self.nebula_collector.update_runtime(
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.nebula_collector
-            .set_reported_tier(nebula_collector_tier);
+        if self.nebula_collector.exists() {
+            let nebula_collector_tier = reader.read_byte();
+            self.nebula_collector
+                .set_capabilities(reader.read_f32(), reader.read_f32());
+            self.nebula_collector.update_runtime(
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.nebula_collector
+                .set_reported_tier(nebula_collector_tier);
+        }
 
         self.main_scanner.set_exists(reader.read_byte() != 0x00);
-        let main_scanner_tier = reader.read_byte();
-        self.main_scanner.set_capabilities(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.main_scanner.update_runtime(
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.main_scanner.set_reported_tier(main_scanner_tier);
+        if self.main_scanner.exists() {
+            let main_scanner_tier = reader.read_byte();
+            self.main_scanner.set_capabilities(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.main_scanner.update_runtime(
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.main_scanner.set_reported_tier(main_scanner_tier);
+        }
 
         self.secondary_scanner
             .set_exists(reader.read_byte() != 0x00);
-        let secondary_scanner_tier = reader.read_byte();
-        self.secondary_scanner.set_capabilities(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.secondary_scanner.update_runtime(
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.secondary_scanner
-            .set_reported_tier(secondary_scanner_tier);
+        if self.secondary_scanner.exists() {
+            let secondary_scanner_tier = reader.read_byte();
+            self.secondary_scanner.set_capabilities(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.secondary_scanner.update_runtime(
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.secondary_scanner
+                .set_reported_tier(secondary_scanner_tier);
+        }
 
         self.engine.set_exists(reader.read_byte() != 0x00);
-        let engine_tier = reader.read_byte();
-        self.engine.set_maximum(reader.read_f32());
-        self.engine.update_runtime(
-            Vector::from_read(reader),
-            Vector::from_read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.engine.set_reported_tier(engine_tier);
+        if self.engine.exists() {
+            let engine_tier = reader.read_byte();
+            self.engine.set_maximum(reader.read_f32());
+            self.engine.update_runtime(
+                Vector::from_read(reader),
+                Vector::from_read(reader),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.engine.set_reported_tier(engine_tier);
+        }
 
         self.shot_launcher.set_exists(reader.read_byte() != 0x00);
-        let shot_launcher_tier = reader.read_byte();
-        self.shot_launcher.set_capabilities(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_uint16(),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_launcher.update_runtime(
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_launcher.set_reported_tier(shot_launcher_tier);
+        if self.shot_launcher.exists() {
+            let shot_launcher_tier = reader.read_byte();
+            self.shot_launcher.set_capabilities(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.shot_launcher.update_runtime(
+                Vector::from_read(reader),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.shot_launcher.set_reported_tier(shot_launcher_tier);
+        }
 
         self.shot_magazine.set_exists(reader.read_byte() != 0x00);
-        let shot_magazine_tier = reader.read_byte();
-        self.shot_magazine.set_maximum_shots(reader.read_f32());
-        self.shot_magazine
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.shot_magazine.set_reported_tier(shot_magazine_tier);
+        if self.shot_magazine.exists() {
+            let shot_magazine_tier = reader.read_byte();
+            self.shot_magazine.set_maximum_shots(reader.read_f32());
+            self.shot_magazine
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.shot_magazine.set_reported_tier(shot_magazine_tier);
+        }
 
         self.shot_fabricator.set_exists(reader.read_byte() != 0x00);
-        let shot_fabricator_tier = reader.read_byte();
-        let shot_fabricator_minimum_rate = reader.read_f32();
-        self.shot_fabricator.set_maximum_rate(reader.read_f32());
-        self.shot_fabricator.update_runtime(
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_fabricator.set_reported_tier(shot_fabricator_tier);
+        if self.shot_fabricator.exists() {
+            let shot_fabricator_tier = reader.read_byte();
+            self.shot_fabricator.set_maximum_rate(reader.read_f32());
+            self.shot_fabricator.update_runtime(
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.shot_fabricator.set_reported_tier(shot_fabricator_tier);
+        }
 
         self.interceptor_launcher
             .set_exists(reader.read_byte() != 0x00);
-        let interceptor_launcher_tier = reader.read_byte();
-        self.interceptor_launcher.set_capabilities(
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_uint16(),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.interceptor_launcher.update_runtime(
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.interceptor_launcher
-            .set_reported_tier(interceptor_launcher_tier);
+        if self.interceptor_launcher.exists() {
+            let interceptor_launcher_tier = reader.read_byte();
+            self.interceptor_launcher.set_capabilities(
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.interceptor_launcher.update_runtime(
+                Vector::from_read(reader),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.interceptor_launcher
+                .set_reported_tier(interceptor_launcher_tier);
+        }
 
         self.interceptor_magazine
             .set_exists(reader.read_byte() != 0x00);
-        let interceptor_magazine_tier = reader.read_byte();
-        self.interceptor_magazine
-            .set_maximum_shots(reader.read_f32());
-        self.interceptor_magazine
-            .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
-        self.interceptor_magazine
-            .set_reported_tier(interceptor_magazine_tier);
+        if self.interceptor_magazine.exists() {
+            let interceptor_magazine_tier = reader.read_byte();
+            self.interceptor_magazine
+                .set_maximum_shots(reader.read_f32());
+            self.interceptor_magazine
+                .update_runtime(reader.read_f32(), SubsystemStatus::read(reader));
+            self.interceptor_magazine
+                .set_reported_tier(interceptor_magazine_tier);
+        }
 
         self.interceptor_fabricator
             .set_exists(reader.read_byte() != 0x00);
-        let interceptor_fabricator_tier = reader.read_byte();
-        let interceptor_fabricator_minimum_rate = reader.read_f32();
-        self.interceptor_fabricator
-            .set_maximum_rate(reader.read_f32());
-        self.interceptor_fabricator.update_runtime(
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.interceptor_fabricator
-            .set_reported_tier(interceptor_fabricator_tier);
+        if self.interceptor_fabricator.exists() {
+            let interceptor_fabricator_tier = reader.read_byte();
+            self.interceptor_fabricator
+                .set_maximum_rate(reader.read_f32());
+            self.interceptor_fabricator.update_runtime(
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.interceptor_fabricator
+                .set_reported_tier(interceptor_fabricator_tier);
+        }
 
         self.railgun.set_exists(reader.read_byte() != 0x00);
-        let rail_gun_tier = reader.read_byte();
-        self.railgun.set_capabilities(
-            reader.read_f32(),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.railgun.update_runtime(
-            RailgunDirection::read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.railgun.set_reported_tier(rail_gun_tier);
+        if self.railgun.exists() {
+            let rail_gun_tier = reader.read_byte();
+            self.railgun.set_capabilities(
+                reader.read_f32(),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.railgun.update_runtime(
+                RailgunDirection::read(reader),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+            self.railgun.set_reported_tier(rail_gun_tier);
+        }
 
         self.jump_drive.set_exists(reader.read_byte() != 0x00);
-        let jump_drive_tier = reader.read_byte();
-        self.jump_drive.set_energy_cost(reader.read_f32());
-        self.jump_drive.set_reported_tier(jump_drive_tier);
+        if self.jump_drive.exists() {
+            let jump_drive_tier = reader.read_byte();
+            self.jump_drive.set_energy_cost(reader.read_f32());
+            self.jump_drive.set_reported_tier(jump_drive_tier);
+        }
 
         self.equipped_crystals[0] = reader.read_string();
         self.equipped_crystals[1] = reader.read_string();
