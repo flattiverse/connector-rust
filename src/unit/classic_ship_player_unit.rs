@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Cluster, RailgunDirection};
+use crate::galaxy_hierarchy::Cluster;
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractPlayerUnit, ClassicRailgunSubsystemInfo, ClassicShipEngineSubsystemInfo,
@@ -9,8 +9,7 @@ use crate::unit::{
     NebulaCollectorSubsystemInfo, PlayerUnit, PlayerUnitInternal, Unit, UnitCastTable,
     UnitHierarchy, UnitInternal, UnitKind,
 };
-use crate::utils::Readable;
-use crate::{GameError, SubsystemStatus, Vector};
+use crate::GameError;
 use std::sync::{Arc, Weak};
 
 /// Visible snapshot of a classic-ship player unit in a cluster.
@@ -142,156 +141,21 @@ impl UnitInternal for ClassicShipPlayerUnit {
     fn update_state(&self, reader: &mut dyn PacketReader) {
         self.parent.update_state(reader);
 
-        self.nebula_collector.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        self.nebula_collector.update_from_reader(reader);
+        self.main_scanner.update_from_reader(reader);
+        self.secondary_scanner.update_from_reader(reader);
+        self.engine.update_from_reader(reader);
 
-        self.main_scanner.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.secondary_scanner.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.engine.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            Vector::from_read(reader),
-            Vector::from_read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_launcher.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_uint16(),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-        self.shot_magazine.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-        self.shot_fabricator.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        self.shot_launcher.update_from_reader(reader);
+        self.shot_magazine.update_from_reader(reader);
+        self.shot_fabricator.update_from_reader(reader);
 
-        self.interceptor_launcher.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_uint16(),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            Vector::from_read(reader),
-            reader.read_uint16(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        self.interceptor_launcher.update_from_reader(reader);
+        self.interceptor_magazine.update_from_reader(reader);
+        self.interceptor_fabricator.update_from_reader(reader);
 
-        self.interceptor_magazine.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-        );
-
-        self.interceptor_fabricator.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.railgun.update(
-            reader.read_byte() != 0,
-            reader.read_f32(),
-            reader.read_f32(),
-            RailgunDirection::read(reader),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
-
-        self.jump_drive
-            .update(reader.read_byte() != 0, reader.read_f32());
+        self.railgun.update_from_reader(reader);
+        self.jump_drive.update_from_reader(reader);
     }
 }
 

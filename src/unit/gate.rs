@@ -13,9 +13,9 @@ pub struct Gate {
     parent: AbstractSteadyUnit,
     linked_id: Atomic<u16>,
     default_close: Atomic<bool>,
-    restore_ticks: Atomic<Option<i32>>,
+    restore_ticks: Atomic<Option<u16>>,
     closed: Atomic<bool>,
-    restore_remaining_ticks: Atomic<Option<i32>>, // optional on csharp side, -1 for null for now
+    restore_remaining_ticks: Atomic<Option<u16>>,
 }
 
 impl Gate {
@@ -29,7 +29,11 @@ impl Gate {
                 parent: AbstractSteadyUnit::new(cluster, name, reader)?,
                 linked_id: Atomic::from(reader.read_uint16()),
                 default_close: Atomic::from(reader.read_byte() != 0x00),
-                restore_ticks: Atomic::from(Some(reader.read_int32()).filter(|v| *v >= 0)),
+                restore_ticks: Atomic::from(if reader.read_byte() != 0x00 {
+                    Some(reader.read_uint16())
+                } else {
+                    None
+                }),
                 closed: Atomic::default(),
                 restore_remaining_ticks: Atomic::from(None),
             }
@@ -53,7 +57,7 @@ impl Gate {
 
     /// Optional configured restore delay in ticks.
     #[inline]
-    pub fn restore_ticks(&self) -> Option<i32> {
+    pub fn restore_ticks(&self) -> Option<u16> {
         self.restore_ticks.load()
     }
 
@@ -65,7 +69,7 @@ impl Gate {
 
     /// Remaining restore delay in ticks while a restore is armed.
     #[inline]
-    pub fn restore_remaining_ticks(&self) -> Option<i32> {
+    pub fn restore_remaining_ticks(&self) -> Option<u16> {
         self.restore_remaining_ticks.load()
     }
 }
@@ -81,9 +85,12 @@ impl UnitInternal for Gate {
 
         self.closed.store(reader.read_byte() != 0x00);
 
-        let restore_remaining_ticks = reader.read_int32();
-        self.restore_remaining_ticks
-            .store(Some(restore_remaining_ticks).filter(|v| *v >= 0));
+        if reader.read_byte() != 0x00 {
+            self.restore_remaining_ticks
+                .store(Some(reader.read_uint16()));
+        } else {
+            self.restore_remaining_ticks.store(None);
+        }
     }
 }
 

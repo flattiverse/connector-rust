@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a dynamic scanner subsystem on a scanned player unit.
@@ -129,6 +130,51 @@ impl DynamicScannerSubsystemInfo {
         self.consumed_neutrinos_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_byte() != 0x00,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -150,42 +196,23 @@ impl DynamicScannerSubsystemInfo {
         consumed_neutrinos_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.maximum_width.store(maximum_width);
-            self.maximum_length.store(maximum_length);
-            self.width_speed.store(width_speed);
-            self.length_speed.store(length_speed);
-            self.angle_speed.store(angle_speed);
-            self.active.store(active);
-            self.current_width.store(current_width);
-            self.current_length.store(current_length);
-            self.current_angle.store(current_angle);
-            self.target_width.store(target_width);
-            self.target_length.store(target_length);
-            self.target_angle.store(target_angle);
-            self.status.store(status);
-            self.consumed_energy_this_tick
-                .store(consumed_energy_this_tick);
-            self.consumed_ions_this_tick.store(consumed_ions_this_tick);
-            self.consumed_neutrinos_this_tick
-                .store(consumed_neutrinos_this_tick);
-        } else {
-            self.maximum_width.store_default();
-            self.maximum_length.store_default();
-            self.width_speed.store_default();
-            self.length_speed.store_default();
-            self.angle_speed.store_default();
-            self.active.store_default();
-            self.current_width.store_default();
-            self.current_length.store_default();
-            self.current_angle.store_default();
-            self.target_width.store_default();
-            self.target_length.store_default();
-            self.target_angle.store_default();
-            self.status.store_default();
-            self.consumed_energy_this_tick.store_default();
-            self.consumed_ions_this_tick.store_default();
-            self.consumed_neutrinos_this_tick.store_default();
-        }
+        self.maximum_width.store(maximum_width);
+        self.maximum_length.store(maximum_length);
+        self.width_speed.store(width_speed);
+        self.length_speed.store(length_speed);
+        self.angle_speed.store(angle_speed);
+        self.active.store(active);
+        self.current_width.store(current_width);
+        self.current_length.store(current_length);
+        self.current_angle.store(current_angle);
+        self.target_width.store(target_width);
+        self.target_length.store(target_length);
+        self.target_angle.store(target_angle);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
     }
 }

@@ -1,5 +1,6 @@
 use crate::galaxy_hierarchy::RailgunDirection;
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a railgun subsystem on a scanned player unit.
@@ -66,6 +67,33 @@ impl ClassicRailgunSubsystemInfo {
         self.consumed_neutrinos_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                RailgunDirection::read(reader),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                RailgunDirection::None,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -78,24 +106,14 @@ impl ClassicRailgunSubsystemInfo {
         consumed_neutrinos_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.energy_cost.store(energy_cost);
-            self.metal_cost.store(metal_cost);
-            self.direction.store(direction);
-            self.status.store(status);
-            self.consumed_energy_this_tick
-                .store(consumed_energy_this_tick);
-            self.consumed_ions_this_tick.store(consumed_ions_this_tick);
-            self.consumed_neutrinos_this_tick
-                .store(consumed_neutrinos_this_tick);
-        } else {
-            self.energy_cost.store(0.0);
-            self.metal_cost.store(0.0);
-            self.direction.store(RailgunDirection::None);
-            self.status.store(SubsystemStatus::Off);
-            self.consumed_energy_this_tick.store(0.0);
-            self.consumed_ions_this_tick.store(0.0);
-            self.consumed_neutrinos_this_tick.store(0.0);
-        }
+        self.energy_cost.store(energy_cost);
+        self.metal_cost.store(metal_cost);
+        self.direction.store(direction);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
     }
 }

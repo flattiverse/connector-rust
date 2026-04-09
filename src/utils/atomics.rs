@@ -447,3 +447,36 @@ impl Atomar for Option<i32> {
         }
     }
 }
+
+impl Atomar for Option<u16> {
+    type Container = AtomicU32;
+
+    fn into_container(self) -> Self::Container {
+        let container = Self::Container::default();
+        self.store(&container, Ordering::Relaxed);
+        container
+    }
+
+    fn store(self, container: &Self::Container, ordering: Ordering) {
+        match self {
+            Some(value) => {
+                let bytes = value.to_be_bytes();
+                container.store(
+                    u32::from_be_bytes([0x00, 0x00, bytes[0], bytes[1]]),
+                    ordering,
+                );
+            }
+            None => container.store(u32::MAX, ordering),
+        }
+    }
+
+    fn load(container: &Self::Container, ordering: Ordering) -> Self {
+        let value = container.load(ordering);
+        if value == u32::MAX {
+            None
+        } else {
+            let bytes = value.to_be_bytes();
+            Some(u16::from_be_bytes([bytes[2], bytes[3]]))
+        }
+    }
+}

@@ -12,7 +12,7 @@ use std::sync::{Arc, Weak};
 #[derive(Debug, Clone)]
 pub struct Flag {
     pub(crate) parent: AbstractTargetUnit,
-    grace_ticks: Atomic<i32>,
+    grace_ticks: Atomic<u16>,
     active: Atomic<bool>,
 }
 
@@ -34,7 +34,7 @@ impl Flag {
 
     /// Configured flag grace time in ticks.
     #[inline]
-    pub fn grace_ticks(&self) -> i32 {
+    pub fn grace_ticks(&self) -> u16 {
         self.grace_ticks.load()
     }
 

@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a dynamic shot magazine subsystem on a scanned player unit.
@@ -35,6 +36,20 @@ impl DynamicShotMagazineSubsystemInfo {
         self.status.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+            );
+        } else {
+            self.update(false, 0.0, 0.0, SubsystemStatus::Off);
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -43,11 +58,8 @@ impl DynamicShotMagazineSubsystemInfo {
         status: SubsystemStatus,
     ) {
         self.exists.store(exists);
-        self.maximum_shots
-            .store(if exists { maximum_shots } else { 0.0 });
-        self.current_shots
-            .store(if exists { current_shots } else { 0.0 });
-        self.status
-            .store(if exists { status } else { SubsystemStatus::Off });
+        self.maximum_shots.store(maximum_shots);
+        self.current_shots.store(current_shots);
+        self.status.store(status);
     }
 }

@@ -8,8 +8,8 @@ use crate::unit::{
     RepairSubsystemInfo, ResourceMinerSubsystemInfo, ShieldSubsystemInfo, Unit, UnitCastTable,
     UnitHierarchy, UnitInternal,
 };
-use crate::utils::{Let, Readable};
-use crate::{GameError, SubsystemStatus};
+use crate::utils::Let;
+use crate::GameError;
 use std::sync::{Arc, Weak};
 
 pub(crate) trait PlayerUnitInternal {

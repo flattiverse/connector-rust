@@ -1,3 +1,4 @@
+use crate::network::PacketReader;
 use crate::utils::Atomic;
 
 /// Visible snapshot of a jump-drive subsystem on a scanned player unit.
@@ -21,12 +22,17 @@ impl JumpDriveSubsystemInfo {
         self.energy_cost.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(true, reader.read_f32());
+        } else {
+            self.update(false, 0.0);
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(&self, exists: bool, energy_cost: f32) {
         self.exists.store(exists);
-        if exists {
-            self.energy_cost.store(energy_cost);
-        } else {
-            self.energy_cost.store(0.0);
-        }
+        self.energy_cost.store(energy_cost);
     }
 }

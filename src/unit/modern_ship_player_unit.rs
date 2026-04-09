@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::{Cluster, ModernShipGeometry, RailgunDirection};
+use crate::galaxy_hierarchy::{Cluster, ModernShipGeometry};
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractPlayerUnit, DynamicInterceptorFabricatorSubsystemInfo,
@@ -9,8 +9,7 @@ use crate::unit::{
     StaticInterceptorMagazineSubsystemInfo, StaticShotMagazineSubsystemInfo, Unit, UnitCastTable,
     UnitHierarchy, UnitInternal, UnitKind,
 };
-use crate::utils::Readable;
-use crate::{GameError, SubsystemStatus, Vector};
+use crate::GameError;
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
@@ -121,53 +120,14 @@ impl UnitInternal for ModernShipPlayerUnit {
     fn update_state(&self, reader: &mut dyn PacketReader) {
         self.parent.update_state(reader);
 
-        self.nebula_collector.update(
-            reader.read_byte() != 0x00,
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            SubsystemStatus::read(reader),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-            reader.read_f32(),
-        );
+        self.nebula_collector.update_from_reader(reader);
 
         for scanner in &self.scanners {
-            scanner.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                SubsystemStatus::read(reader),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-            );
+            scanner.update_from_reader(reader);
         }
 
         for engine in &self.engines {
-            engine.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                SubsystemStatus::read(reader),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-            );
+            engine.update_from_reader(reader);
         }
 
         for ((launcher, magazine), fabricator) in self
@@ -188,59 +148,16 @@ impl UnitInternal for ModernShipPlayerUnit {
                     .zip(self.interceptor_fabricators.iter().map(Deref::deref)),
             )
         {
-            launcher.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_uint16(),
-                reader.read_uint16(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-                Vector::from_read(reader),
-                reader.read_uint16(),
-                reader.read_f32(),
-                reader.read_f32(),
-                SubsystemStatus::read(reader),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-            );
-            magazine.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                SubsystemStatus::read(reader),
-            );
-            fabricator.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                SubsystemStatus::read(reader),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-            );
+            launcher.update_from_reader(reader);
+            magazine.update_from_reader(reader);
+            fabricator.update_from_reader(reader);
         }
 
         for railgun in &self.railguns {
-            railgun.update(
-                reader.read_byte() != 0x00,
-                reader.read_f32(),
-                reader.read_f32(),
-                RailgunDirection::read(reader),
-                SubsystemStatus::read(reader),
-                reader.read_f32(),
-                reader.read_f32(),
-                reader.read_f32(),
-            );
+            railgun.update_from_reader(reader);
         }
 
-        self.jump_drive
-            .update(reader.read_byte() != 0x00, reader.read_f32());
+        self.jump_drive.update_from_reader(reader);
     }
 }
 

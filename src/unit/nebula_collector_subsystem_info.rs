@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::SubsystemStatus;
 
 /// Visible snapshot of a nebula collector subsystem on a scanned player unit.
@@ -83,6 +84,37 @@ impl NebulaCollectorSubsystemInfo {
         self.collected_hue_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                0.0,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -97,28 +129,16 @@ impl NebulaCollectorSubsystemInfo {
         collected_hue_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.minimum_rate.store(minimum_rate);
-            self.maximum_rate.store(maximum_rate);
-            self.rate.store(rate);
-            self.status.store(status);
-            self.consumed_energy_this_tick
-                .store(consumed_energy_this_tick);
-            self.consumed_ions_this_tick.store(consumed_ions_this_tick);
-            self.consumed_neutrinos_this_tick
-                .store(consumed_neutrinos_this_tick);
-            self.collected_this_tick.store(collected_this_tick);
-            self.collected_hue_this_tick.store(collected_hue_this_tick);
-        } else {
-            self.minimum_rate.store(0.0);
-            self.maximum_rate.store(0.0);
-            self.rate.store(0.0);
-            self.status.store(SubsystemStatus::Off);
-            self.consumed_energy_this_tick.store(0.0);
-            self.consumed_ions_this_tick.store(0.0);
-            self.consumed_neutrinos_this_tick.store(0.0);
-            self.collected_this_tick.store(0.0);
-            self.collected_hue_this_tick.store(0.0);
-        }
+        self.minimum_rate.store(minimum_rate);
+        self.maximum_rate.store(maximum_rate);
+        self.rate.store(rate);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
+        self.collected_this_tick.store(collected_this_tick);
+        self.collected_hue_this_tick.store(collected_hue_this_tick);
     }
 }

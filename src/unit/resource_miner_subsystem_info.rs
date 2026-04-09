@@ -128,6 +128,7 @@ impl ResourceMinerSubsystemInfo {
         }
     }
 
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -144,33 +145,19 @@ impl ResourceMinerSubsystemInfo {
         mined_silicon_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.minimum_rate.store(minimum_rate);
-            self.maximum_rate.store(maximum_rate);
-            self.rate.store(rate);
-            self.status.store(status);
-            self.consumed_energy_this_tick
-                .store(consumed_energy_this_tick);
-            self.consumed_ions_this_tick.store(consumed_ions_this_tick);
-            self.consumed_neutrinos_this_tick
-                .store(consumed_neutrinos_this_tick);
-            self.mined_metal_this_tick.store(mined_metal_this_tick);
-            self.mined_carbon_this_tick.store(mined_carbon_this_tick);
-            self.mined_hydrogen_this_tick
-                .store(mined_hydrogen_this_tick);
-            self.mined_silicon_this_tick.store(mined_silicon_this_tick);
-        } else {
-            self.minimum_rate.store(0.0);
-            self.maximum_rate.store(0.0);
-            self.rate.store(0.0);
-            self.status.store(SubsystemStatus::Off);
-            self.consumed_energy_this_tick.store(0.0);
-            self.consumed_ions_this_tick.store(0.0);
-            self.consumed_neutrinos_this_tick.store(0.0);
-            self.mined_metal_this_tick.store(0.0);
-            self.mined_carbon_this_tick.store(0.0);
-            self.mined_hydrogen_this_tick.store(0.0);
-            self.mined_silicon_this_tick.store(0.0);
-        }
+        self.minimum_rate.store(minimum_rate);
+        self.maximum_rate.store(maximum_rate);
+        self.rate.store(rate);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
+        self.mined_metal_this_tick.store(mined_metal_this_tick);
+        self.mined_carbon_this_tick.store(mined_carbon_this_tick);
+        self.mined_hydrogen_this_tick
+            .store(mined_hydrogen_this_tick);
+        self.mined_silicon_this_tick.store(mined_silicon_this_tick);
     }
 }

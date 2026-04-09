@@ -1,4 +1,5 @@
-use crate::utils::Atomic;
+use crate::network::PacketReader;
+use crate::utils::{Atomic, Readable};
 use crate::{SubsystemStatus, Vector};
 
 /// Visible snapshot of a configurable shot launcher on a scanned player unit.
@@ -129,6 +130,51 @@ impl DynamicShotLauncherSubsystemInfo {
         self.consumed_neutrinos_this_tick.load()
     }
 
+    pub(crate) fn update_from_reader(&self, reader: &mut dyn PacketReader) {
+        if reader.read_byte() != 0x00 {
+            self.update(
+                true,
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_uint16(),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+                Vector::from_read(reader),
+                reader.read_uint16(),
+                reader.read_f32(),
+                reader.read_f32(),
+                SubsystemStatus::read(reader),
+                reader.read_f32(),
+                reader.read_f32(),
+                reader.read_f32(),
+            );
+        } else {
+            self.update(
+                false,
+                0.0,
+                0.0,
+                0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                Vector::default(),
+                0,
+                0.0,
+                0.0,
+                SubsystemStatus::Off,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+    }
+
+    #[instrument(level = "debug", skip(self))]
     pub(crate) fn update(
         &self,
         exists: bool,
@@ -150,44 +196,25 @@ impl DynamicShotLauncherSubsystemInfo {
         consumed_neutrinos_this_tick: f32,
     ) {
         self.exists.store(exists);
-        if exists {
-            self.minimum_relative_movement
-                .store(minimum_relative_movement);
-            self.maximum_relative_movement
-                .store(maximum_relative_movement);
-            self.minimum_ticks.store(minimum_ticks);
-            self.maximum_ticks.store(maximum_ticks);
-            self.minimum_load.store(minimum_load);
-            self.maximum_load.store(maximum_load);
-            self.minimum_damage.store(minimum_damage);
-            self.maximum_damage.store(maximum_damage);
-            self.relative_movement.store(relative_movement);
-            self.ticks.store(ticks);
-            self.load.store(load);
-            self.damage.store(damage);
-            self.status.store(status);
-            self.consumed_energy_this_tick
-                .store(consumed_energy_this_tick);
-            self.consumed_ions_this_tick.store(consumed_ions_this_tick);
-            self.consumed_neutrinos_this_tick
-                .store(consumed_neutrinos_this_tick);
-        } else {
-            self.minimum_relative_movement.store_default();
-            self.maximum_relative_movement.store_default();
-            self.minimum_ticks.store_default();
-            self.maximum_ticks.store_default();
-            self.minimum_load.store_default();
-            self.maximum_load.store_default();
-            self.minimum_damage.store_default();
-            self.maximum_damage.store_default();
-            self.relative_movement.store_default();
-            self.ticks.store_default();
-            self.load.store_default();
-            self.damage.store_default();
-            self.status.store_default();
-            self.consumed_energy_this_tick.store_default();
-            self.consumed_ions_this_tick.store_default();
-            self.consumed_neutrinos_this_tick.store_default();
-        }
+        self.minimum_relative_movement
+            .store(minimum_relative_movement);
+        self.maximum_relative_movement
+            .store(maximum_relative_movement);
+        self.minimum_ticks.store(minimum_ticks);
+        self.maximum_ticks.store(maximum_ticks);
+        self.minimum_load.store(minimum_load);
+        self.maximum_load.store(maximum_load);
+        self.minimum_damage.store(minimum_damage);
+        self.maximum_damage.store(maximum_damage);
+        self.relative_movement.store(relative_movement);
+        self.ticks.store(ticks);
+        self.load.store(load);
+        self.damage.store(damage);
+        self.status.store(status);
+        self.consumed_energy_this_tick
+            .store(consumed_energy_this_tick);
+        self.consumed_ions_this_tick.store(consumed_ions_this_tick);
+        self.consumed_neutrinos_this_tick
+            .store(consumed_neutrinos_this_tick);
     }
 }
