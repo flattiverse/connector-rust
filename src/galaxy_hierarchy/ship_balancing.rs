@@ -1,6 +1,13 @@
 pub struct ShipBalancing;
 
 impl ShipBalancing {
+    const GRAVITY_BASE: f32 = 0.0023762376;
+    const GRAVITY_STRUCTURAL_LOAD_FACTOR: f32 = 0.037128713;
+
+    pub const fn calculate_gravity(effective_load: f32) -> f32 {
+        Self::GRAVITY_BASE + Self::GRAVITY_STRUCTURAL_LOAD_FACTOR * effective_load / 100.0
+    }
+
     pub const fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {
         debug_assert!(
             value.is_normal() && value >= 0.0,

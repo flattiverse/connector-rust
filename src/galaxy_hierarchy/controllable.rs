@@ -387,14 +387,15 @@ impl Controllable {
     // TODO StructuralLoadFor
     // TODO GetProjectedRawStructuralLoad
 
-    /// Gravity emitted by the live runtime of this controllable.
-    #[inline]
-    pub fn gravity(&self) -> f32 {
-        match self.specialization() {
-            ControllableSpecialization::ClassicShip(_) => 0.0012,
-            ControllableSpecialization::ModernShip(_) => 0.0012,
-        }
-    }
+    // TODO ShipBalancing.CalculateGravity(CurrentEffectiveStructuralLoad)
+    ///// Gravity emitted by the live runtime of this controllable.
+    //#[inline]
+    //pub fn gravity(&self) -> f32 {
+    //    match self.specialization() {
+    //        ControllableSpecialization::ClassicShip(_) => 0.0012,
+    //        ControllableSpecialization::ModernShip(_) => 0.0012,
+    //    }
+    //}
 
     /// Collision radius of the live runtime of this controllable.
     #[inline]

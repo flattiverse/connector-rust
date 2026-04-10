@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::Cluster;
+use crate::galaxy_hierarchy::{Cluster, ShipBalancing};
 use crate::network::PacketReader;
 use crate::unit::{
     AbstractPlayerUnit, ClassicRailgunSubsystemInfo, ClassicShipEngineSubsystemInfo,
@@ -35,6 +35,8 @@ pub struct ClassicShipPlayerUnit {
 }
 
 impl ClassicShipPlayerUnit {
+    const STARTING_EFFECTIVE_STRUCTURAL_LOAD: f32 = 22.0;
+
     pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
@@ -185,6 +187,16 @@ impl Unit for ClassicShipPlayerUnit {
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::ClassicShipPlayerUnit
+    }
+
+    fn gravity(&self) -> f32 {
+        if let Some(controllable) = self.try_get_own_controllable() {
+            // controllable.gravity()
+            let _ = controllable;
+            ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+        } else {
+            ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+        }
     }
 }
 

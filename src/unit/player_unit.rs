@@ -1,5 +1,6 @@
 use crate::galaxy_hierarchy::{
-    Cluster, ControllableInfo, ControllableInfoId, Player, PlayerId, Team,
+    Cluster, Controllable, ControllableId, ControllableInfo, ControllableInfoId, Player, PlayerId,
+    Team,
 };
 use crate::network::PacketReader;
 use crate::unit::{
@@ -103,6 +104,11 @@ pub trait PlayerUnit: PlayerUnitInternal + MobileUnit {
     #[inline]
     fn resource_miner(&self) -> &ResourceMinerSubsystemInfo {
         PlayerUnitInternal::parent(self).resource_miner()
+    }
+
+    #[inline]
+    fn try_get_own_controllable(&self) -> Option<Arc<Controllable>> {
+        PlayerUnitInternal::parent(self).try_get_own_controllable()
     }
 }
 
@@ -304,5 +310,18 @@ impl PlayerUnit for AbstractPlayerUnit {
     #[inline]
     fn resource_miner(&self) -> &ResourceMinerSubsystemInfo {
         &self.resource_miner
+    }
+
+    fn try_get_own_controllable(&self) -> Option<Arc<Controllable>> {
+        let player = self.player();
+        let galaxy = player.galaxy();
+
+        if galaxy.player().id() != player.id() {
+            None
+        } else {
+            galaxy
+                .get_controllable_opt(ControllableId(self.controllable_info().id().0))
+                .filter(|controllable| controllable.kind() == self.kind())
+        }
     }
 }
