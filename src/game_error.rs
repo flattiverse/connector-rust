@@ -79,6 +79,7 @@ pub enum GameErrorKind {
     /// Persistent storage is currently unavailable for this login attempt.
     PersistenceUnavailable,
     ServerFullOfPlayerKind(Option<PlayerKind>),
+    /// The account already has an active regular player session in a galaxy.
     AccountAlreadyLoggedIn,
     SessionsExhausted,
     InvalidData {
@@ -166,6 +167,8 @@ pub enum GameErrorKind {
     /// Thrown when another binary message is sent before the target player has acknowledged the
     /// binary channel with a binary reply.
     BinaryChatAckRequired,
+    /// The requested action targets a controllable that is currently rebuilding one subsystem.
+    ControllableIsRebuilding,
     /// Thrown when one subsystem-metadata usage evaluation receives the same component kind more
     /// than once.
     DuplicateSubsystemComponentValue {
@@ -262,6 +265,7 @@ impl Display for GameErrorKind {
             GameErrorKind::StaticMapRebuildInProgress =>  "[0x3C] The galaxy is currently rebuilding its static map data.",
             GameErrorKind::StaticMapRebuildLocked =>  "[0x3D] Static map rebuilding is currently blocked by the tournament state.",
             GameErrorKind::BinaryChatAckRequired =>  "[0x3E] Target player has not yet acknowledged binary chat.",
+            GameErrorKind::ControllableIsRebuilding =>  "[0x3F] This controllable is currently rebuilding and cannot execute commands.",
             GameErrorKind::DuplicateSubsystemComponentValue {component_kind} => return write!(f, "[0x40] The subsystem component \"{component_kind:?}\" was supplied more than once."),
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
         })
@@ -327,6 +331,7 @@ impl From<&mut dyn PacketReader> for GameErrorKind {
             0x3C => GameErrorKind::StaticMapRebuildInProgress,
             0x3D => GameErrorKind::StaticMapRebuildLocked,
             0x3E => GameErrorKind::BinaryChatAckRequired,
+            0x3F => GameErrorKind::ControllableIsRebuilding,
             0x40 => GameErrorKind::DuplicateSubsystemComponentValue {
                 component_kind: SubsystemComponentKind::from_primitive(reader.read_byte()),
             },

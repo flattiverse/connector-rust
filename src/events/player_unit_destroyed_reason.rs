@@ -30,8 +30,6 @@ pub enum PlayerUnitDestroyedReason {
     ShotByEnemyPlayerUnit = 0x38,
     /// Destroyed by friendly-fire weapon damage.
     ShotByFriendlyPlayerUnit = 0x39,
-    /// Temporarily taken offline because one subsystem is being rebuilt.
-    Rebuilding = 0x40,
 
     #[num_enum(catch_all)]
     Unknown(u8),

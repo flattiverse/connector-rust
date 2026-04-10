@@ -1041,6 +1041,7 @@ impl Galaxy {
         let cluster = self.clusters.get(cluster);
 
         if let Some(controllable) = self.controllables.remove_opt(id) {
+            // TODO refresh logic not yet implemented
             controllable.deactivate();
         }
 
