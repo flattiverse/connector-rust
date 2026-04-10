@@ -9,7 +9,7 @@ use crate::unit::{
     RepairSubsystemInfo, ResourceMinerSubsystemInfo, ShieldSubsystemInfo, Unit, UnitCastTable,
     UnitHierarchy, UnitInternal,
 };
-use crate::utils::Let;
+use crate::utils::{Atomic, Let};
 use crate::GameError;
 use std::sync::{Arc, Weak};
 
@@ -106,6 +106,12 @@ pub trait PlayerUnit: PlayerUnitInternal + MobileUnit {
         PlayerUnitInternal::parent(self).resource_miner()
     }
 
+    /// Exact effective structural load of the visible unit as reported by the server.
+    #[inline]
+    fn effective_structural_load(&self) -> f32 {
+        PlayerUnitInternal::parent(self).effective_structural_load()
+    }
+
     #[inline]
     fn try_get_own_controllable(&self) -> Option<Arc<Controllable>> {
         PlayerUnitInternal::parent(self).try_get_own_controllable()
@@ -129,6 +135,7 @@ pub(crate) struct AbstractPlayerUnit {
     repair: RepairSubsystemInfo,
     cargo: CargoSubsystemInfo,
     resource_miner: ResourceMinerSubsystemInfo,
+    effective_structure_load: Atomic<f32>,
 }
 
 impl AbstractPlayerUnit {
@@ -163,6 +170,7 @@ impl AbstractPlayerUnit {
                 repair: RepairSubsystemInfo::default(),
                 cargo: CargoSubsystemInfo::default(),
                 resource_miner: ResourceMinerSubsystemInfo::default(),
+                effective_structure_load: Atomic::from(0.0),
                 parent,
             }
         }))
@@ -196,6 +204,8 @@ impl UnitInternal for AbstractPlayerUnit {
         self.repair.update_from_reader(reader);
         self.cargo.update_from_reader(reader);
         self.resource_miner.update_from_reader(reader);
+
+        self.effective_structure_load.store(reader.read_f32());
     }
 }
 
@@ -323,5 +333,10 @@ impl PlayerUnit for AbstractPlayerUnit {
                 .get_controllable_opt(ControllableId(self.controllable_info().id().0))
                 .filter(|controllable| controllable.kind() == self.kind())
         }
+    }
+
+    #[inline]
+    fn effective_structural_load(&self) -> f32 {
+        self.effective_structure_load.load()
     }
 }

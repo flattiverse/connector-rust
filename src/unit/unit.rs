@@ -340,6 +340,12 @@ pub trait Unit: UnitInternal + UnitCastTable + UnitHierarchy + Debug + Send + Sy
         self.parent().gravity()
     }
 
+    /// Maximum speed of the unit, if the runtime exposes such a limit.
+    #[inline]
+    fn speed_limit(&self) -> f32 {
+        self.parent().speed_limit()
+    }
+
     /// The mobility of the unit.
     #[inline]
     fn mobility(&self) -> Mobility {
@@ -734,6 +740,11 @@ impl Unit for AbstractUnit {
     #[inline]
     fn full_state_known(&self) -> bool {
         self.full_state_known.load()
+    }
+
+    #[inline]
+    fn speed_limit(&self) -> f32 {
+        0.0
     }
 }
 

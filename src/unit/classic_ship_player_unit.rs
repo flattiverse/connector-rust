@@ -36,6 +36,7 @@ pub struct ClassicShipPlayerUnit {
 
 impl ClassicShipPlayerUnit {
     const STARTING_EFFECTIVE_STRUCTURAL_LOAD: f32 = 22.0;
+    const STARTING_RADIUS: f32 = 14.0;
 
     pub(crate) fn new(
         cluster: Weak<Cluster>,
@@ -184,18 +185,44 @@ impl UnitHierarchy for ClassicShipPlayerUnit {
 }
 
 impl Unit for ClassicShipPlayerUnit {
+    fn radius(&self) -> f32 {
+        if !self.full_state_known() {
+            Self::STARTING_RADIUS
+        } else {
+            ShipBalancing::calculate_radius(self.effective_structural_load())
+        }
+    }
+
+    fn speed_limit(&self) -> f32 {
+        if self.full_state_known() {
+            ShipBalancing::calculate_classic_speed_limit(self.effective_structural_load())
+        } else {
+            ShipBalancing::calculate_classic_speed_limit(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+        }
+    }
+
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::ClassicShipPlayerUnit
     }
 
+    #[inline]
     fn gravity(&self) -> f32 {
         if let Some(controllable) = self.try_get_own_controllable() {
+            // TODO
             // controllable.gravity()
             let _ = controllable;
-            ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+            if self.full_state_known() {
+                ShipBalancing::calculate_gravity(self.effective_structural_load())
+            } else {
+                ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+            }
         } else {
-            ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+            if self.full_state_known() {
+                ShipBalancing::calculate_gravity(self.effective_structural_load())
+            } else {
+                ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
+            }
         }
     }
 }

@@ -50,6 +50,12 @@ impl UnitInternal for AbstractStormWhirl {
     fn parent(&self) -> &dyn Unit {
         &self.parent
     }
+
+    fn update_movement(&self, reader: &mut dyn PacketReader) {
+        // because it does not read angle and angular velocity, no parent call
+        self.parent.position.read(reader);
+        self.parent.movement.read(reader);
+    }
 }
 
 impl UnitCastTable for AbstractStormWhirl {

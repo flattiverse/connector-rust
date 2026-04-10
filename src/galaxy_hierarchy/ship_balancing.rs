@@ -4,8 +4,20 @@ impl ShipBalancing {
     const GRAVITY_BASE: f32 = 0.0023762376;
     const GRAVITY_STRUCTURAL_LOAD_FACTOR: f32 = 0.037128713;
 
+    pub const fn calculate_radius(effective_load: f32) -> f32 {
+        1. + 47. * effective_load / 100.
+    }
+
     pub const fn calculate_gravity(effective_load: f32) -> f32 {
         Self::GRAVITY_BASE + Self::GRAVITY_STRUCTURAL_LOAD_FACTOR * effective_load / 100.0
+    }
+
+    pub fn calculate_modern_speed_limit(effective_load: f32) -> f32 {
+        6.5f32 - 2. * (effective_load / 100f32).powf(0.8f32)
+    }
+
+    pub fn calculate_classic_speed_limit(effective_load: f32) -> f32 {
+        6f32 - 2. * (effective_load / 100f32).powf(0.8f32)
     }
 
     pub const fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {
