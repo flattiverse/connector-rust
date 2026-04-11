@@ -2,7 +2,7 @@ use crate::galaxy_hierarchy::{
     ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
     Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, ModernShipControllable,
     ModernShipGeometry, RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem,
-    StructureOptimizerSubsystem, SubsystemExt, SystemExtIntern,
+    StructureOptimizerSubsystem, SubsystemExt, SubsystemTierInfo, SystemExtIntern,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;
@@ -38,6 +38,7 @@ pub struct Controllable {
     tier_change_slot: Atomic<SubsystemSlot>,
     tier_change_target_tier: Atomic<u8>,
     remaining_tier_change_ticks: Atomic<u16>,
+    effective_structure_load: Atomic<f32>,
     position: Atomic<Vector>,
     movement: Atomic<Vector>,
     angle: Atomic<f32>,
@@ -87,6 +88,7 @@ impl Controllable {
             tier_change_slot: Atomic::from_reader(reader),
             tier_change_target_tier: Atomic::from(reader.read_byte()),
             remaining_tier_change_ticks: Atomic::from(reader.read_uint16()),
+            effective_structure_load: Atomic::from(reader.read_f32()),
             hull: HullSubsystem::create_classic_ship_hull(Weak::default()),
             shield: ShieldSubsystem::create_classic_ship_shield(Weak::default()),
             armor: ArmorSubsystem::create_classic_ship_armor(Weak::default()),
@@ -380,6 +382,12 @@ impl Controllable {
     //     }
     // }
 
+    /// Effective structural load of the current owner-side configuration as reported by the server.
+    #[inline]
+    pub fn effective_structure_load(&self) -> f32 {
+        self.effective_structure_load.load()
+    }
+
     // TODO GetTierChangeTargetTier
     // TODO GetRemainingTierChangeTicks
     // TODO CalculateProjectedEffectiveStructuralLoad
@@ -388,22 +396,33 @@ impl Controllable {
     // TODO GetProjectedRawStructuralLoad
 
     // TODO ShipBalancing.CalculateGravity(CurrentEffectiveStructuralLoad)
-    ///// Gravity emitted by the live runtime of this controllable.
-    //#[inline]
-    //pub fn gravity(&self) -> f32 {
-    //    match self.specialization() {
-    //        ControllableSpecialization::ClassicShip(_) => 0.0012,
-    //        ControllableSpecialization::ModernShip(_) => 0.0012,
-    //    }
-    //}
+
+    /// Gravity emitted by the live runtime of this controllable.
+    #[inline]
+    pub fn gravity(&self) -> f32 {
+        SubsystemTierInfo::calculate_gravity(self.effective_structure_load())
+    }
 
     /// Collision radius of the live runtime of this controllable.
     #[inline]
     pub fn size(&self) -> f32 {
-        match self.specialization() {
-            ControllableSpecialization::ClassicShip(_) => 14.0,
-            ControllableSpecialization::ModernShip(_) => ModernShipGeometry::RADIUS,
+        SubsystemTierInfo::calculate_radius(self.effective_structure_load())
+    }
+
+    #[inline]
+    pub fn speed_limit(&self) -> f32 {
+        match self.specialization {
+            ControllableSpecialization::ClassicShip(_) => {
+                SubsystemTierInfo::calculate_classic_speed_limit(self.effective_structure_load())
+            }
+            ControllableSpecialization::ModernShip(_) => {
+                SubsystemTierInfo::calculate_modern_speed_limit(self.effective_structure_load())
+            }
         }
+    }
+
+    pub fn engine_efficiency(&self) -> f32 {
+        SubsystemTierInfo::calculate_engine_efficiency(self.effective_structure_load())
     }
 
     /// Requests that this controllable enters the world again after initial registration or after a

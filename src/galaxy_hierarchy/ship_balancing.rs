@@ -12,12 +12,16 @@ impl ShipBalancing {
         Self::GRAVITY_BASE + Self::GRAVITY_STRUCTURAL_LOAD_FACTOR * effective_load / 100.0
     }
 
+    pub fn calculate_classic_speed_limit(effective_load: f32) -> f32 {
+        6f32 - 2. * (effective_load / 100f32).powf(0.8f32)
+    }
+
     pub fn calculate_modern_speed_limit(effective_load: f32) -> f32 {
         6.5f32 - 2. * (effective_load / 100f32).powf(0.8f32)
     }
 
-    pub fn calculate_classic_speed_limit(effective_load: f32) -> f32 {
-        6f32 - 2. * (effective_load / 100f32).powf(0.8f32)
+    pub fn calculate_engine_efficiency(effective_load: f32) -> f32 {
+        1.2_f32 - 0.45 * (effective_load / 100.0f32).powf(0.85)
     }
 
     pub const fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {

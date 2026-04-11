@@ -1,4 +1,4 @@
-use crate::galaxy_hierarchy::SubsystemKind;
+use crate::galaxy_hierarchy::{ShipBalancing, SubsystemKind};
 
 pub struct SubsystemTierInfo {
     system_kind: SubsystemKind,
@@ -9,6 +9,37 @@ pub struct SubsystemTierInfo {
     // TODO downgrade_cost: Costs,
     // TODO properties: Vec<SubsystemPropertyInfo>,
     description: String,
+}
+impl SubsystemTierInfo {
+    /// Calculates the resulting ship radius for the supplied effective structural load.
+    #[inline]
+    pub fn calculate_radius(effective_structural_load: f32) -> f32 {
+        ShipBalancing::calculate_radius(effective_structural_load)
+    }
+
+    /// Calculates the resulting ship gravity for the supplied effective structural load.
+    #[inline]
+    pub fn calculate_gravity(effective_structural_load: f32) -> f32 {
+        ShipBalancing::calculate_gravity(effective_structural_load)
+    }
+
+    /// Calculates the classic-ship speed limit for the supplied effective structural load.
+    #[inline]
+    pub fn calculate_classic_speed_limit(effective_structural_load: f32) -> f32 {
+        ShipBalancing::calculate_classic_speed_limit(effective_structural_load)
+    }
+
+    /// Calculates the modern-ship speed limit for the supplied effective structural load.
+    #[inline]
+    pub fn calculate_modern_speed_limit(effective_structural_load: f32) -> f32 {
+        ShipBalancing::calculate_modern_speed_limit(effective_structural_load)
+    }
+
+    /// Calculates the engine-efficiency multiplier for the supplied effective structural load.
+    #[inline]
+    pub fn calculate_engine_efficiency(effective_structural_load: f32) -> f32 {
+        ShipBalancing::calculate_engine_efficiency(effective_structural_load)
+    }
 }
 
 /// Identifies one configurable or runtime-relevant subsystem component.
