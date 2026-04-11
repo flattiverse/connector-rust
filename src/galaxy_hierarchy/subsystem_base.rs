@@ -32,7 +32,7 @@ impl SubsystemBase {
             name,
             exists: Atomic::from(exists),
             slot,
-            tier: Atomic::from(if exists { 1u8 } else { 0 }),
+            tier: Atomic::from(0),
             status: Atomic::default(),
             hast_last_emitted_status: Atomic::default(),
             last_emitted_status: Atomic::default(),
