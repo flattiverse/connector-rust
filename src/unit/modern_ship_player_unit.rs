@@ -190,7 +190,7 @@ impl Unit for ModernShipPlayerUnit {
     #[inline]
     fn radius(&self) -> f32 {
         if !self.full_state_known() {
-            ModernShipGeometry::RADIUS
+            Self::STARTING_RADIUS
         } else {
             ShipBalancing::calculate_radius(self.effective_structural_load())
         }
@@ -207,20 +207,13 @@ impl Unit for ModernShipPlayerUnit {
     #[inline]
     fn gravity(&self) -> f32 {
         if let Some(controllable) = self.try_get_own_controllable() {
-            // TODO
-            // controllable.gravity()
-            let _ = controllable;
-            if self.full_state_known() {
-                ShipBalancing::calculate_gravity(self.effective_structural_load())
-            } else {
-                ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
-            }
+            controllable.gravity()
         } else {
-            if self.full_state_known() {
-                ShipBalancing::calculate_gravity(self.effective_structural_load())
+            ShipBalancing::calculate_gravity(if self.full_state_known() {
+                self.effective_structural_load()
             } else {
-                ShipBalancing::calculate_gravity(Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD)
-            }
+                Self::STARTING_EFFECTIVE_STRUCTURAL_LOAD
+            })
         }
     }
 
