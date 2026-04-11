@@ -4,7 +4,7 @@ use crate::unit::{
     AbstractMobileUnit, MobileUnit, MobileUnitInternal, Unit, UnitCastTable, UnitHierarchy,
     UnitInternal,
 };
-use crate::utils::Atomic;
+use crate::utils::{Also, Atomic};
 use crate::GameError;
 use std::sync::{Arc, Weak};
 
@@ -45,10 +45,17 @@ impl AbstractMobileNpcUnit {
         Ok(Self {
             parent: AbstractMobileUnit::new(cluster, name),
             team: Arc::downgrade(&galaxy.get_team(TeamId(reader.read_byte()))),
-            radius: Atomic::from_reader(reader),
+            radius: Atomic::from(0.0),
             hull: Atomic::from(0.0),
             hull_maximum: Atomic::from(0.0),
-        })
+        }
+        .also(|it| {
+            it.parent.position.read(reader);
+            it.parent.movement.read(reader);
+            it.parent.angle.read(reader);
+            it.parent.angular_velocity.read(reader);
+            it.radius.read(reader);
+        }))
     }
 }
 

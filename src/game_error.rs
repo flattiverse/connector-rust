@@ -37,6 +37,17 @@ impl GameError {
             f(packet)
         }
     }
+
+    #[inline]
+    pub fn all_read(reader: &mut dyn PacketReader) -> Result<(), GameError> {
+        if reader.remaining() > 0 {
+            Err(GameError::from(GameErrorKind::PacketNotCompletelyRead(
+                reader.remaining(),
+            )))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl From<GameErrorKind> for GameError {
@@ -181,6 +192,7 @@ pub enum GameErrorKind {
         value: String,
         r#type: &'static str,
     },
+    PacketNotCompletelyRead(usize),
 }
 
 impl Display for GameErrorKind {
@@ -268,6 +280,7 @@ impl Display for GameErrorKind {
             GameErrorKind::ControllableIsRebuilding =>  "[0x3F] This controllable is currently rebuilding and cannot execute commands.",
             GameErrorKind::DuplicateSubsystemComponentValue {component_kind} => return write!(f, "[0x40] The subsystem component \"{component_kind:?}\" was supplied more than once."),
             GameErrorKind::InvalidPrimitiveValue { value, r#type } => return write!(f, "[0x??] Value {value:?} not expected for  {type:?}"),
+            GameErrorKind::PacketNotCompletelyRead(bytes) => return write!(f, "[0x??] The packet has unread bytes remaining: {bytes}"),
         })
     }
 }

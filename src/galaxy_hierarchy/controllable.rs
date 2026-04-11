@@ -1,8 +1,8 @@
 use crate::galaxy_hierarchy::{
     ArmorSubsystem, AsSubsystemBase, BatterySubsystem, CargoSubsystem, ClassicShipControllable,
     Cluster, EnergyCellSubsystem, HullSubsystem, Identifiable, Indexer, ModernShipControllable,
-    ModernShipGeometry, RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem,
-    StructureOptimizerSubsystem, SubsystemExt, SubsystemTierInfo, SystemExtIntern,
+    RepairSubsystem, ResourceMinerSubsystem, ShieldSubsystem, StructureOptimizerSubsystem,
+    SubsystemExt, SubsystemTierInfo, SystemExtIntern,
 };
 use crate::network::{InvalidArgumentKind, PacketReader};
 use crate::unit::UnitKind;

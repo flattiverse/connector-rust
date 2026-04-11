@@ -707,7 +707,7 @@ impl Galaxy {
             event!(events, PlayerDisconnected { player });
         }
 
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1044,7 +1044,7 @@ impl Galaxy {
         self.controllables
             .populate(Controllable::from_packet(kind, &cluster, id, name, reader)?);
 
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1076,7 +1076,7 @@ impl Galaxy {
         } else {
             error!("There is no Controllable for {id:?}");
         }
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1139,14 +1139,18 @@ impl Galaxy {
             Ok(unit) => unit,
             Err(e) => {
                 error!("Unable to read Unit for UnitKind::{kind:?}: {e:?}");
-                return Ok(());
+                return GameError::all_read(reader);
             }
         };
 
         cluster.add_unit(Arc::clone(&unit));
         event!(events, UnitAppeared { unit });
 
-        Ok(())
+        GameError::all_read(reader).also(|it| {
+            if it.is_err() {
+                warn!("{kind:?}");
+            }
+        })
     }
 
     #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
@@ -1168,7 +1172,7 @@ impl Galaxy {
             error!("Failed to find unit with name {name:?}");
         }
 
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, reader), err(Display, level = "warn"))]
@@ -1190,7 +1194,7 @@ impl Galaxy {
             error!("Failed to find unit with name {name:?}");
         }
 
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1533,7 +1537,7 @@ impl Galaxy {
             }
         );
 
-        Ok(())
+        GameError::all_read(reader)
     }
 
     #[instrument(level = "trace", skip(self, events), err(Display, level = "warn"))]
@@ -1604,7 +1608,7 @@ impl Galaxy {
                 }
             );
 
-            Ok(())
+            GameError::all_read(reader)
         }
     }
 
