@@ -37,13 +37,17 @@ impl DominationPoint {
         self.domination_radius
     }
 
-    /// Current domination progress.
+    /// Current domination progress for the currently shown team.
+    /// Freshly created or tournament-reset points start at zero and must be fully captured before
+    /// scoring begins.
     #[inline]
     pub fn domination(&self) -> i32 {
         self.domination.load()
     }
 
     /// Current score countdown while fully controlled.
+    /// Freshly created or tournament-reset points stay at the maximum countdown until a team fully
+    /// captures the point.
     #[inline]
     pub fn score_countdown(&self) -> i32 {
         self.score_countdown.load()
