@@ -44,7 +44,6 @@ pub struct Galaxy {
     player_max_classic_ships: Atomic<u8>,
     player_max_modern_ships: Atomic<u8>,
 
-    maintenance: Atomic<bool>,
     requires_self_disclosure: Atomic<bool>,
     required_achievement: ArcSwapOption<String>,
     active: Atomic<bool>,
@@ -220,7 +219,6 @@ impl Galaxy {
                     player_max_total_ships: Atomic::from(0),
                     player_max_classic_ships: Atomic::from(0),
                     player_max_modern_ships: Atomic::from(0),
-                    maintenance: Atomic::from(false),
                     requires_self_disclosure: Atomic::from(false),
                     required_achievement: ArcSwapOption::default(),
                     active: Atomic::from(true),
@@ -438,7 +436,6 @@ impl Galaxy {
         player_max_total_ships: u8,
         player_max_classic_ships: u8,
         player_max_modern_ships: u8,
-        maintenance: u8,
         requires_self_disclosure: u8,
         required_achievement: String,
     ) -> Result<(), GameError> {
@@ -465,7 +462,6 @@ impl Galaxy {
         self.player_max_classic_ships
             .store(player_max_classic_ships);
         self.player_max_modern_ships.store(player_max_modern_ships);
-        self.maintenance.store(maintenance != 0);
         self.requires_self_disclosure
             .store(requires_self_disclosure != 0);
 
@@ -1697,14 +1693,6 @@ impl Galaxy {
     /// True while the underlying session and connection are still active.
     pub fn active(&self) -> bool {
         self.active.load()
-    }
-
-    /// True if a galaxy admin has enabled maintenance mode. When maintenance mode is enabled, new
-    /// players or spectators cannot connect, and existing players cannot register new ships or
-    /// continue existing ships. Some things in the galaxy (such as the game mode) can only be
-    /// changed when maintenance mode is enabled, in order to maintain a consistent player state.
-    pub fn maintenance(&self) -> bool {
-        self.maintenance.load()
     }
 
     /// Whether this galaxy requires self-disclosure for regular player logins.

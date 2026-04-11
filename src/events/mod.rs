@@ -243,7 +243,6 @@ impl Display for FlattiverseEvent {
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_total_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_classic_ships);
                     log_change!(appended_at_least_one_change, galaxy, before, player_max_modern_ships);
-                    log_change!(appended_at_least_one_change, galaxy, before, maintenance);
                     log_change!(appended_at_least_one_change, galaxy, before, requires_self_disclosure);
 
                     // Error[internal]: left behind trailing whitespace

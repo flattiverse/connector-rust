@@ -14,6 +14,8 @@ pub struct Shot {
 }
 
 impl Shot {
+    pub const FIXED_SPEED_LIMIT: f32 = 10.0;
+
     pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
@@ -55,6 +57,11 @@ impl UnitHierarchy for Shot {
 }
 
 impl Unit for Shot {
+    #[inline]
+    fn speed_limit(&self) -> f32 {
+        Self::FIXED_SPEED_LIMIT
+    }
+
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Shot

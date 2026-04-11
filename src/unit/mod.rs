@@ -162,6 +162,9 @@ pub use rail::*;
 mod shot;
 pub use shot::*;
 
+mod interceptor;
+pub use interceptor::*;
+
 mod target;
 pub use target::*;
 
@@ -253,7 +256,7 @@ mod internal {
     use crate::unit::{
         AbstractExplosion, AiBase, AiFreighter, AiProbe, AiShip, AiTurret, BlackHole, Buoy,
         CarbonCargoPowerUp, ClassicShipPlayerUnit, CurrentField, DominationPoint,
-        EnergyChargePowerUp, Flag, Gate, HullRepairPowerUp, HydrogenCargoPowerUp,
+        EnergyChargePowerUp, Flag, Gate, HullRepairPowerUp, HydrogenCargoPowerUp, Interceptor,
         InterceptorExplosion, IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget,
         ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, Planet, Rail,
         ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp, SpaceJellyFish,
@@ -305,6 +308,7 @@ mod internal {
             UnitKind::AiShip => AiShip::new(cluster, name, reader)?,
             UnitKind::AiProbe => AiProbe::new(cluster, name, reader)?,
             UnitKind::Shot => Shot::new(cluster, name, reader)?,
+            UnitKind::Interceptor => Interceptor::new(cluster, name, reader)?,
             UnitKind::Rail => Rail::new(cluster, name, reader)?,
             UnitKind::ClassicShipPlayerUnit => ClassicShipPlayerUnit::new(cluster, name, reader)?,
             UnitKind::ModernShipPlayerUnit => ModernShipPlayerUnit::new(cluster, name, reader)?,

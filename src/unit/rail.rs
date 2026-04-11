@@ -14,6 +14,8 @@ pub struct Rail {
 }
 
 impl Rail {
+    pub const FIXED_SPEED_LIMIT: f32 = 15.0;
+
     pub(crate) fn new(
         cluster: Weak<Cluster>,
         name: String,
@@ -55,6 +57,11 @@ impl UnitHierarchy for Rail {
 }
 
 impl Unit for Rail {
+    #[inline]
+    fn speed_limit(&self) -> f32 {
+        Self::FIXED_SPEED_LIMIT
+    }
+
     #[inline]
     fn kind(&self) -> UnitKind {
         UnitKind::Rail

@@ -12,7 +12,7 @@
     strum::AsRefStr,
 )]
 pub enum PlayerUnitDestroyedReason {
-    /// Destroyed by global server rules, for example disconnect cleanup or maintenance transitions.
+    /// Destroyed by global server rules, for example disconnect cleanup.
     ByRules = 0x00,
     /// Destroyed because the owner explicitly called <c>Suicide()</c>.
     Suicided = 0x10,

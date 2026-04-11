@@ -1,6 +1,8 @@
 use bytes::{Buf, BytesMut};
 
 pub trait PacketReader {
+    fn remaining(&self) -> usize;
+
     fn read_sbyte(&mut self) -> i8;
     fn read_byte(&mut self) -> u8;
     fn read_int16(&mut self) -> i16;
@@ -47,6 +49,10 @@ pub trait PacketReader {
 }
 
 impl PacketReader for BytesMut {
+    fn remaining(&self) -> usize {
+        Buf::remaining(self)
+    }
+
     #[inline]
     fn read_sbyte(&mut self) -> i8 {
         self.get_i8()

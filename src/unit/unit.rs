@@ -3,12 +3,12 @@ use crate::network::PacketReader;
 use crate::unit::{
     AiBase, AiFreighter, AiProbe, AiShip, AiTurret, BlackHole, Buoy, CarbonCargoPowerUp,
     ClassicShipPlayerUnit, CurrentField, DominationPoint, EnergyChargePowerUp, Explosion, Flag,
-    Gate, HullRepairPowerUp, HydrogenCargoPowerUp, InterceptorExplosion, IonChargePowerUp,
-    MetalCargoPowerUp, Meteoroid, MissionTarget, MobileNpcUnit, MobileUnit, Mobility,
-    ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, NpcUnit, Planet, PlayerUnit,
-    PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp, SiliconCargoPowerUp,
-    SpaceJellyFish, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl, StormCommencingWhirl,
-    StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
+    Gate, HullRepairPowerUp, HydrogenCargoPowerUp, Interceptor, InterceptorExplosion,
+    IonChargePowerUp, MetalCargoPowerUp, Meteoroid, MissionTarget, MobileNpcUnit, MobileUnit,
+    Mobility, ModernShipPlayerUnit, Moon, Nebula, NeutrinoChargePowerUp, NpcUnit, Planet,
+    PlayerUnit, PowerUp, Projectile, Rail, ShieldChargePowerUp, Shot, ShotChargePowerUp,
+    SiliconCargoPowerUp, SpaceJellyFish, SpaceJellyFishSlime, SteadyUnit, Storm, StormActiveWhirl,
+    StormCommencingWhirl, StormWhirl, Sun, Switch, TargetUnit, UnitKind, WormHole,
 };
 use crate::utils::Atomic;
 use crate::Vector;
@@ -259,6 +259,11 @@ pub trait UnitHierarchy: UnitInternal {
     #[inline]
     fn as_shot(&self) -> Option<&Shot> {
         self.parent().as_shot()
+    }
+
+    #[inline]
+    fn as_interceptor(&self) -> Option<&Interceptor> {
+        self.parent().as_interceptor()
     }
 
     #[inline]
@@ -644,6 +649,11 @@ impl UnitHierarchy for AbstractUnit {
 
     #[inline]
     fn as_shot(&self) -> Option<&Shot> {
+        None
+    }
+
+    #[inline]
+    fn as_interceptor(&self) -> Option<&Interceptor> {
         None
     }
 

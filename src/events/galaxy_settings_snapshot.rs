@@ -32,8 +32,6 @@ pub struct GalaxySettingsSnapshot {
     pub player_max_classic_ships: u8,
     /// Maximum new ships per player.
     pub player_max_modern_ships: u8,
-    /// Maintenance mode flag.
-    pub maintenance: bool,
     /// Whether regular player logins must provide runtime and build self-disclosure.
     pub requires_self_disclosure: bool,
     /// Optional achievement key required for regular player logins.
@@ -57,7 +55,6 @@ impl From<&Galaxy> for GalaxySettingsSnapshot {
             player_max_total_ships: galaxy.player_max_total_ships(),
             player_max_classic_ships: galaxy.player_max_classic_ships(),
             player_max_modern_ships: galaxy.player_max_modern_ships(),
-            maintenance: galaxy.maintenance(),
             requires_self_disclosure: galaxy.requires_self_disclosure(),
             required_achievement: galaxy.required_achievement(),
         }
