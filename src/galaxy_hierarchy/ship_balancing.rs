@@ -24,18 +24,18 @@ impl ShipBalancing {
         1.2_f32 - 0.45 * (effective_load / 100.0f32).powf(0.85)
     }
 
-    pub const fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {
+    pub fn calculate_engine_energy(value: f32, maximum: f32, full_cost: f32) -> f32 {
         debug_assert!(
             value.is_normal() && value >= 0.0,
-            "Invalid engine value specified."
+            "Invalid engine value specified: {value}."
         );
         debug_assert!(
             maximum.is_normal() && maximum >= 0.0,
-            "Invalid engine maximum specified."
+            "Invalid engine maximum specified: {value}."
         );
         debug_assert!(
             full_cost.is_normal() && full_cost >= 0.0,
-            "Invalid engine full cost specified."
+            "Invalid engine full cost specified: {value}."
         );
 
         if maximum <= 0.0 || value <= 0.0 || full_cost == 0.0 {
