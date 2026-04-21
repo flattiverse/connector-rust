@@ -191,3 +191,11 @@ impl Div<f32> for Vector {
         Vector::new(self.x / rhs, self.y / rhs)
     }
 }
+
+impl Mul<Vector> for Vector {
+    type Output = f32;
+
+    fn mul(self, rhs: Vector) -> Self::Output {
+        self.x * rhs.x + self.y * rhs.y
+    }
+}
